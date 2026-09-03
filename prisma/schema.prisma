@@ -1,0 +1,1004 @@
+// A2R Delivery OS — Phase 3 SaaS foundation schema.
+//
+// This models the exact domain captured by the Phase 1/2 static prototype
+// (a2r/index.html`state` object), lifted into a multi-tenant Postgres schema:
+//   Organization -> Practices / Roles (rate card) / Resources / Policy / Controls
+//   Organization -> Projects -> Scope, Effort Matrix, Audit, RAID, Financials, Schedule
+//
+// Every org-scoped model carries organizationId directly (not just via project)
+// so tenant isolation can be enforced at the query layer without extra joins.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =========================================================
+// AUTH / TENANCY
+// =========================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String? // set for credentials-based accounts; null for OAuth-only users
+
+  // A2R Operator Control Plane — flags an A2R Ventures staff account that
+  // may access the internal /ops console (cross-tenant provisioning &
+  // telemetry). Deliberately a plain boolean on User, not a Membership
+  // role: it is a platform-operator capability, entirely orthogonal to any
+  // client-tenant MembershipRole/DeliveryAccessRole, and an operator
+  // typically holds no client Membership at all. src/lib/ops-auth.ts also
+  // treats an @a2rventures.com email as staff so the very first operator
+  // can bootstrap without a manual DB edit.
+  isA2rStaff    Boolean   @default(false)
+
+  createdAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  memberships Membership[]
+  activity    ActivityLogEntry[]
+  // A user can be the login for at most one Resource (roster entry) per
+  // org — see Resource.userId. A consultant working across client
+  // instances can still be a different Resource in each org.
+  resourceLinks Resource[]
+  // WP6 — every AuditLog row this user was the actor for.
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+// Standard Auth.js (NextAuth) Prisma adapter models — kept so OAuth providers
+// can be added later without a schema migration; Credentials login does not
+// use these tables directly (JWT session strategy).
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+// WP4 — the real, server-enforced enterprise RBAC tier (Module-level
+// portfolio scoping and edit authority). Deliberately a *separate* axis
+// from MembershipRole above, not a replacement for it: MembershipRole is
+// the tenant-console tier (who can manage billing/org membership — see
+// LOCK_ROLES in src/server/actions/projects.ts, which still checks
+// MembershipRole for baseline lock/unlock), while DeliveryAccessRole is
+// the delivery-portfolio tier src/lib/auth/rbac.ts's permission matrix
+// operates on. Nullable so existing memberships created before this field
+// existed keep working — src/lib/auth/rbac.ts#resolveDeliveryRole()
+// derives a sensible default from MembershipRole when this is unset,
+// rather than requiring a backfill migration.
+//
+// This is unrelated to (and does not replace) the WP3 "Persona" switcher
+// in src/components/layout/dashboard-ui-context.tsx, which remains a
+// purely cosmetic, client-only, localStorage-persisted UI preview and
+// still never gates anything server-side.
+enum DeliveryAccessRole {
+  ADMIN
+  VP_EXECUTIVE
+  PRACTICE_DIRECTOR
+  DELIVERY_MANAGER
+  PROJECT_MANAGER
+}
+
+// A user's membership in a tenant org. A user can belong to more than one
+// org (e.g. a consultant working across client instances).
+model Membership {
+  id             String              @id @default(cuid())
+  userId         String
+  organizationId String
+  role           MembershipRole      @default(MEMBER)
+  deliveryRole   DeliveryAccessRole?
+  createdAt      DateTime            @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+// A2R Operator Control Plane — lifecycle state of a client tenant, managed
+// from /ops/tenants. SUSPENDED tenants still exist (data retained) but their
+// members are locked out of the client workspace until reactivated; A2R
+// staff are never locked out.
+enum OrgStatus {
+  ACTIVE
+  // Members locked out entirely; data retained.
+  SUSPENDED
+  // Read-only wind-down window (e.g. pre-offboarding): members can view
+  // but not write; A2R staff unaffected.
+  GRACE_PERIOD
+}
+
+// A2R Operator Control Plane — commercial tier a tenant is contracted on.
+// Display/segmentation only today (shown in /ops/tenants and telemetry); no
+// feature gating hangs off it yet.
+enum ContractTier {
+  TRIAL
+  STANDARD
+  ENTERPRISE
+}
+
+// The SaaS tenant. Everything below hangs off an Organization.
+model Organization {
+  id           String       @id @default(cuid())
+  name         String
+  slug         String       @unique
+  status       OrgStatus    @default(ACTIVE)
+  contractTier ContractTier @default(STANDARD)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Data Sovereignty & Offboarding — soft-delete marker set by the Purge
+  // Protocol (rows are retained but the tenant is excluded from all
+  // operator + client surfaces); and the last successful data-export time.
+  purgedAt        DateTime?
+  dataExportedAt  DateTime?
+
+  memberships    Membership[]
+  policy         OrgPolicy?
+  controlLabels  ControlLabel[]
+  practices      Practice[]
+  deliveryRoles  DeliveryRole[]
+  resources      Resource[]
+  projects       Project[]
+  activity       ActivityLogEntry[]
+  auditLogs      AuditLog[]
+  weeklyAssignmentSlots WeeklyAssignmentSlot[]
+  holidays               OrganizationHoliday[]
+  roleUtilizationPolicies RoleUtilizationPolicy[]
+  auditLedger            ImmutableAuditLedger[]
+  impersonationGrants    ImpersonationGrant[]
+  apiKeys                ApiKey[]
+  timesheetEntries       TimesheetEntry[]
+
+  @@map("organizations")
+}
+
+// Super-Admin Tenant & Data Sovereignty — the Impersonation Gateway.
+// An A2R staff account can mint a short-lived, read-only grant to enter a
+// specific tenant's workspace for troubleshooting. src/lib/session.ts
+// honours a live grant (token carried in the `a2r_impersonation` cookie);
+// every grant creation writes an ADMIN_IMPERSONATION_ACCESS entry to that
+// tenant's Immutable Audit Ledger.
+model ImpersonationGrant {
+  id             String    @id @default(cuid())
+  token          String    @unique
+  actorId        String // the A2R staff User id
+  organizationId String
+  reason         String
+  readOnly       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime
+  endedAt        DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("impersonation_grants")
+}
+
+// =========================================================
+// MODULE 0 — ADMIN & ORG SETUP
+// =========================================================
+
+enum Methodology {
+  WATERFALL
+  AGILE
+  HYBRID
+}
+
+// Governance tolerances + methodology preset. Mirrors state.policy
+// (minus .controls, which is normalized out into ControlLabel rows).
+model OrgPolicy {
+  id             String      @id @default(cuid())
+  organizationId String      @unique
+  slipWarnDays   Int         @default(5)
+  slipCritDays   Int         @default(15)
+  marginCritPct  Float       @default(5)
+  methodology    Methodology @default(WATERFALL)
+  updatedAt      DateTime    @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("org_policies")
+}
+
+// Org-level display-label override for one of the 10 Minimum Controls.
+// The control catalog itself (id, why, evidence, per-methodology default
+// labels) is seed/reference data (see prisma/seed.ts), not tenant data —
+// this table only stores the org's chosen rename, keyed by controlKey.
+model ControlLabel {
+  id             String @id @default(cuid())
+  organizationId String
+  controlKey     String // e.g. "CTRL_01".."CTRL_10"
+  label          String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, controlKey])
+  @@map("control_labels")
+}
+
+model Practice {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  createdAt      DateTime @default(now())
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveryRoles DeliveryRole[]
+  resources    Resource[]
+  // WP4: a project's home practice, for PRACTICE_DIRECTOR portfolio
+  // scoping ("projects in their practice domain") independent of who's
+  // formally assigned as PD on any given project — see Project.practiceId.
+  projects     Project[]
+
+  @@index([organizationId])
+  @@map("practices")
+}
+
+// WP6 — Employee (FTE) vs. Contractor / Vendor classification. Lives on
+// the rate-card role, not on the named Resource: Sizing (EffortCell) and
+// Financials (FinancialActual) are both role-keyed, not resource-keyed —
+// neither table has a resourceId column, and adding one would be a much
+// bigger schema change than this WP's "expose the distinction in Sizing
+// and Financials" ask actually requires. A role can only be all-FTE or
+// all-Contractor at a time (matches the spec's own framing: both surfaces
+// this needs to show up in are role-keyed screens); a named person's
+// individual employment status, if ever needed independent of which rate
+// card role they bill against, is future scope.
+enum ResourceEmploymentType {
+  FTE
+  CONTRACTOR
+}
+
+// Rate-card role. Named DeliveryRole (not "Role") to avoid clashing with
+// auth MembershipRole. These rows become the live row-set of every
+// project's Phase-Effort Matrix.
+model DeliveryRole {
+  id             String                 @id @default(cuid())
+  organizationId String
+  name           String
+  billRate       Float
+  costRate       Float
+  practiceId     String?
+  // WP6 — see ResourceEmploymentType above.
+  employmentType ResourceEmploymentType @default(FTE)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  practice     Practice?    @relation(fields: [practiceId], references: [id], onDelete: SetNull)
+  resources    Resource[]
+  effortCells  EffortCell[]
+  financials   FinancialActual[]
+
+  @@index([organizationId])
+  @@map("delivery_roles")
+}
+
+model Resource {
+  id             String  @id @default(cuid())
+  organizationId String
+  name           String
+  email          String?
+  roleId         String?
+  practiceId     String?
+
+  // WP4 — RBAC scoping. Both nullable: a Resource is a roster/rate-card
+  // entry first and may exist with no linked login (e.g. a named
+  // subcontractor never given app access) and no manager on file yet.
+  // userId links this roster entry to the User who logs in as this
+  // person — src/lib/session.ts resolves the signed-in user's resourceId
+  // this way. managerId is the reporting line a DELIVERY_MANAGER's scoped
+  // query walks to find "my direct-report PMs" (see
+  // src/lib/db/scoped-portfolio.ts).
+  userId    String?
+  managerId String?
+
+  // ---- Capacity & Concurrency schema foundation ----
+  // Domain-led practice / department the resource sits in — one of the
+  // modern taxonomy codes ("TRANS-Delivery", "FIN-Advisory",
+  // "TECH-Transformation", "OPS-Strategy", "DATA-Analytics"). Free-text so
+  // a tenant can extend it. Distinct from the relational
+  // `practice`/`practiceId` above, which is the RBAC-scoping Practice row —
+  // this is the capacity-planning bucket.
+  psPractice    String  @default("TRANS-Delivery")
+  // Free-text manager name, distinct from the relational `manager`
+  // reporting line above (which a DELIVERY_MANAGER's scoped query walks).
+  managerName   String?
+  fte           Float   @default(1.0)
+  // Per-person target utilisation override — the capacity engine prefers
+  // rolePolicy.targetUtilPct when a policy is linked, and falls back to this.
+  targetUtilPct Float   @default(0.70)
+  isPS          Boolean @default(true)
+  projectCount  Int     @default(0) // concurrency tracker
+  // Capacity Cockpit — role utilisation policy + roster tenure. startDate/
+  // endDate prorate the Available-Hours denominator (individual PTO does not).
+  rolePolicyId  String?
+  startDate     DateTime  @default(now())
+  endDate       DateTime?
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         DeliveryRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  practice     Practice?     @relation(fields: [practiceId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  manager      Resource?     @relation("ResourceManager", fields: [managerId], references: [id], onDelete: SetNull)
+  rolePolicy   RoleUtilizationPolicy? @relation(fields: [rolePolicyId], references: [id], onDelete: SetNull)
+
+  directReports Resource[] @relation("ResourceManager")
+  projectsAsPD  Project[]   @relation("ProjectPD")
+  projectsAsDM  Project[]   @relation("ProjectDM")
+  projectsAsPM  Project[]   @relation("ProjectPM")
+  raidEntries   RaidEntry[]
+  contributions ProjectContributor[]
+  // WP7 — SteerCo decisions this resource is the named owner of.
+  steerCoDecisions SteerCoDecision[]
+  // Capacity foundation — weekly forecast/actual assignment slots.
+  weeklySlots      WeeklyAssignmentSlot[]
+  timesheetEntries TimesheetEntry[]
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([managerId])
+  @@map("resources")
+}
+
+// ---- Capacity & Concurrency schema foundation ----
+// One resource's forecast vs. actual hours on one project for one week.
+// The time-series backing the Financial Realization burn curve (RTM C4)
+// and the future capacity/utilisation views.
+model WeeklyAssignmentSlot {
+  id             String   @id @default(cuid())
+  organizationId String
+  resourceId     String
+  projectId      String
+  weekDate       DateTime // the Monday of the ISO week
+  forecastedHours Float   @default(0)
+  actualHours     Float   @default(0)
+  role           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  resource     Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, projectId, weekDate])
+  @@index([organizationId])
+  @@index([projectId, weekDate])
+  @@index([resourceId, weekDate])
+  @@map("weekly_assignment_slots")
+}
+
+// ---- Secure Data Ingestion API Bridge ----
+// A tenant-scoped API credential for automated data entry from external
+// enterprise systems (CRM, ERP, legacy timesheets). Only the SHA-256 hash
+// of the key is stored; the plaintext (prefix + secret) is shown once at
+// creation. Validation: src/lib/ops/api-keys.ts. Every key belongs to
+// exactly one tenant — a request authenticated with it can only ever write
+// into that tenant's data.
+model ApiKey {
+  id             String    @id @default(cuid())
+  organizationId String // the tenant this key is scoped to
+  name           String // human label, e.g. "Workday timesheet sync"
+  // First ~10 chars of the plaintext key (e.g. "a2r_live_7f3k") — safe to
+  // display so an operator can identify a key without revealing the secret.
+  keyPrefix      String
+  hashedKey      String    @unique // sha256(plaintext)
+  createdByEmail String
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime?
+  lastUsedAt     DateTime?
+  revokedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("api_keys")
+}
+
+// One raw timesheet record ingested via the API Bridge. Also rolled into
+// the matching WeeklyAssignmentSlot.actualHours so it flows straight into
+// the EAC / burn-curve / capacity engine.
+model TimesheetEntry {
+  id             String   @id @default(cuid())
+  organizationId String
+  projectId      String
+  resourceId     String
+  hours          Float
+  workDate       DateTime // the day the work was performed
+  source         String   @default("api") // ingest channel
+  apiKeyId       String? // the key that ingested it, when via the bridge
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  resource     Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, workDate])
+  @@index([projectId, workDate])
+  @@map("timesheet_entries")
+}
+
+// ---- Resource & Capacity Cockpit ----
+// A corporate non-working day. Removed from the Available-Hours denominator
+// for every resource in the period (individual PTO is not — see
+// src/lib/capacity-engine.ts).
+model OrganizationHoliday {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  date           DateTime
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, date])
+  @@index([organizationId])
+  @@map("organization_holidays")
+}
+
+// The target utilisation and billable-head classification for a job family.
+// `isBillableHead` = false excludes the role from the blended-utilisation
+// denominator entirely (Directors, PMO Coordinators).
+model RoleUtilizationPolicy {
+  id             String   @id @default(cuid())
+  organizationId String
+  roleName       String // "Solution Architect", "Delivery Staff", "People Manager", "Director", "PMO Coordinator"
+  targetUtilPct  Float // 0.72, 0.79, 0.10, 0.00
+  isBillableHead Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  resources    Resource[]
+
+  @@unique([organizationId, roleName])
+  @@index([organizationId])
+  @@map("role_utilization_policies")
+}
+
+// =========================================================
+// MODULE 1 — DEAL CRAFTING & SIZING  (+ project spine)
+// =========================================================
+
+enum CommercialModel {
+  FF // fixed fee
+  TM // time & materials
+}
+
+enum GovProfile {
+  STANDARD
+  MARQUEE
+}
+
+enum EstimationMode {
+  MATRIX
+  DIRECT
+}
+
+enum HierarchyLevel {
+  STANDALONE
+  PARENT
+  CHILD
+}
+
+model Project {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  client         String?
+  externalId     String?
+
+  commercialModel CommercialModel @default(FF)
+  methodology     Methodology     @default(WATERFALL)
+  govProfile      GovProfile      @default(STANDARD)
+  estimationMode  EstimationMode  @default(MATRIX)
+  contingencyPct  Float           @default(12)
+
+  practiceDirectorId String?
+  deliveryManagerId  String?
+  projectManagerId   String?
+  // WP4 — the project's home practice for PRACTICE_DIRECTOR portfolio
+  // scoping. Independent of practiceDirectorId: a PD can see every
+  // project in their practice, not only the ones they're personally
+  // assigned to lead. Nullable/unset means this project only shows up for
+  // its assigned PD (if any), not for the whole practice.
+  practiceId String?
+
+  hierarchyLevel HierarchyLevel @default(STANDALONE)
+  parentId       String?
+  waveTag        String?
+
+  locked          Boolean   @default(false)
+  lockedAt        DateTime?
+  baselineSnapshot Json?
+
+  // Direct Baseline Intake (used when estimationMode = DIRECT)
+  directIntakeSoldHours         Float @default(0)
+  directIntakeTargetRevenue     Float @default(0)
+  directIntakeBlendedMarginPct  Float @default(0)
+
+  // Status narrative (steering-deck notes)
+  narrativeAccomplishments String? @db.Text
+  narrativeBlockers        String? @db.Text
+  narrativePriorities      String? @db.Text
+
+  // ---- Capacity & Concurrency schema foundation ----
+  // Denormalized EVM-style rollups + a five-lens health vector, kept on the
+  // row so portfolio/telemetry surfaces can read them without re-running
+  // the calc engine. The live engine (src/lib/calculations) remains the
+  // source of truth; these are its last-published snapshot.
+  bac                Float   @default(0) // Budget at Completion
+  actualsCost        Float   @default(0)
+  unscheduledBacklog Float   @default(0) // USB — sold-but-unscheduled value
+  vac                Float   @default(0) // Variance at Completion (bac - EAC)
+  isRetainer         Boolean @default(false)
+  // Denormalized hierarchy flags — mirror hierarchyLevel/parentId, surfaced
+  // as plain columns for the capacity views' simpler queries.
+  isChild            Boolean @default(false)
+  parentProjectId    String?
+  healthCost         String  @default("Green")
+  healthSched        String  @default("Green")
+  healthScope        String  @default("Green")
+  healthQual         String  @default("Green")
+  healthRes          String  @default("Green")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  practiceDirector Resource? @relation("ProjectPD", fields: [practiceDirectorId], references: [id], onDelete: SetNull)
+  deliveryManager  Resource? @relation("ProjectDM", fields: [deliveryManagerId], references: [id], onDelete: SetNull)
+  projectManager   Resource? @relation("ProjectPM", fields: [projectManagerId], references: [id], onDelete: SetNull)
+  practice         Practice? @relation(fields: [practiceId], references: [id], onDelete: SetNull)
+
+  parent   Project?  @relation("ProjectHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Project[] @relation("ProjectHierarchy")
+
+  scopeItems     ScopeItem[]
+  effortCells    EffortCell[]
+  auditEntries   AuditEntry[]
+  raidEntries    RaidEntry[]
+  financials     FinancialActual[]
+  schedulePhases SchedulePhase[]
+  activity       ActivityLogEntry[]
+  // WP4 — PROJECT_MANAGER portfolio scoping's "or explicit contributor"
+  // clause: resources named on the project without being its PD/DM/PM of
+  // record (e.g. a second PM covering for someone on leave).
+  contributors   ProjectContributor[]
+  // WP6 — this project's slice of the tenant's immutable Audit Trail.
+  auditLogs      AuditLog[]
+  // WP7 — this project's SteerCo Decision & Action Tracker rows.
+  steerCoDecisions SteerCoDecision[]
+  // Capacity foundation — weekly forecast/actual assignment slots.
+  weeklySlots      WeeklyAssignmentSlot[]
+  timesheetEntries TimesheetEntry[]
+
+  @@index([organizationId])
+  @@index([parentId])
+  @@index([practiceId])
+  @@map("projects")
+}
+
+// A resource explicitly added to a project without being its
+// practiceDirectorId/deliveryManagerId/projectManagerId "of record" — see
+// getScopedProjectsForUser's PROJECT_MANAGER branch in
+// src/lib/db/scoped-portfolio.ts.
+model ProjectContributor {
+  id         String   @id @default(cuid())
+  projectId  String
+  resourceId String
+  createdAt  DateTime @default(now())
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, resourceId])
+  @@index([resourceId])
+  @@map("project_contributors")
+}
+
+enum ScopeComplexity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// One row of the Universal Scope & Taxonomy Matrix.
+model ScopeItem {
+  id         String          @id @default(cuid())
+  projectId  String
+  key        String // workstream key, e.g. "arch"; free-form for custom rows
+  name       String
+  included   Boolean         @default(true)
+  complexity ScopeComplexity @default(MEDIUM)
+  notes      String?         @db.Text
+  custom     Boolean         @default(false)
+  sortOrder  Int             @default(0)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("scope_items")
+}
+
+// One cell of the Phase-Effort Matrix: hours for (phase, role) on a project.
+model EffortCell {
+  id        String @id @default(cuid())
+  projectId String
+  phaseKey  String // initiate | design | build | test | deploy | sustain
+  roleId    String
+  hours     Float  @default(0)
+
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role    DeliveryRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, phaseKey, roleId])
+  @@index([projectId])
+  @@map("effort_cells")
+}
+
+// =========================================================
+// MODULE 2 — CONTROL AUDIT INTAKE
+// =========================================================
+
+enum AuditStatus {
+  YES
+  PARTIAL
+  NO
+  NA
+}
+
+model AuditEntry {
+  id         String      @id @default(cuid())
+  projectId  String
+  controlKey String // CTRL_01..CTRL_10
+  status     AuditStatus @default(NO)
+  owner      String?
+  repoLink   String? // evidence URL
+  // WP5 — free-text verification notes, distinct from the evidence link
+  // itself (e.g. "confirmed with client counsel on 3/1, awaiting a signed
+  // copy"). updatedAt (below) already doubles as the "verified at"
+  // timestamp the WP5 spec asks for — it's touched on every save.
+  notes      String?     @db.Text
+  updatedAt  DateTime    @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, controlKey])
+  @@index([projectId])
+  @@map("audit_entries")
+}
+
+// =========================================================
+// MODULE 3 — RAID COCKPIT
+// =========================================================
+
+enum RaidType {
+  RISK
+  ASSUMPTION
+  ISSUE
+  DEPENDENCY
+}
+
+enum RaidSeverity {
+  CRITICAL
+  HIGH
+  MED
+  LOW
+}
+
+// RTM C3 — the Risk Matrix heatmap's Likelihood axis. `severity` above is
+// the Impact axis (unchanged — it already drives badges/notifications
+// everywhere), so a RISK-type entry's cell on the 4x4 grid is
+// (severity, likelihood). Ordered least→most likely.
+enum RaidLikelihood {
+  RARE
+  POSSIBLE
+  LIKELY
+  ALMOST_CERTAIN
+}
+
+enum RaidStatus {
+  OPEN
+  INPROGRESS
+  CLOSED
+}
+
+model RaidEntry {
+  id          String       @id @default(cuid())
+  projectId   String
+  type        RaidType
+  // WP5 — short label the RAID Cockpit Board's Quick-Add drawer and table
+  // display as the item's name, distinct from the longer free-text
+  // description below it. Nullable/back-filled from description's first
+  // line for rows created before WP5 (see the RaidBoard.tsx display
+  // fallback) rather than a required migration default.
+  title       String?
+  description String       @db.Text
+  // WP5 — RAID-methodology fields the Quick-Add drawer asks for
+  // separately from the free-text description: what happens if this
+  // isn't addressed, and what the plan to address it is.
+  impact         String?      @db.Text
+  mitigationPlan String?      @db.Text
+  severity    RaidSeverity @default(MED)
+  // RTM C3 — Risk Matrix heatmap Likelihood axis (Impact axis = severity).
+  likelihood  RaidLikelihood @default(POSSIBLE)
+  ownerId     String?
+  targetDate  DateTime?
+  status      RaidStatus   @default(OPEN)
+  escalate    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  project Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner   Resource? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@map("raid_entries")
+}
+
+// =========================================================
+// MODULE 4 — FINANCIAL REALIZATION (EAC ENGINE)
+// =========================================================
+
+// Actuals/forecast/open-demand row, keyed by role (matrix mode) or the
+// synthetic '_direct' roleKey when estimationMode = DIRECT — matches
+// src/lib/calculations/financials.ts#computeEacSummary's own convention
+// exactly, so calc-adapters.ts never has to translate between the two.
+// roleId is nullable to support the '_direct' row, which has no
+// rate-card role.
+model FinancialActual {
+  id             String  @id @default(cuid())
+  projectId      String
+  roleKey        String // DeliveryRole.id, or "_direct" for direct-mode projects
+  roleId         String?
+  hours          Float   @default(0)
+  cost           Float   @default(0)
+  forecastHours  Float?
+  openRRHours    Float?
+
+  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role    DeliveryRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, roleKey])
+  @@index([projectId])
+  @@map("financial_actuals")
+}
+
+// =========================================================
+// MODULE 5 — MILESTONE SCHEDULE & BURNDOWN
+// =========================================================
+
+enum ScheduleStatus {
+  NOTSTARTED
+  INPROGRESS
+  COMPLETE
+  DELAYED
+}
+
+model SchedulePhase {
+  id            String         @id @default(cuid())
+  projectId     String
+  phaseKey      String // initiate | design | build | test | deploy | sustain
+  plannedStart  DateTime?
+  plannedEnd    DateTime?
+  actualStart   DateTime?
+  actualEnd     DateTime?
+  pctComplete   Float          @default(0)
+  status        ScheduleStatus @default(NOTSTARTED)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, phaseKey])
+  @@index([projectId])
+  @@map("schedule_phases")
+}
+
+// =========================================================
+// ACTIVITY LOG (PS Control Tower "Recent Activity")
+// =========================================================
+
+model ActivityLogEntry {
+  id             String   @id @default(cuid())
+  organizationId String
+  projectId      String?
+  userId         String?
+  text           String
+  tab            String   @default("home")
+  createdAt      DateTime @default(now())
+
+  // Restrict, not Cascade: an Organization row cannot be hard-deleted
+  // while its governance history still exists (audit finding CMP-1). The
+  // Purge Protocol is a soft delete (Organization.purgedAt) and never
+  // removes the org row, so this only blocks an accidental/raw DELETE.
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@map("activity_log_entries")
+}
+
+// =========================================================
+// WP6 — IMMUTABLE AUDIT TRAIL (GOVERNANCE INTEGRITY)
+// =========================================================
+
+// Distinct from ActivityLogEntry above: that's the PS Control Tower's
+// human-readable "Recent Activity" feed (freeform text, every module
+// touches it, not meant to be queried or filtered structurally). AuditLog
+// is the governance-grade record — structured (action/entityType/entityId
+// plus a full previous/new state snapshot as JSON), written only by
+// src/lib/audit/logger.ts, and only for the specific mutation families the
+// WP6 spec calls out as "critical state changes": baseline lock/unlock,
+// EAC actual/forecast updates, RAID SteerCo escalation toggles, audit
+// control status changes, plus this WP's own two new bulk-mutation
+// surfaces (CSV import commits, workspace snapshot restores). No update or
+// delete path is ever exposed for this model anywhere in the app — rows
+// are append-only, which is what "immutable" means here in practice (the
+// schema itself doesn't enforce it; there's simply no code path that
+// mutates or removes a row once logAuditEvent has written it).
+//
+// The one exception is the data-retention sweep
+// (src/server/services/data-retention.ts, CMP-2): it DELETES whole rows
+// older than RETENTION_AUDIT_LOG_DAYS (default ~7 years) and never edits
+// them. The tamper-EVIDENT hash-chained record is ImmutableAuditLedger —
+// the retention sweep never touches that one.
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  projectId      String?
+  userId         String?
+  // Free-text, not an enum — same convention as ActivityLogEntry.tab —
+  // since this WP's action vocabulary (see logger.ts's AuditAction) will
+  // keep growing and a free-text column avoids a migration per addition.
+  // e.g. BASELINE_LOCKED, BASELINE_UNLOCKED, EAC_ACTUAL_UPDATED,
+  // RAID_ESCALATED, RAID_UNESCALATED, AUDIT_SCORE_CHANGED,
+  // CSV_IMPORT_COMMITTED, WORKSPACE_RESTORED.
+  action         String
+  // e.g. PROJECT, FINANCIAL_ACTUAL, RAID_ENTRY, AUDIT_ENTRY, INGESTION, WORKSPACE
+  entityType     String
+  // The specific row touched (RaidEntry.id, AuditEntry.id, …), when the
+  // action is about one row rather than a bulk operation.
+  entityId       String?
+  previousState  Json?
+  newState       Json?
+  createdAt      DateTime @default(now())
+
+  // Restrict, not Cascade — the immutable audit trail must outlive any
+  // raw Organization DELETE (audit finding CMP-1). See ActivityLogEntry.
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([projectId, createdAt])
+  @@map("audit_logs")
+}
+
+// SOC 2 Compliance Ledger — a tamper-EVIDENT, hash-chained record of the
+// highest-consequence governance actions (baseline / stage-gate overrides,
+// security-config changes, role-policy edits, tenant lifecycle). Each row
+// carries the SHA-256 hash of its own canonical payload chained onto the
+// previous row's `currentHash`, so any after-the-fact edit or deletion
+// breaks the chain and `verifyLedgerIntegrity` flags it. Append-only:
+// src/lib/audit-ledger.ts#recordLedgerEvent is the only writer, and no
+// update/delete path is exposed anywhere.
+model ImmutableAuditLedger {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorId        String // User ID who performed the action
+  actionType     String // e.g. "BASELINE_OVERRIDE", "SECURITY_CONFIG_CHANGE", "STAGE_GATE_OVERRIDE"
+  targetResource String // e.g. "Project:123", "RolePolicy:456"
+  previousHash   String? // the prior row's currentHash — null only for the genesis row
+  currentHash    String // SHA-256 over the canonical record + previousHash
+  metadata       Json? // structured payload of change details
+  createdAt      DateTime @default(now())
+
+  // Restrict, not Cascade — a hard Organization DELETE must never be able
+  // to wipe the tamper-evident SOC 2 ledger (audit finding CMP-1). An
+  // operator has to archive/export the chain out-of-band first. The Purge
+  // Protocol only soft-deletes (Organization.purgedAt), so this is a
+  // backstop against accidental or raw deletes, not normal offboarding.
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  // REL-3 — each row in a tenant's chain links to exactly one predecessor,
+  // so no two rows may share a previousHash. Combined with the per-tenant
+  // advisory lock in recordLedgerEvent, this makes a forked chain
+  // impossible even under concurrent appends. (NULL previousHash — the
+  // genesis row — is exempt: Postgres treats NULLs as distinct, and the
+  // advisory lock already serializes the first append.)
+  @@unique([organizationId, previousHash])
+  @@index([organizationId, createdAt])
+  @@map("immutable_audit_ledger")
+}
+
+// =========================================================
+// WP7 — EXECUTIVE REPORTING HUB & STEERCO DECISION TRACKER
+// =========================================================
+
+enum SteerCoDecisionStatus {
+  OPEN
+  RESOLVED
+}
+
+// One row of a project's SteerCo Decision & Action Tracker — a decision
+// the steering committee needs to make (or has made), who owns getting it
+// resolved, and by when. Deliberately its own model rather than a repurposed
+// RaidEntry: a RAID item is a risk/issue/assumption/dependency to *manage*,
+// while a SteerCo decision is a specific ask *of the steering committee
+// itself* ("approve the change order," "confirm the go-live date") — the
+// SteerCo Status Deck's RAID section and Decision Tracker section are
+// deliberately two different lists, not one relabeled.
+model SteerCoDecision {
+  id                   String                @id @default(cuid())
+  projectId            String
+  decisionRequired     String                @db.Text
+  decisionOwnerId      String?
+  resolutionTargetDate DateTime?
+  status               SteerCoDecisionStatus @default(OPEN)
+  // Free-text note on how/when it was actually resolved — distinct from
+  // decisionRequired (the ask) rather than overwriting it, so the tracker
+  // keeps a legible "asked X, resolved by doing Y" record.
+  resolutionNotes      String?               @db.Text
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  project Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner   Resource? @relation(fields: [decisionOwnerId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@map("steerco_decisions")
+}

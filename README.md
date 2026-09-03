@@ -1,0 +1,1147 @@
+# A2R Delivery OS — Phase 3: SaaS Foundation
+
+This is the Next.js / Prisma / Postgres backend for **A2R-DOS**, replacing the
+Phase 1/2 static prototype (`a2r/index.html`, a single-file localStorage app)
+with a real multi-tenant SaaS foundation. The domain model — Modules 0
+through 5 — is lifted 1:1 from that prototype's `state` object; see
+`src/lib/constants.ts` for the ported reference data (control catalog, phase
+list, default practice/rate-card roster) and `prisma/schema.prisma` for the
+full relational model.
+
+**Work Packages at a glance** (each links to its own section below, with
+full reasoning for every judgment call made along the way):
+
+1. [Foundation](#whats-built) — scaffold, schema, initial migration.
+2. [Calculation Engine](#work-package-2--calculation-engine-srclibcalculations) — the pure, zero-dependency math core.
+3. [Enterprise UI Shell](#work-package-3--enterprise-ui-shell-srccomponentslayout-srccomponentsprojects) — Header/Sidebar/CommandPalette/HelpDrawer, per-module routing.
+4. [RBAC Scoped Portfolios](#work-package-4--rbac-scoped-portfolios--full-calc-engine-integration) — the real 5-tier delivery role matrix and scoped queries.
+5. [Interactive Module Editors](#work-package-5--interactive-module-editors--optimistic-mutation-actions) — every module goes from read-only to live-editable.
+6. [Data Pipelines, Audit Trails & Governance](#work-package-6--data-pipelines-audit-trails-contractor-tagging--governance-integrity) — CSV ingestion, Workspace Backup/Restore, the immutable Audit Trail.
+7. [Executive Reporting Hub](#work-package-7--executive-reporting-hub-flight-path-variance--decision-governance) — SteerCo decks, portfolio rollups, audit certificates, Flight Path Variance.
+8. [Commercialization & Legal](#work-package-8--commercialization-legal-pages-support-ticketing--admin-onboarding) — branding/copyright, `/terms` + `/privacy`, Support ticketing, admin onboarding.
+
+Jump to [Local Development Setup](#local-development-setup) for the
+full path from a fresh checkout to a running app.
+
+## ⚠️ Environment note: this scaffold has not been `npm install`-ed
+
+This sandbox's network egress policy blocks the npm and pip registries
+(`registry.npmjs.org`, `pypi.org` both return `403 Host not in allowlist`,
+confirmed directly and via the proxy status endpoint — not a transient
+failure). That means `npm install` / `npx create-next-app` could not be run
+here, so **there is no `node_modules`, no `package-lock.json`, and no
+generated Prisma client in this checkout.**
+
+Everything else was still verified as far as it could be without a package
+registry:
+
+- **The Prisma schema is real and tested.** `prisma/migrations/00000000000000_init/migration.sql`
+  was hand-derived from `schema.prisma` and applied directly to a local
+  Postgres 16 instance in this sandbox (`a2r_dos` database). All 19 tables,
+  enums, foreign keys, and unique constraints were created successfully, and
+  a full insert across every table's FK graph (org → user → membership →
+  practice → role → resource → project → scope/effort/audit/RAID/financials/
+  schedule/activity) was run and rolled back cleanly.
+- **The TypeScript is syntactically clean.** `tsc --noEmit` was run over
+  every `.ts`/`.tsx` file. It reports only errors that trace directly to
+  missing packages (`Cannot find module 'next'`, `'react'`, `'@prisma/
+  client'`, `'zod'`, etc., and the cascading `JSX.IntrinsicElements`/
+  `Property does not exist on type '{}'` noise that follows from an
+  ungenerated Prisma client and absent `@types/react`). Zero `TS1xxx` syntax
+  errors.
+- Regenerate `prisma/migrations/.../migration.sql` as your source of truth by
+  running `prisma migrate dev --name init` the first time this is built
+  somewhere with registry access — Prisma's own output supersedes the
+  hand-written file here.
+
+## Local Development Setup
+
+Everything below is the full path from a fresh checkout (with real npm
+registry access — this sandbox has none, see above) to a running app with
+a signed-in tenant. It supersedes the old terse "first run" snippet this
+section used to be.
+
+### Prerequisites
+
+- **Node.js ≥ 18.18.0** (see `package.json`'s `engines` field) and npm.
+- **PostgreSQL 16** (or any Postgres the pinned `@prisma/client@^5.20.0`
+  supports) running locally or reachable over the network. This app was
+  built and verified against a local Postgres 16 instance throughout
+  WP1–8.
+- A `DATABASE_URL` connection string and a `NEXTAUTH_SECRET` (any long
+  random string — `openssl rand -base64 32` is a fine way to generate one).
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+`postinstall` runs `prisma generate` automatically, so the Prisma client
+is generated as part of this step — no separate command needed.
+
+### 2. Configure environment variables
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set:
+
+```bash
+DATABASE_URL="postgresql://<user>:<password>@localhost:5432/a2r_dos?schema=public"
+NEXTAUTH_SECRET="<a long random string>"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+If the target Postgres database (`a2r_dos` above) doesn't exist yet,
+create it first (e.g. `createdb a2r_dos`, or via whatever Postgres client
+you use) — Prisma migrates an existing empty database, it doesn't create
+the database itself.
+
+### 3. Apply the schema
+
+```bash
+npm run db:migrate          # runs: prisma migrate dev
+```
+
+This reconciles the four hand-derived migrations already checked into
+`prisma/migrations/` (`00000000000000_init` through
+`00000000000004_wp7_reporting` — see each Work Package's own README
+section above for what each one added) into Prisma's own authoritative
+migration history, and regenerates the Prisma client against the real
+schema. If you'd rather apply the existing SQL verbatim without letting
+Prisma re-diff it (e.g. in CI, or a fresh empty database), use
+`npm run db:migrate:deploy` instead.
+
+### 4. Seed demo data (optional, recommended for evaluation)
+
+```bash
+npm run db:seed
+```
+
+Creates the **"A2R Ventures Demo"** organization with 5 logins, one per
+`DeliveryRole` tier (ADMIN, VP_EXECUTIVE, PRACTICE_DIRECTOR,
+DELIVERY_MANAGER, PROJECT_MANAGER — see Work Package 4), a full practice/
+rate-card roster, and a handful of realistic in-flight projects across
+different health states. Every seeded login shares the password
+`password12345`. This is also the fastest way to see WP7's Executive
+Reporting Hub and WP8's Support modal exercised against real-looking
+data rather than an empty new tenant.
+
+If you'd rather start from a genuinely empty tenant instead of the demo
+dataset, skip this step and register your own organization once the app
+is running (next step) — see `docs/ADMIN_ONBOARDING.md` for the full
+first-admin runbook from there.
+
+### 5. Run the app
+
+```bash
+npm run dev
+```
+
+Visit `http://localhost:3000`. Sign in with a seeded demo login (Step 4)
+or register a new organization at `/register`. `/terms` and `/privacy`
+(WP8) are reachable without signing in at all.
+
+### 6. Verify the build (optional but recommended before deploying)
+
+```bash
+npm run typecheck   # tsc --noEmit
+npm run lint
+npm run build
+npm test             # vitest — the WP2 calc-engine's unit suite
+```
+
+None of these four could be run to completion in the sandbox this app was
+built in (no registry access — see the environment note above); every WP
+section's own "Verified" paragraph explains exactly what verification
+method stood in for them instead (hand-derived-SQL round-trips against a
+real local Postgres, `tsc` runs against a temporarily-fetched compiler,
+and `tsx`-run hand assertions against the pure calculation functions).
+Running the four commands above for real, with actual registry access, is
+the first thing to do once this app leaves the sandbox it was built in.
+
+## What's built
+
+**Multi-tenancy & auth**
+- `Organization` is the tenant. `User` ↔ `Organization` via `Membership`
+  (`OWNER` / `ADMIN` / `MEMBER` / `VIEWER` — the tenant-console tier).
+- NextAuth (Credentials provider, JWT sessions) with the Prisma adapter
+  wired up so an OAuth provider (Google/Microsoft SSO) can be added later
+  with no schema change (`src/lib/auth.ts`).
+- `src/lib/session.ts#requireOrgContext()` is the one place every
+  server component/action resolves "current user + current org" — it always
+  reads the org id from a membership the session actually holds, never from
+  client input. It also resolves the WP4 RBAC fields (`deliveryRole`,
+  `resourceId`, `resourcePracticeId` — see Work Package 4 below).
+- `src/middleware.ts` gates all routes except `/login`, `/register`,
+  `/onboarding`, and the NextAuth API.
+- Registering an org seeds it with the same starter roster the prototype's
+  `defaultState()` produced (`src/server/actions/auth.ts`): governance
+  policy defaults, the 10 control display labels, and the default
+  practice/rate-card roster from `src/lib/constants.ts`.
+- **RBAC** (`src/lib/auth/rbac.ts`) — a second, independent role axis: the
+  5-tier `DeliveryAccessRole` (Admin/VP Executive/Practice Director/
+  Delivery Manager/Project Manager) portfolio-and-project permission
+  matrix, plus `src/lib/db/scoped-portfolio.ts`'s role/resource-scoped
+  project queries. See Work Package 4.
+
+**Data model** (`prisma/schema.prisma`) — every module from the prototype,
+normalized into Postgres tables and scoped to `organizationId`:
+- Module 0: `Practice`, `DeliveryRole`, `Resource` (WP4: `userId` login
+  link, `managerId` reporting line), `OrgPolicy`, `ControlLabel`
+- Module 1: `Project` (WP4: `practiceId`), `ScopeItem`, `EffortCell`,
+  `ProjectContributor` (WP4)
+- Module 2: `AuditEntry`
+- Module 3: `RaidEntry`
+- Module 4: `FinancialActual`
+- Module 5: `SchedulePhase`
+- `ActivityLogEntry` for the Control Tower's activity feed
+
+**UI** (`src/app/(dashboard)/…`) — the shell (`src/components/layout/`:
+`Header`, `Sidebar`, `CommandPalette`, `HelpDrawer`) and color/type tokens
+are ported from the prototype's CSS variables (`tailwind.config.ts`), so the
+SaaS app continues the same visual language while dropping every
+single-file-prototype artifact (project dropdown, methodology badges,
+autosaved badge) from the global header — see Work Package 3 below.
+- **Home (PS Control Tower)** and **Module 0 (Admin & Org Setup)** are fully
+  wired: real Postgres reads/writes via Server Actions, no mock data.
+- **Modules 1–5** (Deal Sizing, Audit, RAID, Financials, Schedule) each have
+  a project picker and a per-project page reading real rows through Prisma;
+  Audit and RAID also have working write paths (status/owner/evidence edits,
+  logging new RAID items). The Financial Realization page implements the
+  prototype's exact EAC formula. What's *not* yet ported is the prototype's
+  full interactive editors — the live Phase-Effort Matrix grid, drag-drop
+  scope builder, CSV actuals import, and inline schedule-date editing. The
+  data layer for all of it already exists; these are UI work for the next
+  pass.
+
+## Work Package 2 — Calculation Engine (`src/lib/calculations/`)
+
+Every formula from the prototype's business math — sizing, margin
+modeling, seniority-weighted matrix suggestion, the EAC engine, schedule
+slip/pace risk, audit compliance scoring, project health, and portfolio/
+program rollups — is ported as pure, deterministic TypeScript with **zero**
+UI, React, or Prisma-client dependency:
+
+- `src/lib/calculations/sizing.ts` — `computeTotalsFor`, `computeMarginModeler`, `suggestMatrixForProject`
+- `src/lib/calculations/audit.ts` — `computeAuditProgress`, `computeProjectHealth`
+- `src/lib/calculations/financials.ts` — `computeEacSummary`
+- `src/lib/calculations/schedule.ts` — `computePhaseSlipDays`, `computePhasePace`, `computeScheduleSummary`
+- `src/lib/calculations/portfolio.ts` — `computePortfolioSummary`, `computeProgramRollup`
+- `src/lib/calculations/types.ts` — the plain input/output shapes every function above uses (deliberately not the Prisma model types — adapt Prisma rows to these at the call site)
+
+The only import outside the `calculations/` folder is `../constants`
+(`PHASES`, `CONTROL_DEFS`, `WORKSTREAM_PHASE_HOURS`, `COMPLEXITY_MULT`) —
+itself plain data with no dependencies, kept as the single source of truth
+for both the app and the engine rather than duplicating it.
+
+Two intentional deviations from the literal function signatures requested,
+both because the underlying math needs the org's rate card and neither the
+prototype's globals nor a pure function can supply it implicitly:
+`computePortfolioSummary(projects, roles)` and
+`computeProgramRollup(parentProject, childProjects, roles)` both take an
+explicit `roles` parameter. Every other signature matches as given.
+
+**Verified, not just written.** This sandbox has no `vitest` installed
+(same npm-registry block as the rest of Phase 3), so the suite couldn't be
+run with `npm test` here. Instead, every expected value in
+`tests/calculations.test.ts` was checked by actually executing the real
+implementation — via the globally-available `tsx` runtime plus a
+~40-line shim implementing vitest's `describe`/`it`/`expect` API against
+Node's own `assert`-equivalent (`util.isDeepStrictEqual`) — in a scratch
+directory outside the project tree. All **70 tests passed** against the
+real code, and `tsc --noEmit --strict` (this project's actual `noUncheckedIndexedAccess`
+strict settings) reports zero errors for `src/lib/calculations/**` and
+`tests/calculations.test.ts`. The shim itself is not part of this
+checkout — once `npm install` brings in real `vitest`, run:
+
+```bash
+npm run test        # vitest run
+npm run test:watch  # vitest, watch mode
+```
+
+## Work Package 3 — Enterprise UI Shell (`src/components/layout/`, `src/components/projects/`)
+
+The original WP3 request targeted Next.js 16 / React 19 / Tailwind 4 and a
+unified `/projects/[id]` workspace. Neither matches what WP1 actually built
+(Next 14.2 / React 18.3 / Tailwind 3.4, five separate per-module routes), so
+before writing any code both conflicts were put to the user directly rather
+than guessed at:
+
+- **Stack version** — keep the current, already-built-and-verified
+  Next 14.2/React 18.3/Tailwind 3.4 stack rather than upgrading to chase the
+  request's stated target. *(User confirmed: keep current stack.)*
+- **Project routing** — keep the five per-module routes
+  (`/deal/[id]`, `/audit/[id]`, `/raid/[id]`, `/financials/[id]`,
+  `/schedule/[id]`) rather than introducing a `/projects/[id]` workspace
+  that doesn't otherwise exist in the app. *(User confirmed: keep
+  per-module routes.)* `ProjectHeader` is mounted as a shared component at
+  the top of each of those five pages instead.
+
+**What was built:**
+
+- `src/components/layout/Header.tsx` — replaces the old prototype-era
+  topbar. No project dropdown, no "+ New Project" button, no methodology
+  badges, no autosaved badge. Composes an org/workspace switcher, the
+  command palette trigger, the help drawer trigger, a notifications bell,
+  and a user menu with the persona switcher folded in.
+- `src/components/layout/CommandPalette.tsx` — `Cmd+K`/`Ctrl+K` global
+  search across projects & parent programs (health pill, routes to
+  `/deal/[id]` — the app's canonical "open project" destination), the
+  resource directory, and open SteerCo-escalated RAID items. Fuzzy
+  matching is a small dependency-free scorer (`src/lib/fuzzy-match.ts`) —
+  no fuzzy-search package is installable in this sandbox.
+- `src/components/layout/HelpDrawer.tsx` — right slide-over with
+  route-aware governance guidance (10 Controls on `/audit`, the True EAC
+  formula on `/financials`, slip vs. pace risk on `/schedule`, margin
+  modeling and baseline locking on `/deal`).
+- `src/components/layout/Sidebar.tsx` — the same 7 nav items as before,
+  now collapsible with the collapsed state remembered per-browser.
+- `src/components/projects/ProjectHeader.tsx` — the shared per-project
+  action bar: name, client, hierarchy tag, live G/Y/R health badge (via
+  the WP2 engine's `computeProjectHealth`), and Lock/Unlock Baseline /
+  Export Status Report / Export JSON Package actions.
+- `src/components/layout/dashboard-ui-context.tsx` — the client
+  `DashboardUIProvider`/`useDashboardUI()` coordinating command palette,
+  help drawer, and persona state across the header, sidebar, and project
+  header. Also defines the cosmetic RBAC-preview `Persona` enum.
+- `src/server/queries/calc-adapters.ts` — the one place Prisma's
+  uppercase-enum rows get converted into the lowercase-enum shapes the
+  WP2 calculation engine expects. Pages and route handlers should go
+  through this rather than hand-rolling the conversion inline.
+- `src/server/queries/health.ts`, `src/server/queries/notifications.ts`,
+  `src/server/actions/organizations.ts`, `src/server/actions/command-palette.ts`
+  — the data layer behind the health badge, notification bell, workspace
+  switcher, and command palette respectively.
+- `src/server/actions/projects.ts` — added `toggleProjectLock`, which
+  snapshots the WP2 engine's `computeTotalsFor` output as
+  `baselineSnapshot` on lock, and clears it on unlock.
+- `src/app/api/projects/[projectId]/export/route.ts` and
+  `.../status-report/route.ts` — the two export actions. The first
+  returns the full project record (all relations) as a downloadable JSON
+  attachment; the second renders a self-contained, print-ready 1280×720
+  HTML "slide" (open it, then use the browser's own Print → Save as PDF —
+  no PDF-rendering package is installable here) built entirely from the
+  WP2 engine (`computeTotalsFor`, `computeEacSummary`,
+  `computeScheduleSummary`, `computeProjectHealth`), so it can never drift
+  from what the module pages themselves show.
+
+**Persona vs. role — a deliberate split, not an oversight.** The header's
+Persona Switcher (Admin / Practice Director / Delivery Manager / Project
+Manager / Executive Viewer) is a client-only, `localStorage`-persisted
+simulation for previewing how the UI looks under different roles without
+five separate logins. It never gates a server action or a data fetch. Every
+mutation that needs real authorization — `toggleProjectLock` is the one
+this WP adds — checks the session's actual `MembershipRole`
+(`OWNER`/`ADMIN`/`MEMBER`/`VIEWER`) from `requireOrgContext()`, independent
+of whatever persona is selected. `ProjectHeader` uses the persona only to
+decide whether to *show* the lock/unlock button; the server action re-checks
+the real role regardless, so a persona switch can never grant access it
+doesn't already have.
+
+**Verified the same way as WP1/WP2** (no `npm install` in this sandbox —
+see the environment note above): `tsc --noEmit --ignoreDeprecations 6.0 -p
+tsconfig.json` over the whole project, then every error was checked against
+the established sandbox-noise categories (missing `node_modules` for
+`next`/`react`/`zod`/`@prisma/client`/etc., and the type-inference
+degradation those missing modules cascade into — collapsed enum unions,
+`Map` generics inferring as `unknown`, JSX intrinsic-element fallout). No
+new error outside those categories was introduced by any WP3 file.
+
+## Work Package 4 — RBAC Scoped Portfolios & Full Calc-Engine Integration
+
+**The core conflict, and how it was resolved.** The requested 5-role
+enterprise RBAC (Admin / VP Executive / Practice Director / Delivery
+Manager / Project Manager) had no home anywhere in the schema. Real
+server-side authorization was the 4-tier `MembershipRole`
+(Owner/Admin/Member/Viewer); WP3's 5-role "Persona" switcher looks similar
+but is explicitly cosmetic — client-only, `localStorage`-persisted, and
+documented as never gating anything. Making `hasPermission`/
+`canEditProject`/the scoped queries real meant deciding where the
+enterprise role actually lives, so this was put to the user directly
+before writing code (mirroring WP3's stack/routing questions):
+
+- **Add a new, real role field** *(chosen)* — `Membership.deliveryRole`
+  (a new `DeliveryAccessRole` enum), independent of `MembershipRole`, plus
+  `Resource.userId` (links a login to its roster entry) and
+  `Resource.managerId` (the DM→PM reporting line the scoped queries walk).
+  WP3's Persona switcher is untouched — still cosmetic, still separate.
+- *(not chosen)* Promoting Persona itself to real, server-persisted RBAC —
+  a bigger change that would have turned the header's preview switcher
+  into a live "view as" permissions control.
+
+**Schema additions** (`prisma/migrations/00000000000001_wp4_rbac/`,
+verified against a real local Postgres — see the environment note above):
+`DeliveryAccessRole` enum; `Membership.deliveryRole` (nullable — see
+`resolveDeliveryRole()` below); `Resource.userId` and `Resource.managerId`;
+`Project.practiceId` (a project's home practice, independent of who's
+formally assigned PD — lets a Practice Director see every project in their
+practice, not only ones they personally lead); and a new
+`ProjectContributor` join table (project ↔ resource, for a Project
+Manager explicitly added to a project without being its PM of record).
+`FinancialActual.roleKey`'s direct-mode convention was also corrected from
+a stale `"blended"` to the engine's actual `'_direct'` sentinel
+(`computeEacSummary` in `financials.ts` always expected `'_direct'`; no
+code had actually written `"blended"` yet, so this was a documentation fix
+with no data migration needed).
+
+**`src/lib/auth/rbac.ts`** — the permission matrix and two helpers:
+- `hasPermission(role, action)` — coarse, module-level actions
+  (`admin:roster`, `portfolio:viewAll`, `steerco:view`,
+  `project:editBaseline`, `project:editRaid`, `project:editAudit`,
+  `project:editSchedule`, `project:editFinancials`, `project:approve`).
+  ADMIN gets everything; VP_EXECUTIVE gets only the two read-all/SteerCo
+  actions; PRACTICE_DIRECTOR gets every project-edit action plus approve;
+  DELIVERY_MANAGER gets only `project:approve` (review/approval authority,
+  not direct edit); PROJECT_MANAGER gets the four actuals/RAID/audit/
+  schedule edit actions.
+- `canEditProject(session, project)` — per-instance edit authority: ADMIN
+  always; PRACTICE_DIRECTOR when they're the assigned PD *or* the
+  project's practice matches theirs; PROJECT_MANAGER only when they're the
+  PM of record; DELIVERY_MANAGER and VP_EXECUTIVE never (approval and
+  read-only respectively).
+- `resolveDeliveryRole(membership)` — since `Membership.deliveryRole` is
+  nullable with no backfill migration, this derives a default from
+  `MembershipRole` (Owner/Admin → Admin, Member → Project Manager, Viewer
+  → VP Executive) so every signed-in user resolves to a real delivery role
+  without a null-check at every call site. `src/lib/session.ts` calls this
+  once per request to populate `OrgContext.deliveryRole`, alongside the
+  new `resourceId`/`resourcePracticeId` (resolved live via
+  `Resource.userId`, not cached in the JWT, so linking a login to a
+  Resource takes effect immediately).
+
+**`src/lib/db/scoped-portfolio.ts`** — `getScopedProjectsForUser(session)`
+builds the Prisma `where` clause from the spec exactly: PM scoped to
+`projectManagerId = resourceId` or an explicit `ProjectContributor` row; DM
+to `deliveryManagerId = resourceId` or `projectManagerId IN
+(direct-report ids)`; PD to `practiceDirectorId = resourceId` or
+`practiceId` match; Admin/VP unrestricted. A role that depends on a
+resource link the signed-in user doesn't have fails closed (matches
+nothing) rather than falling through to an unscoped query.
+`getScopedPortfolioSummary(session)` runs the WP2 engine's
+`computePortfolioSummary` over that scoped list, plus
+`computeProgramRollup` for every PARENT-hierarchy project in it — a
+program's rollup always aggregates *all* of its children, regardless of
+whether each child individually falls in the viewer's scope.
+
+**`toggleProjectLock` now uses `canEditProject`** instead of its previous
+`MembershipRole`-only check — a natural first real caller of the RBAC
+layer, and a strict widening (Practice Directors can now lock/unlock too),
+not a narrowing: `resolveDeliveryRole`'s fallback already maps every
+Owner/Admin membership to the ADMIN delivery role, so nothing that could
+lock a baseline before this WP lost that ability.
+
+**Module pages rewired to the WP2 engine** — Deal now uses
+`computeTotalsFor` for every total it shows, plus a new
+`MarginModelerCard` (`computeMarginModeler`, pure client-side — no server
+round trip on every slider drag); Audit shows `computeAuditProgress`'s
+weighted compliance % instead of a raw "fully evidenced" count; Financials
+fully replaced its hand-rolled EAC math with `computeEacSummary` and now
+surfaces margin drift and the Open RR cost-impact callout the formula
+always implied but the page never showed; Schedule adds a Pace Risk column
+(`computePhasePace`) alongside slip (`computePhaseSlipDays`) — pace is an
+earlier warning signal than slip, since a phase can still be inside its
+planned end date while burning calendar time faster than logged work; the
+Control Tower now shows the *scoped* portfolio (stat cards, a Program
+Rollups table, the project registry, and recent activity all filtered to
+what the signed-in role can see) instead of the whole tenant unconditionally.
+
+**`prisma/seed.ts`** was rewritten from WP1's single-project seed into "A2R
+Ventures Demo": 5 logins (one per `DeliveryAccessRole`, shared password
+`password12345`), a real reporting line (two PMs report to the Delivery
+Manager), 1 Parent Program with 2 Child Waves (one healthy, one
+deliberately red — slipped schedule, audit gaps, margin erosion, escalated
+RAID — so health/notifications/pace-risk have something real to render),
+and 3 standalone projects exercising the scoping edge cases specifically:
+one in DIRECT estimation mode, one with no assigned PD (seen only via
+practice match), one with an explicit `ProjectContributor`, and one in a
+*different* practice than the seeded PD's own (a negative case — that
+project should NOT appear in the PD's scoped portfolio). Idempotent: safe
+to re-run `npm run db:seed`.
+
+**Verified the same way as WP1–3** (no `npm install` in this sandbox): the
+new migration was applied and round-tripped against a real local Postgres
+(including a full insert across every new column/table/FK in one
+transaction, then rolled back); `tsc --noEmit --ignoreDeprecations 6.0 -p
+tsconfig.json` reports no new error outside the established sandbox-noise
+categories (this WP added one more shape to that list — a `Record<enum,
+V>` index resolving to `V | undefined` because the enum import itself
+collapsed to `any` — same root cause as prior categories, just surfacing
+as `TS2532` instead of `TS2322` in one spot); and the WP2 test suite was
+re-run end to end (still 70/70) to confirm the calc-adapters additions
+(`hierarchyLevelLower`) didn't regress anything. `prisma/seed.ts` itself
+can't be executed here — it needs a generated Prisma client — so it was
+instead verified by cross-checking every `db.<model>.*` call against the
+schema and round-tripping its exact insert shape through raw SQL (see
+above), the same limitation and mitigation documented for the app code in
+earlier work packages.
+
+## Work Package 5 — Interactive Module Editors & Optimistic Mutation Actions
+
+WP5 turns the five module pages from read-only WP4 views into interactive
+editors. Every mutation is gated by `canEditProject` (via a new shared
+`src/server/authz.ts#authorizeProjectEdit(projectId)` helper — resolves org
+context, fetches the minimal project shape, and checks edit authority in
+one call, so no Server Action hand-rolls that boilerplate). "Optimistic"
+here means hand-rolled, not `useOptimistic`: the locked-in stack is React
+18.3 (`useOptimistic` is React 19+), so every editor updates local
+`useState` immediately, recomputes entirely client-side against the
+zero-dependency WP2 engine, and persists via a `useTransition`-wrapped
+Server Action in the background — reverting the field to its last
+known-good value if that action reports failure.
+
+**Judgment calls made without blocking on the user** (documented here
+rather than via `AskUserQuestion`, since each is an implementation-detail
+resolution of a spec-vs-schema gap, not an architectural fork like WP3's
+stack/routing questions or WP4's RBAC-role-source question):
+
+- **RAID "Severity (1–5)"** stays the existing 4-tier `RaidSeverity` enum
+  (Critical/High/Med/Low) rather than a new numeric field — that enum
+  already drives badges, notifications, and the command palette everywhere
+  else; a parallel 1–5 number would just be a second, disagreeing severity
+  representation for the same concept.
+- **"Workstreams × delivery roles" grid** is `EffortCell`'s real axis —
+  `phaseKey` × `roleId` — presented as the Phase-Effort Matrix (the
+  terminology already established since WP1), not a literal `ScopeItem` ×
+  role grid. The entire calc engine (`computeTotalsFor`, `phaseTotals`) is
+  phase-keyed; a scope-item-keyed grid would need an incompatible schema.
+- **"Actual/Forecast Start/End"** reuses the existing `actualStart`/
+  `actualEnd` columns for both — there are no separate forecast columns
+  (`computePhasePace`/`computePhaseSlipDays` only ever consumed planned/
+  actual), and the same field holding a forecast date until it becomes an
+  actual is standard PM practice, not a workaround.
+- **"Lock Baseline… with confirmation dialog"** enhances the one Lock/
+  Unlock control every module page already shares (`ProjectHeader.tsx`,
+  wired to `toggleProjectLock` since WP4) with an inline confirmation
+  modal, rather than adding a second, redundant lock control inside
+  `DealEditor.tsx`. Both directions (lock *and* unlock) get the
+  confirmation — unlocking discards the `baselineSnapshot` the EAC engine's
+  margin-drift comparison depends on, which is just as consequential as
+  locking.
+- **RAID "Title"** turned out to need a real schema field: the Quick-Add
+  drawer's spec lists Title and Description as two separate inputs, and
+  `RaidEntry` only ever had `description`. Added `RaidEntry.title
+  String?` (nullable — `RaidBoard.tsx` falls back to a truncated
+  `description` for rows logged before this field existed).
+
+**Schema additions** (`prisma/migrations/00000000000002_wp5_editors/`,
+verified against a real local Postgres — see the environment note above):
+`AuditEntry.notes String? @db.Text` (verification notes distinct from the
+evidence link; `AuditEntry.updatedAt`, already `@updatedAt`-managed,
+doubles as the "verified at" timestamp `AuditChecklist.tsx` shows per
+control — no new timestamp column needed); `RaidEntry.impact` and
+`RaidEntry.mitigationPlan` (both `String? @db.Text` — the Quick-Add
+drawer's two fields distinct from the free-text description); and
+`RaidEntry.title String?` (see above).
+
+**Module 1 — `src/components/modules/deal/DealEditor.tsx`** + three new
+Server Actions in `src/server/actions/projects.ts`
+(`updateEffortCell`/`updateDirectIntake`/`setEstimationMode`). A tab
+switcher persists which intake mode is authoritative (not just a local
+view toggle — `computeTotalsFor` and everything downstream reads
+`project.estimationMode`). Matrix Mode is an editable phase × role grid,
+one `updateEffortCell` call per cell on blur, with phase/role/grand
+totals recalculating live; Direct Mode is a three-field form
+(soldHours/targetRevenue/blendedMarginPct) saved together via
+`updateDirectIntake` (partial saves don't make sense — Direct Mode's math
+back-solves cost from margin, so all three are one atomic value). The
+existing `MarginModelerCard` from WP4 is reused unmodified underneath,
+fed whichever totals the editor currently holds.
+
+**Module 2 — `src/components/modules/audit/AuditChecklist.tsx`** +
+`updateAuditEntry` extended with `notes` and gated by
+`authorizeProjectEdit` (it had no edit-authority check at all before
+WP5). Each of the 10 controls is a card with a 4-state response selector
+(Yes/Partial/No/N-A) whose click instantly lifts to the parent for a live
+`computeAuditProgress` recompute — the weighted-compliance header updates
+on every click, before anything is saved — plus an evidence-URL input and
+a notes field, saved together per-card on the existing dirty-check + Save
+convention.
+
+**Module 3 — `src/components/modules/raid/RaidBoard.tsx`** + `raid.ts`
+actions extended with `title`/`impact`/`mitigationPlan`, gated with
+`authorizeProjectEdit` throughout, plus two new actions: `updateRaidEntry`
+(the board's full inline-edit save — severity/description/owner/dates/
+status/escalation together) and `toggleRaidEscalation` (a dedicated
+one-click SteerCo flag, split out from the full edit so escalating
+doesn't require opening the row). The board filters by Type and
+"escalated only," and a Quick-Add drawer replaces the old inline
+create-form.
+
+**Module 4 — `src/components/modules/financials/EacEditor.tsx`** + new
+`src/server/actions/financials.ts#updateFinancialActual`, upserting one
+`FinancialActual` row (by the existing `roleKey`, matrix-role-id or
+`'_direct'`) at a time. Every row's four fields (Actual Hours/Cost,
+Forecast Hours Remaining, Open RR Hours) are lifted to the parent so
+`computeEacSummary` — and the True EAC Cost / Margin / Drift KPI cards
+above the table — recompute on every keystroke across every row, not just
+the one being edited.
+
+**Module 5 — `src/components/modules/schedule/ScheduleTracker.tsx`** +
+new `src/server/actions/schedule.ts#updateSchedulePhase`, upserting one
+`SchedulePhase` row's dates/status/% complete together (atomically, so a
+lone `pctComplete` save can't momentarily pair with a stale planned-date
+pair server-side — client-side, Slip and Pace Risk are always correctly
+recomputed live from the full draft row). The % Complete slider drives
+`computePhasePace`'s badge in real time.
+
+**Superseded WP1-era files removed**: `audit/[projectId]/audit-row.tsx`,
+`raid/[projectId]/raid-form.tsx`, `raid/[projectId]/raid-status-select.tsx`
+— all fully absorbed into the new module editors above; confirmed
+grep-clean of remaining imports before deletion.
+
+**Verified the same way as WP1–4** (no `npm install` in this sandbox): the
+new migration statements were applied and round-tripped against a real
+local Postgres (`\d audit_entries` / `\d raid_entries` confirm every new
+column); `tsc --noEmit --ignoreDeprecations 6.0 -p tsconfig.json` reports
+no error outside the established sandbox-noise categories — this WP
+surfaces one new code in that same category, `TS7053` ("element implicitly
+has an 'any' type" on a `Record<enum, V>` index), traced to the same root
+cause as the rest of the list: `useState<T>(...)`'s generic is silently
+dropped when `'react'` itself can't be resolved (`Cannot find module
+'react'` — confirmed directly in the raw tsc output), so the destructured
+state variable collapses to `any` and any indexing expression built from
+it does too. The WP2 calc-engine files themselves are untouched by this
+WP (every module editor only *imports* `src/lib/calculations/*`, never
+edits it), so the existing 70-test suite's pass/fail status is unchanged
+from WP4's run — it was not re-executed for this WP since there is
+nothing in the pure engine for it to catch that a full `tsc` pass over the
+new adapter call sites wouldn't already.
+
+## Work Package 6 — Data Pipelines, Audit Trails, Contractor Tagging & Governance Integrity
+
+WP6 adds a governance layer on top of WP5's interactive editors: a CSV
+ingestion pipeline (dry-run preview, then atomic commit), a JSON workspace
+backup/restore utility, an immutable Audit Trail for the app's highest-
+stakes mutations, an explicit Employee (FTE) vs. Contractor/Vendor tag on
+rate-card roles, and route-aware governance guidance in the Help Drawer.
+
+**Judgment calls made without blocking on the user** (documented here
+rather than via `AskUserQuestion`, following the same standard WP4/WP5 set
+— each is an implementation-detail resolution of a spec-vs-schema gap, not
+an architectural fork):
+
+- **FTE/Contractor lives on `DeliveryRole`, not `Resource`.** Sizing
+  (`EffortCell`) and Financials (`FinancialActual`) are both role-keyed —
+  neither table has a `resourceId` column — and the spec asks for the
+  distinction to show up on exactly those two role-keyed screens. Adding a
+  `resourceId` to both would be a materially bigger schema change than this
+  WP's actual ask.
+- **CSV ingestion is gated by `authorizeProjectEdit`, the same per-project
+  check every manual edit already uses** — not the pre-declared
+  `admin:ingestion` permission (added in WP4's RBAC matrix, unused until
+  now). A CSV import is a bulk version of edits a user could already make
+  one row at a time; `admin:ingestion` stays reserved for a hypothetical
+  future roster-level bulk import that isn't this one.
+- **Workspace Backup/Restore gets its own gate**, a new `admin:workspace`
+  permission plus `src/server/authz.ts#authorizeAdminAction()` — distinct
+  from project-scoped `authorizeProjectEdit` because export/restore can
+  touch every project in the tenant at once, a genuinely different (and
+  higher) blast radius than anything else in the app.
+- **The Audit Trail logs exactly four mutation families by name** —
+  baseline lock/unlock, EAC actual updates, RAID SteerCo escalation
+  *toggles only* (not full edits), and audit control *status changes only*
+  (not owner/evidence/notes edits) — plus this WP's own two new bulk
+  surfaces (CSV commit, workspace restore). It deliberately does not
+  extend to `updateRaidStatus`, `updateRaidEntry`, `createRaidEntry`,
+  `updateEffortCell`, `setEstimationMode`, `updateDirectIntake`, or
+  `updateSchedulePhase` — the spec names "critical state changes"
+  specifically, not every mutation in the app.
+- **Every audit-logged mutation writes its log entry inside the same
+  `db.$transaction` as the state change itself** (`logAuditEvent` accepts
+  either the bare `db` client or a `Prisma.TransactionClient`), so the two
+  can never desync — either both commit or both roll back.
+- **No-op saves skip logging.** Financial-actual updates, RAID escalation
+  toggles, and audit-status changes all compare previous vs. new state
+  first; an unchanged value never writes a redundant Audit Trail entry
+  (escalation toggles skip the whole write, not just the log).
+- **Reading the Audit Trail is a lighter check than editing** —
+  `fetchAuditTrail` only confirms the project belongs to the caller's org,
+  matching the access level implied by having the page open at all, not
+  edit authority.
+- **No new CSV library dependency.** This sandbox has no npm registry
+  access (see the environment note above), so `src/lib/ingestion/csv-parsers.ts`
+  hand-rolls a small RFC4180-ish tokenizer (quoted fields, embedded commas/
+  newlines, doubled-quote escaping) rather than pulling in `papaparse` or
+  `csv-parse` — consistent with the calc-engine's zero-dependency-pure-lib
+  philosophy, and one fewer dependency even once registry access exists.
+- **A CSV's optional "Employment Type" column is a cross-check warning,
+  never an override** — the rate card's own `employmentType` is always
+  authoritative; a mismatch imports the row anyway with a warning attached.
+- **A Financial Actuals CSV's Role column must match the project's actual
+  `estimationMode`** — a `"Direct"` row in a Matrix-mode project (or a
+  named-role row in a Direct-mode project) is a hard error, not a silent
+  fallback; the wrong-mode row is nonsensical for that project.
+- **The workspace snapshot is broader than the spec's literal deliverable
+  list.** The spec says the export should capture "projects, rate cards,
+  baselines, actuals, resource types, and RAID registers," but also calls
+  the feature a "full-tenant" backup — and a restore that silently dropped
+  a project's Scope Matrix, Audit Checklist, or Schedule would corrupt
+  exactly the workspace it claims to protect. The snapshot is the full
+  closure needed to faithfully reconstitute a tenant's delivery state
+  (Practices, the full Rate Card, the Resource directory, Org Policy +
+  Control Label overrides, and every project's complete child set),
+  excluding only what isn't "workspace state": Users/Memberships/logins,
+  the `ActivityLogEntry` feed, and `AuditLog` itself (immutable history is
+  never rewritten or truncated by a restore — see below).
+- **Restore is additive/overwrite, never destructive across the tenant.**
+  It upserts (id-preserving) every Practice/DeliveryRole/Resource/Project
+  *present in the snapshot*, and wipes-and-recreates each of those
+  projects' child collections from exactly what the file says — but it
+  never deletes a Practice, role, Resource, or Project that exists in the
+  live tenant but isn't in the file. A literal "make the tenant exactly
+  match this old backup" restore would silently destroy every project
+  created since the backup was taken, which is a far more dangerous
+  default than an admin restoring an old snapshot actually expects.
+- **`Resource.userId` (the login link) is never written by restore**,
+  create or update — a restored resource never re-links to whatever `User`
+  currently happens to hold the snapshot's original id, and an existing
+  login link on a resource already in the tenant is never touched or
+  cleared.
+
+**Schema additions** (`prisma/migrations/00000000000003_wp6_governance/`,
+verified against a real local Postgres): a new `ResourceEmploymentType`
+enum (`FTE`/`CONTRACTOR`) and `DeliveryRole.employmentType` (defaults
+`FTE`); a new `AuditLog` model (`organizationId`, `projectId?`, `userId?`,
+`action`, `entityType`, `entityId?`, `previousState Json?`, `newState
+Json?`, `createdAt`) with relations from `User`/`Organization`/`Project`
+and two indexes (`[organizationId, createdAt]`, `[projectId, createdAt]`).
+
+**1. CSV Ingestion Pipeline** — `src/lib/ingestion/csv-parsers.ts` (pure,
+zero React/Next/Prisma dependency, same philosophy as
+`src/lib/calculations/*`) exports three parsers — `parseEffortMatrixCsv`,
+`parseRaidCsv`, `parseFinancialActualsCsv` — each returning a row-by-row
+result (`data` when clean, `issues[]` of `error`/`warning` severity
+otherwise) rather than throwing on the first bad row. `src/server/actions/ingestion.ts`
+wraps them in a two-action dry-run/commit surface: `previewCsvImport`
+parses server-side against the org's live roster and writes nothing;
+`commitCsvImport` re-parses the *same raw text* itself (never trusts a
+client-round-tripped "already validated" payload), writes only the clean
+rows in one `db.$transaction`, and logs one `CSV_IMPORT_COMMITTED` entry
+summarizing the batch. `src/components/ingestion/CsvImportModal.tsx` is
+one generic modal parameterized by `kind` (`effort`/`raid`/`financials`) —
+file picker → `FileReader` client-side read → preview table → commit —
+wired in via an "Import CSV…" trigger in `DealEditor.tsx`, `RaidBoard.tsx`,
+and `EacEditor.tsx`.
+
+**2. Workspace Backup & Restore** — `src/lib/backup/workspace-io.ts` (pure:
+a zod schema for the snapshot shape, `validateWorkspaceSnapshot`,
+`buildWorkspaceSnapshot`, and a referential-integrity checker) plus
+`src/server/actions/backup.ts` (`exportWorkspaceSnapshot` /
+`restoreWorkspaceSnapshot`, both gated by `authorizeAdminAction('admin:workspace')`).
+`src/components/admin/WorkspaceBackup.tsx`, mounted on the Admin & Org
+Setup page, exports a downloaded JSON file and restores from a
+user-picked file behind a strong confirmation dialog that spells out
+exactly what gets overwritten.
+
+**3. Audit Trail Engine** — `src/lib/audit/logger.ts#logAuditEvent` is the
+one place in the app allowed to write an `AuditLog` row (no update/delete
+path exists anywhere else — that's what makes it "immutable" in practice).
+Hooked into `toggleProjectLock` (`projects.ts`), `updateFinancialActual`
+(`financials.ts`), `toggleRaidEscalation` (`raid.ts`), and
+`updateAuditEntry` (`audit.ts`), plus the two new WP6 bulk-mutation
+actions above. `src/server/actions/audit-log.ts#fetchAuditTrail` and
+`src/components/projects/AuditTrailDrawer.tsx` (a slide-over drawer,
+mounted in `ProjectHeader.tsx` behind a new "Audit Trail" button) show the
+most recent 200 entries per project, filterable by action, each with a
+field-level before/after diff.
+
+**4. Employee vs. Contractor Financial Visibility** — `RateRole` (calc
+`types.ts`) and `toRateRoles` (`calc-adapters.ts`) now carry
+`employmentType`; `EacRow` (`calculations/financials.ts`) carries it too,
+and a new pure `computeContractorExposure(eac)` sums actual+forecast+open-RR
+cost/hours across contractor-tagged roles (not applicable in Direct Intake
+mode, which has no per-role breakdown). `DealEditor.tsx`'s matrix header
+and `EacEditor.tsx`'s role rows both show an FTE/Contractor badge per
+role, and `EacEditor.tsx` gets a fifth KPI card, "Contractor / 3rd-Party
+Cost Exposure." Admin & Org Setup's Roles & Rate Card Matrix gets a new
+employment-type toggle per role (`setDeliveryRoleEmploymentType`, a
+dedicated action rather than folding into a general "edit role" action
+that doesn't otherwise exist) plus a selector on the create-role form.
+
+**5. Contextual Help Enrichment** — `HelpDrawer.tsx` gets a new explicit
+`/raid` section (previously folded into the generic fallback) and a new
+explicit `/` (PS Control Tower) section, and the existing `/deal`,
+`/audit`, `/financials` sections each gain a governance-tie-in entry (CSV
+import, the Audit Trail, or Contractor Exposure, as relevant to that
+module). The generic fallback (still used for `/admin` and anything
+unmatched) gains a "Governance, end to end" summary tying CSV ingestion,
+the Audit Trail, and Workspace Backup & Restore together.
+
+**Verified the same way as WP1–5** (no `npm install` in this sandbox): the
+new migration statements were applied and round-tripped against a real
+local Postgres (`\d delivery_roles` / `\d audit_logs` confirm every new
+column, enum, index, and foreign key); `tsc --noEmit --ignoreDeprecations
+6.0 -p tsconfig.json` reports no error outside the established
+sandbox-noise categories — this WP surfaces one new code in that same
+category, `TS2345` ("Argument of type 'unknown' is not assignable to
+parameter of type 'string'") on `AuditTrailDrawer.tsx`'s
+`availableActions.map((a) => actionMeta(a))`), traced to the identical
+root cause as the rest of the list (`'react'`/`@prisma/client` failing to
+resolve at all cascades into unrelated type collapses elsewhere) rather
+than a real defect — `entries` is concretely typed `AuditTrailEntry[]`
+with `action: string`, so `a` is provably `string` regardless of what an
+un-resolvable `'react'` module does to JSX's ambient types. Because the
+`vitest` harness wasn't fully present at the start of this session (only
+`src/lib/constants.ts` and `tests/calculations.test.ts` existed under
+`/tmp/verify-tests/`, no runner) and rebuilding it was out of scope for
+this WP, the two new pure-function surfaces were instead hand-verified by
+transpiling them with `tsc` in isolation (`--ignoreConfig`) and running
+targeted assertions under plain Node: all three CSV parsers (valid rows,
+role/phase/severity/owner mismatches, the Direct-vs-Matrix mode guard, and
+the Employment Type cross-check warning) and `computeContractorExposure`
+(matrix-mode attribution math, the Direct-mode "not applicable" case, and
+an all-FTE project correctly reporting 0%) — every assertion passed. The
+WP2 calc-engine's existing 70-test suite's pass/fail status is otherwise
+unchanged from WP5's run (its files are extended additively —
+`employmentType` and `computeContractorExposure` are new fields/exports,
+nothing existing was altered) and was not re-run in full for the same
+reason as WP5: nothing in this WP's diff touches the pure engine's
+existing computation paths.
+
+## Work Package 7 — Executive Reporting Hub, Flight Path Variance & Decision Governance
+
+WP7 adds a dedicated executive reporting surface on top of WP1–6's module
+pages: a central Reports Hub (`/reports`), three standardized briefing
+exports (a 16:9 SteerCo Status Deck, a multi-project Portfolio Margin
+Rollup CSV, and a Stage-Gate Audit Verification Certificate), and a new
+per-project SteerCo Decision & Action Tracker — plus the three pure
+calculations those exports needed and didn't already have: Flight Path
+Variance (Sold → Approved Baseline → True EAC margin), Open Demand &
+Contractor Burn Risk, and Burn-to-Date %.
+
+**Judgment calls made without blocking on the user** (documented here
+rather than via `AskUserQuestion`, following the same standard WP4–6 set):
+
+- **`SteerCoDecision` is its own model, not a repurposed `RaidEntry`.** A
+  RAID item is a risk/issue/assumption/dependency to *manage*; a SteerCo
+  decision is a specific ask *of the steering committee itself* ("approve
+  the change order"). The deck's RAID section and Decision Tracker section
+  are deliberately two different lists, sourced from two different tables.
+- **Decision Tracker mutations are gated by `authorizeProjectEdit`**, the
+  same per-project edit tier every other module mutation uses — not a new
+  permission — consistent with WP6's "reuse the existing project-edit gate
+  unless the blast radius is genuinely tenant-wide" precedent.
+- **Decision Tracker mutations are NOT written to the WP6 Audit Trail.**
+  WP6 deliberately scoped `logAuditEvent` to exactly four named mutation
+  families plus its own two bulk surfaces (see the WP6 section above); a
+  decision's own `status`/`updatedAt`/`resolutionNotes` fields already
+  serve as that record's history, and extending the trail to every future
+  model would erode the discipline WP6 was built to establish.
+- **The Reports Hub is NOT gated by the reserved `steerco:view` permission**
+  (ADMIN/VP_EXECUTIVE-only since WP4). That permission stays reserved for a
+  future, unrestricted cross-portfolio "SteerCo War Room" (still listed
+  under What's next below). This Hub is instead scoped the same way every
+  other portfolio surface is — `getScopedProjectsForUser` — so a
+  PROJECT_MANAGER can generate a SteerCo deck for their own engagement,
+  which a `steerco:view` gate would have blocked entirely.
+- **`SteerCoReportView.tsx` and `AuditCertificateView.tsx` are pure
+  HTML-string builders, not JSX components**, despite the `.tsx` extension
+  and the spec's literal component paths. Both documents are opened via
+  `window.open()` outside Next's page-rendering tree for the browser's own
+  Print-to-PDF, so neither has compiled Tailwind CSS available to it —
+  exactly the constraint the pre-existing `status-report` route already
+  solved this way; WP7 just extends the same technique to two more
+  documents and factors the render logic out of the route handlers.
+  `AuditCertificateView.tsx` duplicates rather than imports
+  `SteerCoReportView.tsx`'s palette/helpers on purpose — each print target
+  must stand alone as a complete, self-contained document.
+- **Flight Path Variance's "Approved Baseline Margin %" reads
+  `Project.baselineSnapshot.marginPct`** — the same JSON blob
+  `toggleProjectLock` already writes at lock time — via a runtime type
+  guard, since it's untyped `Json?`. No baseline is a first-class `'no-baseline'`
+  status, not an error or a zero.
+- **Burn-to-Date % is measured against True EAC Cost, not sold/baseline
+  cost.** That answers "how far through the *current* plan are we," which
+  is what a portfolio reviewer actually wants; measuring against a stale
+  original estimate would artificially inflate or deflate the number for
+  any project that has re-forecast.
+- **Open Demand Risk's bands (5%/15%) and Flight Path's drift threshold
+  (0.05pt) are deliberately simple, round, documented thresholds** — in the
+  same spirit as the schedule engine's own pace-risk bands (50%/75%
+  elapsed) and the EAC engine's own 0.05pt drift threshold. The point is a
+  fast, explainable signal on an executive deck, not a tuned model.
+- **The Portfolio CSV excludes PARENT-hierarchy program containers**, same
+  reasoning as `computePortfolioSummary`'s own exclusion — a program
+  container has no sizing/financials of its own to roll up.
+- **The Portfolio CSV route is a plain `GET` with `Content-Disposition:
+  attachment`**, not a Server Action + client-side Blob download (the
+  `WorkspaceBackup.tsx` pattern) — a CSV export needs no confirmation step,
+  and this matches the existing project JSON-export route exactly.
+- **No CSV library dependency**, for the same "no npm registry access in
+  this sandbox" reason as WP6's ingestion parsers: `src/lib/reports/portfolio-csv.ts`
+  hand-rolls a small RFC4180-ish escaper (quoting, doubled-quote escaping,
+  CRLF line endings) rather than pulling one in.
+
+**Schema additions** (`prisma/migrations/00000000000004_wp7_reporting/`,
+verified against a real local Postgres): a new `SteerCoDecisionStatus` enum
+(`OPEN`/`RESOLVED`) and a new `SteerCoDecision` model
+(`projectId`, `decisionRequired`, `decisionOwnerId?` → `Resource`,
+`resolutionTargetDate?`, `status` default `OPEN`, `resolutionNotes?`,
+`createdAt`/`updatedAt`), indexed on `projectId`, cascading on project
+delete and nulling on owner delete.
+
+**1. Central Reporting Hub** — `src/app/(dashboard)/reports/page.tsx`
+(server: resolves the role-scoped project set via the same
+`getScopedProjectsForUser` every portfolio surface uses, reads `?project=`
+for deep-linking from a module page) + `src/components/reports/reports-hub-client.tsx`
+(client: project selector, the three launcher cards, and the embedded
+Decision Tracker manager — add/resolve/reopen/delete, mirroring
+`RaidBoard.tsx`'s Server-Action-plus-`router.refresh()` conventions). A new
+"Reports Hub" link on `ProjectHeader.tsx` deep-links here with the current
+project preselected, and `/reports` is now in the sidebar (`Sidebar.tsx`).
+
+**2. Executive Report Generators** —
+`src/lib/calculations/reporting.ts` (pure: `computeFlightPathVariance`,
+`computeOpenDemandRisk`, `computeBurnToDatePct`) is the new math;
+`src/components/reports/SteerCoReportView.tsx` and
+`AuditCertificateView.tsx` are the new HTML-string print views (see the
+judgment-call note above on why they're not JSX); `src/app/api/projects/[projectId]/status-report/route.ts`
+was rewritten to compute and pass through the Flight Path bar, the Open
+Demand & Contractor Burn alert, the top 3 SteerCo-escalated RAID risks
+(sorted by severity then target date), and the Decision Tracker rows; the
+new `src/app/api/projects/[projectId]/audit-certificate/route.ts` resolves
+control labels the same way `audit/[projectId]/page.tsx` already does
+(`labelByKey.get(c.id) ?? getControlDef(c.id)?.labels[methodologyKey] ?? c.id`)
+and generates a deterministic `certificateId` from the project id + date
+rather than persisting a certificate registry.
+
+**3. Portfolio Rollup CSV** — `src/lib/reports/portfolio-csv.ts` (pure:
+`buildPortfolioCsvRows`, `serializePortfolioCsv`) plus
+`src/app/api/reports/portfolio-csv/route.ts`, scoped via
+`getScopedProjectsForUser` so a download contains exactly the caller's own
+portfolio slice, with one row per non-PARENT project: Sold vs. True EAC
+Margin, Drift in basis points, Burn-to-Date %, and Open RR Hours exposure.
+
+**4. SteerCo Decision & Action Tracker** — `src/server/actions/steerco.ts`
+(`listSteerCoDecisions`, `createSteerCoDecision`,
+`updateSteerCoDecisionStatus`, `deleteSteerCoDecision`), consumed by both
+the Reports Hub's embedded manager and the SteerCo deck's own Decision
+Tracker table.
+
+**Verified the same way as WP1–6** (no `npm install` in this sandbox): the
+new migration was applied and round-tripped against a real local Postgres
+(`\d steerco_decisions` confirms the enum default, index, and both foreign
+keys); `tsc --noEmit --ignoreDeprecations 6.0 -p tsconfig.json` reports no
+error outside the established sandbox-noise categories — every error code
+this WP's files produce (`TS7026`, `TS2307`, `TS7006`, `TS2339`, `TS7053`,
+`TS2322`) is already in that documented list, and a whole-repo scan
+confirms no new error code appears anywhere. The three new pure functions
+(`computeFlightPathVariance`, `computeOpenDemandRisk`,
+`computeBurnToDatePct`) and the CSV serializer were hand-verified with a
+`tsx`-run script (same technique as WP6, since the `vitest` harness still
+isn't fully rebuilt in this sandbox): the no-baseline case, the erosion/
+upside/on-track classification including the exact ±0.05pt boundary, the
+0%/5%/15% demand-risk band boundaries, the zero-denominator guards on both
+Open Demand Risk and Burn-to-Date, and the CSV's basis-point drift math,
+rounding, RFC4180 comma-quoting, CRLF endings, and empty-portfolio
+header-only case — 14 assertions, all passing. The WP2 calc-engine's
+existing test suite is unaffected (this WP adds a new file rather than
+touching any existing calculation path).
+
+## Work Package 8 — Commercialization, Legal Pages, Support Ticketing & Admin Onboarding
+
+WP8 is a commercialization pass rather than a new module: intellectual
+property branding/copyright enforcement across the shell UI and core
+engine files, public Terms of Service and Privacy Policy pages, an in-app
+Support & Ticket Submission surface, and the operator-facing documentation
+(this README's own local-setup section, plus a new
+`docs/ADMIN_ONBOARDING.md`) needed to actually stand the app up and run a
+first tenant end to end.
+
+**Judgment calls made without blocking on the user** (documented here
+rather than via `AskUserQuestion`, following the same standard WP4–7 set):
+
+- **No new `SupportTicket` database model.** The spec's own deliverable
+  wording asks for the server action to process a ticket payload "with
+  structured logging," not persistence — read literally, and consistent
+  with this sandbox's now-familiar constraint of having no real ticketing
+  system to integrate with (no npm registry access — see the environment
+  note above — and no real Zendesk/Jira/Freshdesk account to call).
+  `submitSupportTicketAction` (`src/server/actions/support.ts`) validates
+  the ticket, resolves the requester's *real* identity server-side via
+  `requireOrgContext()` (never trusting the client-displayed
+  name/email/org — the same rule every other server action in this app
+  follows), mints a stable `SUP-<timestamp36>-<rand4>` reference, and emits
+  one structured `[SUPPORT_TICKET] {...}` JSON log line a real deployment's
+  log pipeline would forward to whatever ticketing system it actually
+  uses. Swapping this for a `db.supportTicket.create(...)` call or an
+  outbound webhook later is a one-function change.
+- **The Support modal's auto-populated Name/Email/Organization block is
+  cosmetic, not authoritative.** It's shown so the user can see exactly
+  what accompanies their ticket, but the server action re-derives all of
+  it from the session itself; only the free-text ticket fields and the
+  current route (which the server cannot know on its own) actually travel
+  from the client payload.
+- **Two support entry points, one global modal** — `SupportTicketModal.tsx`
+  is mounted once in the dashboard layout (same pattern as
+  `CommandPalette`/`HelpDrawer`) and opened either from a new dedicated
+  icon in `Header.tsx` (next to the existing "?" Help trigger) or from a
+  new "Contact Support →" footer CTA inside `HelpDrawer.tsx` itself, which
+  closes the help drawer before opening the modal rather than stacking two
+  full-attention overlays.
+- **`/terms` and `/privacy` are a new `(public)` route group**, deliberately
+  outside `(dashboard)` (no Sidebar/Header/RBAC-scoped data fetch — a page
+  here must render for a visitor with no account at all, which
+  `requireOrgContext()` would otherwise redirect away from) and outside
+  `(auth)` (they're not a sign-in flow). `middleware.ts`'s matcher was
+  extended to exclude both routes from the auth gate, alongside the
+  pre-existing `login`/`register`/`onboarding` exclusions — a ToS has to be
+  readable by someone who hasn't signed up yet, and be the actual document
+  a signed-in user's account is bound by.
+- **Both legal pages are placeholder terms for this project's own
+  consistently-used fictional company** ("A2R Ventures LLC" — the same
+  entity name used in every export footer since WP3 and WP7's Audit
+  Certificate/SteerCo Deck), not a real company's actual legal terms. A
+  real deployment needs qualified counsel to review both documents before
+  they govern a real customer relationship.
+- **Copyright headers went on the core calculation engines
+  (`src/lib/calculations/*.ts` except `_internal.ts`/`index.ts`/`types.ts`,
+  which are internal plumbing rather than "engines" in the spec's sense)
+  and the authentication/authorization utilities** `src/lib/auth.ts`,
+  `src/lib/session.ts`, and `src/lib/auth/rbac.ts` — the last one read
+  broadly as an "authentication utility" even though it's strictly
+  authorization (RBAC), since it's the other half of "who is this
+  request allowed to act as" alongside `auth.ts`/`session.ts` and lives
+  under the same `src/lib/auth/` namespace.
+- **The ™ mark on `Header.tsx` is an accessible label, not new visible
+  chrome.** Header's design is organization-focused (the workspace
+  switcher shows the *active org's* name, not the app's), so forcing a
+  second, visually competing "A2R Delivery OS™" string in there would
+  fight the existing layout. Instead the workspace-switcher button carries
+  `title="A2R Delivery OS™"` plus a screen-reader-only label, and the
+  browser tab title (`src/app/layout.tsx`'s `metadata.title`) now reads
+  "A2R Delivery OS™" — real, global, page-independent brand real estate
+  every route already shares. `Sidebar.tsx`'s own brand wordmark (the one
+  actually visible on every dashboard page) gets the ™ directly.
+- **`Footer.tsx` is a plain server component reused verbatim in both
+  shells** (`(dashboard)/layout.tsx` and the new `(public)/layout.tsx`) —
+  it deliberately does *not* surface its own "Contact Support" action,
+  since that depends on `DashboardUIProvider` client context a logged-out
+  public page never has; support access stays exactly where the spec put
+  it, in `HelpDrawer.tsx` and `Header.tsx`.
+- **`docs/ADMIN_ONBOARDING.md` documents what the app actually does, not
+  what the spec's step titles literally imply.** Two of the four steps
+  ("rate card CSV upload," "role invitations") describe capabilities that
+  don't exist in this build — WP6's CSV pipeline covers three *per-project*
+  imports (Effort Matrix, RAID, Financial Actuals), not the tenant-wide
+  rate-card roster, and there is still no self-serve invite flow (`/register`
+  always creates a brand-new organization; it can't join an existing one —
+  this has been the single most-cited "What's next" item since WP4). Rather
+  than document a fictional feature, the guide describes the real path for
+  each (manual entry via the Roles & Rate Card Matrix, or a Workspace
+  Backup JSON restore for bulk-seeding; roster entries via the Resources
+  panel, with an explicit callout that a roster entry isn't a login) and
+  names both as known gaps, matching this project's standing practice of
+  surfacing real limitations rather than glossing over them.
+
+**No schema changes this WP** — WP8 is UI, routing, documentation, and one
+new server action; nothing here touches `prisma/schema.prisma`.
+
+**1. Branding & Copyright Enforcement** — `Sidebar.tsx`'s wordmark now
+reads "A2R Delivery OS™"; the browser tab title and workspace-switcher
+`title`/`sr-only` label carry it too (see the judgment-call note above for
+why `Header.tsx` doesn't get a second visible wordmark). New
+`src/components/layout/Footer.tsx` renders "A2R Delivery OS™ · © {year} A2R
+Ventures LLC. All rights reserved." plus Terms/Privacy links, mounted in
+both `(dashboard)/layout.tsx` (below `<main>`) and the new
+`(public)/layout.tsx`. A short copyright/license banner comment was
+prepended to every file in `src/lib/calculations/` (excluding internal
+plumbing), `src/lib/auth.ts`, `src/lib/session.ts`, and
+`src/lib/auth/rbac.ts`.
+
+**2. Public Legal & Compliance Pages** — `src/app/(public)/layout.tsx` (a
+lighter, unauthenticated shell: brand mark, Terms/Privacy/Sign-in nav, the
+same `Footer.tsx`) plus `src/app/(public)/terms/page.tsx` (12 sections:
+acceptance, definitions, license grant, the Customer-Data-vs-A2R-IP
+ownership split, reverse-engineering and resale restrictions, the Mon–Fri
+8:00 AM–6:00 PM EST support SLA with per-priority target response times,
+term/termination, warranty disclaimer, liability limitation, governing law,
+change process, contact) and `src/app/(public)/privacy/page.tsx` (11
+sections: what's collected, the multi-tenant `organizationId`-scoped
+isolation model, AES-256-at-rest/TLS-1.3-in-transit encryption, an explicit
+no-data-selling commitment, retention/deletion, user rights, cookies,
+children's privacy, changes, contact). `middleware.ts`'s route matcher now
+excludes both.
+
+**3. In-App Support Ticketing** — `src/components/support/SupportTicketModal.tsx`
+(subject/category/priority/description form, read-only auto-populated
+identity/route context, a confirmation screen showing the generated ticket
+reference) plus `src/server/actions/support.ts#submitSupportTicketAction`
+(zod-validated, server-resolved identity, structured JSON logging — see
+the judgment-call note above). `dashboard-ui-context.tsx` gained a third
+open/close flag (`supportModalOpen`) alongside the existing command-palette
+and help-drawer ones, wired to Escape-to-close the same way. Triggered from
+a new icon in `Header.tsx` and a new footer CTA in `HelpDrawer.tsx`.
+
+**4. Admin Onboarding & Documentation** — `docs/ADMIN_ONBOARDING.md`, a
+4-step quickstart (workspace profile setup, rate-card setup, adding team
+members, initial baseline creation) covering both what's fully self-serve
+today and the two documented gaps above. This README gained a proper
+**Local Development Setup** section (below) in place of the previous
+terse "First run" snippet, and this WP8 section.
+
+**Verified the same way as WP1–7** (no `npm install` in this sandbox):
+`tsc --noEmit --ignoreDeprecations 6.0 -p tsconfig.json` reports no error
+outside the established sandbox-noise categories across every new/changed
+file (`(public)/terms/page.tsx`, `(public)/privacy/page.tsx`,
+`(public)/layout.tsx`, `Footer.tsx`, `SupportTicketModal.tsx`,
+`support.ts`, `dashboard-ui-context.tsx`, `Header.tsx`, `HelpDrawer.tsx`,
+`Sidebar.tsx`, `middleware.ts`, `layout.tsx`, and the eight
+copyright-banner files) — no new error code appears anywhere in a
+whole-repo scan. There's no new pure-calculation surface this WP (no
+schema, no new `src/lib/calculations/*` function), so there's nothing to
+hand-verify under `tsx` the way WP6/WP7 did; the one new server action
+(`submitSupportTicketAction`) was instead read-through-checked against its
+own zod schema by hand (empty subject/description rejected below the
+3/10-character minimums, an out-of-enum category/priority rejected,
+`route` optional and defaulted to `''`) rather than round-tripped against a
+live Postgres, since it writes no database row.
+
+## What's next (Phase 3b+)
+
+1. `npm install` once registry access exists, then `prisma migrate dev` to
+   generate the authoritative migration and Prisma client (reconciling the
+   four hand-derived migrations into Prisma's own history), then rebuild
+   the `vitest` harness in full and run it — including new coverage for
+   `computeContractorExposure`, the CSV parsers, `computeFlightPathVariance`/
+   `computeOpenDemandRisk`/`computeBurnToDatePct`, and the Portfolio CSV
+   serializer, all hand-verified across WP6/WP7 but not yet under the real
+   test runner — plus `npm run db:seed` to confirm both against the real
+   toolchain.
+2. Apply `canEditProject`/`hasPermission` to the remaining mutations
+   (RAID create/status-change, schedule date edits) — most module
+   mutations now route through `authorizeProjectEdit` as of WP5/WP6, but a
+   few (e.g. `updateRaidStatus`) still don't.
+3. Port the remaining interactive editors (scope builder, schedule date
+   pickers) onto the existing schema.
+4. Invite flow (`Membership` creation for a second user, with a
+   `deliveryRole` picker) — not built yet; currently every org's only path
+   in is the creator's own signup (`/register` always creates a *new*
+   organization; it cannot join an existing one), and there's no UI to
+   change anyone's `deliveryRole` after seeding. Now explicitly documented
+   as a known gap for a real rollout in `docs/ADMIN_ONBOARDING.md`'s Step
+   3 — see that doc for the actual workaround (hand-seeding, same as
+   `prisma/seed.ts`'s demo logins) until this ships.
+5. A tenant-wide rate-card CSV importer — WP6's CSV pipeline covers three
+   *per-project* imports (Effort Matrix, RAID, Financial Actuals), not the
+   `DeliveryRole` roster itself. Documented as a known gap in
+   `docs/ADMIN_ONBOARDING.md`'s Step 2, with the Workspace Backup/Restore
+   JSON snapshot as today's real bulk-load path.
+6. Persist Support tickets to a real store (or forward them to an actual
+   ticketing system) instead of WP8's structured console log line —
+   `submitSupportTicketAction`'s `{ok, ticketId}` contract was designed so
+   this is a one-function swap (add a `SupportTicket` model + migration, or
+   call an outbound webhook) with no change needed in
+   `SupportTicketModal.tsx` or either of its two entry points.
+7. An unrestricted, cross-portfolio "SteerCo War Room" and a tenant admin
+   surface for roster/rate-card/governance management — `hasPermission`
+   already defines the `steerco:view` and `admin:*` actions these would
+   gate, but no route consumes them yet. WP7's `/reports` Reports Hub is
+   deliberately *not* this: it's a role-scoped-per-project reporting
+   utility (see the WP7 section above), not the unrestricted tenant-wide
+   view `steerco:view` was reserved for.
+8. Deployment config (Vercel/Docker + managed Postgres, e.g. Neon/RDS) and
+   CI (`typecheck`/`lint`/`build` on PRs).

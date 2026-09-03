@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg text-ink font-body antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+  ::selection {
+    /* brand-hi (cyan) at low alpha — the one place brand tints body text */
+    background: rgba(25, 203, 218, 0.28);
+    color: #fff;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface-1 border border-border rounded-lg shadow-card p-6;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11.5px] font-semibold
+      bg-surface-2 border border-border-soft text-ink-muted whitespace-nowrap;
+  }
+  .status-dot {
+    @apply w-1.5 h-1.5 rounded-full flex-none;
+  }
+  .input {
+    @apply w-full bg-surface-2 border border-border-soft rounded-sm px-3 py-2 text-sm text-ink
+      placeholder:text-ink-faint outline-none transition-colors
+      focus-visible:border-brand-hi/60 focus-visible:ring-2 focus-visible:ring-brand-hi/40;
+  }
+  /* Primary CTA — a single confident brand fill (not a gradient), the
+     screen's ~10% focal accent. The gradient stays reserved for the logo
+     mark only. */
+  .btn-primary {
+    @apply w-full bg-brand text-brand-fg font-semibold text-sm rounded-sm px-4 py-2.5
+      transition hover:brightness-110 active:brightness-95
+      disabled:opacity-50 disabled:cursor-not-allowed
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-hi
+      focus-visible:ring-offset-2 focus-visible:ring-offset-bg;
+  }
+  .btn-secondary {
+    @apply bg-surface-2 border border-border-soft text-ink font-semibold text-sm rounded-sm px-4 py-2.5
+      transition hover:border-ink-faint hover:bg-surface-3
+      disabled:opacity-50 disabled:cursor-not-allowed
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-hi/50;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Executive Briefing — print / PDF export.
+   When printing, everything except .exec-briefing is hidden and the
+   briefing is re-rendered as ink-on-white so `window.print()` → "Save as
+   PDF" produces a clean board-ready document.
+   ───────────────────────────────────────────────────────────────────────── */
+@media print {
+  @page {
+    margin: 14mm;
+    size: A4;
+  }
+
+  /* collapse the app chrome */
+  aside,
+  header,
+  footer,
+  .no-print,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #16181d !important;
+  }
+
+  main,
+  main > div {
+    display: block !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* the briefing itself, forced to a light document palette */
+  .exec-briefing,
+  .exec-briefing * {
+    color: #16181d !important;
+    border-color: #d7dae0 !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .exec-briefing .card,
+  .exec-briefing .exec-card {
+    background: #ffffff !important;
+    border: 1px solid #d7dae0 !important;
+    border-radius: 6px !important;
+    padding: 12px 14px !important;
+    break-inside: avoid;
+  }
+  .exec-briefing .exec-section {
+    break-inside: avoid;
+  }
+  .exec-briefing .exec-muted {
+    color: #5b616e !important;
+  }
+  .exec-briefing .exec-band-green {
+    background: #e7f7ef !important;
+    color: #1c7a4f !important;
+  }
+  .exec-briefing .exec-band-amber {
+    background: #fdf1dc !important;
+    color: #96631a !important;
+  }
+  .exec-briefing .exec-band-red {
+    background: #fde6e5 !important;
+    color: #a5322e !important;
+  }
+  .exec-briefing table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  .exec-briefing thead th {
+    border-bottom: 1px solid #b9bec8 !important;
+  }
+  .exec-briefing .exec-page-break {
+    break-before: page;
+  }
+  .exec-briefing svg text {
+    fill: #16181d !important;
+  }
+}
