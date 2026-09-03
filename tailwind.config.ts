@@ -1,23 +1,24 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * A2R Delivery OS — design tokens.
+ * A2R Delivery OS — design tokens (Sprint 1: Apple-grade foundation).
  *
- * NEUTRALS — a single slate-tinted dark ramp (a cool grey with a faint
- * blue bias, never pure black or pure grey). `bg` is the canvas (~60% of
- * any screen), `surface-*` + `border-*` + `ink-muted` carry structure
- * (~30%), and BRAND is the ~10% focal accent — see the 60-30-10 note below.
+ * NEUTRALS are the whole system — a near-neutral obsidian ramp. `bg` is the
+ * deep canvas; `surface-1..3` are progressively lifted planes; `border` is
+ * a single hairline weight (`border-soft` is a barely-there step up, for
+ * hover/focus only). Type contrast is deliberately sharp: bright `ink`,
+ * a clear drop to `ink-muted`, quiet `ink-faint` for micro-labels.
  *
- * BRAND — the A2R signal palette: `brand` (blue) is the primary fill for
- * CTAs and the logo mark; `brand-hi` (cyan) is the interactive highlight —
- * active nav, focus rings, links, section eyebrows, "you are here". Both
- * are used sparingly and consistently so the accent always reads as
- * intentional. `accent-1` / `accent-2` remain as aliases for the same two
- * hues so older class usages keep resolving; new code uses `brand` /
- * `brand-hi`.
+ * BRAND is the ONE interactive accent — `brand` (systemBlue) for links,
+ * primary CTAs, active nav, focus rings, and the selected state. It is
+ * never decorative. `brand-hi` remains a resolving alias (== `brand`) so a
+ * stray class still lands on the accent rather than nothing.
  *
- * SEMANTIC STATUS — `success` / `warning` / `critical` / `na` are RAG +
- * neutral state colors, kept distinct from the brand accent.
+ * STATUS colors (`success` / `warning` / `critical` / `na`) are
+ * single-purpose — RAG + neutral state only, never chrome, never accent.
+ *
+ * No ambient shadows. `shadow-elevated` exists for true overlays (menus,
+ * sheets, toasts) that float above the page; everything else is flat.
  */
 const config: Config = {
   darkMode: ['class'],
@@ -25,42 +26,37 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Neutrals (slate-tinted dark ramp) ────────────────────────
-        bg: '#0A0B0E',
+        // ── Obsidian neutral ramp ───────────────────────────────────
+        bg: '#08090B',
         surface: {
-          1: '#121419',
-          2: '#181B22',
-          3: '#1E212A',
+          1: '#121316',
+          2: '#191A1E',
+          3: '#212228',
         },
         border: {
-          DEFAULT: '#23262E',
-          soft: '#2B2F39',
+          DEFAULT: '#26262A',
+          soft: '#2F2F35',
         },
         ink: {
-          DEFAULT: '#EEF0F4',
-          muted: '#9AA0AD',
-          faint: '#666C79',
+          DEFAULT: '#F5F5F7',
+          muted: '#8E8E93',
+          faint: '#636369',
         },
 
-        // ── Brand (the 10% focal accent) ─────────────────────────────
+        // ── The one interactive accent ──────────────────────────────
         brand: {
-          DEFAULT: '#1575BF', // signal blue — primary CTA + logo
-          hi: '#19CBDA', // cyan — interactive highlight / active state
-          fg: '#F4FAFF', // text/icon sitting on a solid brand fill
-          subtle: 'rgba(25,203,218,0.12)', // faint cyan wash for tints
+          DEFAULT: '#0A84FF',
+          hi: '#0A84FF', // resolving alias — accent, not a second colour
+          fg: '#FFFFFF',
+          subtle: 'rgba(10,132,255,0.12)',
         },
-        // Back-compat aliases — identical hues, kept so existing
-        // `accent-1` / `accent-2` utility classes keep resolving.
-        accent: {
-          1: '#1575BF',
-          2: '#19CBDA',
-        },
+        accent: { 1: '#0A84FF', 2: '#0A84FF' },
 
-        // ── Semantic status (RAG + neutral) ──────────────────────────
-        success: { DEFAULT: '#46D39A', soft: 'rgba(70,211,154,0.12)' },
-        warning: { DEFAULT: '#E8A33D', soft: 'rgba(232,163,61,0.12)' },
-        critical: { DEFAULT: '#E8615D', soft: 'rgba(232,97,93,0.12)' },
-        na: { DEFAULT: '#7B8190', soft: 'rgba(123,129,144,0.12)' },
+        // ── Single-purpose status ───────────────────────────────────
+        success: { DEFAULT: '#30D158', soft: 'rgba(48,209,88,0.14)' },
+        warning: { DEFAULT: '#FF9F0A', soft: 'rgba(255,159,10,0.14)' },
+        critical: { DEFAULT: '#FF453A', soft: 'rgba(255,69,58,0.14)' },
+        na: { DEFAULT: '#8E8E93', soft: 'rgba(142,142,147,0.14)' },
       },
       fontFamily: {
         display: ['var(--font-sora)', 'Segoe UI', 'system-ui', 'sans-serif'],
@@ -68,14 +64,13 @@ const config: Config = {
         mono: ['var(--font-plex-mono)', 'SFMono-Regular', 'Consolas', 'monospace'],
       },
       borderRadius: {
-        sm: '6px',
-        md: '10px',
-        lg: '16px',
+        sm: '8px',
+        md: '12px',
+        lg: '18px',
       },
       boxShadow: {
-        card: '0 1px 0 rgba(255,255,255,0.02) inset, 0 8px 24px rgba(0,0,0,0.28)',
-        // Soft brand glow for the auth screen and other focal moments.
-        brand: '0 0 0 1px rgba(25,203,218,0.12), 0 18px 60px -20px rgba(21,117,191,0.35)',
+        // Overlays only. Nothing on the page surface itself.
+        elevated: '0 24px 64px -20px rgba(0,0,0,0.72), 0 0 0 1px rgba(0,0,0,0.4)',
       },
     },
   },

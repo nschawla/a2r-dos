@@ -105,7 +105,7 @@ export function SupportTicketModal({ userName, userEmail, organizationId, organi
       <div className="card w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         {ticketId ? (
           <div className="flex flex-col gap-3">
-            <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold">Ticket submitted</div>
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">Ticket submitted</div>
             <h2 className="text-[15.5px] font-bold">Thanks — we&rsquo;ve got it.</h2>
             <p className="text-sm text-ink-muted">
               Reference <span className="font-mono text-ink">{ticketId}</span>. Our support team monitors tickets
@@ -121,7 +121,7 @@ export function SupportTicketModal({ userName, userEmail, organizationId, organi
           <>
             <div className="flex items-start justify-between gap-4 mb-1">
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Support</div>
+                <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Support</div>
                 <h2 className="text-[15.5px] font-bold">Contact Support</h2>
               </div>
               <button

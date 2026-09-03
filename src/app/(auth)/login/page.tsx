@@ -71,7 +71,7 @@ export default function LoginPage() {
       </form>
       <p className="text-ink-faint text-xs mt-6">
         No account yet?{' '}
-        <Link href="/register" className="text-brand-hi hover:brightness-110 font-semibold">
+        <Link href="/register" className="text-brand hover:brightness-110 font-semibold">
           Create an organization
         </Link>
       </p>

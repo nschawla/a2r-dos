@@ -72,7 +72,7 @@ export default async function HomePage() {
 
       <Link
         href="/capacity"
-        className="card !p-4 flex items-center justify-between gap-4 hover:border-brand-hi/50 transition-colors"
+        className="card !p-4 flex items-center justify-between gap-4 hover:border-brand/50 transition-colors"
       >
         <div>
           <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1.5">
@@ -96,12 +96,12 @@ export default async function HomePage() {
             </span>
           </div>
         </div>
-        <span className="text-brand-hi text-xs font-semibold whitespace-nowrap">Resource &amp; Capacity →</span>
+        <span className="text-brand text-xs font-semibold whitespace-nowrap">Resource &amp; Capacity →</span>
       </Link>
 
       {programRollups.length > 0 && (
         <div className="card">
-          <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Program Rollups</div>
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Program Rollups</div>
           <h2 className="text-[15.5px] font-bold mb-4">Parent Programs</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -119,7 +119,7 @@ export default async function HomePage() {
                 {programRollups.map(({ parent, rollup }) => (
                   <tr key={parent.id} className="border-b border-border/60 last:border-0">
                     <td className="py-2.5 pr-4 font-semibold">
-                      <Link href={`/commercial-baseline/${parent.id}`} className="hover:text-brand-hi">
+                      <Link href={`/commercial-baseline/${parent.id}`} className="hover:text-brand">
                         {parent.name}
                       </Link>
                     </td>
@@ -147,7 +147,7 @@ export default async function HomePage() {
       <div className="card">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Portfolio Registry</div>
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Portfolio Registry</div>
             <h2 className="text-[15.5px] font-bold">Active Projects</h2>
             <p className="text-[12.5px] text-ink-muted mt-1 max-w-xl">
               Every engagement in your scope, its assigned leadership, live health, and one-click access to its
@@ -190,7 +190,7 @@ export default async function HomePage() {
                       </td>
                       <td className="py-2.5 pr-4 tabular-nums">{openRaidByProject.get(p.id) ?? 0}</td>
                       <td className="py-2.5 pr-4">
-                        <Link href={`/commercial-baseline/${p.id}`} className="text-brand-hi text-xs font-semibold">
+                        <Link href={`/commercial-baseline/${p.id}`} className="text-brand text-xs font-semibold">
                           Open →
                         </Link>
                       </td>
@@ -204,13 +204,13 @@ export default async function HomePage() {
       </div>
 
       <div className="card">
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Quick Launch</div>
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Quick Launch</div>
         <h2 className="text-[15.5px] font-bold mb-4">Register a New Engagement</h2>
         <CreateProjectForm />
       </div>
 
       <div className="card">
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Quick Launch</div>
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Quick Launch</div>
         <h2 className="text-[15.5px] font-bold mb-4">Recent Activity</h2>
         {recentActivity.length === 0 ? (
           <p className="text-ink-muted text-sm">No governance actions logged yet.</p>
@@ -218,7 +218,7 @@ export default async function HomePage() {
           <ul className="flex flex-col gap-3">
             {recentActivity.map((a) => (
               <li key={a.id} className="flex items-start gap-3 text-sm">
-                <span className="status-dot bg-brand-hi mt-1.5" />
+                <span className="status-dot bg-brand mt-1.5" />
                 <div>
                   <div>{a.text}</div>
                   <div className="text-ink-faint text-xs mt-0.5">

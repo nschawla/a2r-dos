@@ -494,7 +494,7 @@ export function ControlLabelsPanel({
       />
       <p className="text-[12px] text-ink-faint -mt-2 mb-3">
         Open the{' '}
-        <Link href="/methodology" className="text-brand-hi hover:text-brand">
+        <Link href="/methodology" className="text-brand hover:text-brand">
           Methodology Reference
         </Link>{' '}
         for the full delivery standard, or use the <span className="font-serif italic">i</span> on any control below.
@@ -542,7 +542,7 @@ function ControlLabelRow({ control, currentLabel, canEdit }: { control: ControlD
 function PanelHead({ eyebrow, title, desc }: { eyebrow: string; title: string; desc: string }) {
   return (
     <div className="mb-4">
-      <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">{eyebrow}</div>
+      <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">{eyebrow}</div>
       <h2 className="text-[15.5px] font-bold">{title}</h2>
       <p className="text-[12.5px] text-ink-muted mt-1">{desc}</p>
     </div>

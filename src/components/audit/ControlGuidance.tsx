@@ -5,8 +5,8 @@ import clsx from 'clsx';
 import { getControlGuidance, type ControlGuidanceView } from '@/lib/control-guidance';
 
 const GATE_TONE: Record<string, string> = {
-  'Phase 0 — Initiation': 'bg-brand-hi/10 text-brand-hi border-brand-hi/30',
-  Mobilization: 'bg-brand/10 text-brand-hi border-brand/30',
+  'Phase 0 — Initiation': 'bg-surface-2 text-ink-muted border-border',
+  Mobilization: 'bg-surface-2 text-ink-muted border-border',
   'In-Flight': 'bg-warning-soft text-warning border-warning/30',
   'Deployment Gate': 'bg-critical-soft text-critical border-critical/30',
   Closure: 'bg-success-soft text-success border-success/30',
@@ -45,7 +45,7 @@ export function ControlGuidanceContent({
         <ul className="flex flex-col gap-1.5">
           {guidance.requiredArtifacts.map((a) => (
             <li key={a} className="flex gap-2 text-ink-muted">
-              <span className="text-brand-hi flex-none">&bull;</span>
+              <span className="text-ink-faint flex-none">&bull;</span>
               {a}
             </li>
           ))}
@@ -117,7 +117,7 @@ export function ControlGuidanceButton({
         aria-label={`Delivery guidance for ${label ?? guidance.defaultLabel}`}
         title="Delivery guidance"
         className={clsx(
-          'flex-none rounded-full border border-border-soft text-ink-faint hover:text-brand-hi hover:border-brand-hi/50 flex items-center justify-center font-serif italic leading-none transition-colors',
+          'flex-none rounded-full border border-border-soft text-ink-faint hover:text-brand hover:border-brand/50 flex items-center justify-center font-serif italic leading-none transition-colors',
           size === 'xs' ? 'w-4 h-4 text-[10px]' : 'w-5 h-5 text-[11px]'
         )}
       >
@@ -133,12 +133,12 @@ export function ControlGuidanceButton({
           onClick={() => setOpen(false)}
         >
           <aside
-            className="w-full max-w-md h-full bg-surface-1 border-l border-border-soft shadow-card overflow-y-auto"
+            className="w-full max-w-md h-full bg-surface-1 border-l border-border-soft shadow-elevated overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-surface-1 border-b border-border px-5 py-4 flex items-start justify-between gap-3">
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-0.5">
+                <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-0.5">
                   Methodology Playbook
                 </div>
                 <h3 className="text-[15.5px] font-display font-bold">{label ?? guidance.defaultLabel}</h3>

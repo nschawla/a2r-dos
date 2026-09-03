@@ -157,6 +157,16 @@ export const POST = withApiAuth(async (request, { tenantId, apiKey }) => {
       });
     }
 
+    // Automated feed into the tenant's Active Stream / recent-activity —
+    // an API ingest surfaces without anyone typing it in.
+    await tx.activityLogEntry.create({
+      data: {
+        organizationId: tenantId,
+        text: `Ingested ${entries.length} timesheet ${entries.length === 1 ? 'record' : 'records'} (${totalHours}h) via ${apiKey.apiKeyName}`,
+        tab: 'home',
+      },
+    });
+
     await recordLedgerEvent(tx, {
       organizationId: tenantId,
       actorId: `apikey:${apiKey.apiKeyId}`,

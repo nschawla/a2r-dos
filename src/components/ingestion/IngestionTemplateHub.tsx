@@ -78,7 +78,7 @@ export function IngestionTemplateHub({
       </div>
 
       <section className="card">
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">How ingestion works</div>
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">How ingestion works</div>
         <h2 className="text-[15.5px] font-bold mb-3">Before you load anything</h2>
         <div className="grid gap-4 md:grid-cols-2 text-[13px] text-ink-muted">
           <div className="flex flex-col gap-1.5">
@@ -144,7 +144,7 @@ function TemplateCard({
     <section className="card">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
-          <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Intake Template</div>
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Intake Template</div>
           <h2 className="text-[15.5px] font-bold">{template.title}</h2>
           <p className="text-[12.5px] text-ink-muted mt-1 max-w-xl">{template.purpose}</p>
           <p className="text-[11px] text-ink-faint font-mono mt-1.5">{template.filename}</p>
@@ -165,7 +165,7 @@ function TemplateCard({
           <ul className="flex flex-col gap-1.5 text-[12.5px] text-ink-muted">
             {template.guidance.map((line, i) => (
               <li key={i} className="flex gap-2">
-                <span className="text-brand-hi flex-none">&bull;</span>
+                <span className="text-ink-faint flex-none">&bull;</span>
                 <span>
                   <GuidanceText text={line} />
                 </span>

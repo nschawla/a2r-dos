@@ -5,48 +5,97 @@
 @layer base {
   body {
     @apply bg-bg text-ink font-body antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, h4 {
-    @apply font-display tracking-tight;
+    @apply font-display tracking-tight text-ink;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
   }
   ::selection {
-    /* brand-hi (cyan) at low alpha — the one place brand tints body text */
-    background: rgba(25, 203, 218, 0.28);
+    background: rgba(10, 132, 255, 0.30); /* systemBlue — the one accent */
     color: #fff;
+  }
+
+  /* ── Micro-interactions ────────────────────────────────────────────
+     Crisp and uniform: interactive elements settle colour / background in
+     ~120ms on an ease-out curve, and never move — hover and active change
+     paint only, so there is zero layout jank. */
+  a, button, summary,
+  [role='button'], [role='option'], [role='menuitem'], [role='tab'],
+  input, select, textarea {
+    transition-property: color, background-color, border-color, box-shadow, opacity;
+    transition-duration: 120ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* One keyboard focus ring across the app — the single blue accent,
+     offset from the obsidian ground, no layout shift. Fields and the
+     styled buttons keep their own softer ring. */
+  a:focus-visible, button:focus-visible, summary:focus-visible,
+  [role='button']:focus-visible, [role='option']:focus-visible,
+  [role='menuitem']:focus-visible, [role='tab']:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid #0A84FF; /* the single blue accent */
+    outline-offset: 2px;
+    border-radius: 5px;
+  }
+  .btn-primary:focus-visible, .btn-secondary:focus-visible, .input:focus-visible {
+    outline: none;
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Cmd+K palette entrance — a settle, not a slide. */
+@keyframes cmdk-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cmdk-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @layer components {
+  /* Flat plane — a lifted fill + one hairline, no ambient shadow. */
   .card {
-    @apply bg-surface-1 border border-border rounded-lg shadow-card p-6;
+    @apply bg-surface-1 border border-border rounded-lg p-6;
   }
   .badge {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11.5px] font-semibold
-      bg-surface-2 border border-border-soft text-ink-muted whitespace-nowrap;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold
+      bg-surface-2 border border-border text-ink-muted whitespace-nowrap;
   }
   .status-dot {
     @apply w-1.5 h-1.5 rounded-full flex-none;
   }
   .input {
-    @apply w-full bg-surface-2 border border-border-soft rounded-sm px-3 py-2 text-sm text-ink
+    @apply w-full bg-surface-2 border border-border rounded-md px-3.5 py-2.5 text-sm text-ink
       placeholder:text-ink-faint outline-none transition-colors
-      focus-visible:border-brand-hi/60 focus-visible:ring-2 focus-visible:ring-brand-hi/40;
+      focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/30;
   }
-  /* Primary CTA — a single confident brand fill (not a gradient), the
-     screen's ~10% focal accent. The gradient stays reserved for the logo
-     mark only. */
+  /* Primary CTA — one solid accent fill. */
   .btn-primary {
-    @apply w-full bg-brand text-brand-fg font-semibold text-sm rounded-sm px-4 py-2.5
-      transition hover:brightness-110 active:brightness-95
-      disabled:opacity-50 disabled:cursor-not-allowed
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-hi
+    @apply w-full bg-brand text-brand-fg font-semibold text-sm rounded-md px-4 py-2.5
+      transition-colors hover:bg-brand/90 active:bg-brand/80
+      disabled:opacity-40 disabled:cursor-not-allowed
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand
       focus-visible:ring-offset-2 focus-visible:ring-offset-bg;
   }
   .btn-secondary {
-    @apply bg-surface-2 border border-border-soft text-ink font-semibold text-sm rounded-sm px-4 py-2.5
-      transition hover:border-ink-faint hover:bg-surface-3
-      disabled:opacity-50 disabled:cursor-not-allowed
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-hi/50;
+    @apply bg-surface-2 border border-border text-ink font-semibold text-sm rounded-md px-4 py-2.5
+      transition-colors hover:bg-surface-3 hover:border-border-soft
+      disabled:opacity-40 disabled:cursor-not-allowed
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40;
   }
 }
 
@@ -132,5 +181,20 @@
   }
   .exec-briefing svg text {
     fill: #16181d !important;
+  }
+
+  /* SteerCo Briefing — the Pulse strip prints as a light panel, and the
+     status figures keep a legible tinted colour instead of going flat black
+     under the blanket rule above. */
+  .exec-briefing [aria-label='Venture vitals'],
+  .exec-briefing [aria-label='Venture vitals'] > div {
+    background: #ffffff !important;
+    border-color: #d7dae0 !important;
+  }
+  .exec-briefing .text-success { color: #1c7a4f !important; }
+  .exec-briefing .text-warning { color: #96631a !important; }
+  .exec-briefing .text-critical { color: #a5322e !important; }
+  .exec-section {
+    break-inside: avoid;
   }
 }

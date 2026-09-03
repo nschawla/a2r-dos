@@ -93,7 +93,7 @@ export function useToast(): ToastApi {
 }
 
 const VARIANT_STYLE: Record<ToastVariant, { accent: string; label: string }> = {
-  default: { accent: 'border-l-brand-hi', label: 'text-ink' },
+  default: { accent: 'border-l-border', label: 'text-ink' },
   success: { accent: 'border-l-success', label: 'text-success' },
   error: { accent: 'border-l-critical', label: 'text-critical' },
 };
@@ -113,7 +113,7 @@ function ToastViewport({ items, onDismiss }: { items: ToastRecord[]; onDismiss: 
             key={t.id}
             role={t.variant === 'error' ? 'alert' : 'status'}
             aria-live={t.variant === 'error' ? 'assertive' : 'polite'}
-            className={`bg-surface-1 border border-border border-l-2 ${style.accent} rounded-md shadow-card px-3.5 py-3 flex items-start gap-3`}
+            className={`bg-surface-1 border border-border border-l-2 ${style.accent} rounded-md shadow-elevated px-3.5 py-3 flex items-start gap-3`}
           >
             <div className="min-w-0 flex-1">
               <p className={`text-[13px] font-semibold ${style.label}`}>{t.title}</p>

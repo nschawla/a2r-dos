@@ -136,6 +136,10 @@ support a SOC 2 audit trail.
 - **Single writer, no mutation path.** `recordLedgerEvent` is the only code that
   writes the ledger; no update or delete path for these rows exists anywhere in
   the application.
+- **Fork-safe under concurrency (REL-3).** Appends take a per-tenant Postgres
+  advisory lock and a `@@unique` constraint pins each chain link, so parallel
+  writers cannot branch the chain. A live-database test asserts the chain stays
+  valid under parallel-append pressure.
 - **Survives tenant deletion.** The ledger's foreign key to `Organization` is
   `ON DELETE RESTRICT` — a tenant record cannot be hard-deleted while its
   compliance history exists. The retention sweep (§7) never touches the ledger.
@@ -275,8 +279,13 @@ Compliance Ledger or timesheet records**.
 
 ## 10. Testing & verification
 
-- **106** unit tests (Vitest) covering the calculation engine, data masking,
-  API-key crypto, rate limiter, tenant lifecycle, and retention policy logic.
+- **165** unit tests (Vitest) covering the calculation engine, data masking,
+  API-key crypto, rate limiter, tenant lifecycle, retention policy logic, the
+  command-center resolver, the ⌘K palette, the platform-pulse and SteerCo
+  briefing composers, and version/changelog governance.
+- **2** live-database security suites (`tests/security/*`) that assert
+  cross-tenant `organizationId` scoping and that the compliance ledger keeps a
+  valid tamper-evident hash chain under parallel-append pressure (REL-3).
 - **30** end-to-end tests (Playwright, Suites A–I) covering authentication,
   multi-tenant scoping, governance workflows, the capacity cockpit, the
   compliance ledger, data masking, and the tenant/data-sovereignty engine, with

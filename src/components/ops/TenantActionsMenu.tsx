@@ -100,7 +100,7 @@ export function TenantActionsMenu({ tenant }: { tenant: TenantMenuTarget }) {
         <div
           role="menu"
           aria-label={`Actions for ${tenant.name}`}
-          className="absolute right-0 top-full mt-1 w-52 bg-surface-1 border border-border-soft rounded-md shadow-card z-50 py-1"
+          className="absolute right-0 top-full mt-1 w-52 bg-surface-1 border border-border-soft rounded-md shadow-elevated z-50 py-1"
         >
           {items.map((it) => (
             <button

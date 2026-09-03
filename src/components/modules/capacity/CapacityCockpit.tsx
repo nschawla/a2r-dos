@@ -82,7 +82,7 @@ export function CapacityCockpit(props: CapacityCockpitProps) {
             onClick={() => setTab(t.key)}
             className={clsx(
               'px-3.5 py-2 text-[13px] font-semibold border-b-2 -mb-px transition-colors',
-              tab === t.key ? 'border-brand-hi text-ink' : 'border-transparent text-ink-muted hover:text-ink'
+              tab === t.key ? 'border-brand text-ink' : 'border-transparent text-ink-muted hover:text-ink'
             )}
           >
             {t.label}
@@ -120,7 +120,7 @@ function UtilizationTab({ periodLabel, orgSummary, practices, resourceRows }: Ca
       </div>
 
       <div className="card">
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Practice Breakdown</div>
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Practice Breakdown</div>
         <h2 className="text-[15.5px] font-bold mb-4">Plan vs. Actual by Practice</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -161,7 +161,7 @@ function UtilizationTab({ periodLabel, orgSummary, practices, resourceRows }: Ca
       </div>
 
       <div className="card">
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Roster</div>
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Roster</div>
         <h2 className="text-[15.5px] font-bold mb-4">Per-Resource Utilization</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -250,7 +250,7 @@ function ConcurrencyTab({ rows }: { rows: ConcurrencyRow[] }) {
       </div>
 
       <div className="card">
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Concurrency Radar</div>
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Concurrency Radar</div>
         <h2 className="text-[15.5px] font-bold mb-4">Active Engagements per Resource</h2>
         <div className="flex flex-col gap-2.5">
           {rows.map((r) => (
@@ -259,7 +259,7 @@ function ConcurrencyTab({ rows }: { rows: ConcurrencyRow[] }) {
               <div className="w-28 flex-none text-ink-faint text-xs truncate">{r.psPractice}</div>
               <div className="flex-1 h-4 rounded-full bg-surface-3 overflow-hidden relative">
                 <div
-                  className={clsx('h-full rounded-full', r.overloaded ? 'bg-critical' : r.projectCount >= 4 ? 'bg-warning' : 'bg-brand-hi')}
+                  className={clsx('h-full rounded-full', r.overloaded ? 'bg-critical' : r.projectCount >= 4 ? 'bg-warning' : 'bg-brand')}
                   style={{ width: `${(r.projectCount / maxCount) * 100}%` }}
                 />
                 <div className="absolute inset-y-0 bg-ink/40 w-px" style={{ left: `${(CONCURRENCY_OVERLOAD_THRESHOLD / maxCount) * 100}%` }} />
@@ -304,14 +304,14 @@ function ForecastTab({ weeks, rows }: { weeks: string[]; rows: ForecastRow[] }) 
   function cellTone(h: number): string {
     if (h <= 0) return 'text-ink-faint';
     const ratio = h / maxCell;
-    if (ratio > 0.66) return 'bg-brand-hi/25 text-ink font-semibold';
-    if (ratio > 0.33) return 'bg-brand-hi/12 text-ink';
-    return 'bg-brand-hi/[0.06] text-ink-muted';
+    if (ratio > 0.66) return 'bg-brand/25 text-ink font-semibold';
+    if (ratio > 0.33) return 'bg-brand/12 text-ink';
+    return 'bg-brand/[0.06] text-ink-muted';
   }
 
   return (
     <div className="card">
-      <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Forward Load</div>
+      <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Forward Load</div>
       <h2 className="text-[15.5px] font-bold mb-1">52-Week Staffing Forecast</h2>
       <p className="text-[12px] text-ink-muted mb-4">Forecast hours per resource per ISO week — scroll horizontally.</p>
       <div className="overflow-x-auto">
@@ -432,7 +432,7 @@ function PolicyControls({ isAdmin, policies }: { isAdmin: boolean; policies: Pol
 
   return (
     <div className="card">
-      <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Role Targets</div>
+      <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Role Targets</div>
       <h2 className="text-[15.5px] font-bold mb-3">Utilization Policy</h2>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -517,7 +517,7 @@ function PolicyRowEditor({
             type="button"
             disabled={!dirty || pending || Number.isNaN(Number(target))}
             onClick={() => onSave(policy.id, Number(target), billable)}
-            className="text-brand-hi text-xs font-semibold disabled:opacity-40"
+            className="text-brand text-xs font-semibold disabled:opacity-40"
           >
             Save
           </button>
@@ -578,7 +578,7 @@ function HolidayControls({ isAdmin, holidays }: { isAdmin: boolean; holidays: Ho
 
   return (
     <div className="card">
-      <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Calendar</div>
+      <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Calendar</div>
       <h2 className="text-[15.5px] font-bold mb-3">Corporate Holidays</h2>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

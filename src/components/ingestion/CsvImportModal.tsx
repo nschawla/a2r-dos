@@ -120,7 +120,7 @@ export function CsvImportModal({ projectId, kind, onClose }: CsvImportModalProps
       <div className="card w-full max-w-2xl max-h-[85vh] flex flex-col !p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="border-b border-border px-5 py-4 flex items-start justify-between gap-4">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Data Pipeline</div>
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Data Pipeline</div>
             <h2 className="text-lg font-display font-bold">{meta.title}</h2>
           </div>
           <button

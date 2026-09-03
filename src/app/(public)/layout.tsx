@@ -17,6 +17,7 @@
 import Link from 'next/link';
 import { Footer } from '@/components/layout/Footer';
 import { BrandMark } from '@/components/ui/brand-mark';
+import { Container } from '@/components/ui/container';
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -40,8 +41,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </Link>
         </nav>
       </header>
-      <main className="flex-1 px-6 py-10">
-        <div className="max-w-3xl mx-auto flex flex-col gap-6">{children}</div>
+      <main className="flex-1">
+        <Container size="prose">{children}</Container>
       </main>
       <Footer />
     </div>

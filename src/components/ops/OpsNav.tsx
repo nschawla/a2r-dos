@@ -6,6 +6,7 @@ import clsx from 'clsx';
 
 const OPS_NAV = [
   { href: '/ops/telemetry', label: 'Telemetry', desc: 'Platform-wide metrics' },
+  { href: '/ops/pulse', label: 'Platform Pulse', desc: 'Build · tests · health' },
   { href: '/ops/tenants', label: 'Tenants', desc: 'Client organizations' },
   { href: '/ops/ingestion', label: 'Ingestion & Templates', desc: 'Intake schemas & downloads' },
 ] as const;
@@ -26,7 +27,7 @@ export function OpsNav() {
             )}
           >
             {active && (
-              <span className="absolute -left-2.5 top-2 bottom-2 w-[3px] rounded-full bg-brand-hi" />
+              <span className="absolute -left-2.5 top-2 bottom-2 w-[3px] rounded-full bg-brand" />
             )}
             <span className="block">{item.label}</span>
             <span className="block font-mono text-[9.5px] uppercase tracking-wide text-ink-faint font-medium mt-px">

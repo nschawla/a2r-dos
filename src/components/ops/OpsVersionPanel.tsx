@@ -23,7 +23,7 @@ export function OpsVersionPanel() {
         title={BUILD_INFO.fullStamp}
         className="mt-1 w-full text-left px-3 py-1.5 rounded-sm text-[10px] text-ink-faint hover:text-ink-muted hover:bg-surface-2 transition-colors flex items-center gap-1.5"
       >
-        <span className="w-1 h-1 rounded-full bg-brand-hi/70 flex-none" aria-hidden />
+        <span className="w-1 h-1 rounded-full bg-brand/70 flex-none" aria-hidden />
         <span className="truncate">{BUILD_INFO.versionLabel}</span>
         <span className="ml-auto flex-none text-ink-faint/70">Release notes</span>
       </button>
@@ -56,7 +56,7 @@ function ChangelogModal({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-start justify-between gap-4 mb-1">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
               A2R Delivery OS
             </div>
             <h2 className="text-[17px] font-bold">Release Notes</h2>
@@ -79,7 +79,7 @@ function ChangelogModal({ onClose }: { onClose: () => void }) {
               <div className="flex items-baseline gap-2.5 flex-wrap border-b border-border/60 pb-2 mb-3">
                 <h3 className="text-[15px] font-display font-bold">v{release.version}</h3>
                 {i === 0 && (
-                  <span className="text-[9.5px] font-semibold uppercase tracking-wide rounded-full border border-brand-hi/40 bg-brand-hi/10 text-brand-hi px-1.5 py-0.5">
+                  <span className="text-[9.5px] font-semibold uppercase tracking-wide rounded-full border border-brand/40 bg-brand/10 text-brand px-1.5 py-0.5">
                     Current
                   </span>
                 )}

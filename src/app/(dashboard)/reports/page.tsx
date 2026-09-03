@@ -77,7 +77,7 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: {
 
       <section className="no-print flex flex-col gap-4 border-t border-border pt-6 mt-2">
         <div>
-          <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Per-Engagement Reports</div>
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Per-Engagement Reports</div>
           <h2 className="text-[15.5px] font-bold">SteerCo Decks, Margin Rollups & Compliance Certificates</h2>
         </div>
         <ReportsHubClient

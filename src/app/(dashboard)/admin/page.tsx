@@ -55,25 +55,25 @@ export default async function AdminPage() {
 
       <Link
         href="/admin/ingestion"
-        className="card flex items-center justify-between gap-4 hover:border-brand-hi/50 transition-colors"
+        className="card flex items-center justify-between gap-4 hover:border-brand/50 transition-colors"
       >
         <div>
-          <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Data Pipeline</div>
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Data Pipeline</div>
           <h2 className="text-[15.5px] font-bold">Data Ingestion &amp; Templates</h2>
           <p className="text-[12.5px] text-ink-muted mt-1 max-w-xl">
             Standardized CSV templates for the delivery roster, project baselines, and aggregated period
             actuals — with the schema for each and the load rules.
           </p>
         </div>
-        <span className="text-brand-hi text-xs font-semibold flex-none">Open →</span>
+        <span className="text-brand text-xs font-semibold flex-none">Open →</span>
       </Link>
 
       <Link
         href="/admin/audit-log"
-        className="card flex items-center justify-between gap-4 hover:border-brand-hi/50 transition-colors"
+        className="card flex items-center justify-between gap-4 hover:border-brand/50 transition-colors"
       >
         <div>
-          <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Compliance</div>
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Compliance</div>
           <h2 className="text-[15.5px] font-bold">SOC 2 Compliance Ledger</h2>
           <p className="text-[12.5px] text-ink-muted mt-1 max-w-xl">
             Tamper-evident, hash-chained record of every high-consequence governance action —
@@ -89,7 +89,7 @@ export default async function AdminPage() {
             <span className={`status-dot ${ledgerIntegrity.ok ? 'bg-success' : 'bg-critical'}`} />
             {ledgerIntegrity.ok ? 'Verified' : 'Broken'}
           </span>
-          <span className="text-brand-hi text-xs font-semibold">Open →</span>
+          <span className="text-brand text-xs font-semibold">Open →</span>
         </div>
       </Link>
     </>

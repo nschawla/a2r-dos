@@ -68,9 +68,9 @@ function OpsConsoleSwitch() {
     <Link
       href="/ops"
       title="Switch to the A2R Ops Console"
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm border border-brand-hi/40 text-brand-hi text-xs font-semibold hover:bg-brand-hi/10 transition-colors whitespace-nowrap"
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm border border-brand/40 text-brand text-xs font-semibold hover:bg-brand/10 transition-colors whitespace-nowrap"
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-brand-hi" aria-hidden />
+      <span className="w-1.5 h-1.5 rounded-full bg-brand" aria-hidden />
       A2R Ops Console
     </Link>
   );
@@ -112,7 +112,7 @@ function WorkspaceSwitcher({ organizationName, memberships }: { organizationName
         <span className="text-ink-faint text-[10px]">▾</span>
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1.5 w-72 bg-surface-1 border border-border-soft rounded-md shadow-card overflow-hidden z-50">
+        <div className="absolute left-0 top-full mt-1.5 w-72 bg-surface-1 border border-border-soft rounded-md shadow-elevated overflow-hidden z-50">
           <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-ink-faint font-semibold border-b border-border">
             Your organizations
           </div>
@@ -125,7 +125,7 @@ function WorkspaceSwitcher({ organizationName, memberships }: { organizationName
                   onClick={() => switchTo(m.organizationId)}
                   className={clsx(
                     'w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left hover:bg-surface-2 transition-colors',
-                    m.organizationName === organizationName && 'text-brand-hi'
+                    m.organizationName === organizationName && 'text-brand'
                   )}
                 >
                   <span className="truncate">{m.organizationName}</span>
@@ -222,7 +222,7 @@ function NotificationsBell({ notifications }: { notifications: NotificationSumma
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-80 bg-surface-1 border border-border-soft rounded-md shadow-card overflow-hidden z-50">
+        <div className="absolute right-0 top-full mt-1.5 w-80 bg-surface-1 border border-border-soft rounded-md shadow-elevated overflow-hidden z-50">
           <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-ink-faint font-semibold border-b border-border">
             Alerts · {total}
           </div>
@@ -290,7 +290,7 @@ function UserMenu({ userName, role }: { userName: string; role: SessionMembershi
         </span>
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-64 bg-surface-1 border border-border-soft rounded-md shadow-card overflow-hidden z-50">
+        <div className="absolute right-0 top-full mt-1.5 w-64 bg-surface-1 border border-border-soft rounded-md shadow-elevated overflow-hidden z-50">
           <div className="px-3 py-2.5 border-b border-border">
             <div className="text-sm font-semibold truncate">{userName}</div>
             <div className="text-[10px] text-ink-faint uppercase">Org role: {role}</div>
@@ -306,7 +306,7 @@ function UserMenu({ userName, role }: { userName: string; role: SessionMembershi
                   onClick={() => setPersona(p.key as Persona)}
                   className={clsx(
                     'w-full flex items-center justify-between px-3 py-1.5 text-sm text-left hover:bg-surface-2 transition-colors',
-                    p.key === persona ? 'text-brand-hi' : 'text-ink-muted'
+                    p.key === persona ? 'text-brand' : 'text-ink-muted'
                   )}
                 >
                   {p.label}

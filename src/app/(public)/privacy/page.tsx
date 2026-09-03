@@ -34,7 +34,7 @@ export default function PrivacyPage() {
   return (
     <>
       <div>
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Legal</div>
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Legal</div>
         <h1 className="text-2xl font-display font-bold">Privacy Policy</h1>
         <p className="text-ink-faint text-xs mt-2">Effective {EFFECTIVE_DATE} &middot; A2R Delivery OS™, a product of A2R Ventures LLC</p>
       </div>

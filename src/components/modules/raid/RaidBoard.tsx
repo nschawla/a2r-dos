@@ -58,7 +58,7 @@ const TYPE_LABEL: Record<RaidType, string> = { RISK: 'Risk', ASSUMPTION: 'Assump
 const SEVERITY_COLOR: Record<RaidSeverity, string> = {
   CRITICAL: 'bg-critical-soft text-critical',
   HIGH: 'bg-warning-soft text-warning',
-  MED: 'bg-brand-hi/10 text-brand-hi',
+  MED: 'bg-na-soft text-na',
   LOW: 'bg-na-soft text-na',
 };
 
@@ -82,7 +82,7 @@ const LIKELIHOOD_RANK: Record<RaidLikelihood, number> = { RARE: 1, POSSIBLE: 2, 
 function cellTint(score: number): string {
   if (score >= 12) return 'bg-critical-soft border-critical/40';
   if (score >= 8) return 'bg-warning-soft border-warning/40';
-  if (score >= 4) return 'bg-brand-hi/10 border-brand-hi/30';
+  if (score >= 4) return 'bg-brand/10 border-brand/30';
   return 'bg-success-soft border-success/40';
 }
 
@@ -184,7 +184,7 @@ export function RaidBoard({ projectId, canEdit, entries, resources }: RaidBoardP
       <div className="card">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Risk Matrix</div>
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Risk Matrix</div>
             <h2 className="text-[15.5px] font-bold">Impact × Likelihood</h2>
             <p className="text-[12px] text-ink-muted mt-0.5">
               Open risks only. Click a cell to filter the list below to that exposure band.
@@ -194,7 +194,7 @@ export function RaidBoard({ projectId, canEdit, entries, resources }: RaidBoardP
             <button
               type="button"
               onClick={() => setMatrixCell(null)}
-              className="text-[11px] font-semibold rounded-full px-2.5 py-1 border border-brand-hi/40 bg-brand-hi/10 text-brand-hi"
+              className="text-[11px] font-semibold rounded-full px-2.5 py-1 border border-brand/40 bg-brand/10 text-brand"
             >
               {SEVERITY_LABEL[matrixCell.severity]} × {LIKELIHOOD_LABEL[matrixCell.likelihood]} ✕
             </button>
@@ -239,7 +239,7 @@ export function RaidBoard({ projectId, canEdit, entries, resources }: RaidBoardP
             className={clsx(
               'text-xs font-semibold rounded-full px-3 py-1 border transition-colors',
               !matrixCell && typeFilter.has(t)
-                ? 'border-brand-hi/40 bg-brand-hi/10 text-brand-hi'
+                ? 'border-brand/40 bg-brand/10 text-brand'
                 : 'border-border-soft text-ink-faint hover:text-ink'
             )}
           >
@@ -316,7 +316,7 @@ function RowFragment({
             className={clsx(
               'h-12 rounded-sm border flex items-center justify-center font-display font-bold tabular-nums transition-all',
               cellTint(score),
-              active ? 'ring-2 ring-brand-hi ring-offset-1 ring-offset-bg' : 'hover:brightness-95',
+              active ? 'ring-2 ring-brand ring-offset-1 ring-offset-bg' : 'hover:brightness-95',
               count === 0 && 'opacity-45'
             )}
           >

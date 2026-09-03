@@ -528,9 +528,9 @@ function BurnCurve({ series }: { series: { week: string; forecastHours: number; 
               </text>
             ) : null
           )}
-          {actualArea && <path d={actualArea} className="fill-brand-hi/15" />}
+          {actualArea && <path d={actualArea} className="fill-brand/15" />}
           <path d={plannedPath} fill="none" stroke="currentColor" className="text-ink-faint" strokeWidth={1.75} strokeDasharray="4 3" />
-          {actualPath && <path d={actualPath} fill="none" stroke="currentColor" className="text-brand-hi" strokeWidth={2.25} />}
+          {actualPath && <path d={actualPath} fill="none" stroke="currentColor" className="text-brand" strokeWidth={2.25} />}
         </svg>
       </div>
 
@@ -539,7 +539,7 @@ function BurnCurve({ series }: { series: { week: string; forecastHours: number; 
           <span className="inline-block w-4 border-t-2 border-dashed border-ink-faint" /> Planned ({Math.round(plannedTotal).toLocaleString('en-US')} h total)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-4 border-t-2 border-brand-hi" /> Actual
+          <span className="inline-block w-4 border-t-2 border-brand" /> Actual
         </span>
       </div>
     </div>

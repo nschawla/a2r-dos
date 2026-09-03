@@ -23,7 +23,7 @@ export default async function MethodologyReferencePage() {
   return (
     <>
       <div>
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Methodology Playbook</div>
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Methodology Playbook</div>
         <h1 className="text-2xl font-display font-bold">Methodology Reference</h1>
         <p className="text-ink-muted text-sm mt-1 max-w-2xl">
           The full A2R delivery standard — every governance control, what it exists to achieve, the artifacts a reviewer

@@ -40,7 +40,7 @@ export function MarginModelerCard({ totals }: { totals: SizingTotals }) {
               step={1}
               value={target}
               onChange={(e) => setTarget(Number(e.target.value))}
-              className="flex-1 accent-brand-hi"
+              className="flex-1 accent-brand"
             />
             <span className="tabular-nums font-semibold w-12 text-right">{target}%</span>
           </label>

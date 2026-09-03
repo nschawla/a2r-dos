@@ -14,5 +14,11 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     // Loads .env so DB-integration tests (tests/security/**) can reach Postgres.
     setupFiles: ['tests/setup.ts'],
+    // Stamp each run's result to a gitignored file the Ops Console's
+    // Platform Pulse reads — automated test-status ingestion, no manual entry.
+    reporters: [
+      'default',
+      ['json', { outputFile: './.a2r/vitest-result.json' }],
+    ],
   },
 });

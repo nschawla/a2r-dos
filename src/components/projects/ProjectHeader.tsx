@@ -103,7 +103,7 @@ export function ProjectHeader({
               {HIERARCHY_LABEL[hierarchyLevel] ?? hierarchyLevel}
             </span>
             {waveTag && (
-              <span className="text-[10px] uppercase tracking-wide font-semibold text-brand-hi border border-brand-hi/30 bg-brand-hi/10 rounded-full px-2 py-0.5">
+              <span className="text-[10px] uppercase tracking-wide font-semibold text-ink-muted border border-border-soft rounded-full px-2 py-0.5">
                 {waveTag}
               </span>
             )}
@@ -128,7 +128,7 @@ export function ProjectHeader({
                 'px-3 py-1.5 rounded-sm text-xs font-semibold border transition-colors disabled:opacity-50',
                 locked
                   ? 'border-border-soft text-ink-muted hover:text-ink hover:border-ink-faint'
-                  : 'border-brand/40 bg-brand/10 text-brand-hi hover:bg-brand/20'
+                  : 'border-brand/40 bg-brand/10 text-brand hover:bg-brand/20'
               )}
             >
               {pending ? 'Working…' : locked ? 'Unlock Baseline' : 'Lock Baseline'}
@@ -194,7 +194,7 @@ export function ProjectHeader({
                   'px-3 py-1.5 rounded-sm text-xs font-semibold border transition-colors',
                   locked
                     ? 'border-critical/40 bg-critical-soft text-critical hover:bg-critical/20'
-                    : 'border-brand/40 bg-brand/10 text-brand-hi hover:bg-brand/20'
+                    : 'border-brand/40 bg-brand/10 text-brand hover:bg-brand/20'
                 )}
                 onClick={handleToggleLock}
               >

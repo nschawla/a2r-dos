@@ -28,13 +28,29 @@ export const CHANGE_TYPE_META: Record<
   ChangeType,
   { label: string; badgeClass: string }
 > = {
-  feature: { label: 'New', badgeClass: 'text-brand-hi border-brand-hi/40 bg-brand-hi/10' },
+  feature: { label: 'New', badgeClass: 'text-brand border-brand/40 bg-brand/10' },
   improvement: { label: 'Improved', badgeClass: 'text-success border-success/40 bg-success-soft' },
   fix: { label: 'Fixed', badgeClass: 'text-warning border-warning/40 bg-warning-soft' },
   security: { label: 'Security', badgeClass: 'text-critical border-critical/40 bg-critical-soft' },
 };
 
 export const CHANGELOG: ReleaseNote[] = [
+  {
+    version: '1.1.0',
+    date: '2026-09-03',
+    headline: 'The single-pane command layer — obsidian design system, Command Center, universal ⌘K, and the SteerCo Briefing',
+    changes: [
+      { type: 'feature', text: 'Single-Pane Command Center (/command) — a Pulse strip of portfolio vitals, a terminal-style Command Bar for natural-language navigation ("financials for Contoso"), and one chronological Active Stream that merges activity, governance, and open escalated risk.' },
+      { type: 'feature', text: 'Universal ⌘K / Ctrl+K command palette — available on every screen including the operator console and sign-in, searching destinations, actions, engagements (with a health dot), people, and open escalated RAID in a single list, with full keyboard control and route prefetch.' },
+      { type: 'feature', text: 'SteerCo Briefing (/steerco) — a lean, board-ready portfolio view (headline, Pulse, margin health, what-moved, watchlist) built from the same engines as the module pages, with a clean light-document print / PDF export.' },
+      { type: 'feature', text: 'Platform Pulse operator console (/ops/pulse) — automatically ingested engineering telemetry for the platform itself: running build and commit, a live database probe with latency, last test-suite result, and an Engineering Stream of recent commits, test runs, and releases.' },
+      { type: 'feature', text: 'API bulk-ingest now writes to the tenant Active Stream — each scheduled timesheet feed appears as an activity event with the record count, hours, and API key name.' },
+      { type: 'improvement', text: 'Obsidian design system — a deep-obsidian ground, a single systemBlue (#0A84FF) interactive accent, flat shadow-free surfaces, status colors reserved for status only, a shared Container layout primitive, and a flat brand mark.' },
+      { type: 'improvement', text: 'Apple-grade micro-interactions — crisp 120ms transitions, a consistent blue focus ring on every interactive element, animated command surfaces, and a full prefers-reduced-motion opt-out.' },
+      { type: 'improvement', text: 'Sidebar navigation reordered to follow the delivery workflow — Commercial Baseline → Financial Realization → Schedule & Milestones → RAID Cockpit → Control Audit — and the Command Bar anchored to the top of the Command Center as its primary execution header.' },
+      { type: 'improvement', text: 'User Manual & Operator’s Guide published (docs/USER_MANUAL.md).' },
+    ],
+  },
   {
     version: '1.0.0',
     date: '2026-09-03',

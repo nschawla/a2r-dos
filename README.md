@@ -1100,6 +1100,57 @@ own zod schema by hand (empty subject/description rejected below the
 `route` optional and defaulted to `''`) rather than round-tripped against a
 live Postgres, since it writes no database row.
 
+## Phase 3b — Sprints 1–5: Design System, Command Layer & Executive Briefing
+
+Phase 3b is a UX and operator-experience pass on top of the GA (v1.0.0)
+foundation. It ships the obsidian design system, a single-pane Command
+Center, a universal ⌘K palette, a platform-telemetry console, and the
+SteerCo Briefing, then reorders the sidebar to the delivery workflow.
+Released as **v1.1.0** (see `CHANGELOG.md` / the in-app Release Notes).
+
+End-user documentation for everything below lives in
+**`docs/USER_MANUAL.md`** (User Manual & Operator's Guide).
+
+### Requirements traceability (Sprints 1–5)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| S1 | **Obsidian design system** — obsidian ground, single `#0A84FF` accent, flat shadow-free surfaces, status-only status colors | `tailwind.config.ts`, `src/app/globals.css`, `src/components/ui/brand-mark.tsx` | visual; token usage compiled via `tsc` + full `vitest` gate |
+| S1 | **`Container` layout primitive** — single-column, generous padding, four size presets | `src/components/ui/container.tsx` | consumed by every new route |
+| S2 | **Command Center** route | `src/app/(dashboard)/command/page.tsx` | `tests/command-center.test.ts` |
+| S2 | **Pulse strip** — venture vitals (book of business, velocity, margin, risk) | `src/components/command-center/PulseStrip.tsx` | masking-aware via `canViewMargins` |
+| S2 | **Active Stream** — merged activity + governance + open escalated risk, newest-first | `src/components/command-center/ActiveStream.tsx`, `src/server/queries/active-stream.ts` | `tests/command-center.test.ts` |
+| S2 | **Command Bar** — natural-language resolver (`<module> for <engagement>`, verbs, actions) | `src/components/command-center/CommandBar.tsx`, `src/lib/command-center/commands.ts` | `tests/command-center.test.ts` (routing, verb-strip, staff-gate, cap) |
+| S2 | `relativeTime` / money + percent formatters | `src/lib/relative-time.ts`, `src/lib/format.ts` | `tests/command-center.test.ts` |
+| S3 | **Platform Pulse** operator console — build / DB probe / test / git telemetry | `src/app/(admin)/ops/pulse/page.tsx`, `src/server/queries/platform-pulse.ts`, `src/lib/dev-signals.ts` | `tests/platform-pulse.test.ts` |
+| S3 | **Health poller** — 15s `/api/health/ready` check in the Ops header | `src/components/ops/PlatformHealthPoller.tsx` | — |
+| S3 | **API bulk-ingest → tenant Active Stream** — each feed logs an activity event | `src/app/api/v1/ingest/timesheets/route.ts` | `tests/templates.test.ts`, live-DB isolation suite |
+| S3 | vitest JSON reporter for the test-suite signal | `vitest.config.ts`, `.gitignore` (`/.a2r/`) | — |
+| S4 | **Universal ⌘K / Ctrl+K palette** — global, context-free, route-prefetching | `src/components/command-k/CommandK.tsx`, `src/server/actions/command-k.ts`, `src/lib/command-center/command-k-results.ts` | `tests/command-k.test.ts` |
+| S4 | **Micro-interactions** — 120ms transitions, blue focus ring, reduced-motion opt-out | `src/app/globals.css` | visual |
+| S4 | ⌘K event bus — `openCommandPalette()` dispatches `a2r:command-k` | `src/components/layout/dashboard-ui-context.tsx`, `src/app/layout.tsx` | `tests/command-k.test.ts` |
+| S5 | **SteerCo Briefing** route + view (cover, Pulse, margin health, what-moved, watchlist) | `src/app/(dashboard)/steerco/page.tsx`, `src/components/reports/SteerCoBriefingView.tsx`, `src/server/queries/steerco-briefing.ts` | `tests/steerco-briefing.test.ts` |
+| S5 | **Print / PDF export** — light-document reflow, no UI noise, no page-splitting | `@media print` block in `src/app/globals.css` | visual |
+| UX | Sidebar reordered to the delivery workflow; Command Bar moved to top of `/command` | `src/components/layout/Sidebar.tsx`, `src/app/(dashboard)/command/page.tsx` | full `vitest` + `tsc` gate |
+
+**Removed:** the dashboard-only `CommandPalette.tsx` / `command-palette.ts`
+(superseded by the global `CommandK`).
+
+**Verification:** `npx tsc --noEmit` → 0 errors; `npx vitest run` → **165
+passed** across 15 files (13 pure-unit + 2 live-database security suites).
+
+### Placement decision — telemetry is operator data, not tenant data
+
+Sprint 3 asked for git / dev-server / build / test signals in "the Pulse
+strip" and "the Active Stream". Those are properties of the platform
+deployment, not of any one tenant — surfacing them inside a tenant's
+workspace would break the tenant-isolation guarantee in `docs/SECURITY.md`
+and is meaningless in production (there is no `localhost:3000` dev server).
+So engineering telemetry went to a **staff-gated `/ops/pulse`** console
+that reuses the same `PulseStrip` / `ActiveStream` components, while the
+automation that genuinely belongs to a tenant — the API bulk-ingest feed —
+writes into that tenant's own Active Stream.
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to
@@ -1136,12 +1187,11 @@ live Postgres, since it writes no database row.
    this is a one-function swap (add a `SupportTicket` model + migration, or
    call an outbound webhook) with no change needed in
    `SupportTicketModal.tsx` or either of its two entry points.
-7. An unrestricted, cross-portfolio "SteerCo War Room" and a tenant admin
-   surface for roster/rate-card/governance management — `hasPermission`
-   already defines the `steerco:view` and `admin:*` actions these would
-   gate, but no route consumes them yet. WP7's `/reports` Reports Hub is
-   deliberately *not* this: it's a role-scoped-per-project reporting
-   utility (see the WP7 section above), not the unrestricted tenant-wide
-   view `steerco:view` was reserved for.
+7. A tenant admin surface for roster/rate-card/governance management —
+   `hasPermission` defines the `admin:*` actions this would gate, but no
+   route consumes them yet. _(The cross-portfolio SteerCo view reserved
+   under `steerco:view` shipped in Phase 3b as `/steerco` — a role-scoped,
+   board-ready portfolio briefing; margin figures there still honor
+   `canViewMargins`.)_
 8. Deployment config (Vercel/Docker + managed Postgres, e.g. Neon/RDS) and
    CI (`typecheck`/`lint`/`build` on PRs).

@@ -22,23 +22,27 @@ const NAV_GROUPS: NavGroup[] = [
   {
     heading: 'Portfolio',
     items: [
+      { href: '/command', label: 'Command Center', abbr: 'CC' },
       { href: '/', label: 'Control Tower', abbr: 'CT' },
       { href: '/capacity', label: 'Resource & Capacity', abbr: 'RC' },
     ],
   },
   {
     heading: 'Engagement Governance',
+    // Ordered to follow the delivery workflow: size the deal, track its
+    // financial realization, run the schedule, manage RAID, then audit.
     items: [
       { href: '/commercial-baseline', label: 'Commercial Baseline', abbr: 'CB' },
-      { href: '/audit', label: 'Control Audit', abbr: 'CA' },
-      { href: '/raid', label: 'RAID Cockpit', abbr: 'RD' },
       { href: '/financials', label: 'Financial Realization', abbr: 'FR' },
       { href: '/schedule', label: 'Schedule & Milestones', abbr: 'SM' },
+      { href: '/raid', label: 'RAID Cockpit', abbr: 'RD' },
+      { href: '/audit', label: 'Control Audit', abbr: 'CA' },
     ],
   },
   {
     heading: 'Reporting',
     items: [
+      { href: '/steerco', label: 'SteerCo Briefing', abbr: 'SC' },
       { href: '/reports', label: 'Executive Hub', abbr: 'EX' },
       { href: '/methodology', label: 'Methodology Reference', abbr: 'MR' },
     ],
@@ -168,7 +172,7 @@ function NavLink({ item, active, collapsed }: { item: NavItem; active: boolean; 
       {active && (
         <span
           className={clsx(
-            'absolute top-2 bottom-2 w-[3px] rounded-full bg-brand-hi',
+            'absolute top-2 bottom-2 w-[3px] rounded-full bg-brand',
             collapsed ? '-left-2' : '-left-2.5'
           )}
         />

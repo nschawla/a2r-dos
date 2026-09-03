@@ -47,7 +47,7 @@ export interface ScheduleTrackerProps {
 
 const STATUS_COLOR: Record<ScheduleStatus, string> = {
   NOTSTARTED: 'bg-na-soft text-na',
-  INPROGRESS: 'bg-brand-hi/10 text-brand-hi',
+  INPROGRESS: 'bg-brand/10 text-brand',
   COMPLETE: 'bg-success-soft text-success',
   DELAYED: 'bg-critical-soft text-critical',
 };
@@ -220,7 +220,7 @@ function PhaseRow({
             value={draft.pctComplete}
             disabled={!canEdit}
             onChange={(e) => patch({ pctComplete: Number(e.target.value) })}
-            className="flex-1 accent-brand-hi"
+            className="flex-1 accent-brand"
           />
           <span className="tabular-nums text-xs w-9 text-right">{draft.pctComplete}%</span>
         </div>

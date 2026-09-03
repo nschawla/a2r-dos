@@ -75,7 +75,7 @@ export default async function FinancialsProjectPage({ params }: { params: { proj
       />
 
       <div>
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
           Financial Realization · {project.name}
         </div>
         <h1 className="text-2xl font-display font-bold">Estimate at Completion (EAC)</h1>

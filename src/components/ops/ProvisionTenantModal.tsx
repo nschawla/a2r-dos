@@ -74,7 +74,7 @@ export function ProvisionTenantModal() {
           <div className="card w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">
+                <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
                   A2R Operator
                 </div>
                 <h2 className="text-[15.5px] font-bold">

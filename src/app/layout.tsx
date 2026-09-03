@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Sora, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { ToastProvider } from '@/components/ui/toast';
+import { CommandK } from '@/components/command-k/CommandK';
 
 const sora = Sora({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-sora' });
 const plexSans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-plex-sans' });
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${sora.variable} ${plexSans.variable} ${plexMono.variable}`} style={{ colorScheme: 'dark' }}>
       <body>
         <ToastProvider>{children}</ToastProvider>
+        <CommandK />
       </body>
     </html>
   );

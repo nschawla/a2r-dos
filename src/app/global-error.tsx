@@ -20,15 +20,15 @@ import { captureException } from '@/lib/observability';
 // Mirrors the design tokens in tailwind.config.ts — this file replaces the
 // whole document, so it can't use Tailwind and inlines the palette instead.
 const palette = {
-  bg: '#0A0B0E',
-  surface: '#121419',
-  border: '#23262E',
-  ink: '#EEF0F4',
-  inkMuted: '#9AA0AD',
-  inkFaint: '#666C79',
-  brand: '#1575BF',
-  brandFg: '#F4FAFF',
-  critical: '#E8615D',
+  bg: '#08090B',
+  surface: '#121316',
+  border: '#26262A',
+  ink: '#F5F5F7',
+  inkMuted: '#8E8E93',
+  inkFaint: '#636369',
+  brand: '#0A84FF',
+  brandFg: '#FFFFFF',
+  critical: '#FF453A',
 };
 
 export default function GlobalError({

@@ -220,7 +220,7 @@ export function DealEditor({
               className={clsx(
                 'flex-1 px-4 py-3 text-sm font-semibold transition-colors border-b-2 -mb-px disabled:cursor-not-allowed',
                 mode === m
-                  ? 'border-brand-hi text-ink bg-surface-2'
+                  ? 'border-brand text-ink bg-surface-2'
                   : 'border-transparent text-ink-muted hover:text-ink disabled:hover:text-ink-muted'
               )}
             >

@@ -20,3 +20,6 @@ npm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local dev signals (test-run stamp read by the Ops Platform Pulse)
+/.a2r/

@@ -4,13 +4,13 @@ import { getNotificationSummary } from '@/server/queries/notifications';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Footer } from '@/components/layout/Footer';
-import { CommandPalette } from '@/components/layout/CommandPalette';
 import { HelpDrawer } from '@/components/layout/HelpDrawer';
 import { SupportTicketModal } from '@/components/support/SupportTicketModal';
 import { DashboardUIProvider } from '@/components/layout/dashboard-ui-context';
 import { defaultPersonaForRole } from '@/components/layout/personas';
 import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner';
 import { GraceperiodBanner } from '@/components/layout/GraceperiodBanner';
+import { Container } from '@/components/ui/container';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { session, organizationId, organizationName, role, memberships, impersonation } = await requireOrgContext();
@@ -44,13 +44,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
             notifications={notifications}
             isA2rStaff={isA2rStaff}
           />
-          <main className="flex-1 w-full px-7 pt-6 pb-14">
-            <div className="flex flex-col gap-5 max-w-[1320px]">{children}</div>
+          <main className="flex-1 w-full">
+            <Container>{children}</Container>
           </main>
           <Footer />
         </div>
       </div>
-      <CommandPalette />
       <HelpDrawer />
       <SupportTicketModal
         userName={session.user.name ?? session.user.email ?? 'You'}

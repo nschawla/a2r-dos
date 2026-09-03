@@ -143,7 +143,7 @@ function LauncherCard({
 }) {
   return (
     <div className="card flex flex-col gap-2">
-      <div className="text-[10.5px] uppercase tracking-wide text-brand-hi font-semibold">{eyebrow}</div>
+      <div className="text-[10.5px] uppercase tracking-wide text-ink-faint font-semibold">{eyebrow}</div>
       <h3 className="text-[15px] font-bold">{title}</h3>
       <p className="text-[12.5px] text-ink-muted flex-1">{desc}</p>
       <button

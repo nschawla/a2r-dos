@@ -60,7 +60,7 @@ export default async function AuditProjectPage({ params }: { params: { projectId
       />
 
       <div>
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
           Governance Health · {project.name}
         </div>
         <h1 className="text-2xl font-display font-bold">Audit Completion</h1>
@@ -69,7 +69,7 @@ export default async function AuditProjectPage({ params }: { params: { projectId
           <span className="font-serif italic">i</span> beside any control for its playbook guidance.
         </p>
         <div className="mt-2">
-          <Link href="/methodology" className="text-brand-hi hover:text-brand text-xs font-semibold">
+          <Link href="/methodology" className="text-brand hover:text-brand text-xs font-semibold">
             Open the Methodology Reference →
           </Link>
         </div>

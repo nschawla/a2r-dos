@@ -56,10 +56,10 @@ export default async function OpsTelemetryPage() {
       <div className="card">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Per-Tenant</div>
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Per-Tenant</div>
             <h2 className="text-[15.5px] font-bold">Breakdown</h2>
           </div>
-          <Link href="/ops/tenants" className="text-brand-hi text-xs font-semibold self-center">
+          <Link href="/ops/tenants" className="text-brand text-xs font-semibold self-center">
             Manage tenants →
           </Link>
         </div>

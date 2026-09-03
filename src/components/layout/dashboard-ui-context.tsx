@@ -17,9 +17,8 @@ export { PERSONAS, PERSONAS_WITH_WRITE_ACCESS, defaultPersonaForRole };
 export type { Persona };
 
 interface DashboardUIState {
-  commandPaletteOpen: boolean;
+  /** Opens the global ⌘K palette (mounted at the app root — see CommandK). */
   openCommandPalette: () => void;
-  closeCommandPalette: () => void;
   helpDrawerOpen: boolean;
   openHelpDrawer: () => void;
   closeHelpDrawer: () => void;
@@ -39,7 +38,6 @@ interface DashboardUIState {
 const DashboardUIContext = createContext<DashboardUIState | null>(null);
 
 export function DashboardUIProvider({ children, defaultPersona }: { children: ReactNode; defaultPersona: Persona }) {
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [helpDrawerOpen, setHelpDrawerOpen] = useState(false);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
   const [persona, setPersonaState] = useState<Persona>(defaultPersona);
@@ -65,22 +63,20 @@ export function DashboardUIProvider({ children, defaultPersona }: { children: Re
     }
   }, []);
 
-  const openCommandPalette = useCallback(() => setCommandPaletteOpen(true), []);
-  const closeCommandPalette = useCallback(() => setCommandPaletteOpen(false), []);
+  // The ⌘K palette lives at the app root (CommandK) so it works on every
+  // surface, not just the dashboard — this just pokes it open.
+  const openCommandPalette = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('a2r:command-k'));
+  }, []);
   const openHelpDrawer = useCallback(() => setHelpDrawerOpen(true), []);
   const closeHelpDrawer = useCallback(() => setHelpDrawerOpen(false), []);
   const openSupportModal = useCallback(() => setSupportModalOpen(true), []);
   const closeSupportModal = useCallback(() => setSupportModalOpen(false), []);
 
-  // Global Cmd+K / Ctrl+K shortcut.
+  // Escape closes the help drawer / support modal (the palette handles its own).
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setCommandPaletteOpen((open) => !open);
-      }
       if (e.key === 'Escape') {
-        setCommandPaletteOpen(false);
         setHelpDrawerOpen(false);
         setSupportModalOpen(false);
       }
@@ -91,9 +87,7 @@ export function DashboardUIProvider({ children, defaultPersona }: { children: Re
 
   const value = useMemo<DashboardUIState>(
     () => ({
-      commandPaletteOpen,
       openCommandPalette,
-      closeCommandPalette,
       helpDrawerOpen,
       openHelpDrawer,
       closeHelpDrawer,
@@ -104,12 +98,10 @@ export function DashboardUIProvider({ children, defaultPersona }: { children: Re
       setPersona,
     }),
     [
-      commandPaletteOpen,
       helpDrawerOpen,
       supportModalOpen,
       persona,
       openCommandPalette,
-      closeCommandPalette,
       openHelpDrawer,
       closeHelpDrawer,
       openSupportModal,

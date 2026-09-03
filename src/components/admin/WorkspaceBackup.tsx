@@ -142,7 +142,7 @@ export function WorkspaceBackup({ canManage }: WorkspaceBackupProps) {
   return (
     <section className="card">
       <div className="mb-4">
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Data Pipeline</div>
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Data Pipeline</div>
         <h2 className="text-[15.5px] font-bold">Workspace Backup &amp; Restore</h2>
         <p className="text-[12.5px] text-ink-muted mt-1">
           Export a full snapshot of this tenant&rsquo;s projects, rate card, resources, and RAID registers as a single

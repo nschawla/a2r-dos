@@ -4,6 +4,7 @@ import { requireOpsContext } from '@/lib/ops-auth';
 import { OpsNav } from '@/components/ops/OpsNav';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { OpsVersionPanel } from '@/components/ops/OpsVersionPanel';
+import { Container } from '@/components/ui/container';
 
 export const metadata: Metadata = {
   title: 'A2R Ops Console',
@@ -46,13 +47,13 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
 
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="sticky top-0 z-40 bg-bg/90 backdrop-blur-md border-b border-border px-7 py-3 flex items-center justify-between gap-3">
-          <span className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold">
+          <span className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">
             A2R Ventures · Internal
           </span>
           <span className="text-xs text-ink-faint">Signed in as {ops.name}</span>
         </header>
-        <main className="flex-1 w-full px-7 pt-6 pb-14">
-          <div className="flex flex-col gap-5 max-w-[1320px]">{children}</div>
+        <main className="flex-1 w-full">
+          <Container>{children}</Container>
         </main>
       </div>
     </div>

@@ -225,10 +225,10 @@ export function HelpDrawer() {
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/50" onClick={closeHelpDrawer} />
-      <aside className="absolute right-0 top-0 h-full w-full max-w-md bg-surface-1 border-l border-border-soft shadow-card overflow-y-auto">
+      <aside className="absolute right-0 top-0 h-full w-full max-w-md bg-surface-1 border-l border-border-soft shadow-elevated overflow-y-auto">
         <div className="sticky top-0 bg-surface-1 border-b border-border px-6 py-4 flex items-start justify-between gap-4">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">{section.eyebrow}</div>
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">{section.eyebrow}</div>
             <h2 className="text-lg font-display font-bold">{section.title}</h2>
           </div>
           <button

@@ -89,7 +89,7 @@ export default function RegisterPage() {
       </form>
       <p className="text-ink-faint text-xs mt-6">
         Already have an account?{' '}
-        <Link href="/login" className="text-brand-hi hover:brightness-110 font-semibold">
+        <Link href="/login" className="text-brand hover:brightness-110 font-semibold">
           Sign in
         </Link>
       </p>

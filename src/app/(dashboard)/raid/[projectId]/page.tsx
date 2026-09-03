@@ -56,7 +56,7 @@ export default async function RaidProjectPage({ params }: { params: { projectId:
       />
 
       <div>
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
           Operational Governance · {project.name}
         </div>
         <h1 className="text-2xl font-display font-bold">RAID Cockpit</h1>

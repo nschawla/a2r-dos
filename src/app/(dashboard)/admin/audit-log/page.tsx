@@ -13,7 +13,7 @@ export default async function ComplianceLedgerPage() {
   return (
     <>
       <div>
-        <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
           <Link href="/admin" className="hover:text-brand">
             Admin &amp; Org Setup
           </Link>{' '}
@@ -66,7 +66,7 @@ export default async function ComplianceLedgerPage() {
       <div className="card">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Immutable Ledger</div>
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Immutable Ledger</div>
             <h2 className="text-[15.5px] font-bold">Recent Audit Events</h2>
           </div>
           <span className="text-xs text-ink-faint self-center">{integrity.count} total entries</span>
@@ -108,7 +108,7 @@ export default async function ComplianceLedgerPage() {
                       <code className="font-mono text-[11.5px] text-ink-muted">{e.targetResource}</code>
                       {e.metadata && Object.keys(e.metadata).length > 0 && (
                         <details className="mt-1">
-                          <summary className="text-[11px] text-brand-hi cursor-pointer select-none">details</summary>
+                          <summary className="text-[11px] text-brand cursor-pointer select-none">details</summary>
                           <pre className="mt-1 text-[10.5px] text-ink-faint bg-surface-2 rounded-sm p-2 overflow-x-auto max-w-md">
                             {JSON.stringify(e.metadata, null, 2)}
                           </pre>

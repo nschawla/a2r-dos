@@ -13,13 +13,13 @@ import clsx from 'clsx';
 import { fetchAuditTrail, type AuditTrailEntry } from '@/server/actions/audit-log';
 
 const ACTION_META: Record<string, { label: string; tone: string }> = {
-  BASELINE_LOCKED: { label: 'Baseline Locked', tone: 'bg-brand-hi/10 text-brand-hi' },
+  BASELINE_LOCKED: { label: 'Baseline Locked', tone: 'bg-na-soft text-na' },
   BASELINE_UNLOCKED: { label: 'Baseline Unlocked', tone: 'bg-na-soft text-na' },
-  EAC_ACTUAL_UPDATED: { label: 'EAC Actuals Updated', tone: 'bg-brand-hi/10 text-brand-hi' },
+  EAC_ACTUAL_UPDATED: { label: 'EAC Actuals Updated', tone: 'bg-na-soft text-na' },
   RAID_ESCALATED: { label: 'RAID Escalated', tone: 'bg-warning-soft text-warning' },
   RAID_UNESCALATED: { label: 'RAID Un-escalated', tone: 'bg-na-soft text-na' },
   AUDIT_SCORE_CHANGED: { label: 'Audit Score Changed', tone: 'bg-success-soft text-success' },
-  CSV_IMPORT_COMMITTED: { label: 'CSV Import Committed', tone: 'bg-brand/10 text-brand-hi' },
+  CSV_IMPORT_COMMITTED: { label: 'CSV Import Committed', tone: 'bg-na-soft text-na' },
   WORKSPACE_RESTORED: { label: 'Workspace Restored', tone: 'bg-critical-soft text-critical' },
   WORKSPACE_EXPORTED: { label: 'Workspace Exported', tone: 'bg-na-soft text-na' },
 };
@@ -105,10 +105,10 @@ export function AuditTrailDrawer({ projectId, open, onClose }: { projectId: stri
   return (
     <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <aside className="absolute right-0 top-0 h-full w-full max-w-lg bg-surface-1 border-l border-border-soft shadow-card overflow-y-auto">
+      <aside className="absolute right-0 top-0 h-full w-full max-w-lg bg-surface-1 border-l border-border-soft shadow-elevated overflow-y-auto">
         <div className="sticky top-0 bg-surface-1 border-b border-border px-6 py-4 flex items-start justify-between gap-4">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-1">Governance</div>
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Governance</div>
             <h2 className="text-lg font-display font-bold">Audit Trail</h2>
           </div>
           <button
@@ -128,7 +128,7 @@ export function AuditTrailDrawer({ projectId, open, onClose }: { projectId: stri
               onClick={() => setActionFilter('ALL')}
               className={clsx(
                 'text-[11px] font-semibold rounded-full px-2.5 py-1 border transition-colors',
-                actionFilter === 'ALL' ? 'border-brand-hi/40 bg-brand-hi/10 text-brand-hi' : 'border-border-soft text-ink-faint hover:text-ink'
+                actionFilter === 'ALL' ? 'border-brand/40 bg-brand/10 text-brand' : 'border-border-soft text-ink-faint hover:text-ink'
               )}
             >
               All
@@ -142,7 +142,7 @@ export function AuditTrailDrawer({ projectId, open, onClose }: { projectId: stri
                   onClick={() => setActionFilter(a)}
                   className={clsx(
                     'text-[11px] font-semibold rounded-full px-2.5 py-1 border transition-colors',
-                    actionFilter === a ? 'border-brand-hi/40 bg-brand-hi/10 text-brand-hi' : 'border-border-soft text-ink-faint hover:text-ink'
+                    actionFilter === a ? 'border-brand/40 bg-brand/10 text-brand' : 'border-border-soft text-ink-faint hover:text-ink'
                   )}
                 >
                   {meta.label}

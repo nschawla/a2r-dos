@@ -35,7 +35,7 @@ export function ExecutiveBriefing({
       {/* action bar — screen only */}
       <div className="no-print card !p-4 flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <div className="text-[11px] uppercase tracking-wide text-brand-hi font-semibold mb-0.5">Executive Briefing</div>
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-0.5">Executive Briefing</div>
           <p className="text-[12.5px] text-ink-muted">
             Portfolio-wide board briefing — one page per section, print-optimised for PDF export.
           </p>
@@ -301,7 +301,7 @@ function SectionTitle({ n, title }: { n: number; title: string }) {
   return (
     <div className="border-b border-border/70 pb-1.5">
       <h3 className="text-[15.5px] font-bold">
-        <span className="text-brand-hi tabular-nums">{n} · </span>
+        <span className="text-brand tabular-nums">{n} · </span>
         {title}
       </h3>
     </div>
@@ -432,14 +432,14 @@ function BurnChart({
           <line x1={x(nowIdx)} y1={PAD_T} x2={x(nowIdx)} y2={H - PAD_B} className="text-ink-faint" stroke="currentColor" strokeDasharray="2 2" strokeWidth={1} />
         )}
         <path d={plannedPath} fill="none" className="text-ink-faint" stroke="currentColor" strokeWidth={1.75} strokeDasharray="4 3" />
-        {actualPath && <path d={actualPath} fill="none" className="text-brand-hi" stroke="currentColor" strokeWidth={2.25} />}
+        {actualPath && <path d={actualPath} fill="none" className="text-brand" stroke="currentColor" strokeWidth={2.25} />}
       </svg>
       <div className="flex items-center gap-4 text-[11px] exec-muted text-ink-muted mt-1">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-4 border-t-2 border-dashed border-ink-faint" /> Planned
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-4 border-t-2 border-brand-hi" /> Actual (to date)
+          <span className="inline-block w-4 border-t-2 border-brand" /> Actual (to date)
         </span>
       </div>
     </div>

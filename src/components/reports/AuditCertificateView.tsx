@@ -45,20 +45,20 @@ export interface AuditCertificateProps {
 }
 
 const PALETTE = {
-  bg: '#0A0B0E',
-  surface1: '#121419',
-  surface2: '#181B22',
-  border: '#23262E',
-  borderSoft: '#2B2F39',
-  ink: '#EEF0F4',
-  inkMuted: '#9AA0AD',
-  inkFaint: '#666C79',
-  accent1: '#1575BF',
-  accent2: '#19CBDA',
-  success: '#46D39A',
-  warning: '#E8A33D',
-  critical: '#E8615D',
-  na: '#7B8190',
+  bg: '#08090B',
+  surface1: '#121316',
+  surface2: '#191A1E',
+  border: '#26262A',
+  borderSoft: '#2F2F35',
+  ink: '#F5F5F7',
+  inkMuted: '#8E8E93',
+  inkFaint: '#636369',
+  accent1: '#0A84FF',
+  accent2: '#0A84FF',
+  success: '#30D158',
+  warning: '#FF9F0A',
+  critical: '#FF453A',
+  na: '#8E8E93',
 } as const;
 
 const HEALTH_COLOR: Record<'G' | 'Y' | 'R', string> = { G: PALETTE.success, Y: PALETTE.warning, R: PALETTE.critical };
