@@ -61,10 +61,14 @@ membership role.
   internal-token checks.
 - Session tokens are JWTs signed with `NEXTAUTH_SECRET` (operator-supplied,
   generated via `openssl rand -base64 32`).
+- Enterprise SSO IdP secrets (the OIDC client secret) are AES-256-GCM
+  encrypted at rest with a key derived from `NEXTAUTH_SECRET` (see §8);
+  the plaintext is never returned to a client — only a fingerprint.
 
 **Roadmap:** HMAC (keyed with a server-side pepper) for API-key hashes;
 application-level (column) encryption for the most sensitive fields (contractor
-cost rates, resource PII) via a managed KMS; SSO (SAML/OIDC) and SCIM
+cost rates, resource PII) via a managed KMS; the live SSO (SAML/OIDC) IdP
+handshake (configuration, verification and JIT ship in v1.2.0 — §8) and SCIM
 provisioning; server-side session revocation ("sign out everywhere"); MFA.
 
 ---
@@ -252,7 +256,30 @@ Compliance Ledger or timesheet records**.
   - `summary` (VP_EXECUTIVE, PRACTICE_DIRECTOR) — blended margins and EAC;
   - `restricted` (DELIVERY_MANAGER, PROJECT_MANAGER) — no cost or margin data.
   Masked values render with an explicit "restricted" indicator rather than
-  silently disappearing.
+  silently disappearing. Server actions strip the sensitive numbers out of
+  the payload for a `restricted` viewer, not just decline to render them.
+- **Enterprise Governance override (Hybrid Configuration Model).** Each
+  tenant selects a compliance template (Standard / Strict Financial
+  Governance / Agile Delivery / Board-Only) and Layer-2 overrides. Two
+  controls are security-relevant: **route visibility** removes modules
+  from navigation, and **`maskFinancialsForDelivery`** pushes the
+  `summary` tier (Practice Director) down to `restricted` on top of the
+  role tiers above. The resolved config rides on the request context, and
+  every change is written to the Compliance Ledger
+  (`GOVERNANCE_CONFIG_CHANGE`).
+- **Enterprise SSO / identity federation.** One SAML 2.0 or OIDC IdP per
+  tenant (Entra ID / Okta / Google Workspace presets). OIDC client secrets
+  are **AES-256-GCM encrypted at rest** (key derived from
+  `NEXTAUTH_SECRET`); the UI only ever shows a fingerprint. IdP metadata is
+  parsed and pinned on an explicit **verify** step; federation cannot be
+  enabled without it. When SSO is **enforced** for an email domain,
+  password sign-in for that domain is refused at the NextAuth `signIn`
+  callback. Just-in-time provisioning maps IdP security-group claims to a
+  delivery + console role (case-insensitive, lowest-priority-wins);
+  **admin-assigned roles are never overwritten by JIT**, and every
+  provisioning event is ledgered (`SSO_CONFIG_CHANGE`, `SSO_JIT_PROVISION`).
+  The live IdP handshake (redirect, assertion signature validation) is a
+  follow-on; `applyFederatedLogin()` is the integration seam.
 
 ---
 
@@ -279,10 +306,13 @@ Compliance Ledger or timesheet records**.
 
 ## 10. Testing & verification
 
-- **165** unit tests (Vitest) covering the calculation engine, data masking,
-  API-key crypto, rate limiter, tenant lifecycle, retention policy logic, the
-  command-center resolver, the ⌘K palette, the platform-pulse and SteerCo
-  briefing composers, and version/changelog governance.
+- **231** unit tests (Vitest) covering the calculation engine, data masking
+  (incl. the org governance override), API-key crypto, rate limiter, tenant
+  lifecycle, retention policy logic, the command-center resolver, the ⌘K
+  palette, the platform-pulse and SteerCo briefing composers, the workspace-lens
+  resolver, the governance Hybrid Configuration Model, identity-federation
+  secret crypto / IdP-metadata parsing / security-group mapping / JIT
+  provisioning, and version/changelog governance.
 - **2** live-database security suites (`tests/security/*`) that assert
   cross-tenant `organizationId` scoping and that the compliance ledger keeps a
   valid tamper-evident hash chain under parallel-append pressure (REL-3).
@@ -308,7 +338,9 @@ Compliance Ledger or timesheet records**.
 | Audited, read-only support access | **Implemented** (§5) |
 | SOC 2 Type II attestation | **Roadmap** — the controls above are designed toward it |
 | Formal DPA, sub-processor list, RoPA | **Roadmap** |
-| SSO / SCIM / MFA | **Roadmap** |
+| Enterprise SSO configuration (SAML/OIDC) + JIT provisioning | **Implemented** (§8) — live IdP handshake follow-on |
+| Per-tenant governance framework (compliance templates + masking) | **Implemented** (§8) |
+| SCIM / MFA | **Roadmap** |
 | Penetration test | **Roadmap** — this document reflects internal review only |
 
 ---

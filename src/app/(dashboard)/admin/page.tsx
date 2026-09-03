@@ -5,11 +5,20 @@ import { CONTROL_DEFS } from '@/lib/constants';
 import { verifyLedgerIntegrity } from '@/lib/audit-ledger';
 import { canViewCostRates } from '@/lib/security/masking';
 import { hasPermission } from '@/lib/auth/rbac';
-import { PracticesPanel, RolesPanel, ResourcesPanel, PolicyPanel, ControlLabelsPanel } from './admin-panels';
+import { getIdentityProvider } from '@/lib/identity/service';
+import {
+  PracticesPanel,
+  RolesPanel,
+  ResourcesPanel,
+  PolicyPanel,
+  ControlLabelsPanel,
+  GovernancePanel,
+} from './admin-panels';
+import { IdentityFederationPanel } from './identity-federation-panel';
 import { WorkspaceBackup } from '@/components/admin/WorkspaceBackup';
 
 export default async function AdminPage() {
-  const { organizationId, role, deliveryRole } = await requireOrgContext();
+  const { organizationId, role, deliveryRole, governance } = await requireOrgContext();
   const canEdit = role === 'OWNER' || role === 'ADMIN';
   // WP6 — Workspace Backup & Restore is gated on the real DeliveryRole
   // 'admin:workspace' permission (src/server/authz.ts#authorizeAdminAction),
@@ -17,13 +26,14 @@ export default async function AdminPage() {
   // `canEdit` above that gates the rest of this page's panels.
   const canManageWorkspace = hasPermission(deliveryRole, 'admin:workspace');
 
-  const [practices, roles, resources, policy, controlLabels, ledgerIntegrity] = await Promise.all([
+  const [practices, roles, resources, policy, controlLabels, ledgerIntegrity, identityProvider] = await Promise.all([
     db.practice.findMany({ where: { organizationId }, orderBy: { name: 'asc' } }),
     db.deliveryRole.findMany({ where: { organizationId }, orderBy: { name: 'asc' } }),
     db.resource.findMany({ where: { organizationId }, orderBy: { name: 'asc' }, include: { role: true, practice: true } }),
     db.orgPolicy.findUnique({ where: { organizationId } }),
     db.controlLabel.findMany({ where: { organizationId } }),
     verifyLedgerIntegrity(organizationId),
+    getIdentityProvider(organizationId),
   ]);
 
   const labelByKey = new Map(controlLabels.map((c) => [c.controlKey, c.label]));
@@ -48,7 +58,15 @@ export default async function AdminPage() {
         />
       </div>
 
-      <RolesPanel roles={roles} practices={practices} canEdit={canEdit} canViewCost={canViewCostRates(deliveryRole)} />
+      <GovernancePanel config={governance} canEdit={canEdit} />
+
+      <IdentityFederationPanel
+        idp={identityProvider}
+        practices={practices.map((p) => ({ id: p.id, name: p.name }))}
+        canEdit={canEdit}
+      />
+
+      <RolesPanel roles={roles} practices={practices} canEdit={canEdit} canViewCost={canViewCostRates(deliveryRole, governance)} />
       <ResourcesPanel resources={resources} roles={roles} practices={practices} canEdit={canEdit} />
       <ControlLabelsPanel controls={CONTROL_DEFS} labelByKey={labelByKey} canEdit={canEdit} />
       <WorkspaceBackup canManage={canManageWorkspace} />

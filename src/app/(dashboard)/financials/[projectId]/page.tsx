@@ -15,7 +15,7 @@ import {
 import { RestrictedNotice } from '@/components/security/Masked';
 
 export default async function FinancialsProjectPage({ params }: { params: { projectId: string } }) {
-  const { organizationId, deliveryRole, resourceId, resourcePracticeId } = await requireOrgContext();
+  const { organizationId, deliveryRole, governance, resourceId, resourcePracticeId } = await requireOrgContext();
 
   const [project, roleRows, weeklySlots] = await Promise.all([
     db.project.findFirst({
@@ -41,9 +41,13 @@ export default async function FinancialsProjectPage({ params }: { params: { proj
   // Role-based data masking — strip cost rates / per-line cost out of the
   // payload for restricted viewers (PM / DM) so the numbers never reach
   // the client, and drive the UI's masked rendering via `visibility`.
-  const visibility = financialVisibility(deliveryRole);
-  const maskedRoles = maskRateRolesForViewer(toRateRoles(roleRows), deliveryRole);
-  const maskedActuals = maskFinancialActualsForViewer(toFinancialActuals(project.financials), deliveryRole);
+  const visibility = financialVisibility(deliveryRole, governance);
+  const maskedRoles = maskRateRolesForViewer(toRateRoles(roleRows), deliveryRole, governance);
+  const maskedActuals = maskFinancialActualsForViewer(
+    toFinancialActuals(project.financials),
+    deliveryRole,
+    governance
+  );
 
   // RTM C4 — burn-curve series: one point per ISO week, forecast vs actual
   // hours summed across every resource assigned that week. `actualCum` stops

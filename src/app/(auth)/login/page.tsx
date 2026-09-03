@@ -23,11 +23,15 @@ export default function LoginPage() {
         setError(result.error || 'Too many sign-in attempts. Please wait a minute and try again.');
         return;
       }
+      if (result?.error === 'AccessDenied') {
+        setError('Single sign-on is required for your organization. Please sign in through your identity provider.');
+        return;
+      }
       if (result?.error) {
         setError('Invalid email or password.');
         return;
       }
-      router.push('/');
+      router.push('/launch');
       router.refresh();
     } catch {
       setError('Couldn’t reach the sign-in service. Check your connection and try again.');

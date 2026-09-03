@@ -10,6 +10,27 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.0] — 2026-09-03
+
+_Enterprise Governance & Identity — compliance templates, financial masking, and SSO / SAML / OIDC federation._
+
+### Added
+- **Enterprise Governance Framework** — a Hybrid Configuration Model in **Admin & Org Setup**. _Layer 1_ is a pre-tested **compliance template**: Standard Delivery, Strict Financial Governance, Agile Delivery, or Board-Only. _Layer 2_ is the tenant's own overrides — which modules appear in navigation (**route visibility**) and whether margins / EAC are scrubbed for delivery roles below VP (**financial data masking**). The stored template resolves to `CUSTOM` once the settings diverge.
+- **Enterprise SSO / Identity Federation** — one SAML 2.0 or OIDC identity provider per workspace, with setup presets for **Microsoft Entra ID (Azure AD)**, **Okta**, and **Google Workspace**. Admins paste the IdP metadata (SAML `EntityDescriptor` XML) or an OIDC discovery URL and **verify** it; endpoints and the signing-certificate fingerprint are extracted and pinned.
+- **Just-in-time provisioning & security-group → role mapping** — on a federated login the assertion's group / role claims resolve a delivery + console role from the tenant's mapping table (case-insensitive, lowest priority wins), and a `Membership` is created (or an SSO-provisioned one re-synced) in one transaction. Admin-assigned (`MANUAL`) memberships are never re-roled by JIT.
+- **Role-based landing & perspective switcher** — a `WorkspaceLens` (Executive / Delivery / Finance / Operations) drops multi-role users on their tailored landing page after sign-in and can be re-pointed from a header switcher. Every module stays reachable from the sidebar and ⌘K.
+- User Manual expanded (`docs/USER_MANUAL.md`) with governance-template, financial-masking, perspective-switcher and identity-federation guidance.
+
+### Security
+- **SSO enforcement** — when federation is enforced for an email domain, password sign-in for that domain is refused at the authentication callback.
+- **OIDC client secrets are AES-256-GCM encrypted at rest** (key derived from `NEXTAUTH_SECRET`); only a non-reversible fingerprint is shown in the Admin panel.
+- Every governance and identity-federation change is hash-chained in the Compliance Ledger — new `LedgerActionType`s `GOVERNANCE_CONFIG_CHANGE`, `SSO_CONFIG_CHANGE`, `SSO_JIT_PROVISION`.
+
+### Improved
+- Financial data masking is now org-configurable — the Strict Financial Governance and Agile Delivery templates push blended margin, EAC and cost variance out of reach for Practice Director and below, on top of the standard role-based tiers.
+- **Sidebar refinement** — minimalist inline icons on every module; child items indented under their section headings.
+- **Softer premium charcoal theme** — the pitch-black canvas moves to a cool `#12141C` charcoal ramp while keeping the high-contrast hairline borders and the single blue accent.
+
 ## [1.1.0] — 2026-09-03
 
 _The single-pane command layer — obsidian design system, Command Center, universal ⌘K, and the SteerCo Briefing._

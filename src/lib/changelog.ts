@@ -36,6 +36,23 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.2.0',
+    date: '2026-09-03',
+    headline: 'Enterprise Governance & Identity — compliance templates, financial masking, and SSO / SAML / OIDC federation',
+    changes: [
+      { type: 'feature', text: 'Enterprise Governance Framework — a Hybrid Configuration Model in Admin & Org Setup: start from a pre-tested compliance template (Standard Delivery, Strict Financial Governance, Agile Delivery, or Board-Only), then override which modules appear in navigation and whether margins / EAC are scrubbed for delivery roles below VP.' },
+      { type: 'feature', text: 'Enterprise SSO / Identity Federation — configure one SAML 2.0 or OIDC identity provider per workspace, with setup presets for Microsoft Entra ID (Azure AD), Okta and Google Workspace; paste the IdP metadata or discovery URL and verify it (endpoints and signing-certificate fingerprint are extracted and pinned).' },
+      { type: 'feature', text: 'Just-in-time provisioning & security-group mapping — on a federated login, the assertion’s group / role claims resolve a delivery and console role from the tenant’s mapping table (lowest priority wins), and a membership is created or an SSO-provisioned one re-synced. Admin-assigned roles are never overwritten by JIT.' },
+      { type: 'feature', text: 'Role-based landing & perspective switcher — a Workspace Lens (Executive / Delivery / Finance / Operations) drops multi-role users on their tailored landing page after sign-in and can be re-pointed from a header switcher; every module stays reachable from the sidebar and ⌘K.' },
+      { type: 'security', text: 'SSO enforcement — when federation is enforced for an email domain, password sign-in for that domain is refused. OIDC client secrets are AES-256-GCM encrypted at rest; only a fingerprint is shown in the UI.' },
+      { type: 'security', text: 'Every governance and identity-federation change is hash-chained in the Compliance Ledger (GOVERNANCE_CONFIG_CHANGE, SSO_CONFIG_CHANGE, SSO_JIT_PROVISION).' },
+      { type: 'improvement', text: 'Financial data masking is now org-configurable — the Strict Financial Governance and Agile Delivery templates push blended margin, EAC and cost variance out of reach for Practice Director and below, on top of the standard role-based tiers.' },
+      { type: 'improvement', text: 'Sidebar refinement — minimalist inline icons on every module, child items indented under their section headings.' },
+      { type: 'improvement', text: 'Softer premium charcoal theme — the pitch-black canvas moves to a cool `#12141C` charcoal ramp while keeping the high-contrast hairline borders and single blue accent.' },
+      { type: 'improvement', text: 'User Manual expanded with governance templates, financial-masking, perspective-switcher and identity-federation guidance.' },
+    ],
+  },
+  {
     version: '1.1.0',
     date: '2026-09-03',
     headline: 'The single-pane command layer — obsidian design system, Command Center, universal ⌘K, and the SteerCo Briefing',

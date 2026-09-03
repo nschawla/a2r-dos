@@ -14,7 +14,7 @@ const HEALTH_DOT: Record<string, string> = { G: 'bg-success', Y: 'bg-warning', R
 
 export default async function HomePage() {
   const context = await requireOrgContext();
-  const { organizationId, deliveryRole } = context;
+  const { organizationId, deliveryRole, governance } = context;
 
   // WP4: the project list, stat cards, and program rollups are now the
   // scoped portfolio — a PROJECT_MANAGER sees only their own projects, a
@@ -23,7 +23,7 @@ export default async function HomePage() {
   // tenant, same as before this WP.
   const { projects, summary, programRollups } = await getScopedPortfolioSummary(context);
   const scopedProjectIds = projects.map((p) => p.id);
-  const showMargins = canViewMargins(deliveryRole);
+  const showMargins = canViewMargins(deliveryRole, governance);
 
   const [recentActivity, resourceCount, practiceCount, utilization] = await Promise.all([
     db.activityLogEntry.findMany({

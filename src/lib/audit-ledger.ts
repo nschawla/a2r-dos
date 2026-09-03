@@ -28,6 +28,9 @@ export type LedgerActionType =
   | 'BASELINE_OVERRIDE'
   | 'STAGE_GATE_OVERRIDE'
   | 'SECURITY_CONFIG_CHANGE'
+  | 'GOVERNANCE_CONFIG_CHANGE'
+  | 'SSO_CONFIG_CHANGE'
+  | 'SSO_JIT_PROVISION'
   | 'ROLE_POLICY_CHANGE'
   | 'TENANT_LIFECYCLE_CHANGE'
   | 'WORKSPACE_RESTORE'
@@ -43,6 +46,9 @@ export const LEDGER_ACTION_LABEL: Record<string, string> = {
   BASELINE_OVERRIDE: 'Baseline override',
   STAGE_GATE_OVERRIDE: 'Stage-gate override',
   SECURITY_CONFIG_CHANGE: 'Security config change',
+  GOVERNANCE_CONFIG_CHANGE: 'Governance config change',
+  SSO_CONFIG_CHANGE: 'Identity federation change',
+  SSO_JIT_PROVISION: 'SSO just-in-time provisioning',
   ROLE_POLICY_CHANGE: 'Role policy change',
   TENANT_LIFECYCLE_CHANGE: 'Tenant lifecycle change',
   WORKSPACE_RESTORE: 'Workspace restore',

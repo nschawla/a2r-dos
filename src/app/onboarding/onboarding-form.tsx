@@ -20,7 +20,7 @@ export function OnboardingForm() {
         setError(result.error);
         return;
       }
-      router.push('/');
+      router.push('/launch');
       router.refresh();
     } finally {
       setSubmitting(false);

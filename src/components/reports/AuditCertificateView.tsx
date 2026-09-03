@@ -45,11 +45,11 @@ export interface AuditCertificateProps {
 }
 
 const PALETTE = {
-  bg: '#08090B',
-  surface1: '#121316',
-  surface2: '#191A1E',
-  border: '#26262A',
-  borderSoft: '#2F2F35',
+  bg: '#12141C',
+  surface1: '#1B1E28',
+  surface2: '#242833',
+  border: '#363C4B',
+  borderSoft: '#434A5B',
   ink: '#F5F5F7',
   inkMuted: '#8E8E93',
   inkFaint: '#636369',

@@ -23,6 +23,16 @@ import type { DeliveryRole } from '@/lib/auth/rbac';
 
 export type FinancialVisibility = 'full' | 'summary' | 'restricted';
 
+/**
+ * Layer-2 org governance override (see src/lib/governance/config.ts). When
+ * `maskFinancialsForDelivery` is set, the summary tier (Practice Director)
+ * is pushed down to `restricted`, on top of the role-based tiers below.
+ * All functions accept this optionally and are unchanged when it's absent.
+ */
+export interface FinancialMaskOptions {
+  maskFinancialsForDelivery?: boolean;
+}
+
 const VISIBILITY_BY_ROLE: Record<DeliveryRole, FinancialVisibility> = {
   ADMIN: 'full',
   VP_EXECUTIVE: 'summary',
@@ -31,23 +41,34 @@ const VISIBILITY_BY_ROLE: Record<DeliveryRole, FinancialVisibility> = {
   PROJECT_MANAGER: 'restricted',
 };
 
-export function financialVisibility(role: DeliveryRole): FinancialVisibility {
+/** Roles below VP that the org-level `maskFinancialsForDelivery` toggle
+ * scrubs. (DELIVERY_MANAGER / PROJECT_MANAGER are already restricted, so
+ * the toggle only changes PRACTICE_DIRECTOR in practice — listed in full
+ * for intent.) */
+const DELIVERY_TIER_ROLES: ReadonlySet<DeliveryRole> = new Set<DeliveryRole>([
+  'PRACTICE_DIRECTOR',
+  'DELIVERY_MANAGER',
+  'PROJECT_MANAGER',
+]);
+
+export function financialVisibility(role: DeliveryRole, opts?: FinancialMaskOptions): FinancialVisibility {
+  if (opts?.maskFinancialsForDelivery && DELIVERY_TIER_ROLES.has(role)) return 'restricted';
   return VISIBILITY_BY_ROLE[role];
 }
 
 /** Blended margin %, EAC totals, margin drift / variance — the executive view. */
-export function canViewMargins(role: DeliveryRole): boolean {
-  return financialVisibility(role) !== 'restricted';
+export function canViewMargins(role: DeliveryRole, opts?: FinancialMaskOptions): boolean {
+  return financialVisibility(role, opts) !== 'restricted';
 }
 
 /** Raw per-role cost rates, blended cost rate, per-line actual cost, contractor $ exposure. */
-export function canViewCostRates(role: DeliveryRole): boolean {
-  return financialVisibility(role) === 'full';
+export function canViewCostRates(role: DeliveryRole, opts?: FinancialMaskOptions): boolean {
+  return financialVisibility(role, opts) === 'full';
 }
 
 /** Any financial figure at all (used for the page-level "restricted" banner). */
-export function canViewAnyFinancials(role: DeliveryRole): boolean {
-  return canViewMargins(role);
+export function canViewAnyFinancials(role: DeliveryRole, opts?: FinancialMaskOptions): boolean {
+  return canViewMargins(role, opts);
 }
 
 export const MASK = '••••';
@@ -118,17 +139,19 @@ export interface MaskableRateRole {
  */
 export function maskRateRolesForViewer<T extends MaskableRateRole>(
   roles: T[],
-  role: DeliveryRole
+  role: DeliveryRole,
+  opts?: FinancialMaskOptions
 ): T[] {
-  if (financialVisibility(role) !== 'restricted') return roles;
+  if (financialVisibility(role, opts) !== 'restricted') return roles;
   return roles.map((r) => ({ ...r, costRate: 0, billRate: 0 }));
 }
 
 /** Zero the per-line `cost` on financial-actual rows for a restricted viewer. */
 export function maskFinancialActualsForViewer<T extends { cost: number }>(
   rows: T[],
-  role: DeliveryRole
+  role: DeliveryRole,
+  opts?: FinancialMaskOptions
 ): T[] {
-  if (canViewMargins(role)) return rows;
+  if (canViewMargins(role, opts)) return rows;
   return rows.map((r) => ({ ...r, cost: 0 }));
 }

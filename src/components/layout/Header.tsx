@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import clsx from 'clsx';
 import { useDashboardUI, PERSONAS, type Persona } from './dashboard-ui-context';
+import { LensSwitcher } from './LensSwitcher';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { switchActiveOrganization } from '@/server/actions/organizations';
 import type { NotificationSummary } from '@/server/queries/notifications';
 import type { SessionMembership } from '@/types/next-auth';
+import type { WorkspaceLens } from '@/lib/workspace/lenses';
 
 /** Closes `menu` when a pointer event lands outside `ref`, or Escape is pressed. */
 function useOutsideClose(ref: React.RefObject<HTMLElement>, open: boolean, close: () => void) {
@@ -38,13 +40,26 @@ export interface HeaderProps {
   notifications: NotificationSummary;
   /** A2R Ventures staff — shows the "A2R Ops Console" workspace switch. */
   isA2rStaff?: boolean;
+  /** Workspace-Lens switcher state (see src/lib/workspace/lenses.ts). */
+  currentLens: WorkspaceLens;
+  availableLenses: WorkspaceLens[];
 }
 
-export function Header({ userName, role, organizationName, memberships, notifications, isA2rStaff }: HeaderProps) {
+export function Header({
+  userName,
+  role,
+  organizationName,
+  memberships,
+  notifications,
+  isA2rStaff,
+  currentLens,
+  availableLenses,
+}: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 bg-bg/90 backdrop-blur-md border-b border-border px-5 py-2.5 flex items-center gap-2.5">
       <WorkspaceSwitcher organizationName={organizationName} memberships={memberships} />
       {isA2rStaff && <OpsConsoleSwitch />}
+      <LensSwitcher current={currentLens} available={availableLenses} />
       <div className="flex-1 flex justify-center">
         <CommandPaletteTrigger />
       </div>

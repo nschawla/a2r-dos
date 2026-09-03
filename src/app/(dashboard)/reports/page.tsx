@@ -35,7 +35,7 @@ import { canViewMargins } from '@/lib/security/masking';
  */
 export default async function ReportsHubPage({ searchParams }: { searchParams: { project?: string } }) {
   const context = await requireOrgContext();
-  const { organizationId, deliveryRole, resourceId, resourcePracticeId } = context;
+  const { organizationId, deliveryRole, governance, resourceId, resourcePracticeId } = context;
 
   const scoped = await getScopedProjectsForUser(context);
   const reportable = scoped.filter((p) => p.hierarchyLevel !== 'PARENT');
@@ -73,7 +73,7 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: {
         </p>
       </div>
 
-      <ExecutiveBriefing briefing={briefing} showFinancials={canViewMargins(deliveryRole)} />
+      <ExecutiveBriefing briefing={briefing} showFinancials={canViewMargins(deliveryRole, governance)} />
 
       <section className="no-print flex flex-col gap-4 border-t border-border pt-6 mt-2">
         <div>

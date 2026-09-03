@@ -130,6 +130,15 @@ enum DeliveryAccessRole {
   PROJECT_MANAGER
 }
 
+// How a Membership's role assignment was last set. SSO_JIT means the role
+// is owned by the tenant's identity federation (security-group mapping) and
+// will be re-synced on the member's next federated login — see
+// src/lib/identity/jit.ts.
+enum ProvisioningSource {
+  MANUAL
+  SSO_JIT
+}
+
 // A user's membership in a tenant org. A user can belong to more than one
 // org (e.g. a consultant working across client instances).
 model Membership {
@@ -139,6 +148,10 @@ model Membership {
   role           MembershipRole      @default(MEMBER)
   deliveryRole   DeliveryAccessRole?
   createdAt      DateTime            @default(now())
+
+  // Enterprise Identity — provisioning provenance.
+  provisionedVia ProvisioningSource @default(MANUAL)
+  lastJitSyncAt  DateTime?
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -186,9 +199,11 @@ model Organization {
   purgedAt        DateTime?
   dataExportedAt  DateTime?
 
-  memberships    Membership[]
-  policy         OrgPolicy?
-  controlLabels  ControlLabel[]
+  memberships      Membership[]
+  policy           OrgPolicy?
+  governanceConfig GovernanceConfig?
+  identityProvider IdentityProvider?
+  controlLabels    ControlLabel[]
   practices      Practice[]
   deliveryRoles  DeliveryRole[]
   resources      Resource[]
@@ -253,6 +268,133 @@ model OrgPolicy {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("org_policies")
+}
+
+// Enterprise Governance Architecture — Step 1: the Hybrid Configuration
+// Model. Layer 1 is a pre-built compliance template (pre-tested defaults);
+// Layer 2 is the tenant's own overrides on top — which modules are visible
+// in navigation, and whether margins / EAC are scrubbed for delivery roles
+// below VP. `template` becomes CUSTOM once the stored settings no longer
+// match any template exactly (see src/lib/governance/config.ts).
+enum GovernanceTemplate {
+  STANDARD
+  STRICT_FINANCIAL
+  AGILE_DELIVERY
+  BOARD_ONLY
+  CUSTOM
+}
+
+model GovernanceConfig {
+  id             String             @id @default(cuid())
+  organizationId String             @unique
+  template       GovernanceTemplate @default(STANDARD)
+  // Module keys (src/lib/governance/config.ts GOVERNABLE_MODULES) hidden
+  // from this tenant's navigation. Core modules are never hidden even if
+  // they appear here.
+  hiddenModules  String[]           @default([])
+  // Layer-2 financial masking: when true, blended margin, EAC and financial
+  // variance are masked for every delivery role below VP_EXECUTIVE (i.e.
+  // Practice Director / Delivery Manager / Project Manager), on top of the
+  // standard role-based masking in src/lib/security/masking.ts.
+  maskFinancialsForDelivery Boolean  @default(false)
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("governance_configs")
+}
+
+// =========================================================
+// ENTERPRISE IDENTITY & GOVERNANCE — Step 2: SSO / identity federation
+// =========================================================
+
+enum IdpProtocol {
+  SAML
+  OIDC
+}
+
+// The IdP vendor this tenant federates with. Drives the metadata/discovery
+// hints and setup guidance in the Admin federation panel; GENERIC covers
+// any other conformant SAML 2.0 / OIDC provider.
+enum IdpVendor {
+  AZURE_AD // Microsoft Entra ID
+  OKTA
+  GOOGLE_WORKSPACE
+  GENERIC
+}
+
+// One tenant's Enterprise SSO configuration. At most one IdP per org
+// (org-level federation, not per-user). Secrets are never stored in the
+// clear — the OIDC client secret is AES-256-GCM encrypted
+// (src/lib/identity/crypto.ts) and only its fingerprint is shown in the UI.
+model IdentityProvider {
+  id             String      @id @default(cuid())
+  organizationId String      @unique
+  protocol       IdpProtocol
+  vendor         IdpVendor   @default(GENERIC)
+  displayName    String
+
+  // Config saved but not live until an admin has verified the metadata and
+  // switched it on. `enforced` blocks password login for `emailDomains`.
+  enabled  Boolean  @default(false)
+  enforced Boolean  @default(false)
+  // Lowercase bare domains this IdP is authoritative for, e.g. "contoso.com".
+  emailDomains String[] @default([])
+
+  // Just-In-Time provisioning — create/refresh a Membership on first
+  // federated login, with the role resolved from the security-group
+  // mappings below (falling back to these defaults).
+  jitEnabled            Boolean            @default(true)
+  defaultDeliveryRole   DeliveryAccessRole @default(PROJECT_MANAGER)
+  defaultMembershipRole MembershipRole     @default(MEMBER)
+
+  // ── SAML 2.0 ──
+  samlEntityId    String?
+  samlSsoUrl      String?
+  samlCertificate String? @db.Text // IdP x509 signing certificate (PEM/base64 body)
+
+  // ── OIDC ──
+  oidcIssuer                 String?
+  oidcClientId               String?
+  oidcClientSecretCiphertext String? @db.Text
+  oidcDiscoveryUrl           String?
+  oidcAuthEndpoint           String? // cached from the discovery doc at last verify
+  oidcTokenEndpoint          String?
+  oidcJwksUri                String?
+
+  // Metadata verification trail (surfaced in the Admin panel).
+  lastVerifiedAt      DateTime?
+  metadataFingerprint String? // sha256 of the signing cert / discovery issuer
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  groupMappings SsoGroupMapping[]
+  organization  Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("identity_providers")
+}
+
+// Security-group → role mapping for federated logins. On JIT provisioning,
+// the login's group / role claim values are matched (case-insensitively)
+// against `claimValue`; the lowest `priority` wins. No match → the IdP's
+// default role.
+model SsoGroupMapping {
+  id                 String             @id @default(cuid())
+  identityProviderId String
+  organizationId     String // denormalized for tenant-scoped queries
+  claimValue         String // IdP group name or object id, e.g. "Delivery-Admins"
+  deliveryRole       DeliveryAccessRole
+  membershipRole     MembershipRole     @default(MEMBER)
+  practiceId         String? // optional: also set the JIT resource's practice
+  priority           Int                @default(100)
+  createdAt          DateTime           @default(now())
+
+  identityProvider IdentityProvider @relation(fields: [identityProviderId], references: [id], onDelete: Cascade)
+
+  @@unique([identityProviderId, claimValue])
+  @@index([organizationId])
+  @@map("sso_group_mappings")
 }
 
 // Org-level display-label override for one of the 10 Minimum Controls.

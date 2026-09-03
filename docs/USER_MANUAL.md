@@ -1,11 +1,12 @@
 # A2R Delivery OS™ — User Manual & Operator's Guide
 
-_Applies to v1.1.0 · Last updated 2026-09-03_
+_Applies to v1.2.0 · Last updated 2026-09-03_
 
 A2R Delivery OS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
 sidebar workflow, the Command Center, the universal command palette, the
-executive briefing, and — for A2R staff — the operator console.
+executive briefing, the enterprise governance and identity-federation
+settings in Admin & Org Setup, and — for A2R staff — the operator console.
 
 If you are setting up a new organization, see
 [`ADMIN_ONBOARDING.md`](./ADMIN_ONBOARDING.md) first. For the security and
@@ -22,14 +23,30 @@ The workspace has three regions:
 
 | Region | What it is |
 | --- | --- |
-| **Left sidebar** | Navigation, grouped by the delivery workflow (below). |
-| **Top header** | Organization switcher · global search · notifications · support · help · your account. |
+| **Left sidebar** | Navigation, grouped by the delivery workflow (below). Modules your organization has switched off don't appear here. |
+| **Top header** | Organization switcher · **perspective switcher** · global search · notifications · support · help · your account. |
 | **Main pane** | A single centered column — one focused view at a time, never a wall of panels. |
 
 Everything you can see is scoped to **your** organization and, within it,
 to **your role** — a project manager sees their own engagements, a
 practice director sees their practice, an admin or VP sees the whole
 portfolio.
+
+### Your perspective
+
+If you wear more than one hat, the **Perspective** pill in the header
+(labelled with your current lens) lets you flip your default landing view:
+
+| Perspective | Lands you on | Best for |
+| --- | --- | --- |
+| **Executive / SteerCo** | the SteerCo Briefing | board prep, leadership syncs |
+| **Delivery Lead** | the Control Tower | running engagements day to day |
+| **Finance Controller** | the Executive Hub | margin, EAC and utilization rollups |
+| **Operations** | the Command Center | the live vitals + activity stream |
+
+Only the perspectives your role can use are shown, and switching is purely
+a convenience — every module stays reachable from the sidebar and ⌘K
+whichever lens is active. Your choice is remembered for next time.
 
 ---
 
@@ -79,8 +96,8 @@ action — see §6.
 
 | Item | Use it to… |
 | --- | --- |
-| **Admin & Org Setup** (`/admin`) | Practices, roles & rate card, the resource directory, governance thresholds, control labels, workspace backup/restore, and the ingestion template hub. |
-| **Compliance Ledger** (`/admin/audit-log`) | The tamper-evident, hash-chained record of every high-consequence governance action, with a live integrity badge. |
+| **Admin & Org Setup** (`/admin`) | Practices, roles & rate card, the resource directory, governance thresholds, control labels, the **Enterprise Governance** framework, **Single Sign-On & Identity Federation**, workspace backup/restore, and the ingestion template hub. See §8. |
+| **Compliance Ledger** (`/admin/audit-log`) | The tamper-evident, hash-chained record of every high-consequence governance action — including governance-template and identity-federation changes — with a live integrity badge. |
 
 ---
 
@@ -243,7 +260,94 @@ operator sidebar on every page — click it to open the **Release Notes**.
 
 ---
 
-## 8. Keyboard shortcuts
+## 8. Admin & Org Setup — governance, masking & identity
+
+These panels live on **Admin & Org Setup** (`/admin`) and are editable by
+organization **Owners and Admins**. Every change is written to the
+Compliance Ledger.
+
+### 8.1 Enterprise Governance — compliance templates
+
+Governance is a **two-layer** model.
+
+**Layer 1 — pick a compliance template.** Each is a pre-tested bundle of
+settings:
+
+| Template | What it does |
+| --- | --- |
+| **Standard Delivery** | Everything on; standard role-based financial visibility. The default. |
+| **Strict Financial Governance** | Margins, EAC and cost variance are locked to Partners and executives — scrubbed for every delivery lead. Full audit and reporting surface stays on. |
+| **Agile Delivery** | Hides the Commercial Baseline and the Executive Hub, and scrubs financials for delivery roles. Teams see flow, health and risk. |
+| **Board-Only** | A lean executive read-out — SteerCo briefing, portfolio, reporting and control audit only; day-to-day working modules hidden. |
+
+Selecting a template applies its settings immediately. The panel shows the
+**active** template; once you change anything by hand it reads **Custom
+configuration**.
+
+**Layer 2 — tune it.**
+
+- **Route visibility.** Toggle any non-core module between **Visible** and
+  **Hidden**. Hidden modules disappear from every user's sidebar and ⌘K.
+  Control Tower, Admin & Org Setup and the Compliance Ledger are core and
+  can't be switched off.
+- **Sensitive financial data.** Turn on **"Scrub margins & EAC for delivery
+  roles"** to mask blended margin, EAC and cost variance for **Practice
+  Director and below**, on top of the standard role-based masking (§10).
+  VP / Executive and Partners are unaffected.
+
+Click **Save configuration** to persist Layer-2 changes (template
+selections save on click).
+
+### 8.2 Single Sign-On & Identity Federation
+
+Federate the workspace with your identity provider. One IdP per
+organization.
+
+**1 — Configure the connection.**
+
+| Field | Notes |
+| --- | --- |
+| **Identity provider** | Microsoft Entra ID (Azure AD), Okta, Google Workspace, or a generic SAML 2.0 / OIDC provider. |
+| **Protocol** | OpenID Connect (OIDC) or SAML 2.0. |
+| **Connection name** | A label for your reference, e.g. "Contoso Entra ID". |
+| **Email domains** | Comma-separated bare domains this IdP is authoritative for, e.g. `contoso.com`. |
+| **OIDC** | Discovery URL (`…/.well-known/openid-configuration`), Client ID, Client Secret. The secret is encrypted at rest — leave it blank on a later edit to keep the stored value. |
+| **SAML** | Paste the IdP's metadata XML (the `EntityDescriptor`). |
+
+**2 — Verify the metadata.** Click **Verify IdP metadata**. For OIDC the
+discovery document is fetched and its endpoints checked; for SAML the
+entity ID, SSO URL and signing certificate are extracted. On success the
+panel shows the resolved values, a fingerprint, and the verification time.
+Federation can't be enabled until verification succeeds.
+
+**3 — Map security groups to roles.** Add a row per IdP group / role claim:
+the **group name or id**, the **delivery role** and **console role** to
+grant, an optional **practice**, and a **priority** (lowest wins when a
+login is in several mapped groups). A login in no mapped group gets the
+**default delivery role** you set in the connection.
+
+**4 — Just-in-time provisioning.** With JIT **enabled**, a federated login
+with no membership yet is provisioned one automatically, at the mapped
+role; an SSO-provisioned member whose group assignment changed is
+re-synced on their next login. A role you set **by hand** on a member is
+never overwritten by JIT. With JIT **disabled**, only people who already
+have a membership can sign in through SSO.
+
+**5 — Enable, then optionally enforce.**
+
+- **Enable federation** turns the connection on (requires a successful
+  verification).
+- **Enforce SSO** additionally **blocks password sign-in** for your email
+  domains — those users must come through the identity provider. Requires
+  federation enabled and at least one email domain.
+
+> The browser redirect to your IdP and assertion validation are part of a
+> later release; this version lands the full configuration, verification,
+> mapping and JIT engine plus enforcement of password-login lockout.
+
+---
+
+## 9. Keyboard shortcuts
 
 | Keys | Action |
 | --- | --- |
@@ -254,7 +358,7 @@ operator sidebar on every page — click it to open the **Release Notes**.
 
 ---
 
-## 9. Roles & what you can see
+## 10. Roles & what you can see
 
 | Role | Financial visibility | Portfolio scope |
 | --- | --- | --- |
@@ -266,9 +370,13 @@ operator sidebar on every page — click it to open the **Release Notes**.
 Where a figure is hidden, you'll see a small **Restricted to Partners**
 indicator rather than the value silently disappearing.
 
+Your organization can tighten this further — the **Strict Financial
+Governance** and **Agile Delivery** governance templates (§8.1) also hide
+margins and EAC from Practice Directors.
+
 ---
 
-## 10. Getting help
+## 11. Getting help
 
 - The **?** icon in the header opens contextual, route-aware guidance.
 - The **✉ (envelope)** icon opens a support request from anywhere.

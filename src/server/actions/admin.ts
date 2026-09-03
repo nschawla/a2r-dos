@@ -5,6 +5,15 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { requireOrgContext } from '@/lib/session';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
+import {
+  GOVERNANCE_TEMPLATES,
+  HIDEABLE_MODULES,
+  applyTemplate,
+  isGovernanceTemplateKey,
+  resolveStoredGovernance,
+  withOverrides,
+  type GovernanceTemplateKey,
+} from '@/lib/governance/config';
 import type { ActionResult } from './auth';
 
 async function requireAdmin() {
@@ -198,5 +207,108 @@ export async function updateControlLabel(input: unknown): Promise<ActionResult> 
     create: { organizationId, controlKey, label },
   });
   revalidatePath('/admin');
+  return { ok: true };
+}
+
+// -------------------------------------------------- Enterprise Governance (Step 1)
+
+/**
+ * Persist a resolved Governance Config (template label re-derived from the
+ * settings), record a ledger event, and revalidate every surface that
+ * reads it — the sidebar (all routes) plus the compliance ledger view.
+ */
+async function persistGovernance(
+  organizationId: string,
+  actorId: string,
+  next: { template: GovernanceTemplateKey; hiddenModules: string[]; maskFinancialsForDelivery: boolean },
+  op: string
+): Promise<void> {
+  const before = resolveStoredGovernance(
+    await db.governanceConfig.findUnique({ where: { organizationId } })
+  );
+
+  await db.governanceConfig.upsert({
+    where: { organizationId },
+    update: {
+      template: next.template,
+      hiddenModules: next.hiddenModules,
+      maskFinancialsForDelivery: next.maskFinancialsForDelivery,
+    },
+    create: {
+      organizationId,
+      template: next.template,
+      hiddenModules: next.hiddenModules,
+      maskFinancialsForDelivery: next.maskFinancialsForDelivery,
+    },
+  });
+
+  await recordLedgerEvent(db, {
+    organizationId,
+    actorId,
+    actionType: 'GOVERNANCE_CONFIG_CHANGE',
+    targetResource: `GovernanceConfig:${organizationId}`,
+    metadata: {
+      op,
+      before: {
+        template: before.template,
+        hiddenModules: before.hiddenModules,
+        maskFinancialsForDelivery: before.maskFinancialsForDelivery,
+      },
+      after: next,
+    },
+  });
+
+  // Route visibility feeds the sidebar on every page; masking feeds the
+  // financial surfaces. Blow the whole tenant's cache.
+  revalidatePath('/', 'layout');
+  revalidatePath('/admin/audit-log');
+}
+
+export async function applyGovernanceTemplate(input: unknown): Promise<ActionResult> {
+  const { organizationId, userId } = await requireAdmin();
+  const parsed = z.object({ template: z.string() }).safeParse(input);
+  if (!parsed.success || !isGovernanceTemplateKey(parsed.data.template)) {
+    return { ok: false, error: 'Unknown compliance template' };
+  }
+
+  const resolved = applyTemplate(parsed.data.template);
+  await persistGovernance(
+    organizationId,
+    userId,
+    {
+      template: resolved.template,
+      hiddenModules: resolved.hiddenModules,
+      maskFinancialsForDelivery: resolved.maskFinancialsForDelivery,
+    },
+    `apply-template:${GOVERNANCE_TEMPLATES[parsed.data.template].label}`
+  );
+  return { ok: true };
+}
+
+const governanceOverrideSchema = z.object({
+  hiddenModules: z.array(z.string()).max(HIDEABLE_MODULES.length),
+  maskFinancialsForDelivery: z.boolean(),
+});
+
+export async function updateGovernanceConfig(input: unknown): Promise<ActionResult> {
+  const { organizationId, userId } = await requireAdmin();
+  const parsed = governanceOverrideSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+
+  const current = resolveStoredGovernance(
+    await db.governanceConfig.findUnique({ where: { organizationId } })
+  );
+  const next = withOverrides(current, parsed.data);
+
+  await persistGovernance(
+    organizationId,
+    userId,
+    {
+      template: next.template,
+      hiddenModules: next.hiddenModules,
+      maskFinancialsForDelivery: next.maskFinancialsForDelivery,
+    },
+    'edit-overrides'
+  );
   return { ok: true };
 }

@@ -1151,6 +1151,85 @@ that reuses the same `PulseStrip` / `ActiveStream` components, while the
 automation that genuinely belongs to a tenant — the API bulk-ingest feed —
 writes into that tenant's own Active Stream.
 
+## Phase 3c — Enterprise Governance & Identity (v1.2.0)
+
+Phase 3c makes the platform enterprise-configurable per tenant: a
+role-based landing layer, a governance framework that bundles pre-tested
+compliance postures with tenant-level toggles, and an SSO / identity
+federation engine. Released as **v1.2.0**.
+
+End-user instructions live in **`docs/USER_MANUAL.md`** (§3, §7); the
+security posture is in **`docs/SECURITY.md`** (§1, §4, §8, §10).
+
+### FRD — functional summary
+
+- **Role-based landing & perspective switcher.** A `WorkspaceLens` axis
+  (Executive / Delivery / Finance / Operations) — distinct from the
+  `DeliveryRole` security tier and the client-only `Persona` preview —
+  drops a multi-role user on their tailored landing page after sign-in and
+  can be re-pointed from a header switcher. Every module stays reachable
+  from the sidebar and ⌘K regardless of lens.
+- **Enterprise Governance Framework (Hybrid Configuration Model).**
+  *Layer 1* is a pre-built **compliance template** — Standard Delivery,
+  Strict Financial Governance, Agile Delivery, or Board-Only. *Layer 2* is
+  the tenant's own overrides on top: which modules appear in navigation
+  (**route visibility**), and whether blended margin / EAC / cost variance
+  is scrubbed for delivery roles below VP (**financial data masking**,
+  layered on the existing role-based tiers). The stored template resolves
+  to `CUSTOM` once the settings diverge from any bundle. Config lives on
+  `OrgContext.governance`, so every page and server action sees it.
+- **Enterprise SSO / Identity Federation.** One IdP per tenant — SAML 2.0
+  or OIDC, with setup presets for **Microsoft Entra ID (Azure AD)**,
+  **Okta**, and **Google Workspace** (plus a generic option). Admins paste
+  IdP metadata (SAML EntityDescriptor XML) or an OIDC discovery URL and
+  **verify** it (endpoints + signing-certificate fingerprint extracted and
+  pinned). The OIDC client secret is AES-256-GCM encrypted at rest; only a
+  fingerprint is ever shown.
+- **JIT provisioning & security-group → role mapping.** On a federated
+  login, the assertion's group / role claims are matched
+  (case-insensitively, lowest-priority-wins) against the tenant's
+  `SsoGroupMapping` rows to resolve a delivery + console role; a
+  `Membership` is then created — or an SSO-provisioned one re-synced — in
+  one transaction. Admin-assigned (`MANUAL`) memberships are never re-roled
+  by JIT. When SSO is **enforced** for a domain, password login for that
+  domain is refused at the NextAuth `signIn` callback.
+
+### RTM — requirements traceability (Phase 3c)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| RL-1 | **Workspace-Lens resolver** — available lenses, role default, stored-choice validation | `src/lib/workspace/lenses.ts` | `tests/workspace-lens.test.ts` (14) |
+| RL-2 | **Landing dispatcher** `/launch` — post-sign-in redirect to the resolved lens | `src/app/launch/page.tsx`, `src/server/actions/workspace-lens.ts` (cookie) | covered by RL-1 + live e2e |
+| RL-3 | **Header perspective switcher** | `src/components/layout/LensSwitcher.tsx`, `src/components/layout/Header.tsx` | RL-1 |
+| GV-1 | **Governance config model** — templates, `detectTemplate`, `applyTemplate`, `resolveStoredGovernance`, `withOverrides` | `src/lib/governance/config.ts`, `src/lib/governance/service.ts` | `tests/governance-config.test.ts` (20) |
+| GV-2 | **Compliance templates** — Standard / Strict Financial / Agile Delivery / Board-Only | `GOVERNANCE_TEMPLATES` in `config.ts` | `tests/governance-config.test.ts` |
+| GV-3 | **Route visibility** — hidden modules filtered from navigation; core modules immune | `src/components/layout/Sidebar.tsx` (`hiddenHrefs` prop), `src/app/(dashboard)/layout.tsx` | `tests/governance-config.test.ts` (`isPathHidden`, `hiddenHrefs`) |
+| GV-4 | **Financial data masking** — `maskFinancialsForDelivery` downgrades Practice Director → restricted | `src/lib/security/masking.ts` (optional `FinancialMaskOptions`), threaded through `/`, `/command`, `/steerco`, `/reports`, `/financials/[id]`, `/commercial-baseline/[id]` | `tests/masking.test.ts` (+6) |
+| GV-5 | **`GovernanceConfig` schema** + admin actions + ledger event | `prisma/schema.prisma`, `src/server/actions/admin.ts` (`applyGovernanceTemplate`, `updateGovernanceConfig`), `LedgerActionType` `GOVERNANCE_CONFIG_CHANGE` | migration `00000000000005_step1_governance` |
+| GV-6 | **Governance admin panel** | `src/app/(dashboard)/admin/admin-panels.tsx` (`GovernancePanel`) | live e2e (apply Board-Only → sidebar filters → restore) |
+| ID-1 | **IdP vendor presets + email-domain helpers** (client-safe, zero-dep) | `src/lib/identity/vendors.ts` | `tests/identity-metadata.test.ts` |
+| ID-2 | **Secret-at-rest crypto** — AES-256-GCM, fingerprint | `src/lib/identity/crypto.ts` | `tests/identity-crypto.test.ts` (5) |
+| ID-3 | **Metadata verification** — SAML EntityDescriptor parse + OIDC discovery validate | `src/lib/identity/metadata.ts`, `src/lib/identity/service.ts` (`fetchOidcDiscovery`) | `tests/identity-metadata.test.ts` (~15) |
+| ID-4 | **Security-group → role mapping** | `src/lib/identity/mapping.ts` | `tests/identity-mapping.test.ts` (8) |
+| ID-5 | **JIT provisioning decision core + orchestrator** | `src/lib/identity/jit.ts`, `src/server/services/identity-jit.ts` (`applyFederatedLogin`) | `tests/identity-jit.test.ts` (8) |
+| ID-6 | **`IdentityProvider` / `SsoGroupMapping` schema** + `Membership.provisionedVia` | `prisma/schema.prisma` | migration `00000000000006_step2_identity_federation` |
+| ID-7 | **Identity admin panel** — config, verify, group mappings, enable / enforce | `src/app/(dashboard)/admin/identity-federation-panel.tsx`, `src/server/actions/identity.ts` | live e2e (create OIDC connection → status chips → remove) |
+| ID-8 | **SSO enforcement** — password login blocked for an enforced domain | `src/lib/auth.ts` (`signIn` callback), `src/lib/identity/service.ts` (`isSsoEnforcedForEmail`), `src/app/(auth)/login/page.tsx` (`AccessDenied` copy) | — |
+| UX | **Sidebar icons + child-item indentation**; **soft-charcoal theme** (obsidian → `#12141C` cool-charcoal ramp, hairlines preserved) | `src/components/layout/Sidebar.tsx`, `tailwind.config.ts`, `src/app/global-error.tsx`, `src/components/reports/{SteerCoReportView,AuditCertificateView}.tsx` | visual; full `tsc` + `vitest` gate |
+
+**Ledger:** `SSO_CONFIG_CHANGE` and `SSO_JIT_PROVISION` join
+`GOVERNANCE_CONFIG_CHANGE` as new `LedgerActionType`s — every governance
+and federation change is hash-chained in the Compliance Ledger.
+
+**Not yet wired (follow-on):** the live IdP handshake itself — browser
+redirect to the IdP, assertion signature validation against the pinned
+cert / JWKS, and a NextAuth per-tenant provider. Everything up to "a
+verified federated identity in hand" is built and tested;
+`applyFederatedLogin()` is the single seam it plugs into.
+
+**Verification:** `npx tsc --noEmit` → 0 errors; `npx vitest run` → **231
+passed** across 21 files (19 pure-unit + 2 live-database security suites).
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to
@@ -1169,13 +1248,13 @@ writes into that tenant's own Active Stream.
 3. Port the remaining interactive editors (scope builder, schedule date
    pickers) onto the existing schema.
 4. Invite flow (`Membership` creation for a second user, with a
-   `deliveryRole` picker) — not built yet; currently every org's only path
-   in is the creator's own signup (`/register` always creates a *new*
-   organization; it cannot join an existing one), and there's no UI to
-   change anyone's `deliveryRole` after seeding. Now explicitly documented
-   as a known gap for a real rollout in `docs/ADMIN_ONBOARDING.md`'s Step
-   3 — see that doc for the actual workaround (hand-seeding, same as
-   `prisma/seed.ts`'s demo logins) until this ships.
+   `deliveryRole` picker). Federated tenants get this via **SSO JIT
+   provisioning** as of Phase 3c (`src/server/services/identity-jit.ts`),
+   but a password-based org still has no manual invite / role-change UI:
+   `/register` always creates a *new* organization, and `deliveryRole` is
+   set only at seed time. Documented as a known gap in
+   `docs/ADMIN_ONBOARDING.md`'s Step 3 (hand-seeding, same as
+   `prisma/seed.ts`'s demo logins) until it ships.
 5. A tenant-wide rate-card CSV importer — WP6's CSV pipeline covers three
    *per-project* imports (Effort Matrix, RAID, Financial Actuals), not the
    `DeliveryRole` roster itself. Documented as a known gap in
@@ -1187,11 +1266,12 @@ writes into that tenant's own Active Stream.
    this is a one-function swap (add a `SupportTicket` model + migration, or
    call an outbound webhook) with no change needed in
    `SupportTicketModal.tsx` or either of its two entry points.
-7. A tenant admin surface for roster/rate-card/governance management —
-   `hasPermission` defines the `admin:*` actions this would gate, but no
-   route consumes them yet. _(The cross-portfolio SteerCo view reserved
-   under `steerco:view` shipped in Phase 3b as `/steerco` — a role-scoped,
-   board-ready portfolio briefing; margin figures there still honor
-   `canViewMargins`.)_
+7. **Live IdP handshake for Enterprise SSO** — Phase 3c ships the full
+   config / metadata-verification / JIT / group-mapping engine and the
+   Admin panel, but not yet the browser redirect to the IdP, assertion
+   signature validation against the pinned cert / JWKS, and a NextAuth
+   per-tenant provider. `applyFederatedLogin()` is the seam that plugs in.
+   _(The `admin:*` governance surface reserved earlier shipped in Phase 3c
+   as the Governance and Identity Federation panels in Admin & Org Setup.)_
 8. Deployment config (Vercel/Docker + managed Postgres, e.g. Neon/RDS) and
    CI (`typecheck`/`lint`/`build` on PRs).

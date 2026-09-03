@@ -1,5 +1,8 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { requireOrgContext } from '@/lib/session';
+import { LENS_COOKIE, availableLenses, resolveLens } from '@/lib/workspace/lenses';
+import { hiddenHrefs } from '@/lib/governance/config';
 import { getNotificationSummary } from '@/server/queries/notifications';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -13,8 +16,13 @@ import { GraceperiodBanner } from '@/components/layout/GraceperiodBanner';
 import { Container } from '@/components/ui/container';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { session, organizationId, organizationName, role, memberships, impersonation } = await requireOrgContext();
+  const { session, organizationId, organizationName, role, deliveryRole, governance, memberships, impersonation } =
+    await requireOrgContext();
   const isA2rStaff = session.user.isA2rStaff === true;
+
+  const lensCtx = { deliveryRole, isA2rStaff, maskFinancialsForDelivery: governance.maskFinancialsForDelivery };
+  const lenses = availableLenses(lensCtx);
+  const currentLens = resolveLens(cookies().get(LENS_COOKIE)?.value ?? null, lensCtx);
 
   // A2R Operator Control Plane — a SUSPENDED tenant retains all its data but
   // its members cannot use the workspace until an operator reactivates it.
@@ -34,7 +42,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       )}
       {graceReadOnly && <GraceperiodBanner organizationName={organizationName} />}
       <div className="flex min-h-screen">
-        <Sidebar />
+        <Sidebar hiddenHrefs={hiddenHrefs(governance)} />
         <div className="flex-1 min-w-0 flex flex-col">
           <Header
             userName={session.user.name ?? session.user.email ?? 'You'}
@@ -43,6 +51,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
             memberships={memberships}
             notifications={notifications}
             isA2rStaff={isA2rStaff}
+            currentLens={currentLens}
+            availableLenses={lenses}
           />
           <main className="flex-1 w-full">
             <Container>{children}</Container>

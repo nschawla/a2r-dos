@@ -13,6 +13,8 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { resolveDeliveryRole, type DeliveryRole } from '@/lib/auth/rbac';
 import { IMPERSONATION_COOKIE, resolveImpersonation } from '@/lib/ops/tenant-management';
+import { getGovernanceConfig } from '@/lib/governance/service';
+import type { ResolvedGovernanceConfig } from '@/lib/governance/config';
 import type { SessionMembership } from '@/types/next-auth';
 
 export const ACTIVE_ORG_COOKIE = 'a2r_active_org';
@@ -47,6 +49,10 @@ export interface OrgContext {
   /** Set only when an A2R operator is inside this tenant via the
    * Impersonation Gateway. src/server/authz.ts blocks every write. */
   impersonation: ImpersonationContext | null;
+  /** Enterprise Governance — the tenant's resolved Hybrid Configuration
+   * (compliance template + Layer-2 module-visibility / financial-masking
+   * overrides). See src/lib/governance/config.ts. */
+  governance: ResolvedGovernanceConfig;
 }
 
 type OrgContextResult =
@@ -98,6 +104,7 @@ async function resolveOrgContext(): Promise<OrgContextResult> {
               readOnly: grant.readOnly,
               expiresAt: grant.expiresAt.toISOString(),
             },
+            governance: await getGovernanceConfig(org.id),
           },
         };
       }
@@ -114,10 +121,13 @@ async function resolveOrgContext(): Promise<OrgContextResult> {
   // a single indexed lookup, not carried in the JWT, since a Resource can
   // be (re-)linked to a login at any time by an admin and should take
   // effect on the next request, not just after re-login.
-  const resource = await db.resource.findFirst({
-    where: { organizationId: active.organizationId, userId: session.user.id },
-    select: { id: true, practiceId: true },
-  });
+  const [resource, governance] = await Promise.all([
+    db.resource.findFirst({
+      where: { organizationId: active.organizationId, userId: session.user.id },
+      select: { id: true, practiceId: true },
+    }),
+    getGovernanceConfig(active.organizationId),
+  ]);
 
   return {
     ok: true,
@@ -133,6 +143,7 @@ async function resolveOrgContext(): Promise<OrgContextResult> {
       resourceId: resource?.id ?? null,
       resourcePracticeId: resource?.practiceId ?? null,
       impersonation: null,
+      governance,
     },
   };
 }

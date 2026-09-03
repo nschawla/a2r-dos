@@ -16,9 +16,9 @@ import { CommandBar } from '@/components/command-center/CommandBar';
  */
 export default async function CommandCenterPage() {
   const context = await requireOrgContext();
-  const { organizationId, deliveryRole } = context;
+  const { organizationId, deliveryRole, governance } = context;
   const isStaff = context.session.user.isA2rStaff === true;
-  const showMargins = canViewMargins(deliveryRole);
+  const showMargins = canViewMargins(deliveryRole, governance);
 
   const [{ projects, summary }, util, notif, stream] = await Promise.all([
     getScopedPortfolioSummary(context),

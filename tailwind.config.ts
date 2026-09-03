@@ -3,11 +3,13 @@ import type { Config } from 'tailwindcss';
 /**
  * A2R Delivery OS — design tokens (Sprint 1: Apple-grade foundation).
  *
- * NEUTRALS are the whole system — a near-neutral obsidian ramp. `bg` is the
- * deep canvas; `surface-1..3` are progressively lifted planes; `border` is
- * a single hairline weight (`border-soft` is a barely-there step up, for
- * hover/focus only). Type contrast is deliberately sharp: bright `ink`,
- * a clear drop to `ink-muted`, quiet `ink-faint` for micro-labels.
+ * NEUTRALS are the whole system — a near-neutral charcoal ramp with a
+ * faint cool (blue) bias so it sits with the accent. `bg` is a soft
+ * premium charcoal canvas (not pitch black); `surface-1..3` are
+ * progressively lifted planes; `border` is a single high-contrast hairline
+ * weight (`border-soft` is a barely-there step up, for hover/focus only).
+ * Type contrast is deliberately sharp: bright `ink`, a clear drop to
+ * `ink-muted`, quiet `ink-faint` for micro-labels.
  *
  * BRAND is the ONE interactive accent — `brand` (systemBlue) for links,
  * primary CTAs, active nav, focus rings, and the selected state. It is
@@ -26,16 +28,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Obsidian neutral ramp ───────────────────────────────────
-        bg: '#08090B',
+        // ── Charcoal neutral ramp (soft, cool-biased) ───────────────
+        bg: '#12141C',
         surface: {
-          1: '#121316',
-          2: '#191A1E',
-          3: '#212228',
+          1: '#1B1E28',
+          2: '#242833',
+          3: '#2E323F',
         },
         border: {
-          DEFAULT: '#26262A',
-          soft: '#2F2F35',
+          DEFAULT: '#363C4B',
+          soft: '#434A5B',
         },
         ink: {
           DEFAULT: '#F5F5F7',

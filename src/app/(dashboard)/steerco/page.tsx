@@ -10,10 +10,10 @@ import { SteerCoBriefingView } from '@/components/reports/SteerCoBriefingView';
  * live engines the Executive Briefing Hub and the module pages use.
  */
 export default async function SteerCoBriefingPage() {
-  const { organizationId, organizationName, deliveryRole } = await requireOrgContext();
+  const { organizationId, organizationName, deliveryRole, governance } = await requireOrgContext();
 
   const briefing = await getSteerCoBriefing(organizationId, organizationName, {
-    showFinancials: canViewMargins(deliveryRole),
+    showFinancials: canViewMargins(deliveryRole, governance),
   });
 
   return <SteerCoBriefingView briefing={briefing} />;

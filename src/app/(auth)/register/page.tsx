@@ -32,7 +32,7 @@ export default function RegisterPage() {
         router.push('/login');
         return;
       }
-      router.push('/');
+      router.push('/launch');
       router.refresh();
     } catch {
       setError('Couldn’t complete sign-up. Check your connection and try again.');

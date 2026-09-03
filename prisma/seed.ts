@@ -68,6 +68,14 @@ async function main() {
     create: { organizationId, slipWarnDays: 5, slipCritDays: 15, marginCritPct: 5, methodology: 'WATERFALL' },
   });
 
+  // Enterprise Governance — start the demo tenant on the balanced Standard
+  // template; an admin can switch templates / toggle overrides in Admin.
+  await db.governanceConfig.upsert({
+    where: { organizationId },
+    update: {},
+    create: { organizationId, template: 'STANDARD', hiddenModules: [], maskFinancialsForDelivery: false },
+  });
+
   for (const c of CONTROL_DEFS) {
     await db.controlLabel.upsert({
       where: { organizationId_controlKey: { organizationId, controlKey: c.id } },

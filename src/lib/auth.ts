@@ -12,6 +12,7 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { resolveIsA2rStaff } from '@/lib/ops/staff';
+import { isSsoEnforcedForEmail } from '@/lib/identity/service';
 
 /**
  * NextAuth configuration for the A2R Delivery OS SaaS foundation.
@@ -63,6 +64,23 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
+    /**
+     * Enterprise Identity — when a tenant has SSO *enforced* for an email
+     * domain, password login for that domain is refused here (defence in
+     * depth alongside the login form). Federated logins arrive through the
+     * dedicated SSO callback route, not this provider, so they're
+     * unaffected. Fails open only on a DB error (logged in the service).
+     */
+    async signIn({ user, account }) {
+      if (account?.provider === 'credentials' && user?.email) {
+        if (await isSsoEnforcedForEmail(user.email)) {
+          // Denied — surfaces to the client as `error: "AccessDenied"`,
+          // which the login form renders as the "use SSO" message.
+          return false;
+        }
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.userId = user.id;

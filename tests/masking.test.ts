@@ -42,6 +42,41 @@ describe('financialVisibility tiers', () => {
   });
 });
 
+describe('org governance override — maskFinancialsForDelivery', () => {
+  const strict = { maskFinancialsForDelivery: true };
+
+  it('downgrades PRACTICE_DIRECTOR from summary to restricted', () => {
+    expect(financialVisibility('PRACTICE_DIRECTOR', strict)).toBe('restricted');
+    expect(canViewMargins('PRACTICE_DIRECTOR', strict)).toBe(false);
+    expect(canViewAnyFinancials('PRACTICE_DIRECTOR', strict)).toBe(false);
+  });
+
+  it('leaves ADMIN and VP_EXECUTIVE untouched', () => {
+    expect(financialVisibility('ADMIN', strict)).toBe('full');
+    expect(financialVisibility('VP_EXECUTIVE', strict)).toBe('summary');
+    expect(canViewMargins('VP_EXECUTIVE', strict)).toBe(true);
+  });
+
+  it('is a no-op when the flag is absent or false', () => {
+    expect(financialVisibility('PRACTICE_DIRECTOR', {})).toBe('summary');
+    expect(financialVisibility('PRACTICE_DIRECTOR', { maskFinancialsForDelivery: false })).toBe('summary');
+  });
+
+  it('strips the rate card for a PRACTICE_DIRECTOR under the strict toggle', () => {
+    const roles = [{ id: 'r1', name: 'Architect', billRate: 288, costRate: 181 }];
+    expect(maskRateRolesForViewer(roles, 'PRACTICE_DIRECTOR')).toEqual(roles); // default: kept
+    const stripped = maskRateRolesForViewer(roles, 'PRACTICE_DIRECTOR', strict);
+    expect(stripped[0]!.costRate).toBe(0);
+    expect(stripped[0]!.billRate).toBe(0);
+  });
+
+  it('zeroes per-line actual cost for a PRACTICE_DIRECTOR under the strict toggle', () => {
+    const rows = [{ cost: 18_100 }];
+    expect(maskFinancialActualsForViewer(rows, 'PRACTICE_DIRECTOR')[0]!.cost).toBe(18_100);
+    expect(maskFinancialActualsForViewer(rows, 'PRACTICE_DIRECTOR', strict)[0]!.cost).toBe(0);
+  });
+});
+
 describe('value formatters', () => {
   it('render the value when authorized and the mask token otherwise', () => {
     expect(maskMoney(125_400, true)).toBe('$125,400');

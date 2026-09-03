@@ -10,7 +10,7 @@ import { financialVisibility, maskRateRolesForViewer, restrictedNoticeFor } from
 import { RestrictedNotice } from '@/components/security/Masked';
 
 export default async function DealProjectPage({ params }: { params: { projectId: string } }) {
-  const { organizationId, deliveryRole, resourceId, resourcePracticeId } = await requireOrgContext();
+  const { organizationId, deliveryRole, governance, resourceId, resourcePracticeId } = await requireOrgContext();
 
   const [project, roleRows] = await Promise.all([
     db.project.findFirst({
@@ -30,8 +30,8 @@ export default async function DealProjectPage({ params }: { params: { projectId:
 
   const health = getProjectHealth(project);
   const canEdit = canEditProject({ deliveryRole, resourceId, practiceId: resourcePracticeId }, project);
-  const visibility = financialVisibility(deliveryRole);
-  const maskedRoles = maskRateRolesForViewer(toRateRoles(roleRows), deliveryRole);
+  const visibility = financialVisibility(deliveryRole, governance);
+  const maskedRoles = maskRateRolesForViewer(toRateRoles(roleRows), deliveryRole, governance);
 
   return (
     <>
