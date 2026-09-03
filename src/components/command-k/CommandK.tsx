@@ -145,7 +145,7 @@ export function CommandK() {
       aria-label="Command palette"
     >
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-[2px] motion-safe:animate-[cmdk-fade_120ms_ease-out]"
+        className="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px] motion-safe:animate-[cmdk-fade_120ms_ease-out]"
         onClick={close}
       />
       <div className="relative w-full max-w-xl bg-surface-1 border border-border rounded-lg shadow-elevated overflow-hidden motion-safe:animate-[cmdk-pop_130ms_ease-out]">

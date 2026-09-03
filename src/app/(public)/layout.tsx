@@ -25,8 +25,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <header className="border-b border-border px-6 py-4 flex items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2.5">
           <BrandMark size="md" />
-          <span className="font-display font-bold text-[15px]">
-            A2R Delivery OS<span className="text-ink-faint text-[10px] align-top ml-0.5">™</span>
+          <span className="font-display font-bold text-[15px] text-ink">
+            Delivery OS<span className="text-ink-faint text-[10px] align-top ml-0.5">™</span>
           </span>
         </Link>
         <nav className="flex items-center gap-5 text-sm">

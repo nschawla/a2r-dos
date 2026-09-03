@@ -8,6 +8,7 @@ import { listSteerCoDecisions } from '@/server/actions/steerco';
 import { ExecutiveBriefing } from '@/components/reports/ExecutiveBriefing';
 import { ReportsHubClient, type ReportsProjectView } from '@/components/reports/reports-hub-client';
 import { canViewMargins } from '@/lib/security/masking';
+import { ModuleTabs } from '@/components/ui/module-tabs';
 
 /**
  * Executive Briefing Hub (`/reports`). Server component with two layers:
@@ -73,23 +74,39 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: {
         </p>
       </div>
 
-      <ExecutiveBriefing briefing={briefing} showFinancials={canViewMargins(deliveryRole, governance)} />
-
-      <section className="no-print flex flex-col gap-4 border-t border-border pt-6 mt-2">
-        <div>
-          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Per-Engagement Reports</div>
-          <h2 className="text-[15.5px] font-bold">SteerCo Decks, Margin Rollups & Compliance Certificates</h2>
-        </div>
-        <ReportsHubClient
-          projects={projects}
-          selectedProjectId={selectedProjectId}
-          selectedProjectLocked={selectedProject?.locked ?? null}
-          canEdit={canEdit}
-          decisions={decisionsResult && decisionsResult.ok ? decisionsResult.decisions : []}
-          decisionsError={decisionsResult && !decisionsResult.ok ? decisionsResult.error : null}
-          resources={resources}
-        />
-      </section>
+      <ModuleTabs
+        printKey="briefing"
+        tabs={[
+          { key: 'briefing', label: 'Portfolio Briefing' },
+          { key: 'engagements', label: 'Engagement Reports', hint: projects.length },
+        ]}
+        panels={{
+          briefing: (
+            <ExecutiveBriefing briefing={briefing} showFinancials={canViewMargins(deliveryRole, governance)} />
+          ),
+          engagements: (
+            <section className="flex flex-col gap-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
+                  Per-Engagement Reports
+                </div>
+                <h2 className="text-[15.5px] font-bold">
+                  SteerCo Decks, Margin Rollups &amp; Compliance Certificates
+                </h2>
+              </div>
+              <ReportsHubClient
+                projects={projects}
+                selectedProjectId={selectedProjectId}
+                selectedProjectLocked={selectedProject?.locked ?? null}
+                canEdit={canEdit}
+                decisions={decisionsResult && decisionsResult.ok ? decisionsResult.decisions : []}
+                decisionsError={decisionsResult && !decisionsResult.ok ? decisionsResult.error : null}
+                resources={resources}
+              />
+            </section>
+          ),
+        }}
+      />
     </>
   );
 }

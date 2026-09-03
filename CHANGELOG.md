@@ -10,6 +10,23 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.2] — 2026-09-03
+
+_Executive Clarity — a crisp light theme, the integrated A2R logo, and universal sub-navigation._
+
+### Changed
+- **"Executive Clarity" visual redesign** — the workspace moves from a dark charcoal theme to a crisp, high-contrast **light theme** built for an executive audience (ages 30–50+) and print/PDF export: a soft off-white page canvas (`#F6F7F9`), white surfaces, deep zinc text (`#18181B` / `#3F3F46`), and a subtle card shadow for separation — never dark-on-dark. Body and table text across the dense modules (Portfolio, Financials, Roster) meets **WCAG AAA** contrast.
+- **New integrated A2R logo mark** — the sharp `A2R` wordform with a solid underline rule, in one solid corporate blue (`#0B5FD1`, no gradients), rendered as live text so it is resolution-independent and exports to PDF crisply.
+- **Universal sub-navigation pills** — Admin & Org Setup, the Control Tower and the Executive Hub now switch between focused single-screen views instead of one long scroll (Roster / Governance / Data & Compliance; Portfolio / Engagements / Activity; Portfolio Briefing / Engagement Reports). Every per-engagement module route carries a `Baseline · Financials · Schedule · RAID · Control Audit` pill row in its header.
+- **Identity Federation moved to the Ops Console** (`/ops/identity`) — it is platform infrastructure an A2R operator configures per tenant, no longer a self-serve panel in tenant Admin & Org Setup.
+- The status-report and audit-certificate PDF exports are now **light, ink-on-white** documents.
+
+### Added
+- **QA & UAT test-automation framework** — `tests/enterprise-flows.test.ts` (28 scenario tests over the landing / perspective / governance / masking / SSO engines), Playwright **Suite J** (`e2e/enterprise-governance-identity.spec.ts`, 10 tests, self-cleaning), and a full human-executable runbook at **`docs/UAT_TEST_RUNBOOK.md`** with test data, step-by-step instructions and pass/fail checkpoints for every module.
+
+### Fixed
+- `<ModuleTabs>` panels not switching — a Tailwind Preflight `[hidden]` rule with zero specificity was overridden by the panel's own `flex` utility; the HTML `hidden` attribute is now authoritative.
+
 ## [1.2.0] — 2026-09-03
 
 _Enterprise Governance & Identity — compliance templates, financial masking, and SSO / SAML / OIDC federation._

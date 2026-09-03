@@ -8,6 +8,7 @@ import { DELIVERY_ROLE_LABEL } from '@/lib/auth/rbac';
 import { canViewMargins } from '@/lib/security/masking';
 import { MaskedValue } from '@/components/security/Masked';
 import { StatCard } from '@/components/ui/stat-card';
+import { ModuleTabs } from '@/components/ui/module-tabs';
 import { CreateProjectForm } from './create-project-form';
 
 const HEALTH_DOT: Record<string, string> = { G: 'bg-success', Y: 'bg-warning', R: 'bg-critical' };
@@ -44,17 +45,8 @@ export default async function HomePage() {
   });
   const openRaidByProject = new Map(raidCounts.map((r) => [r.projectId, r._count._all]));
 
-  return (
+  const portfolioPanel = (
     <>
-      <div>
-        <h1 className="text-2xl font-display font-bold">PS Control Tower</h1>
-        <p className="text-ink-muted text-sm mt-1">
-          {deliveryRole === 'ADMIN' || deliveryRole === 'VP_EXECUTIVE'
-            ? 'Portfolio-wide view across every registered engagement in your organization.'
-            : `Scoped to your ${DELIVERY_ROLE_LABEL[deliveryRole]} portfolio — ${projects.length} engagement${projects.length === 1 ? '' : 's'}.`}
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Engagements in Scope" value={String(summary.projectCount)} />
         <StatCard label="Total Contract Value" value={`$${Math.round(summary.totalValue).toLocaleString('en-US')}`} />
@@ -144,6 +136,15 @@ export default async function HomePage() {
         </div>
       )}
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <StatCard label="Resources on Roster" value={String(resourceCount)} />
+        <StatCard label="Practices" value={String(practiceCount)} />
+      </div>
+    </>
+  );
+
+  const engagementsPanel = (
+    <>
       <div className="card">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
           <div>
@@ -208,34 +209,53 @@ export default async function HomePage() {
         <h2 className="text-[15.5px] font-bold mb-4">Register a New Engagement</h2>
         <CreateProjectForm />
       </div>
+    </>
+  );
 
-      <div className="card">
-        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Quick Launch</div>
-        <h2 className="text-[15.5px] font-bold mb-4">Recent Activity</h2>
-        {recentActivity.length === 0 ? (
-          <p className="text-ink-muted text-sm">No governance actions logged yet.</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {recentActivity.map((a) => (
-              <li key={a.id} className="flex items-start gap-3 text-sm">
-                <span className="status-dot bg-brand mt-1.5" />
-                <div>
-                  <div>{a.text}</div>
-                  <div className="text-ink-faint text-xs mt-0.5">
-                    {a.project?.name ? `${a.project.name} · ` : ''}
-                    {a.user?.name ?? a.user?.email ?? 'System'} · {a.createdAt.toLocaleString()}
-                  </div>
+  const activityPanel = (
+    <div className="card">
+      <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Portfolio</div>
+      <h2 className="text-[15.5px] font-bold mb-4">Recent Activity</h2>
+      {recentActivity.length === 0 ? (
+        <p className="text-ink-muted text-sm">No governance actions logged yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {recentActivity.map((a) => (
+            <li key={a.id} className="flex items-start gap-3 text-sm">
+              <span className="status-dot bg-brand mt-1.5" />
+              <div>
+                <div>{a.text}</div>
+                <div className="text-ink-faint text-xs mt-0.5">
+                  {a.project?.name ? `${a.project.name} · ` : ''}
+                  {a.user?.name ?? a.user?.email ?? 'System'} · {a.createdAt.toLocaleString()}
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  return (
+    <>
+      <div>
+        <h1 className="text-2xl font-display font-bold">PS Control Tower</h1>
+        <p className="text-ink-muted text-sm mt-1">
+          {deliveryRole === 'ADMIN' || deliveryRole === 'VP_EXECUTIVE'
+            ? 'Portfolio-wide view across every registered engagement in your organization.'
+            : `Scoped to your ${DELIVERY_ROLE_LABEL[deliveryRole]} portfolio — ${projects.length} engagement${projects.length === 1 ? '' : 's'}.`}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <StatCard label="Resources on Roster" value={String(resourceCount)} />
-        <StatCard label="Practices" value={String(practiceCount)} />
-      </div>
+      <ModuleTabs
+        tabs={[
+          { key: 'portfolio', label: 'Portfolio' },
+          { key: 'engagements', label: 'Engagements', hint: projects.length },
+          { key: 'activity', label: 'Activity' },
+        ]}
+        panels={{ portfolio: portfolioPanel, engagements: engagementsPanel, activity: activityPanel }}
+      />
     </>
   );
 }

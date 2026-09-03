@@ -3,9 +3,8 @@ import { BrandMark } from '@/components/ui/brand-mark';
 
 /**
  * Shared framing for the unauthenticated screens (sign in / create
- * organization): the A2R mark on the obsidian canvas, a consistent
- * title/subtitle block, one flat card, and the IP footer line. No glow,
- * no shadow — a single quiet pane.
+ * organization): the integrated A2R mark on the light canvas, a consistent
+ * title/subtitle block, one card, and the IP footer line.
  */
 export function AuthShell({
   title,

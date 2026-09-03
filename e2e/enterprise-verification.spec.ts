@@ -114,6 +114,8 @@ test.describe('Suite B — PS Control Tower & Multi-Tenant Scoping', () => {
     // "Waves" column > 0
     await expect(rollupRow.locator('td').nth(1)).not.toHaveText('0');
 
+    // the engagement registry lives under the Control Tower's "Engagements" pill
+    await page.getByRole('tab', { name: /Engagements/ }).click();
     await expect(page.getByRole('heading', { name: 'Active Projects' })).toBeVisible();
     const registry = page.locator('.card', { hasText: 'Active Projects' });
     await expect(registry.locator('tbody tr').first()).toBeVisible();
@@ -125,6 +127,7 @@ test.describe('Suite B — PS Control Tower & Multi-Tenant Scoping', () => {
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'PS Control Tower', level: 1 })).toBeVisible();
 
+    await page.getByRole('tab', { name: /Engagements/ }).click();
     const registry = page.locator('.card', { hasText: 'Active Projects' });
     await expect(registry).toContainText('Cloud EHR Migration');
     await expect(registry).toContainText('Data Platform Modernization');
@@ -259,7 +262,8 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
     await expect(page.locator('.exec-briefing').getByText('Delivery Risk Distribution')).toBeVisible();
     await expect(page.locator('.exec-briefing svg[aria-label*="burn"]')).toBeVisible();
 
-    // per-engagement tooling still present below the fold
+    // per-engagement tooling lives under the "Engagement Reports" pill
+    await page.getByRole('tab', { name: /Engagement Reports/ }).click();
     await expect(page.getByRole('heading', { name: 'SteerCo Decks, Margin Rollups & Compliance Certificates' })).toBeVisible();
     await expectNoErrorOverlay(page);
 
@@ -387,6 +391,7 @@ test.describe('Suite E — Resource & Capacity Cockpit', () => {
 test.describe('Suite F — SOC 2 Compliance Ledger', () => {
   test('F1 · Admin & Org Setup surfaces the Compliance Ledger with a Verified badge', async () => {
     await page.goto('/admin');
+    await page.getByRole('tab', { name: /Data & Compliance/ }).click();
     const card = page.locator('a[href="/admin/audit-log"]', { hasText: 'SOC 2 Compliance Ledger' });
     await expect(card).toBeVisible();
     await expect(card.getByText('Verified')).toBeVisible();

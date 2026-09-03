@@ -1,18 +1,18 @@
 import clsx from 'clsx';
 
 /**
- * The A2R Delivery OS logo mark — a white geometric lambda (an "A" with no
- * crossbar) on a single solid accent tile. Flat: no gradient, no shadow.
- * This tile is the one place the accent appears as a fill outside a
- * primary button.
+ * The integrated A2R logo mark — the sharp "A2R" wordform set tight in the
+ * display face with a solid underline rule beneath it, in one solid
+ * corporate blue.
  *
- * The glyph is a filled path in a 32×32 viewBox at 56% of the tile, so it
- * scales cleanly with `size` or any width passed via `className`.
+ * Rendered as live text + a bottom border (not a raster or an SVG fill),
+ * so it is resolution-independent, gradient-free by construction, and
+ * prints / exports to PDF crisply at any size.
  */
 const SIZES = {
-  sm: 'w-6 h-6 rounded-lg',
-  md: 'w-8 h-8 rounded-[10px]',
-  lg: 'w-11 h-11 rounded-2xl',
+  sm: 'text-[15px] border-b-2 pb-px',
+  md: 'text-[19px] border-b-2 pb-0.5',
+  lg: 'text-[30px] border-b-[3px] pb-1',
 } as const;
 
 export function BrandMark({
@@ -25,11 +25,13 @@ export function BrandMark({
   return (
     <span
       aria-hidden="true"
-      className={clsx('flex-none inline-flex items-center justify-center bg-brand', SIZES[size], className)}
+      className={clsx(
+        'inline-block flex-none select-none font-display font-extrabold leading-none tracking-[-0.045em] text-brand border-brand',
+        SIZES[size],
+        className,
+      )}
     >
-      <svg viewBox="0 0 32 32" className="w-[56%] h-[56%] text-white" fill="currentColor">
-        <path d="M4 27.5 L16 4.5 L28 27.5 L20.5 27.5 L16 11.5 L11.5 27.5 Z" />
-      </svg>
+      A2R
     </span>
   );
 }

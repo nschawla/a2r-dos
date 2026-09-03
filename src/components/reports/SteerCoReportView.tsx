@@ -75,20 +75,20 @@ export interface SteerCoReportProps {
 }
 
 const PALETTE = {
-  bg: '#12141C',
-  surface1: '#1B1E28',
-  surface2: '#242833',
-  border: '#363C4B',
-  borderSoft: '#434A5B',
-  ink: '#F5F5F7',
-  inkMuted: '#8E8E93',
-  inkFaint: '#636369',
-  accent1: '#0A84FF',
-  accent2: '#0A84FF',
-  success: '#30D158',
-  warning: '#FF9F0A',
-  critical: '#FF453A',
-  na: '#8E8E93',
+  bg: '#FFFFFF',
+  surface1: '#FFFFFF',
+  surface2: '#F1F3F6',
+  border: '#E1E4EA',
+  borderSoft: '#CDD2DB',
+  ink: '#18181B',
+  inkMuted: '#3F3F46',
+  inkFaint: '#52525B',
+  accent1: '#0B5FD1',
+  accent2: '#0B5FD1',
+  success: '#15803D',
+  warning: '#B45309',
+  critical: '#C81E1E',
+  na: '#52525B',
 } as const;
 
 const HEALTH_COLOR: Record<'G' | 'Y' | 'R', string> = { G: PALETTE.success, Y: PALETTE.warning, R: PALETTE.critical };
@@ -259,7 +259,7 @@ export function SteerCoReportView(props: SteerCoReportProps): string {
     background: ${healthColor}22; color: ${healthColor}; border: 1px solid ${healthColor}55;
   }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: ${healthColor}; }
-  .accent-line { height: 4px; width: 56px; border-radius: 2px; background: linear-gradient(90deg, ${PALETTE.accent1}, ${PALETTE.accent2}); margin-bottom: 16px; }
+  .accent-line { height: 4px; width: 56px; border-radius: 2px; background: ${PALETTE.accent1}; margin-bottom: 16px; }
   .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: ${PALETTE.inkMuted}; font-weight: 700; margin: 18px 0 8px; }
 
   .flightpath {

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { useDashboardUI, PERSONAS_WITH_WRITE_ACCESS } from '@/components/layout/dashboard-ui-context';
 import { toggleProjectLock } from '@/server/actions/projects';
@@ -169,6 +169,9 @@ export function ProjectHeader({
           </button>
         </div>
       </div>
+
+      <ModuleNav projectId={projectId} />
+
       {error && <p className="text-xs text-critical">{error}</p>}
 
       {confirming && (
@@ -207,5 +210,43 @@ export function ProjectHeader({
 
       <AuditTrailDrawer projectId={projectId} open={auditTrailOpen} onClose={() => setAuditTrailOpen(false)} />
     </div>
+  );
+}
+
+// Engagement Governance sub-navigation — jump between this project's five
+// module workspaces without a round trip through the sidebar.
+const ENGAGEMENT_MODULES = [
+  { seg: 'commercial-baseline', label: 'Baseline' },
+  { seg: 'financials', label: 'Financials' },
+  { seg: 'schedule', label: 'Schedule' },
+  { seg: 'raid', label: 'RAID' },
+  { seg: 'audit', label: 'Control Audit' },
+] as const;
+
+function ModuleNav({ projectId }: { projectId: string }) {
+  const pathname = usePathname();
+  const currentSeg = (pathname ?? '').split('/')[1] ?? '';
+
+  return (
+    <nav className="-mb-1 flex gap-1 overflow-x-auto">
+      {ENGAGEMENT_MODULES.map((m) => {
+        const active = m.seg === currentSeg;
+        return (
+          <Link
+            key={m.seg}
+            href={`/${m.seg}/${projectId}`}
+            aria-current={active ? 'page' : undefined}
+            className={clsx(
+              'rounded-md px-3 py-1.5 text-[12.5px] font-semibold whitespace-nowrap transition-colors',
+              active
+                ? 'bg-surface-2 text-ink'
+                : 'text-ink-muted hover:text-ink hover:bg-surface-2'
+            )}
+          >
+            {m.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

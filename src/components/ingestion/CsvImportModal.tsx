@@ -116,7 +116,7 @@ export function CsvImportModal({ projectId, kind, onClose }: CsvImportModalProps
   }
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/35 p-4" onClick={onClose}>
       <div className="card w-full max-w-2xl max-h-[85vh] flex flex-col !p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="border-b border-border px-5 py-4 flex items-start justify-between gap-4">
           <div>

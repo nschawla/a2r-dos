@@ -24,7 +24,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
         <div className="flex items-center gap-3 px-4 py-[18px] border-b border-border">
           <BrandMark size="md" />
           <div className="min-w-0">
-            <div className="font-display font-bold text-[14.5px] leading-tight">A2R Ops Console</div>
+            <div className="font-display font-bold text-[14.5px] leading-tight text-ink">Ops Console</div>
             <div className="text-[10px] text-ink-faint uppercase tracking-wide">Operator Control Plane</div>
           </div>
         </div>

@@ -258,8 +258,8 @@ export function Sidebar({ hiddenHrefs = [] }: { hiddenHrefs?: string[] }) {
         <BrandMark size="md" />
         {!collapsed && (
           <div className="min-w-0 overflow-hidden">
-            <div className="font-display font-bold text-[14.5px] whitespace-nowrap">
-              A2R Delivery OS<span className="text-ink-faint text-[10px] align-top ml-0.5">™</span>
+            <div className="font-display font-bold text-[14.5px] whitespace-nowrap text-ink">
+              Delivery OS<span className="text-ink-faint text-[10px] align-top ml-0.5">™</span>
             </div>
           </div>
         )}

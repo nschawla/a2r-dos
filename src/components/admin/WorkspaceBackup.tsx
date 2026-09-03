@@ -200,7 +200,7 @@ export function WorkspaceBackup({ canManage }: WorkspaceBackupProps) {
       </div>
 
       {(restoreStage === 'confirm' || restoreStage === 'restoring') && pendingSnapshot && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4" onClick={handleCancelRestore}>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/35 p-4" onClick={handleCancelRestore}>
           <div className="card max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-[15.5px] font-bold mb-2">Restore from {pendingSnapshot.fileName}?</h3>
             <p className="text-sm text-ink-muted mb-3">

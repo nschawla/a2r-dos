@@ -36,6 +36,19 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.2.2',
+    date: '2026-09-03',
+    headline: 'Executive Clarity — a crisp light theme, the integrated A2R logo, and universal sub-navigation',
+    changes: [
+      { type: 'improvement', text: 'Executive Clarity visual redesign — the workspace moves from dark charcoal to a crisp, high-contrast light theme built for an executive audience and print/PDF export: soft off-white canvas, white surfaces, deep zinc text, and subtle card shadows for separation. Body text across dense tables (Portfolio, Financials, Roster) meets WCAG AAA.' },
+      { type: 'improvement', text: 'New integrated A2R logo mark — the sharp "A2R" wordform with a solid underline rule, in one solid corporate blue (no gradients), rendered as live text so it stays crisp at any size and in exported PDFs.' },
+      { type: 'improvement', text: 'Universal sub-navigation pills — Admin & Org Setup, the Control Tower, and the Executive Hub now switch between focused single-screen views (Roster / Governance / Data & Compliance, etc.) instead of one long scroll; every per-engagement module carries a Baseline · Financials · Schedule · RAID · Control Audit pill row.' },
+      { type: 'improvement', text: 'Identity Federation is now managed by A2R in the Ops Console (/ops/identity) as platform infrastructure, configured per tenant — it is no longer a self-serve panel in tenant Admin.' },
+      { type: 'improvement', text: 'The dark status-report and audit-certificate PDF exports are now light, ink-on-white documents.' },
+      { type: 'feature', text: 'QA & UAT framework — a scenario-based enterprise-flow test suite (landing resolution, perspective switching, governance templates, financial masking, SSO configuration), a matching Playwright E2E suite (J1–J5), and a full human-executable runbook at docs/UAT_TEST_RUNBOOK.md.' },
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-09-03',
     headline: 'Enterprise Governance & Identity — compliance templates, financial masking, and SSO / SAML / OIDC federation',

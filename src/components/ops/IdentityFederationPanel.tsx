@@ -1,15 +1,18 @@
 'use client';
 
 /**
- * Enterprise Identity Federation — Admin & Org Setup panel. Configure a
- * tenant's SSO IdP (Azure AD / Okta / Google Workspace / generic SAML or
- * OIDC), verify its published metadata, map IdP security groups to A2R
- * delivery roles for JIT provisioning, and switch federation on / enforce
- * it for the tenant's email domains.
+ * Enterprise Identity Federation — A2R Ops Console panel (/ops/identity).
+ *
+ * As of v1.2.1 identity federation is a PLATFORM-level infrastructure
+ * capability: an A2R operator configures a tenant's SSO IdP (Azure AD /
+ * Okta / Google Workspace / generic SAML or OIDC), verifies its published
+ * metadata, maps IdP security groups to delivery roles for JIT
+ * provisioning, and switches federation on / enforces it. Every action
+ * carries the target `organizationId` and is staff-gated server-side.
  */
 import { useMemo, useState, type FormEvent } from 'react';
 import clsx from 'clsx';
-import { useBusyAction, PanelHead, Field } from './admin-panels';
+import { useBusyAction, PanelHead, Field } from '@/components/ui/panel-kit';
 import { VENDOR_PRESETS } from '@/lib/identity/vendors';
 import type { IdentityProviderView } from '@/lib/identity/service';
 import {
@@ -45,13 +48,15 @@ const VENDOR_LABELS: Record<Vendor, string> = {
 };
 
 export function IdentityFederationPanel({
+  organizationId,
+  tenantName,
   idp,
   practices,
-  canEdit,
 }: {
+  organizationId: string;
+  tenantName: string;
   idp: IdentityProviderView | null;
   practices: { id: string; name: string }[];
-  canEdit: boolean;
 }) {
   const { busy, error, run } = useBusyAction();
 
@@ -82,6 +87,7 @@ export function IdentityFederationPanel({
     await run(
       () =>
         upsertIdentityProvider({
+          organizationId,
           protocol,
           vendor,
           displayName,
@@ -102,7 +108,9 @@ export function IdentityFederationPanel({
     await run(
       async () => {
         const r = await verifyIdpMetadata(
-          protocol === 'SAML' ? { samlMetadataXml } : { oidcDiscoveryUrl }
+          protocol === 'SAML'
+            ? { organizationId, samlMetadataXml }
+            : { organizationId, oidcDiscoveryUrl }
         );
         setVerify(r);
         return r.ok ? { ok: true as const } : { ok: false as const, error: r.error };
@@ -114,9 +122,9 @@ export function IdentityFederationPanel({
   return (
     <section className="card">
       <PanelHead
-        eyebrow="Enterprise Identity"
-        title="Single Sign-On & Identity Federation"
-        desc="Federate this workspace with your identity provider. Configure the connection, verify the published metadata, map security groups to delivery roles, then enable — and optionally enforce — SSO for your domains."
+        eyebrow="Platform Infrastructure · Identity"
+        title={`SSO & Identity Federation — ${tenantName}`}
+        desc="Federate this tenant with its identity provider. Configure the connection, verify the published metadata, map security groups to delivery roles, then enable — and optionally enforce — SSO for the tenant's email domains."
       />
 
       {idp && <StatusRow idp={idp} />}
@@ -124,7 +132,7 @@ export function IdentityFederationPanel({
       {/* connection config */}
       <form onSubmit={saveConfig} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
         <Field label="Identity provider">
-          <select className="input" value={vendor} onChange={(e) => setVendor(e.target.value as Vendor)} disabled={!canEdit}>
+          <select className="input" value={vendor} onChange={(e) => setVendor(e.target.value as Vendor)}>
             {(Object.keys(VENDOR_LABELS) as Vendor[]).map((v) => (
               <option key={v} value={v}>
                 {VENDOR_LABELS[v]}
@@ -133,7 +141,7 @@ export function IdentityFederationPanel({
           </select>
         </Field>
         <Field label="Protocol">
-          <select className="input" value={protocol} onChange={(e) => setProtocol(e.target.value as Protocol)} disabled={!canEdit}>
+          <select className="input" value={protocol} onChange={(e) => setProtocol(e.target.value as Protocol)}>
             <option value="OIDC">OpenID Connect (OIDC)</option>
             <option value="SAML">SAML 2.0</option>
           </select>
@@ -144,7 +152,6 @@ export function IdentityFederationPanel({
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Contoso Entra ID"
-            disabled={!canEdit}
             required
           />
         </Field>
@@ -154,7 +161,6 @@ export function IdentityFederationPanel({
             value={emailDomains}
             onChange={(e) => setEmailDomains(e.target.value)}
             placeholder="contoso.com, contoso.co.uk"
-            disabled={!canEdit}
           />
         </Field>
 
@@ -173,11 +179,10 @@ export function IdentityFederationPanel({
                 value={oidcDiscoveryUrl}
                 onChange={(e) => setOidcDiscoveryUrl(e.target.value)}
                 placeholder={preset.discoveryTemplate ?? 'https://idp.example.com/.well-known/openid-configuration'}
-                disabled={!canEdit}
               />
             </Field>
             <Field label="Client ID">
-              <input className="input" value={oidcClientId} onChange={(e) => setOidcClientId(e.target.value)} disabled={!canEdit} />
+              <input className="input" value={oidcClientId} onChange={(e) => setOidcClientId(e.target.value)} />
             </Field>
             <Field label={idp?.oidcClientSecretHint ? 'Client secret (leave blank to keep stored)' : 'Client secret'}>
               <input
@@ -186,7 +191,6 @@ export function IdentityFederationPanel({
                 value={oidcClientSecret}
                 onChange={(e) => setOidcClientSecret(e.target.value)}
                 placeholder={idp?.oidcClientSecretHint ? '•••••••• stored' : ''}
-                disabled={!canEdit}
                 autoComplete="off"
               />
             </Field>
@@ -199,7 +203,6 @@ export function IdentityFederationPanel({
                 value={samlMetadataXml}
                 onChange={(e) => setSamlMetadataXml(e.target.value)}
                 placeholder="<EntityDescriptor entityID=… >"
-                disabled={!canEdit}
               />
             </Field>
           </div>
@@ -217,7 +220,6 @@ export function IdentityFederationPanel({
             className="input"
             value={jitEnabled ? 'on' : 'off'}
             onChange={(e) => setJitEnabled(e.target.value === 'on')}
-            disabled={!canEdit}
           >
             <option value="on">Enabled — auto-provision members</option>
             <option value="off">Disabled — pre-existing members only</option>
@@ -228,7 +230,6 @@ export function IdentityFederationPanel({
             className="input"
             value={defaultDeliveryRole}
             onChange={(e) => setDefaultDeliveryRole(e.target.value as DeliveryRole)}
-            disabled={!canEdit}
           >
             {(Object.keys(DELIVERY_ROLE_LABELS) as DeliveryRole[]).map((r) => (
               <option key={r} value={r}>
@@ -238,27 +239,25 @@ export function IdentityFederationPanel({
           </select>
         </Field>
 
-        {canEdit && (
-          <div className="sm:col-span-2 flex items-center gap-3">
-            <button className="btn-secondary !w-auto px-5" type="submit" disabled={busy}>
-              {busy ? 'Saving…' : idp ? 'Save configuration' : 'Create connection'}
+        <div className="sm:col-span-2 flex items-center gap-3">
+          <button className="btn-secondary !w-auto px-5" type="submit" disabled={busy}>
+            {busy ? 'Saving…' : idp ? 'Save configuration' : 'Create connection'}
+          </button>
+          {idp && (
+            <button
+              type="button"
+              className="text-critical text-xs font-semibold"
+              onClick={() =>
+                run(() => deleteIdentityProvider(organizationId), {
+                  success: 'Identity provider removed',
+                  errorTitle: 'Couldn’t remove provider',
+                })
+              }
+            >
+              Remove connection
             </button>
-            {idp && (
-              <button
-                type="button"
-                className="text-critical text-xs font-semibold"
-                onClick={() =>
-                  run(() => deleteIdentityProvider(), {
-                    success: 'Identity provider removed',
-                    errorTitle: 'Couldn’t remove provider',
-                  })
-                }
-              >
-                Remove connection
-              </button>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </form>
 
       {/* verification */}
@@ -266,11 +265,9 @@ export function IdentityFederationPanel({
         <div className="border-t border-border pt-4 mt-4">
           <div className="flex items-center justify-between">
             <div className="text-[12px] font-semibold">Metadata verification</div>
-            {canEdit && (
-              <button type="button" className="btn-secondary !w-auto !py-1.5 px-3 text-xs" disabled={busy} onClick={doVerify}>
-                {busy ? 'Verifying…' : 'Verify IdP metadata'}
-              </button>
-            )}
+            <button type="button" className="btn-secondary !w-auto !py-1.5 px-3 text-xs" disabled={busy} onClick={doVerify}>
+              {busy ? 'Verifying…' : 'Verify IdP metadata'}
+            </button>
           </div>
           <p className="text-[11.5px] text-ink-faint mt-1">
             {idp.lastVerifiedAt
@@ -320,11 +317,11 @@ export function IdentityFederationPanel({
 
       {/* group mappings */}
       {idp && (
-        <GroupMappings idp={idp} practices={practices} canEdit={canEdit} run={run} busy={busy} />
+        <GroupMappings organizationId={organizationId} idp={idp} practices={practices} run={run} busy={busy} />
       )}
 
       {/* enable / enforce */}
-      {idp && canEdit && (
+      {idp && (
         <div className="border-t border-border pt-4 mt-4 flex flex-wrap items-center gap-2.5">
           <ToggleButton
             on={idp.enabled}
@@ -332,7 +329,7 @@ export function IdentityFederationPanel({
             offLabel="Enable federation"
             disabled={busy || !idp.lastVerifiedAt}
             onClick={() =>
-              run(() => setIdpEnabled({ enabled: !idp.enabled }), {
+              run(() => setIdpEnabled({ organizationId, enabled: !idp.enabled }), {
                 success: idp.enabled ? 'Federation disabled' : 'Federation enabled',
                 errorTitle: 'Couldn’t change federation',
               })
@@ -345,19 +342,16 @@ export function IdentityFederationPanel({
             disabled={busy || !idp.enabled || idp.emailDomains.length === 0}
             danger
             onClick={() =>
-              run(() => setIdpEnforced({ enforced: !idp.enforced }), {
-                success: idp.enforced ? 'Enforcement lifted' : 'SSO enforced for your domains',
+              run(() => setIdpEnforced({ organizationId, enforced: !idp.enforced }), {
+                success: idp.enforced ? 'Enforcement lifted' : 'SSO enforced for the tenant’s domains',
                 errorTitle: 'Couldn’t change enforcement',
               })
             }
           />
-          {!idp.lastVerifiedAt && (
-            <span className="text-[11.5px] text-warning">Verify metadata to enable.</span>
-          )}
+          {!idp.lastVerifiedAt && <span className="text-[11.5px] text-warning">Verify metadata to enable.</span>}
         </div>
       )}
 
-      {!canEdit && <p className="text-warning text-xs mt-3">Identity federation is view-only for your role.</p>}
       {error && <p className="text-critical text-xs mt-2">{error}</p>}
     </section>
   );
@@ -444,15 +438,15 @@ function ToggleButton({
 }
 
 function GroupMappings({
+  organizationId,
   idp,
   practices,
-  canEdit,
   run,
   busy,
 }: {
+  organizationId: string;
   idp: IdentityProviderView;
   practices: { id: string; name: string }[];
-  canEdit: boolean;
   run: (fn: () => Promise<{ ok: boolean; error?: string }>, opts?: { success?: string; errorTitle?: string }) => Promise<void>;
   busy: boolean;
 }) {
@@ -471,7 +465,14 @@ function GroupMappings({
     e.preventDefault();
     await run(
       async () => {
-        const r = await upsertGroupMapping({ claimValue, deliveryRole, membershipRole, practiceId, priority });
+        const r = await upsertGroupMapping({
+          organizationId,
+          claimValue,
+          deliveryRole,
+          membershipRole,
+          practiceId,
+          priority,
+        });
         if (r.ok) setClaimValue('');
         return r;
       },
@@ -496,7 +497,7 @@ function GroupMappings({
               <th className="py-2 pr-3">Console role</th>
               <th className="py-2 pr-3">Practice</th>
               <th className="py-2 pr-3">Priority</th>
-              {canEdit && <th className="py-2" />}
+              <th className="py-2" />
             </tr>
           </thead>
           <tbody>
@@ -507,22 +508,20 @@ function GroupMappings({
                 <td className="py-2 pr-3 text-ink-muted">{m.membershipRole}</td>
                 <td className="py-2 pr-3 text-ink-muted">{practiceName(m.practiceId)}</td>
                 <td className="py-2 pr-3 tabular-nums">{m.priority}</td>
-                {canEdit && (
-                  <td className="py-2">
-                    <button
-                      type="button"
-                      className="text-critical text-xs font-semibold"
-                      onClick={() =>
-                        run(() => deleteGroupMapping(m.id), {
-                          success: 'Mapping removed',
-                          errorTitle: 'Couldn’t remove mapping',
-                        })
-                      }
-                    >
-                      Remove
-                    </button>
-                  </td>
-                )}
+                <td className="py-2">
+                  <button
+                    type="button"
+                    className="text-critical text-xs font-semibold"
+                    onClick={() =>
+                      run(() => deleteGroupMapping(organizationId, m.id), {
+                        success: 'Mapping removed',
+                        errorTitle: 'Couldn’t remove mapping',
+                      })
+                    }
+                  >
+                    Remove
+                  </button>
+                </td>
               </tr>
             ))}
             {idp.groupMappings.length === 0 && (
@@ -536,50 +535,48 @@ function GroupMappings({
         </table>
       </div>
 
-      {canEdit && (
-        <form onSubmit={add} className="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end mt-3">
-          <input
-            className="input"
-            placeholder="Group name / id"
-            value={claimValue}
-            onChange={(e) => setClaimValue(e.target.value)}
-            required
-          />
-          <select className="input" value={deliveryRole} onChange={(e) => setDeliveryRole(e.target.value as DeliveryRole)}>
-            {(Object.keys(DELIVERY_ROLE_LABELS) as DeliveryRole[]).map((r) => (
-              <option key={r} value={r}>
-                {DELIVERY_ROLE_LABELS[r]}
-              </option>
-            ))}
-          </select>
-          <select className="input" value={membershipRole} onChange={(e) => setMembershipRole(e.target.value as MembershipRole)}>
-            {(['MEMBER', 'ADMIN', 'VIEWER', 'OWNER'] as MembershipRole[]).map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-          <select className="input" value={practiceId} onChange={(e) => setPracticeId(e.target.value)}>
-            <option value="">No practice</option>
-            {practices.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="input"
-            type="number"
-            min={1}
-            max={999}
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-          />
-          <button className="btn-secondary" type="submit" disabled={busy}>
-            Add mapping
-          </button>
-        </form>
-      )}
+      <form onSubmit={add} className="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end mt-3">
+        <input
+          className="input"
+          placeholder="Group name / id"
+          value={claimValue}
+          onChange={(e) => setClaimValue(e.target.value)}
+          required
+        />
+        <select className="input" value={deliveryRole} onChange={(e) => setDeliveryRole(e.target.value as DeliveryRole)}>
+          {(Object.keys(DELIVERY_ROLE_LABELS) as DeliveryRole[]).map((r) => (
+            <option key={r} value={r}>
+              {DELIVERY_ROLE_LABELS[r]}
+            </option>
+          ))}
+        </select>
+        <select className="input" value={membershipRole} onChange={(e) => setMembershipRole(e.target.value as MembershipRole)}>
+          {(['MEMBER', 'ADMIN', 'VIEWER', 'OWNER'] as MembershipRole[]).map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+        <select className="input" value={practiceId} onChange={(e) => setPracticeId(e.target.value)}>
+          <option value="">No practice</option>
+          {practices.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <input
+          className="input"
+          type="number"
+          min={1}
+          max={999}
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+        />
+        <button className="btn-secondary" type="submit" disabled={busy}>
+          Add mapping
+        </button>
+      </form>
     </div>
   );
 }

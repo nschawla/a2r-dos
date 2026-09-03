@@ -44,7 +44,7 @@ function ChangelogModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-[130] flex items-start justify-center bg-black/55 px-4 py-[6vh] overflow-y-auto"
+      className="fixed inset-0 z-[130] flex items-start justify-center bg-slate-900/35 px-4 py-[6vh] overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-label="Release notes"
