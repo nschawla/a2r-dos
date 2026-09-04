@@ -48,7 +48,7 @@ export default async function AdminPage() {
 
       <ModuleTabs
         tabs={[
-          { key: 'roster', label: 'Roster', hint: resources.length },
+          { key: 'roster', label: 'Roster' },
           { key: 'governance', label: 'Governance' },
           { key: 'data', label: 'Data & Compliance' },
         ]}

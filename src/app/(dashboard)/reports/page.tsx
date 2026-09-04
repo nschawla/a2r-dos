@@ -78,7 +78,7 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: {
         printKey="briefing"
         tabs={[
           { key: 'briefing', label: 'Portfolio Briefing' },
-          { key: 'engagements', label: 'Engagement Reports', hint: projects.length },
+          { key: 'engagements', label: 'Engagement Reports' },
         ]}
         panels={{
           briefing: (

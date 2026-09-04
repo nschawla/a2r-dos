@@ -51,7 +51,8 @@ export const GOVERNABLE_MODULES: readonly GovernableModule[] = [
   { key: 'audit', label: 'Control Audit', href: '/audit' },
   { key: 'steerco', label: 'SteerCo Briefing', href: '/steerco' },
   { key: 'reports', label: 'Executive Hub', href: '/reports' },
-  { key: 'methodology', label: 'Methodology Reference', href: '/methodology' },
+  // Methodology Reference is not a top-level nav item (it's contextual to
+  // Control Audit), so it isn't a governable route-visibility toggle.
   { key: 'admin', label: 'Admin & Org Setup', href: '/admin', core: true },
   { key: 'audit-log', label: 'Compliance Ledger', href: '/admin/audit-log', core: true },
 ] as const;
@@ -125,7 +126,7 @@ export const GOVERNANCE_TEMPLATES: Record<
     label: 'Board-Only',
     blurb:
       'A lean executive read-out — the SteerCo briefing, portfolio, reporting hub and control audit only. Day-to-day working modules are hidden; financials stay visible to authorised roles.',
-    hiddenModules: ['command', 'capacity', 'commercial-baseline', 'financials', 'schedule', 'raid', 'methodology'],
+    hiddenModules: ['command', 'capacity', 'commercial-baseline', 'financials', 'schedule', 'raid'],
     maskFinancialsForDelivery: false,
   },
 };

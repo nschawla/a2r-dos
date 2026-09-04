@@ -251,7 +251,7 @@ export default async function HomePage() {
       <ModuleTabs
         tabs={[
           { key: 'portfolio', label: 'Portfolio' },
-          { key: 'engagements', label: 'Engagements', hint: projects.length },
+          { key: 'engagements', label: 'Engagements' },
           { key: 'activity', label: 'Activity' },
         ]}
         panels={{ portfolio: portfolioPanel, engagements: engagementsPanel, activity: activityPanel }}

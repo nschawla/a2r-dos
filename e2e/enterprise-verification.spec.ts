@@ -461,7 +461,10 @@ test.describe('Suite G — Methodology Playbook', () => {
       const key = `CTRL_${String(i).padStart(2, '0')}`;
       await expect(page.locator(`article[data-control="${key}"]`)).toBeVisible();
     }
-    // reachable from the sidebar
+    // v1.2.3 — Methodology Reference is NOT a top-level Reporting nav item
+    // (no sidebar link); it lives in-context under Control Audit.
+    await expect(page.getByRole('link', { name: 'Methodology Reference', exact: true })).toHaveCount(0);
+    await page.goto('/audit');
     await expect(page.getByRole('link', { name: 'Methodology Reference', exact: true })).toBeVisible();
     await expectNoErrorOverlay(page);
   });

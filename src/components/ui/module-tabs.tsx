@@ -16,8 +16,6 @@ import clsx from 'clsx';
 export interface ModuleTab {
   key: string;
   label: string;
-  /** Small trailing count / hint, e.g. a badge number. */
-  hint?: string | number;
 }
 
 export function ModuleTabs({
@@ -89,9 +87,6 @@ export function ModuleTabs({
               )}
             >
               {t.label}
-              {t.hint != null && t.hint !== '' && (
-                <span className="ml-1.5 font-normal text-ink-faint tabular-nums">{t.hint}</span>
-              )}
             </button>
           ))}
         </div>

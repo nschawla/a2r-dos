@@ -152,17 +152,9 @@ const NAV_GROUPS: NavGroup[] = [
           </>
         ),
       },
-      {
-        href: '/methodology',
-        label: 'Methodology Reference',
-        // open reference book
-        icon: (
-          <>
-            <path d="M12 6C10 4.5 6.5 4.5 4 5.5v13c2.5-1 6-1 8 .5 2-1.5 5.5-1.5 8-.5v-13C17.5 4.5 14 4.5 12 6z" />
-            <path d="M12 6v13" />
-          </>
-        ),
-      },
+      // Methodology Reference is intentionally NOT a top-level Reporting item —
+      // it lives in-context under Control Audit (the control-guidance drawer
+      // and the /audit page link to /methodology), and stays reachable via ⌘K.
     ],
   },
 ];
