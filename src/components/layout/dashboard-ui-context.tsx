@@ -8,6 +8,8 @@ import {
   defaultPersonaForRole,
   type Persona,
 } from './personas';
+import { RBAC_MATRIX, type RbacPersona } from '@/lib/governance/rbacMatrix';
+import { useRbacPreview } from '@/lib/client/rbac-preview';
 
 // Re-exported so existing client-side imports from this module keep working.
 // The definitions live in ./personas (a non-client module) so Server
@@ -15,6 +17,8 @@ import {
 // boundary, where non-component exports become non-callable stubs.
 export { PERSONAS, PERSONAS_WITH_WRITE_ACCESS, defaultPersonaForRole };
 export type { Persona };
+export { RBAC_MATRIX };
+export type { RbacPersona };
 
 interface DashboardUIState {
   /** Opens the global ⌘K palette (mounted at the app root — see CommandK). */
@@ -33,14 +37,37 @@ interface DashboardUIState {
   closeSupportModal: () => void;
   persona: Persona;
   setPersona: (p: Persona) => void;
+  /** The signed-in user's REAL, server-verified RBAC persona (derived from
+   * their session DeliveryRole — see src/lib/governance/rbacMatrix.ts).
+   * Never changes client-side; middleware.ts enforces routes against this
+   * same value read straight from the session, not from any preview. */
+  realRbacPersona: RbacPersona;
+  /** The persona the Sidebar / ModuleNav currently render as — the preview
+   * override when one is active, otherwise `realRbacPersona`. A preview is
+   * a DISPLAY-ONLY convenience for demoing the matrix: it changes what
+   * navigation renders, never what a route actually allows through. */
+  rbacPersona: RbacPersona;
+  rbacPreviewActive: boolean;
+  setRbacPreview: (p: RbacPersona | null) => void;
 }
 
 const DashboardUIContext = createContext<DashboardUIState | null>(null);
 
-export function DashboardUIProvider({ children, defaultPersona }: { children: ReactNode; defaultPersona: Persona }) {
+export function DashboardUIProvider({
+  children,
+  defaultPersona,
+  realRbacPersona,
+}: {
+  children: ReactNode;
+  defaultPersona: Persona;
+  realRbacPersona: RbacPersona;
+}) {
   const [helpDrawerOpen, setHelpDrawerOpen] = useState(false);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
   const [persona, setPersonaState] = useState<Persona>(defaultPersona);
+  // Shared with src/components/ops/RbacPersonaSwitcher.tsx (the Ops Console
+  // has no DashboardUIProvider of its own) via the same localStorage key.
+  const { rbacPreview, setRbacPreview } = useRbacPreview();
 
   // Restore a persona choice from a prior visit in this browser. Falls
   // back silently (private windows, storage disabled) — persona always
@@ -96,6 +123,10 @@ export function DashboardUIProvider({ children, defaultPersona }: { children: Re
       closeSupportModal,
       persona,
       setPersona,
+      realRbacPersona,
+      rbacPersona: rbacPreview ?? realRbacPersona,
+      rbacPreviewActive: rbacPreview !== null,
+      setRbacPreview,
     }),
     [
       helpDrawerOpen,
@@ -107,6 +138,9 @@ export function DashboardUIProvider({ children, defaultPersona }: { children: Re
       openSupportModal,
       closeSupportModal,
       setPersona,
+      realRbacPersona,
+      rbacPreview,
+      setRbacPreview,
     ]
   );
 

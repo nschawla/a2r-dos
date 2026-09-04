@@ -52,6 +52,9 @@ model User {
   resourceLinks Resource[]
   // WP6 — every AuditLog row this user was the actor for.
   auditLogs   AuditLog[]
+  // WP7 — every batch this user has staged via the Self-Service Ingestion
+  // Portal.
+  dataImportBatches DataImportBatch[]
 
   @@map("users")
 }
@@ -217,6 +220,7 @@ model Organization {
   impersonationGrants    ImpersonationGrant[]
   apiKeys                ApiKey[]
   timesheetEntries       TimesheetEntry[]
+  dataImportBatches      DataImportBatch[]
 
   @@map("organizations")
 }
@@ -987,6 +991,95 @@ model SchedulePhase {
   @@unique([projectId, phaseKey])
   @@index([projectId])
   @@map("schedule_phases")
+}
+
+// =========================================================
+// WP7 — SELF-SERVICE BATCH IMPORT ENGINE (weekly BAU client uploads)
+// =========================================================
+//
+// Distinct from src/lib/ingestion/csv-parsers.ts's per-project dry-run/
+// commit pair (Effort Matrix, RAID, Financial Actuals — one project, one
+// file, one sitting): this is the tenant-wide weekly batch a client
+// self-uploads across many projects and resources at once, where rows can
+// legitimately need to sit quarantined for a correction pass rather than
+// commit-or-discard in one round trip. A DataImportBatch is the staged
+// file; each DataImportRow is one row of it, holding the raw cell values
+// so a user can correct them in place without re-uploading, plus this
+// row's own last-validated status/errors. Nothing here writes to the real
+// delivery tables (WeeklyAssignmentSlot / SchedulePhase) until
+// commitImportBatch — see src/server/actions/data-import.ts.
+
+enum BatchImportDataType {
+  WEEKLY_ACTUALS
+  MILESTONE_PROGRESS
+}
+
+enum BatchImportStatus {
+  STAGED
+  COMMITTED
+  DISCARDED
+}
+
+enum BatchImportRowStatus {
+  VALID
+  ERROR
+  // A row that started as ERROR and was hand-corrected in the quarantine
+  // grid, then re-validated clean. Kept distinct from VALID (rather than
+  // just flipping the status back) so the batch summary can still show
+  // "N corrected" — an at-a-glance signal of how messy the source file was.
+  CORRECTED
+}
+
+model DataImportBatch {
+  id             String              @id @default(cuid())
+  organizationId String
+  dataType       BatchImportDataType
+  fileName       String
+  status         BatchImportStatus   @default(STAGED)
+
+  // Denormalized counts, kept in sync by data-import.ts on every row
+  // mutation — cheap enough to recompute from `rows` every time, but
+  // storing them means the batch list page never has to load every row.
+  totalRows Int
+  validRows Int
+  errorRows Int
+
+  uploadedById String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  committedAt  DateTime?
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploadedBy   User?           @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  rows         DataImportRow[]
+
+  @@index([organizationId, createdAt])
+  @@map("data_import_batches")
+}
+
+model DataImportRow {
+  id       String @id @default(cuid())
+  batchId  String
+  rowIndex Int // 1-based, counting only data rows (no header)
+
+  // The row's cell values exactly as uploaded (or as last hand-corrected
+  // in the quarantine grid) — column-header keyed, all strings, same
+  // shape csv-parsers.ts's ParsedCsvRow.raw uses. This is what makes
+  // inline correction possible without re-uploading: the file's own text
+  // never has to leave the DB once staged.
+  raw Json
+
+  status BatchImportRowStatus @default(ERROR)
+  // BatchRowIssue[] from src/lib/ingestion/batch-schemas.ts — {field, message}.
+  // Empty array for a VALID row.
+  errors Json
+
+  updatedAt DateTime @updatedAt
+
+  batch DataImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@map("data_import_rows")
 }
 
 // =========================================================

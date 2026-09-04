@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { requireOrgContext } from '@/lib/session';
 import { LENS_COOKIE, availableLenses, resolveLens } from '@/lib/workspace/lenses';
 import { hiddenHrefs } from '@/lib/governance/config';
+import { personaForDeliveryRole } from '@/lib/governance/rbacMatrix';
 import { getNotificationSummary } from '@/server/queries/notifications';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -23,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const lensCtx = { deliveryRole, isA2rStaff, maskFinancialsForDelivery: governance.maskFinancialsForDelivery };
   const lenses = availableLenses(lensCtx);
   const currentLens = resolveLens(cookies().get(LENS_COOKIE)?.value ?? null, lensCtx);
+  const realRbacPersona = personaForDeliveryRole(deliveryRole);
 
   // A2R Operator Control Plane — a SUSPENDED tenant retains all its data but
   // its members cannot use the workspace until an operator reactivates it.
@@ -36,7 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const notifications = await getNotificationSummary(organizationId);
 
   return (
-    <DashboardUIProvider defaultPersona={defaultPersonaForRole(role)}>
+    <DashboardUIProvider defaultPersona={defaultPersonaForRole(role)} realRbacPersona={realRbacPersona}>
       {impersonation && (
         <ImpersonationBanner organizationName={organizationName} expiresAt={impersonation.expiresAt} />
       )}

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import { BrandMark } from '@/components/ui/brand-mark';
+import { useDashboardUI } from './dashboard-ui-context';
+import { rbacHiddenHrefs } from '@/lib/governance/rbacMatrix';
 
 interface NavItem {
   href: string;
@@ -199,10 +201,17 @@ export function Sidebar({ hiddenHrefs = [] }: { hiddenHrefs?: string[] }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const { rbacPersona } = useDashboardUI();
 
-  // Enterprise Governance — modules the tenant has switched off in Admin.
-  // Core modules are never in this list (see src/lib/governance/config.ts).
-  const hidden = new Set(hiddenHrefs);
+  // Two independent restrictions over the same module registry, unioned:
+  // (1) Enterprise Governance — modules the tenant switched off in Admin
+  //     (core modules never in this list — src/lib/governance/config.ts).
+  // (2) The RBAC master matrix — modules this persona isn't allowed to see
+  //     at all (src/lib/governance/rbacMatrix.ts; includes core modules
+  //     like Admin, which is GLOBAL_ADMIN-only). `rbacPersona` reflects a
+  //     demo preview override when one is active — display-only, never
+  //     the actual route gate (middleware.ts reads the real session role).
+  const hidden = new Set([...hiddenHrefs, ...rbacHiddenHrefs(rbacPersona)]);
   const visibleGroups = NAV_GROUPS.map((g) => ({
     ...g,
     items: g.items.filter((i) => !hidden.has(i.href)),

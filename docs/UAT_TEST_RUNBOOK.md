@@ -27,7 +27,7 @@ pass/fail checkpoint** for every major module. The automated half
 
 All demo passwords are **`password12345`** unless noted.
 
-**Tenant: A2R Ventures Demo** (`a2r-ventures-demo`)
+**Tenant: A2R DOS Demo** (`a2r-ventures-demo`)
 
 | Email | Console role | Delivery role | Default landing |
 | --- | --- | --- | --- |
@@ -48,7 +48,7 @@ All demo passwords are **`password12345`** unless noted.
 | `ops@a2rventures.com` | `password12345` | Staff, **no** client membership — lands on `/ops` |
 | `navinder@a2rventures.com` | `Password123!` | Master: staff **and** Owner/Admin in every tenant |
 
-### 1.3 Reference figures (A2R Ventures Demo, fresh seed)
+### 1.3 Reference figures (A2R DOS Demo, fresh seed)
 
 | Figure | Value |
 | --- | --- |
@@ -64,7 +64,7 @@ All demo passwords are **`password12345`** unless noted.
 ## 2. Automated coverage (run before manual UAT)
 
 ```bash
-npm test            # Vitest — 259 unit + integration tests, ~5s
+npm test            # Vitest — 303 unit + integration tests, ~5s
 npx tsc --noEmit    # strict typecheck, 0 errors
 npm run test:e2e    # Playwright — full Suites A–J against a running dev server
 ```
@@ -77,6 +77,7 @@ npm run test:e2e    # Playwright — full Suites A–J against a running dev ser
 | Financial data masking for delivery roles | `tests/enterprise-flows.test.ts` · `tests/masking.test.ts` · e2e Suites **H**, **J4** |
 | Ops Console SSO configuration | `tests/enterprise-flows.test.ts` · `tests/identity-*.test.ts` · e2e Suite **J5** |
 | Command Center / Portfolio / Governance / Reporting / Ops | e2e Suites **B–I** |
+| Self-service batch import — schema validation, plain-English errors, CSV/Excel parsing | `tests/batch-schemas.test.ts` · `tests/workbook-reader.test.ts` (no Playwright suite yet — see UAT-4.7 for the manual walkthrough) |
 
 A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 
@@ -145,7 +146,7 @@ Signed in as `ops@a2rventures.com`.
 
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | Sidebar → **Identity Federation** (`/ops/identity`) | Heading "Identity Federation"; a tenant selector + a "Select a tenant to configure" list (A2R Ventures Demo, Acme Health) | |
+| 1 | Sidebar → **Identity Federation** (`/ops/identity`) | Heading "Identity Federation"; a tenant selector + a "Select a tenant to configure" list (A2R DOS Demo, Acme Health) | |
 | 2 | Choose **Acme Health** | URL `?org=…`; panel titled **"SSO & Identity Federation — Acme Health"** | |
 | 3 | Provider **Microsoft Entra ID**, Protocol **OIDC**, Connection name `Acme Entra ID`, Email domains `acme-health.test` → **Create connection** | Toast "Identity provider saved"; status chips: **Configured** (green), **Unverified** (grey), **Disabled** (grey), **Optional** (grey), `OIDC · AZURE_AD` | |
 | 4 | Paste a discovery URL (e.g. `https://accounts.google.com/.well-known/openid-configuration`) → **Verify IdP metadata** | Green result box lists Issuer / Authorization endpoint / Token endpoint / JWKS URI; "Verified" chip turns green | |
@@ -236,13 +237,38 @@ Sign in as `admin@a2rventures-demo.test`.
 
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | **Sub-nav pills** | `Roster 7` · `Governance` · `Data & Compliance` — instant swap, one panel at a time | |
+| 1 | **Sub-nav pills** | `Roster` · `Governance` · `Data & Compliance` — instant swap, one panel at a time, no trailing item-count badges | |
 | 2 | **Roster** tab | Functional Practices, Roles & Rate Card Matrix, Resource Directory — add/remove works, toasts confirm | |
 | 3 | Roster → a rate-card **Cost Rate** column as `admin@…` | Shows real `$` figures (ADMIN = full visibility) | |
 | 4 | **Governance** tab | Milestone & Margin Thresholds, Hybrid Configuration Model (see UAT-3.3), Delivery Controls & Governance Standards (rename a control label) | |
 | 5 | **Data & Compliance** tab | Workspace Backup / Restore, links to Data Ingestion & Templates and the SOC 2 Compliance Ledger (with a **Verified** badge), and the SSO-moved-to-Ops note | |
 | 6 | Sign in as `dm@a2rventures-demo.test` (Member) | `/admin` shows **"You have view-only access to org setup."**; forms disabled | |
 | 7 | Refresh `/admin` on the Governance tab | Stays on Governance (tab state survives reload via `?v=governance`) | |
+
+### UAT-4.7 · Self-Service Batch Import Engine (`/admin/ingestion`, Batch Import tab)
+
+Sign in as `admin@a2rventures-demo.test`. Test file — save as `.csv`:
+
+```
+Project Code,Employee Email,Week Ending,Actual Hours
+BOGUS-CODE,pd@a2rventures-demo.test,2026-03-08,10
+Wave 1 – Finance & Procurement,pd@a2rventures-demo.test,not-a-date,5
+```
+
+| # | Check | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | **Admin & Org Setup → Data Ingestion & Templates → Batch Import** tab | Data type toggle (**Weekly Actuals** / **Milestone & Progress Updates**) + a drag-and-drop zone; a **Recent Batches** table below | |
+| 2 | Drop the test file (Weekly Actuals selected) | Instant preview: **`0 valid`**, **`2 quarantined`**; a table lists both rows' plain-English reasons (unmapped project code; unrecognizable date) | |
+| 3 | Click **Stage 2 rows** | Redirects to the batch's own page; badges read `0 valid` / `2 in quarantine` / `2 total`; **Re-validate & Commit** is **disabled** | |
+| 4 | In row 2, correct **Week Ending** to `2026-03-08`, click **Save & re-validate** | That row's date error clears; its **Project Code** error (still bogus) stays; commit stays disabled | |
+| 5 | In row 1, correct **Project Code** to `Wave 1 – Finance & Procurement`, click **Save & re-validate** | Row 1 turns **Corrected**; quarantine count drops to 0; **Re-validate & Commit** becomes enabled | |
+| 6 | Click **Re-validate & Commit** | Success state; edit controls disappear (batch is now read-only) | |
+| 7 | Open **Resource & Capacity** for the "Wave 1" engagement | The week of 2026-03-02 (Monday-anchored) now shows the imported actual hours for Priya Director | |
+| 8 | Open **Compliance Ledger** (`/admin/audit-log`) | A **"Self-service batch import committed"** entry appears; integrity badge stays **Verified** | |
+| 9 | Start a second upload, then click **Discard batch** before fixing anything | Confirms, then returns to the Batch Import tab; the discarded batch shows status **Discarded** in Recent Batches, nothing was written | |
+| 10 | Sign in as `pm@a2rventures-demo.test` | The **Batch Import** tab does not appear — only **Templates** | |
+
+**Checkpoint:** malformed rows never touch live data; the commit button is a genuine hard stop, not just a visual one; every field re-validates against live projects/resources on save, not a cached snapshot; only Admins see the tab.
 
 ---
 
@@ -258,6 +284,7 @@ Sign in as `admin@a2rventures-demo.test`.
 | 6 | No Next.js error overlay anywhere during the walkthrough | |
 | 7 | Compliance Ledger integrity badge = **Verified** in every tenant | |
 | 8 | Demo tenant governance left on **Standard Delivery**; no stray identity providers | |
+| 9 | No stray `DataImportBatch` rows or test `WeeklyAssignmentSlot`/`SchedulePhase` writes left in the demo tenant from batch-import testing | |
 
 ---
 

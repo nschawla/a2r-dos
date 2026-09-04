@@ -40,7 +40,8 @@ export type LedgerActionType =
   | 'TENANT_PURGE_EXECUTED'
   | 'API_KEY_ISSUED'
   | 'API_KEY_REVOKED'
-  | 'API_BULK_INGEST';
+  | 'API_BULK_INGEST'
+  | 'BATCH_IMPORT_COMMITTED';
 
 export const LEDGER_ACTION_LABEL: Record<string, string> = {
   BASELINE_OVERRIDE: 'Baseline override',
@@ -59,6 +60,7 @@ export const LEDGER_ACTION_LABEL: Record<string, string> = {
   API_KEY_ISSUED: 'API key issued',
   API_KEY_REVOKED: 'API key revoked',
   API_BULK_INGEST: 'API bulk ingest',
+  BATCH_IMPORT_COMMITTED: 'Self-service batch import committed',
 };
 
 export interface RecordLedgerEventInput {

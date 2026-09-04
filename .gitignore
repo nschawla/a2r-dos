@@ -23,3 +23,7 @@ next-env.d.ts
 
 # local dev signals (test-run stamp read by the Ops Platform Pulse)
 /.a2r/
+
+# regenerated on every `npx playwright test` run — not meaningful to track
+/playwright-report/
+/test-results/

@@ -5,7 +5,7 @@ import type { StreamEvent } from '../src/server/queries/active-stream';
 
 function makeExec(over: Partial<ExecutiveBriefing> = {}): ExecutiveBriefing {
   return {
-    organizationName: 'A2R Ventures Demo',
+    organizationName: 'A2R DOS Demo',
     generatedAt: '2026-09-03T12:00:00.000Z',
     macro: {
       totalTcv: 1_430_000,
@@ -50,7 +50,7 @@ const STREAM: StreamEvent[] = [
 
 const base = (showFinancials = true) =>
   composeSteerCoBriefing({
-    organizationName: 'A2R Ventures Demo',
+    organizationName: 'A2R DOS Demo',
     generatedAt: '2026-09-03T12:00:00.000Z',
     exec: makeExec(),
     stream: STREAM,

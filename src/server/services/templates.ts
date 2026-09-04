@@ -9,9 +9,11 @@
  * drift from the schema the hub documents.
  *
  * Zero dependencies — hand-rolled RFC4180-ish escaping, same reasoning as
- * src/lib/reports/portfolio-csv.ts (this sandbox has no npm registry, and
- * a real .xlsx writer isn't installable; CSV opens natively in Excel /
- * Google Sheets anyway).
+ * src/lib/reports/portfolio-csv.ts. A downloadable starter file only ever
+ * needs to open cleanly in Excel / Google Sheets, which plain CSV already
+ * does — the `xlsx` package this app now depends on (see
+ * src/lib/ingestion/workbook-reader.ts) is there to *read* a client's own
+ * Excel export back on upload, not to make this file write one.
  */
 
 export interface TemplateColumn {
@@ -131,6 +133,60 @@ export const INGESTION_TEMPLATES: IngestionTemplate[] = [
       ['priya.raman@contoso.com', 'ENG-2026-014', 'Discovery & Assessment', '37.5', '2026-03-02', '2026-03-08', 'Billable'],
       ['marcus.bell@contoso.com', 'ENG-2026-014', 'Solution Architecture', '40', '2026-03-02', '2026-03-08', 'Billable'],
       ['dana.okafor@partnerco.com', 'ENG-2026-014', 'Internal Enablement', '4', '2026-03-02', '2026-03-08', 'Non-Billable'],
+    ],
+  },
+  {
+    id: 'weekly-actuals-batch',
+    filename: 'weekly-actuals-batch-template.csv',
+    title: 'Weekly Actuals — Batch Upload',
+    purpose: 'A single weekly file of hours by person + project, for the Self-Service Ingestion Portal at Admin & Org Setup → Data Ingestion → Batch Import.',
+    guidance: [
+      ENCODING_RULE,
+      EMPTY_RULE,
+      ISO_DATE_RULE,
+      'One row per person + project + week. Any file can span as many projects and people as you like in one batch.',
+      '`projectCode` must match a `projectCode` already on file (see Project Financial Baselines); `employeeEmail` must match a resource on the roster.',
+      '`weekEnding` may be any day in the reporting week — it is filed under that week’s Monday automatically.',
+      'Rows that don’t match are quarantined for inline correction, not silently dropped — nothing commits to the workspace until every row in the batch is clean.',
+    ],
+    columns: [
+      { name: 'projectCode', description: 'Engagement identifier — must match a Project Baseline row.', example: 'ENG-2026-014', required: true },
+      { name: 'employeeEmail', description: 'Work email — must match a resource on the roster.', example: 'priya.raman@contoso.com', required: true },
+      { name: 'weekEnding', description: 'Any date within the reporting week (YYYY-MM-DD).', example: '2026-03-08', required: true },
+      { name: 'actualHours', description: 'Actual hours worked that week (decimal allowed).', example: '37.5', required: true },
+      { name: 'forecastedHours', description: 'Updated forecast for the week, if changed.', example: '40', required: false },
+    ],
+    sampleRows: [
+      ['ENG-2026-014', 'priya.raman@contoso.com', '2026-03-08', '37.5', '40'],
+      ['ENG-2026-014', 'marcus.bell@contoso.com', '2026-03-08', '40', '40'],
+      ['ENG-2026-021', 'dana.okafor@partnerco.com', '2026-03-08', '32', ''],
+    ],
+  },
+  {
+    id: 'milestone-progress-batch',
+    filename: 'milestone-progress-batch-template.csv',
+    title: 'Milestone & Progress Updates — Batch Upload',
+    purpose: 'A single weekly file of phase status/% complete across projects, for the Self-Service Ingestion Portal at Admin & Org Setup → Data Ingestion → Batch Import.',
+    guidance: [
+      ENCODING_RULE,
+      EMPTY_RULE,
+      ISO_DATE_RULE,
+      'One row per project + phase. `phase` is one of Initiate, Design, Build, Test (UAT, SIT), Deploy (Cutover, Go-Live), Sustain (Hypercare, Warranty).',
+      '`status` — one of Not Started, In Progress, Complete, Delayed.',
+      '`pctComplete` is 0–100. `actualStartDate` / `actualEndDate` are only needed when they’ve changed — leave blank to keep whatever is already on file.',
+    ],
+    columns: [
+      { name: 'projectCode', description: 'Engagement identifier — must match a Project Baseline row.', example: 'ENG-2026-014', required: true },
+      { name: 'phase', description: 'Delivery phase name.', example: 'Build', required: true },
+      { name: 'status', description: 'Not Started | In Progress | Complete | Delayed.', example: 'In Progress', required: true },
+      { name: 'pctComplete', description: '% complete for the phase, 0-100.', example: '65', required: true },
+      { name: 'actualStartDate', description: 'Actual start date, if it changed (YYYY-MM-DD).', example: '2026-02-16', required: false },
+      { name: 'actualEndDate', description: 'Actual end date, if the phase just closed (YYYY-MM-DD).', example: '', required: false },
+    ],
+    sampleRows: [
+      ['ENG-2026-014', 'Build', 'In Progress', '65', '2026-02-16', ''],
+      ['ENG-2026-021', 'Design', 'Complete', '100', '2026-01-12', '2026-02-02'],
+      ['ENG-2025-188', 'Sustain (Hypercare, Warranty)', 'Delayed', '40', '', ''],
     ],
   },
 ];

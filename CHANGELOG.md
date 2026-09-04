@@ -10,6 +10,26 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.0] — 2026-09-04
+
+_A2R DOS rebrand, the Gunmetal Ascent Vector logo, an RBAC Master Matrix, and the Self-Service Batch Import Engine._
+
+### Added
+- **Self-Service Batch Import Engine** — a drag-and-drop portal (**Admin & Org Setup → Data Ingestion & Templates → Batch Import**) for weekly, tenant-wide CSV or Excel uploads of **Actuals** or **Milestone & Progress** updates spanning any number of engagements in one file — distinct from the existing per-project CSV import. Every row is validated against the tenant's live projects and roster and staged for review, valid and invalid rows alike.
+- **Quarantine & inline correction** — malformed rows are isolated with a plain-English reason for every failure (missing primary keys, unmapped project references, unrecognizable dates); an inline grid lets a user fix a row and re-validate it live, with no re-upload.
+- **Hard-stop commit safeguard** — **Re-validate & Commit** stays disabled while any row still errors, and the server authoritatively re-checks every row again immediately before writing anything. Commit is all-or-nothing in one transaction; a successful commit is logged to the Audit Trail and hash-chained into the Compliance Ledger (`BATCH_IMPORT_COMMITTED`).
+- **RBAC Master Matrix** — a single permission matrix (`src/lib/governance/rbacMatrix.ts`) maps five personas, mapped 1:1 onto the real delivery role, to allowed sidebar groups, per-engagement module pills, and routes. Unauthorized items are **omitted from rendering**, not merely disabled, and an edge middleware guard independently blocks a direct navigation to a disallowed route.
+- **`docs/ERD.md`** — a new Entity Relationship Diagram covering the platform's core schema, including the new batch-import models.
+
+### Changed
+- **Header cleanup** — the RBAC persona preview and its redundant second role picker moved out of the main tenant header into a dedicated **Persona Preview** control inside the A2R Ops Console.
+- **Application renamed** — the flagship demo workspace "A2R Ventures Demo" is now **"A2R DOS Demo"** across the UI, seed data, and documentation.
+- **"Concept B: Ascent Vector" logo** — the integrated brand mark is now a single geometric glyph (a solid triangle with a nested triangular counter forming the letter "A"), rendered in a fixed solid **Gunmetal Gray (`#545A61`)** on its own `logo` design token, independent of the `brand` interactive-accent blue used by buttons and links. Crisp from 18px in the Sidebar to 40px on the sign-in screen.
+- Navigation pills no longer show trailing item-count badges (e.g. `Engagements 6` → `Engagements`), and **Methodology Reference** was removed from the sidebar's Reporting group — it lives solely under Control Audit now.
+
+### Verification
+- `npx tsc --noEmit` → 0 errors. `npx vitest run` → **303 passed** across 25 files. `npx playwright test` → **40 passed** across Suites A–J.
+
 ## [1.2.2] — 2026-09-03
 
 _Executive Clarity — a crisp light theme, the integrated A2R logo, and universal sub-navigation._

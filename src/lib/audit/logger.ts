@@ -35,9 +35,15 @@ export type AuditAction =
   | 'AUDIT_SCORE_CHANGED'
   | 'CSV_IMPORT_COMMITTED'
   | 'WORKSPACE_EXPORTED'
-  | 'WORKSPACE_RESTORED';
+  | 'WORKSPACE_RESTORED'
+  // WP7 — Self-Service Batch Import Engine (weekly BAU uploads). Staging
+  // is logged too, not just commit/discard, since a stuck-in-quarantine
+  // batch is itself an operational signal worth having in the trail.
+  | 'BATCH_IMPORT_STAGED'
+  | 'BATCH_IMPORT_COMMITTED'
+  | 'BATCH_IMPORT_DISCARDED';
 
-export type AuditEntityType = 'PROJECT' | 'FINANCIAL_ACTUAL' | 'RAID_ENTRY' | 'AUDIT_ENTRY' | 'INGESTION' | 'WORKSPACE';
+export type AuditEntityType = 'PROJECT' | 'FINANCIAL_ACTUAL' | 'RAID_ENTRY' | 'AUDIT_ENTRY' | 'INGESTION' | 'WORKSPACE' | 'DATA_IMPORT_BATCH';
 
 export interface LogAuditEventInput {
   organizationId: string;

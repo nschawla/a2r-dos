@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * A2R Delivery OS — design tokens ("Executive Clarity" light theme, v1.2.2).
+ * A2R Delivery OS — design tokens ("Executive Clarity" light theme).
  *
  * NEUTRALS are a crisp light ramp built for an executive audience (ages
  * 30–50+) and print/PDF export. `bg` is a soft cool off-white page canvas
@@ -12,9 +12,15 @@ import type { Config } from 'tailwindcss';
  * clear WCAG AAA for body text.
  *
  * BRAND is the ONE interactive accent — a solid corporate blue for links,
- * primary CTAs, active nav, focus rings, the selected state, and the
- * integrated A2R logo mark. Never a gradient, never decorative.
- * `brand-hi` remains a resolving alias (== `brand`).
+ * primary CTAs, active nav, focus rings, and the selected state. Never a
+ * gradient, never decorative. `brand-hi` remains a resolving alias (==
+ * `brand`).
+ *
+ * LOGO is deliberately a *separate* token from `brand`: the "Ascent
+ * Vector" mark (src/components/ui/brand-mark.tsx) renders in a fixed
+ * solid Gunmetal Gray, independent of the interactive accent, so a future
+ * accent re-theme never silently recolors the logotype, and the logo
+ * never silently recolors a button by sharing its variable.
  *
  * STATUS colors (`success` / `warning` / `critical` / `na`) are
  * single-purpose RAG + neutral — deep enough to read as text on white.
@@ -53,6 +59,9 @@ const config: Config = {
           subtle: 'rgba(11,95,209,0.10)',
         },
         accent: { 1: '#0B5FD1', 2: '#0B5FD1' },
+
+        // ── The logo's own ink — Gunmetal Gray, independent of `brand` ──
+        logo: { DEFAULT: '#545A61' },
 
         // ── Single-purpose status (deep — legible as text on white) ──
         success: { DEFAULT: '#166534', soft: 'rgba(22,101,52,0.10)' }, // green-800, ~6:1

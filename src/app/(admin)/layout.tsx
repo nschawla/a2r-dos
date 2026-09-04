@@ -4,6 +4,7 @@ import { requireOpsContext } from '@/lib/ops-auth';
 import { OpsNav } from '@/components/ops/OpsNav';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { OpsVersionPanel } from '@/components/ops/OpsVersionPanel';
+import { RbacPersonaSwitcher } from '@/components/ops/RbacPersonaSwitcher';
 import { Container } from '@/components/ui/container';
 
 export const metadata: Metadata = {
@@ -50,7 +51,10 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
           <span className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">
             A2R Ventures · Internal
           </span>
-          <span className="text-xs text-ink-faint">Signed in as {ops.name}</span>
+          <div className="flex items-center gap-3">
+            <RbacPersonaSwitcher />
+            <span className="text-xs text-ink-faint">Signed in as {ops.name}</span>
+          </div>
         </header>
         <main className="flex-1 w-full">
           <Container>{children}</Container>

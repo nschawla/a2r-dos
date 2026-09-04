@@ -251,6 +251,19 @@ Compliance Ledger or timesheet records**.
   admin capabilities (`hasPermission`) are evaluated from the caller's effective
   `DeliveryAccessRole`. A single global write guard also enforces
   impersonation-readonly and grace-period-readonly.
+- **RBAC Master Matrix — navigation & route enforcement.** A single source
+  of truth (`src/lib/governance/rbacMatrix.ts`) maps each of five personas
+  (mapped 1:1 onto the real `DeliveryAccessRole`) to the sidebar groups,
+  per-engagement module pills, and route prefixes it may reach. Unauthorized
+  items are **omitted from rendering**, not merely disabled, in the
+  Sidebar and every `ModuleTabs`/`ModuleNav` surface; `src/middleware.ts`
+  independently blocks/redirects a direct navigation to a route the same
+  matrix disallows for the signed-in session's real role, as defence in
+  depth alongside (never instead of) the server-side authorization above.
+  An Ops-Console-only "Persona Preview" lets an A2R operator preview a
+  tenant's navigation as a given persona ahead of a demo — display-only,
+  backed by client-side state the server never reads, and incapable of
+  granting access a real session doesn't already have.
 - **Financial data masking.** Sensitive financial values are tiered by role:
   - `full` (ADMIN) — everything, including raw contractor cost rates;
   - `summary` (VP_EXECUTIVE, PRACTICE_DIRECTOR) — blended margins and EAC;
@@ -301,25 +314,37 @@ Compliance Ledger or timesheet records**.
 - **Health checks.** `GET /api/health` (liveness) and `GET /api/health/ready`
   (readiness — a 2-second-bounded database probe) support external monitoring
   and deploy gating.
+- **Self-Service Batch Import Engine.** Gated on the tenant-admin-only
+  `admin:ingestion` permission — a single uploaded file can reference many
+  projects at once, bypassing the usual per-project edit scope, so it sits
+  on the same authority tier as Workspace Backup & Restore rather than
+  being opened to every delivery role. A staged row is never trusted from
+  the client: every row is re-validated against this org's live projects
+  and roster on stage, on every inline correction, and again — from
+  scratch — immediately before commit. Commit is all-or-nothing inside one
+  transaction: **no batch partially lands** while any row still errors.
+  A successful commit is written to both the general Audit Trail and the
+  hash-chained Compliance Ledger (`BATCH_IMPORT_COMMITTED`).
 
 ---
 
 ## 10. Testing & verification
 
-- **231** unit tests (Vitest) covering the calculation engine, data masking
+- **303** unit tests (Vitest) covering the calculation engine, data masking
   (incl. the org governance override), API-key crypto, rate limiter, tenant
   lifecycle, retention policy logic, the command-center resolver, the ⌘K
   palette, the platform-pulse and SteerCo briefing composers, the workspace-lens
   resolver, the governance Hybrid Configuration Model, identity-federation
   secret crypto / IdP-metadata parsing / security-group mapping / JIT
-  provisioning, and version/changelog governance.
+  provisioning, version/changelog governance, the RBAC Master Matrix, and the
+  Self-Service Batch Import Engine's schema validators and CSV/Excel reader.
 - **2** live-database security suites (`tests/security/*`) that assert
   cross-tenant `organizationId` scoping and that the compliance ledger keeps a
   valid tamper-evident hash chain under parallel-append pressure (REL-3).
-- **30** end-to-end tests (Playwright, Suites A–I) covering authentication,
+- **40** end-to-end tests (Playwright, Suites A–J) covering authentication,
   multi-tenant scoping, governance workflows, the capacity cockpit, the
-  compliance ledger, data masking, and the tenant/data-sovereignty engine, with
-  a self-cleaning teardown.
+  compliance ledger, data masking, role-based landing/perspective switching,
+  and the tenant/data-sovereignty engine, with a self-cleaning teardown.
 - TypeScript strict compilation (`tsc --noEmit`) is part of the verification
   gate for every change.
 

@@ -18,12 +18,19 @@ const EXPECTED_COLUMNS: Record<string, string[]> = {
   'timesheet-actuals': [
     'employeeEmail', 'projectCode', 'taskName', 'hoursWorked', 'periodStartDate', 'periodEndDate', 'billingStatus',
   ],
+  // WP7 — Self-Service Batch Import Engine starter files.
+  'weekly-actuals-batch': [
+    'projectCode', 'employeeEmail', 'weekEnding', 'actualHours', 'forecastedHours',
+  ],
+  'milestone-progress-batch': [
+    'projectCode', 'phase', 'status', 'pctComplete', 'actualStartDate', 'actualEndDate',
+  ],
 };
 
 describe('INGESTION_TEMPLATES', () => {
-  it('exposes exactly the three intake templates', () => {
+  it('exposes exactly the five intake templates', () => {
     expect(INGESTION_TEMPLATES.map((t) => t.id).sort()).toEqual(
-      ['project-baseline', 'resource-allocation', 'timesheet-actuals']
+      ['milestone-progress-batch', 'project-baseline', 'resource-allocation', 'timesheet-actuals', 'weekly-actuals-batch']
     );
   });
 

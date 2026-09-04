@@ -1,18 +1,34 @@
 import clsx from 'clsx';
 
 /**
- * The integrated A2R logo mark — the sharp "A2R" wordform set tight in the
- * display face with a solid underline rule beneath it, in one solid
- * corporate blue.
+ * "Concept B: Ascent Vector" — the A2R DOS logo mark. A single geometric
+ * glyph, not raster artwork or a gradient fill: one solid triangle rising
+ * to a point (an apex, not a curve — the ascent) with a smaller
+ * triangular counter cut from its center on the same taper as its outer
+ * edges, read at a glance as the letterform "A" — the classic
+ * bold-monogram construction (a shape nested inside a similar, larger
+ * copy of itself), built from three straight lines each.
  *
- * Rendered as live text + a bottom border (not a raster or an SVG fill),
- * so it is resolution-independent, gradient-free by construction, and
- * prints / exports to PDF crisply at any size.
+ * Rendered in a fixed solid Gunmetal Gray (`text-logo`, #545A61) —
+ * deliberately its OWN design token, not `text-brand`. The interactive
+ * accent (links, primary CTAs, focus rings, the selected nav state) stays
+ * corporate blue everywhere; the logo's ink never shares that variable,
+ * so re-theming one can never silently recolor the other. See
+ * tailwind.config.ts's `logo` token for the rationale.
+ *
+ * Every call site pairs this with its own adjacent text label already
+ * (Header, Sidebar, AuthShell, the public/marketing shell, the Ops
+ * Console header), so the icon alone reads cleanly with no wordmark
+ * baked into the SVG.
+ *
+ * Pure vector paths (no raster, no gradient) — crisp at every size this
+ * app uses it at, from 18px in the Sidebar up to 40px on the sign-in
+ * screen, and prints / exports to PDF exactly as rendered on screen.
  */
 const SIZES = {
-  sm: 'text-[15px] border-b-2 pb-px',
-  md: 'text-[19px] border-b-2 pb-0.5',
-  lg: 'text-[30px] border-b-[3px] pb-1',
+  sm: 'h-[18px] w-[18px]',
+  md: 'h-6 w-6',
+  lg: 'h-10 w-10',
 } as const;
 
 export function BrandMark({
@@ -23,15 +39,17 @@ export function BrandMark({
   className?: string;
 }) {
   return (
-    <span
+    <svg
+      viewBox="0 0 24 24"
       aria-hidden="true"
-      className={clsx(
-        'inline-block flex-none select-none font-display font-extrabold leading-none tracking-[-0.045em] text-brand border-brand',
-        SIZES[size],
-        className,
-      )}
+      className={clsx('inline-block flex-none select-none text-logo', SIZES[size], className)}
     >
-      A2R
-    </span>
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2L22 22H2L12 2ZM12 6L17 16H7L12 6Z"
+      />
+    </svg>
   );
 }

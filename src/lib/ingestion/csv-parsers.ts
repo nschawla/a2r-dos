@@ -126,12 +126,19 @@ function tokenizeCsv(text: string): string[][] {
   return rows.filter((r) => !(r.length === 1 && r[0]?.trim() === ''));
 }
 
-function tokenizeAndCap(text: string): { header: string[]; records: Record<string, string>[]; truncated: boolean } {
+/** Exported for src/lib/ingestion/workbook-reader.ts (the WP7 batch
+ * engine's CSV path) so both pipelines share the one RFC4180-ish
+ * tokenizer rather than growing a second copy. `maxRows` defaults to this
+ * module's own cap; the batch engine passes its own (larger) limit. */
+export function tokenizeAndCap(
+  text: string,
+  maxRows: number = MAX_CSV_ROWS
+): { header: string[]; records: Record<string, string>[]; truncated: boolean } {
   const rows = tokenizeCsv(text);
   const [headerRow, ...dataRows] = rows;
   const header = (headerRow ?? []).map((h) => h.trim());
-  const truncated = dataRows.length > MAX_CSV_ROWS;
-  const capped = truncated ? dataRows.slice(0, MAX_CSV_ROWS) : dataRows;
+  const truncated = dataRows.length > maxRows;
+  const capped = truncated ? dataRows.slice(0, maxRows) : dataRows;
   const records = capped.map((r) => {
     const rec: Record<string, string> = {};
     header.forEach((h, idx) => {

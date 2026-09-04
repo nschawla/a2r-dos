@@ -1,5 +1,5 @@
 /**
- * WP4 demo seed: "A2R Ventures Demo" — a richer org built specifically to
+ * WP4 demo seed: "A2R DOS Demo" — a richer org built specifically to
  * exercise the RBAC scoping in src/lib/db/scoped-portfolio.ts and the WP2
  * calculation engine end to end.
  *
@@ -58,7 +58,7 @@ async function main() {
   // ==================== ORG ====================
   let org = await db.organization.findUnique({ where: { slug: 'a2r-ventures-demo' } });
   if (!org) {
-    org = await db.organization.create({ data: { name: 'A2R Ventures Demo', slug: 'a2r-ventures-demo' } });
+    org = await db.organization.create({ data: { name: 'A2R DOS Demo', slug: 'a2r-ventures-demo' } });
   }
   const organizationId = org.id;
 

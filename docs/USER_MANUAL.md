@@ -201,9 +201,38 @@ across pages, and status colours stay legible. Use your browser's
 
 ## 6. Importing data in bulk
 
-Two ways to get structured data in without manual entry:
+Three ways to get structured data in without manual entry:
 
-### Self-serve CSV import
+### Self-service batch import (weekly BAU uploads)
+
+For a **client-wide weekly batch** — actuals or milestone/progress updates
+spanning any number of engagements in one file — rather than a single
+project's own CSV import (below), use **Admin & Org Setup → Data Ingestion
+& Templates → Batch Import**. Available to organization **Admins**.
+
+1. Choose **Weekly Actuals** or **Milestone & Progress Updates**, then drag
+   a `.csv` or `.xlsx` file onto the drop zone (or download a starter
+   template from the **Templates** tab first).
+2. Every row is validated the moment the file is read — you'll see a live
+   count of how many rows are valid and how many will be **quarantined**,
+   with the exact reason for each (an unmapped project code, an
+   unrecognized date, a missing required field, and so on — always in
+   plain English, never a raw error code).
+3. Click **Stage N rows**. This is not yet a commit — it saves the whole
+   file, valid and invalid rows alike, so nothing is lost and nothing
+   needs re-uploading to fix a handful of bad rows.
+4. On the batch's own page, correct a quarantined row directly in its
+   cells and click **Save & re-validate** — it re-checks against your live
+   roster and projects right there, no re-upload required.
+5. **Re-validate & Commit** stays disabled for as long as *any* row in the
+   batch still has an error. This is a hard stop: A2R Delivery OS will
+   never write part of a batch to your workspace while the rest is broken.
+   Once every row is clean, committing writes them all in one step and
+   records the batch in your Compliance Ledger.
+6. A batch you're not ready to fix can be **discarded** at any time before
+   it's committed — nothing it contains has touched your live data yet.
+
+### Self-serve CSV import (single project)
 
 1. Download a template from **Admin & Org Setup → Data Ingestion &
    Templates**, or from **Ops Console → Ingestion & Templates**:
@@ -373,6 +402,17 @@ indicator rather than the value silently disappearing.
 Your organization can tighten this further — the **Strict Financial
 Governance** and **Agile Delivery** governance templates (§8.1) also hide
 margins and EAC from Practice Directors.
+
+### The RBAC Master Matrix — what's omitted, not just hidden
+
+Underneath the table above, a central permission matrix maps every role to
+the sidebar groups, per-engagement module pills, and routes it may reach.
+An unauthorized item is never rendered at all — there's no disabled button
+or greyed-out link to notice and wonder about — and the same matrix backs a
+server-side route guard, so a direct link to a page outside your role never
+gets further than a redirect. A2R staff can preview how a role's navigation
+looks from the **Ops Console** (a "Persona Preview" — display-only, and
+never a way to see data your own account isn't actually permitted to see).
 
 ---
 

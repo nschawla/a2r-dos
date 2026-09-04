@@ -239,11 +239,14 @@ export function hiddenHrefs(cfg: ResolvedGovernanceConfig): string[] {
 }
 
 /**
- * Is a concrete pathname inside a hidden module? Matches the deepest
- * module href that prefixes the path (so `/financials/abc` is governed by
- * the `financials` module, and `/` only ever matches control-tower).
+ * The GOVERNABLE_MODULES entry that owns a concrete pathname — the deepest
+ * (longest) href that prefixes the path, so `/financials/abc` resolves to
+ * the `financials` module and `/` only ever resolves to control-tower.
+ * Shared by governance (this file) and the RBAC matrix
+ * (src/lib/governance/rbacMatrix.ts) so route-ownership is one source of
+ * truth, not two similar-but-drifting implementations.
  */
-export function isPathHidden(cfg: ResolvedGovernanceConfig, pathname: string): boolean {
+export function findOwningModule(pathname: string): GovernableModule | null {
   let match: GovernableModule | null = null;
   for (const m of GOVERNABLE_MODULES) {
     if (m.href === '/') {
@@ -254,6 +257,16 @@ export function isPathHidden(cfg: ResolvedGovernanceConfig, pathname: string): b
       match = m;
     }
   }
+  return match;
+}
+
+/**
+ * Is a concrete pathname inside a hidden module? Matches the deepest
+ * module href that prefixes the path (so `/financials/abc` is governed by
+ * the `financials` module, and `/` only ever matches control-tower).
+ */
+export function isPathHidden(cfg: ResolvedGovernanceConfig, pathname: string): boolean {
+  const match = findOwningModule(pathname);
   if (!match || match.core) return false;
   return cfg.hiddenModules.includes(match.key);
 }

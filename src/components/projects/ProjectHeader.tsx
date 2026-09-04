@@ -7,6 +7,7 @@ import clsx from 'clsx';
 import { useDashboardUI, PERSONAS_WITH_WRITE_ACCESS } from '@/components/layout/dashboard-ui-context';
 import { toggleProjectLock } from '@/server/actions/projects';
 import { AuditTrailDrawer } from '@/components/projects/AuditTrailDrawer';
+import { isModuleAllowedForPersona } from '@/lib/governance/rbacMatrix';
 import type { HealthCode } from '@/lib/calculations/types';
 
 const HEALTH_META: Record<HealthCode, { label: string; dot: string; text: string }> = {
@@ -226,10 +227,14 @@ const ENGAGEMENT_MODULES = [
 function ModuleNav({ projectId }: { projectId: string }) {
   const pathname = usePathname();
   const currentSeg = (pathname ?? '').split('/')[1] ?? '';
+  const { rbacPersona } = useDashboardUI();
+  // Each `seg` is a GOVERNABLE_MODULES key — omit a pill entirely (not just
+  // disable it) when the active RBAC persona can't reach that module.
+  const visible = ENGAGEMENT_MODULES.filter((m) => isModuleAllowedForPersona(rbacPersona, m.seg));
 
   return (
     <nav className="-mb-1 flex gap-1 overflow-x-auto">
-      {ENGAGEMENT_MODULES.map((m) => {
+      {visible.map((m) => {
         const active = m.seg === currentSeg;
         return (
           <Link

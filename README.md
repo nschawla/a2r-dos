@@ -120,7 +120,7 @@ Prisma re-diff it (e.g. in CI, or a fresh empty database), use
 npm run db:seed
 ```
 
-Creates the **"A2R Ventures Demo"** organization with 5 logins, one per
+Creates the **"A2R DOS Demo"** organization with 5 logins, one per
 `DeliveryRole` tier (ADMIN, VP_EXECUTIVE, PRACTICE_DIRECTOR,
 DELIVERY_MANAGER, PROJECT_MANAGER — see Work Package 4), a full practice/
 rate-card roster, and a handful of realistic in-flight projects across
@@ -1229,6 +1229,109 @@ verified federated identity in hand" is built and tested;
 
 **Verification:** `npx tsc --noEmit` → 0 errors; `npx vitest run` → **231
 passed** across 21 files (19 pure-unit + 2 live-database security suites).
+
+## Phase 3d — Executive Clarity, the RBAC Master Matrix & Self-Service Batch Import (v1.2.2 – v1.3.0)
+
+Phase 3d is a visual, navigational, and data-operations pass on top of
+Phase 3c: a full light-theme redesign with a new logo, a central RBAC
+permission matrix that drives real navigation omission and route
+enforcement (not just the masking tiers Phase 3c added), and a tenant-wide
+self-service engine for weekly BAU batch uploads with a real quarantine
+and correction workflow. Released as **v1.2.2** (Executive Clarity) through
+**v1.3.0** (this release).
+
+End-user instructions live in **`docs/USER_MANUAL.md`** (§6, §10); the
+security posture is in **`docs/SECURITY.md`** (§8, §9); the schema is in
+**`docs/ERD.md`**.
+
+### FRD — functional summary
+
+- **"Executive Clarity" visual redesign.** The workspace moved from a dark
+  charcoal theme to a crisp, high-contrast **light theme** (`#F6F7F9`
+  canvas, white surfaces, WCAG AAA body/table text) built for an executive
+  audience and print/PDF export, with universal sub-navigation pills
+  replacing long single-screen scrolls across Admin, Control Tower, and
+  the Executive Hub.
+- **Navigation polish.** Trailing item-count badges were removed from
+  every nav pill/tab (`Engagements 6` → `Engagements`), and Methodology
+  Reference was removed from the sidebar's Reporting group — it now lives
+  solely in its proper context under Control Audit.
+- **RBAC Master Matrix.** A single permission matrix
+  (`src/lib/governance/rbacMatrix.ts`) maps five personas — mapped 1:1
+  onto the real `DeliveryAccessRole` rather than a second, disconnected
+  role system — to allowed sidebar groups, per-engagement module pills,
+  and route prefixes. Unauthorized items are **omitted from rendering**,
+  never merely disabled, and `src/middleware.ts` independently blocks a
+  direct navigation to a disallowed route as defence in depth. An
+  Ops-Console-only "Persona Preview" (moved out of the tenant header, which
+  had grown a redundant second role picker next to the Perspective
+  switcher) lets an A2R operator preview a tenant's navigation ahead of a
+  demo — display-only, never a real access grant.
+- **A2R DOS rebrand.** The flagship demo tenant is renamed "A2R DOS Demo"
+  (from "A2R Ventures Demo") across the UI, seed data, and documentation.
+- **"Concept B: Ascent Vector" logo.** The integrated brand mark is now a
+  single geometric glyph — a solid triangle with a nested triangular
+  counter (the classic bold-monogram "A" construction), rendered in a
+  fixed solid **Gunmetal Gray (`#545A61`)** via its own `logo` design
+  token, deliberately independent of the `brand` interactive-accent token
+  so a future accent re-theme can never silently recolor the logotype (or
+  vice versa). Pure vector paths — crisp from 18px in the Sidebar to 40px
+  on the sign-in screen — replacing the earlier live-text "A2R" wordform.
+- **Self-Service Batch Import Engine.** A drag-and-drop portal (**Admin &
+  Org Setup → Data Ingestion & Templates → Batch Import**) accepts CSV or
+  Excel files of weekly **Actuals** or **Milestone & Progress** updates
+  spanning any number of engagements in one file — distinct from the
+  existing per-project CSV import, which stays scoped to one project at a
+  time. Every row is validated against the tenant's live projects and
+  roster and staged as a `DataImportBatch`/`DataImportRow` pair: valid and
+  invalid rows alike, so nothing is lost. Invalid rows carry a plain-English
+  reason per failure (missing primary keys, unmapped project references,
+  unrecognizable dates); an inline correction grid lets a user fix a row
+  in place and re-validate it live, with no re-upload. **Re-validate &
+  Commit** is a genuine hard stop, re-checked authoritatively server-side
+  immediately before commit — a batch can never partially land while any
+  row still errors. A successful commit upserts into
+  `WeeklyAssignmentSlot` / `SchedulePhase` in one transaction and is
+  recorded in both the Audit Trail and the hash-chained Compliance Ledger.
+
+### RTM — requirements traceability (Phase 3d)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| EC-1 | **Light theme tokens** — `bg`/`surface`/`ink`/`brand`/status ramp, AAA contrast | `tailwind.config.ts`, `src/app/globals.css` | visual; full `tsc`/`vitest` gate |
+| EC-2 | **Universal `<ModuleTabs>` sub-navigation** — Admin, Control Tower, Executive Hub, per-project pills | `src/components/ui/module-tabs.tsx` | e2e Suites B/C/F (tab-scoped assertions) |
+| EC-3 | **Nav-pill badge removal + Methodology Reference relocation** | `src/components/layout/Sidebar.tsx`, `src/components/ui/module-tabs.tsx` call sites | e2e Suite G2 (asserts link absent from sidebar, reachable from `/audit`) |
+| RBAC-1 | **Master permission matrix** — personas, allowed modules/routes, `DELIVERY_ROLE_TO_PERSONA` | `src/lib/governance/rbacMatrix.ts` | `tests/rbac-matrix.test.ts` (20) |
+| RBAC-2 | **Dynamic Sidebar / `ModuleNav` filtering** — union of governance-hidden + RBAC-hidden hrefs | `src/components/layout/Sidebar.tsx`, `src/components/projects/ProjectHeader.tsx` | `tests/rbac-matrix.test.ts` (`rbacHiddenHrefs` set-partition property) |
+| RBAC-3 | **Edge-safe middleware route guard** — real block/redirect independent of the server-action authorization layer | `src/middleware.ts` | `tests/rbac-matrix.test.ts` (`isRouteBlockedForPersona`) |
+| RBAC-4 | **Cross-shell Persona Preview** — Ops-Console-only, localStorage-shared, display-only | `src/lib/client/rbac-preview.ts`, `src/components/ops/RbacPersonaSwitcher.tsx`, `src/app/(admin)/layout.tsx` | live e2e (set in Ops → reflected in tenant Sidebar) |
+| RB-1 | **"A2R DOS Demo" rebrand** — seed, live tenant row, docs, tests | `prisma/seed.ts`, `tests/steerco-briefing.test.ts`, `e2e/enterprise-verification.spec.ts`, `docs/*.md` | full `vitest` + e2e gate |
+| RB-2 | **"Ascent Vector" logo, Gunmetal Gray** — single glyph component, dedicated `logo` token | `src/components/ui/brand-mark.tsx`, `tailwind.config.ts` | visual; consumed by every existing call site with no changes needed |
+| WP7-1 | **Batch schema + validation** — `WEEKLY_ACTUALS` / `MILESTONE_PROGRESS` column defs, plain-English `BatchRowIssue`s | `src/lib/ingestion/batch-schemas.ts` | `tests/batch-schemas.test.ts` (18) |
+| WP7-2 | **Isomorphic CSV/Excel reader** — shared by client preview and (future) server paths | `src/lib/ingestion/workbook-reader.ts` | `tests/workbook-reader.test.ts` (6, incl. a real `xlsx`-library round-trip) |
+| WP7-3 | **`DataImportBatch` / `DataImportRow` schema** | `prisma/schema.prisma` (`BatchImportDataType`/`Status`/`RowStatus`) | `docs/ERD.md` |
+| WP7-4 | **Stage / correct / commit / discard server actions** — authoritative re-validation at every step, all-or-nothing transactional commit | `src/server/actions/data-import.ts` | manual UAT-4.7; live-verified end-to-end (staged batch → corrected → committed → `WeeklyAssignmentSlot` + ledger row confirmed) |
+| WP7-5 | **Drag-and-drop portal + quarantine/correction grid UI** | `src/components/ingestion/{BatchUploadPortal,BatchList,BatchImportPanel,BatchDetailView}.tsx` | manual UAT-4.7 |
+| WP7-6 | **Admin-only gating** — `admin:ingestion` permission, tab hidden (not disabled) for other roles | `src/app/(dashboard)/admin/ingestion/page.tsx`, `src/lib/auth/rbac.ts` | manual UAT-4.7 (step 10) |
+| WP7-7 | **Starter templates** added to the existing Template Hub | `src/server/services/templates.ts` (`weekly-actuals-batch`, `milestone-progress-batch`) | `tests/templates.test.ts` |
+
+**Ledger:** `BATCH_IMPORT_COMMITTED` joins the `LedgerActionType` union —
+every self-service batch commit is hash-chained in the Compliance Ledger,
+alongside a `BATCH_IMPORT_STAGED`/`BATCH_IMPORT_COMMITTED`/
+`BATCH_IMPORT_DISCARDED` trio in the general Audit Trail.
+
+**Not yet wired (follow-on):** a permanent Playwright suite for the Batch
+Import Engine (today it's manual UAT-4.7 plus the pure-logic Vitest
+coverage above); server-side re-parsing of the original file bytes at
+commit time (today the server re-validates every field authoritatively,
+but trusts the client-parsed row structure the same way any web form
+trusts submitted field values — see `data-import.ts`'s doc comment); and
+extending `BatchImportDataType` to a third weekly data kind if a future
+release needs one beyond Actuals and Milestone/Progress.
+
+**Verification:** `npx tsc --noEmit` → 0 errors; `npx vitest run` → **303
+passed** across 25 files (23 pure-unit + 2 live-database security suites);
+`npx playwright test` → **40 passed** across Suites A–J.
 
 ## What's next (Phase 3b+)
 
