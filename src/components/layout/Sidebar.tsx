@@ -190,6 +190,27 @@ const SETUP_ITEMS: NavItem[] = [
   },
 ];
 
+// A2R Operator Control Plane — visible only to A2R staff, and deliberately
+// separated from every other nav item: it's the one link in this sidebar
+// that leaves the tenant workspace entirely for the internal /ops shell,
+// so it sits alone at the very bottom behind its own divider rather than
+// among the day-to-day Setup items above it. Used to live as a pill in
+// the header (see Header.tsx's git history) — moved here so it stays
+// reachable for staff without occupying header real estate every client
+// user sees. The reverse link ("← Client Workspace") lives in the ops
+// shell itself.
+const OPS_CONSOLE_ITEM: NavItem = {
+  href: '/ops',
+  label: 'A2R Ops Console',
+  // monitor / console
+  icon: (
+    <>
+      <rect x="3" y="4" width="18" height="12" rx="1.5" />
+      <path d="M8 20h8M12 16v4" />
+    </>
+  ),
+};
+
 const COLLAPSE_STORAGE_KEY = 'a2r_sidebar_collapsed';
 
 function isActive(pathname: string | null, href: string): boolean {
@@ -197,7 +218,7 @@ function isActive(pathname: string | null, href: string): boolean {
   return pathname === href || (pathname?.startsWith(`${href}/`) ?? false);
 }
 
-export function Sidebar({ hiddenHrefs = [] }: { hiddenHrefs?: string[] }) {
+export function Sidebar({ hiddenHrefs = [], isA2rStaff = false }: { hiddenHrefs?: string[]; isA2rStaff?: boolean }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -297,6 +318,12 @@ export function Sidebar({ hiddenHrefs = [] }: { hiddenHrefs?: string[] }) {
             />
           ))}
         </div>
+
+        {isA2rStaff && (
+          <div className="flex flex-col gap-0.5 pt-1.5 mt-1.5 border-t border-border">
+            <NavLink item={OPS_CONSOLE_ITEM} active={isActive(pathname, '/ops')} collapsed={collapsed} />
+          </div>
+        )}
       </nav>
 
       <button

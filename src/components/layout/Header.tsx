@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import { useDashboardUI, PERSONAS, type Persona } from './dashboard-ui-context';
 import { LensSwitcher } from './LensSwitcher';
 import { BrandMark } from '@/components/ui/brand-mark';
+import { AutoDemoLaunchModal } from '@/components/demo/AutoDemoLaunchModal';
 import { switchActiveOrganization } from '@/server/actions/organizations';
 import type { NotificationSummary } from '@/server/queries/notifications';
 import type { SessionMembership } from '@/types/next-auth';
@@ -38,8 +39,6 @@ export interface HeaderProps {
   organizationName: string;
   memberships: SessionMembership[];
   notifications: NotificationSummary;
-  /** A2R Ventures staff — shows the "A2R Ops Console" workspace switch. */
-  isA2rStaff?: boolean;
   /** Workspace-Lens switcher state (see src/lib/workspace/lenses.ts). */
   currentLens: WorkspaceLens;
   availableLenses: WorkspaceLens[];
@@ -51,43 +50,30 @@ export function Header({
   organizationName,
   memberships,
   notifications,
-  isA2rStaff,
   currentLens,
   availableLenses,
 }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-40 bg-bg/90 backdrop-blur-md border-b border-border px-5 py-2.5 flex items-center gap-2.5">
+    <header id="global-header" className="sticky top-0 z-40 bg-bg/90 backdrop-blur-md border-b border-border px-5 py-2.5 flex items-center gap-2.5">
+      {/* Left: identity — the brand, the workspace, and the one action
+          launched from right beside them. */}
       <WorkspaceSwitcher organizationName={organizationName} memberships={memberships} />
-      {isA2rStaff && <OpsConsoleSwitch />}
-      <LensSwitcher current={currentLens} available={availableLenses} />
+      <AutoDemoLaunchModal />
       <div className="flex-1 flex justify-center">
         <CommandPaletteTrigger />
       </div>
+      {/* Right: utilities — perspective, alerts, help, and the account menu
+          grouped together rather than split across the header. */}
       <div className="flex items-center gap-1.5">
         <NotificationsBell notifications={notifications} />
         <SupportTrigger />
         <HelpTrigger />
+        <div id="persona-switcher">
+          <LensSwitcher current={currentLens} available={availableLenses} />
+        </div>
         <UserMenu userName={userName} role={role} />
       </div>
     </header>
-  );
-}
-
-// ------------------------------------------------------------- Ops console switch
-
-/** A2R Operator Control Plane — visible only to A2R staff. Toggles from the
- * current client workspace over to the internal /ops console. The reverse
- * link ("← Client Workspace") lives in the ops shell. */
-function OpsConsoleSwitch() {
-  return (
-    <Link
-      href="/ops"
-      title="Switch to the A2R Ops Console"
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm border border-brand/40 text-brand text-xs font-semibold hover:bg-brand/10 transition-colors whitespace-nowrap"
-    >
-      <span className="w-1.5 h-1.5 rounded-full bg-brand" aria-hidden />
-      A2R Ops Console
-    </Link>
   );
 }
 

@@ -5,6 +5,7 @@ import { OpsNav } from '@/components/ops/OpsNav';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { OpsVersionPanel } from '@/components/ops/OpsVersionPanel';
 import { RbacPersonaSwitcher } from '@/components/ops/RbacPersonaSwitcher';
+import { AutoDemoLaunchModal } from '@/components/demo/AutoDemoLaunchModal';
 import { Container } from '@/components/ui/container';
 
 export const metadata: Metadata = {
@@ -47,10 +48,16 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-40 bg-bg/90 backdrop-blur-md border-b border-border px-7 py-3 flex items-center justify-between gap-3">
-          <span className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">
-            A2R Ventures · Internal
-          </span>
+        <header id="global-header" className="sticky top-0 z-40 bg-bg/90 backdrop-blur-md border-b border-border px-7 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {/* Left, beside the shell's own identity text — the closest
+                analog this header has to "next to the logo" (the actual
+                BrandMark for this shell lives in the sidebar above). */}
+            <AutoDemoLaunchModal />
+            <span className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">
+              A2R Ventures · Internal
+            </span>
+          </div>
           <div className="flex items-center gap-3">
             <RbacPersonaSwitcher />
             <span className="text-xs text-ink-faint">Signed in as {ops.name}</span>

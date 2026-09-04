@@ -3,6 +3,8 @@ import { Sora, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { ToastProvider } from '@/components/ui/toast';
 import { CommandK } from '@/components/command-k/CommandK';
+import { AutoDemoProvider } from '@/components/demo/AutoDemoProvider';
+import { CinematicOverlay } from '@/components/demo/CinematicOverlay';
 
 const sora = Sora({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-sora' });
 const plexSans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-plex-sans' });
@@ -21,7 +23,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${sora.variable} ${plexSans.variable} ${plexMono.variable}`} style={{ colorScheme: 'light' }}>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {/* Mounted above (dashboard) and (admin) alike — a walkthrough
+              crosses both shells, and each fully unmounts on navigation
+              into the other, so the demo's own state has to live here. */}
+          <AutoDemoProvider>
+            {children}
+            <CinematicOverlay />
+          </AutoDemoProvider>
+        </ToastProvider>
         <CommandK />
       </body>
     </html>

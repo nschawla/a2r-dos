@@ -44,7 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       )}
       {graceReadOnly && <GraceperiodBanner organizationName={organizationName} />}
       <div className="flex min-h-screen">
-        <Sidebar hiddenHrefs={hiddenHrefs(governance)} />
+        <Sidebar hiddenHrefs={hiddenHrefs(governance)} isA2rStaff={isA2rStaff} />
         <div className="flex-1 min-w-0 flex flex-col">
           <Header
             userName={session.user.name ?? session.user.email ?? 'You'}
@@ -52,7 +52,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             organizationName={organizationName}
             memberships={memberships}
             notifications={notifications}
-            isA2rStaff={isA2rStaff}
             currentLens={currentLens}
             availableLenses={lenses}
           />

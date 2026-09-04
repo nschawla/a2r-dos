@@ -183,6 +183,7 @@ export function BatchUploadPortal({ lookups }: { lookups: BatchValidationContext
             const file = e.dataTransfer.files?.[0];
             if (file) void handleFile(file);
           }}
+          id="batch-import-zone"
           className={clsx(
             'rounded-lg border-2 border-dashed px-6 py-10 flex flex-col items-center justify-center gap-2 text-center transition-colors',
             dragOver ? 'border-brand bg-brand/5' : 'border-border-soft bg-surface-2/50'
