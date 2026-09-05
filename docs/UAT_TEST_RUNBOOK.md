@@ -95,8 +95,9 @@ A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 | 2 | Sign out, sign in as `pm@a2rventures-demo.test` | URL settles on **`/portfolio`**; heading **"PS Control Tower"**; subhead says "Scoped to your Project Manager portfolio" | |
 | 3 | Sign out, sign in as `admin@a2rventures-demo.test` | URL **`/portfolio`**; subhead "Portfolio-wide view across every registered engagement" | |
 | 4 | As admin, click the browser back button after any deep navigation | No full reload flash; app chrome stays mounted | |
-| 5 | Sign out entirely, visit **`/`** | The **public landing page** renders (hero "Deliver Projects with Absolute Clarity…", "Launch App" button) — no redirect to `/login` | |
-| 6 | While signed in, visit **`/`** | Forwarded straight to your workspace (`/portfolio` or your lens landing) — marketing is not shown to a signed-in user | |
+| 5 | Sign out entirely, visit **`/`** | The dark **"Coming Soon" page** renders — the "Deliver Projects with Absolute Clarity. Zero Chaos." headline, a **Sneak Peek** button (opens a preview modal; Escape / backdrop closes it), and an early-access form (Full name, Organization, Work email, Phone number). No redirect to `/login` | |
+| 6 | Fill the early-access form and submit | A confirmation panel appears with a `WAIT-…` reference; the row is written to the server log as `[EARLY_ACCESS_LEAD] {…}` | |
+| 7 | While signed in, visit **`/`** | Forwarded straight to your workspace (`/portfolio` or your lens landing) — the Coming Soon page is not shown to a signed-in user | |
 
 **Checkpoint:** each role lands on its tailored page, no `/login` bounce, no error overlay.
 
@@ -316,7 +317,7 @@ Sign in as `admin@a2rventures-demo.test`.
 | 2 | `npm run test:e2e` → Suites A–K all green | |
 | 3 | Sign-in works for one login per role shape (admin / vp / pd / dm / pm / ops) | |
 | 4 | ⌘K palette opens on every route incl. `/login` and `/ops` | |
-| 4a | `/` (signed out) shows the public landing page; `/` (signed in) forwards to the workspace; `/portfolio` renders the Control Tower | |
+| 4a | `/` (signed out) shows the dark Coming Soon page + working Sneak Peek modal + early-access form; `/` (signed in) forwards to the workspace; `/portfolio` renders the Control Tower | |
 | 5 | Tenant switch (header) fully re-scopes the workspace | |
 | 6 | No Next.js error overlay anywhere during the walkthrough | |
 | 7 | Compliance Ledger integrity badge = **Verified** in every tenant | |

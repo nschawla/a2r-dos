@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.5.1',
+    date: '2026-09-05',
+    headline: 'The landing page becomes a "Coming Soon" early-access page',
+    changes: [
+      { type: 'improvement', text: 'The site root is now a sleek dark "Coming Soon" page: the "Deliver Projects with Absolute Clarity. Zero Chaos." headline, a "Sneak Peek" modal that previews the platform, and an early-access form capturing full name, organization, work email and phone. A signed-in visitor is still sent straight into the app.' },
+      { type: 'improvement', text: 'Lead submissions are validated (Zod), protected by a honeypot field and a per-IP rate limit, and — like the in-app support form — emitted as one structured log line for a real deployment to forward to a CRM. Until that forwarding is wired, a lead lives only in the server log.' },
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-09-05',
     headline: 'A public landing page — and the app moves off the bare root',

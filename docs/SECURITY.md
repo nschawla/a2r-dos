@@ -361,6 +361,13 @@ Compliance Ledger or timesheet records**.
 - **Health checks.** `GET /api/health` (liveness) and `GET /api/health/ready`
   (readiness — a 2-second-bounded database probe) support external monitoring
   and deploy gating.
+- **Public unauthenticated endpoints.** The only write path reachable
+  without a session is the "Coming Soon" page's early-access form
+  (`submitEarlyAccessLead`): Zod-validated, a hidden honeypot field drops
+  naive bots, and it is rate-limited to 5 submissions per 10 minutes per
+  client IP. It touches no tenant data and performs no database write —
+  the lead is emitted as a single structured log line only. Every other
+  server action calls `requireOrgContext()` / `requireOpsContext()`.
 - **Self-Service Batch Import Engine.** Gated on the tenant-admin-only
   `admin:ingestion` permission — a single uploaded file can reference many
   projects at once, bypassing the usual per-project edit scope, so it sits

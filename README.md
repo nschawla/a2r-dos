@@ -1443,11 +1443,19 @@ not a login wall.
   Supabase Security Advisor finding without touching a single Prisma
   query. The SEC-2 HTTP security headers and the Ops build stamp, dropped
   by an earlier `next.config.mjs` edit, are restored.
-- **v1.5.0 — public landing page.** `src/app/(public)/page.tsx` at the
-  site root: hero, the three delivery problems A2R DOS solves, the three
-  capabilities that answer them, and a **Launch App** button. Readable
-  with no account (the middleware auth gate excludes the bare root); a
-  signed-in visitor is forwarded to `/launch`.
+- **v1.5.0 → v1.5.1 — the site root becomes a "Coming Soon" page.**
+  v1.5.0 shipped a public marketing landing page at `/`; v1.5.1 replaced
+  it with a sleek dark early-access page: `src/app/page.tsx` (moved to the
+  root layout so it owns its own theme), the "Deliver Projects with
+  Absolute Clarity. Zero Chaos." headline, a **Sneak Peek** preview modal
+  (`src/components/marketing/SneakPeekModal.tsx` — portaled past the
+  `backdrop-blur` header), and a lead-capture form (full name,
+  organization, work email, phone) posting to the public
+  `submitEarlyAccessLead` action (Zod + honeypot + per-IP rate limit,
+  structured-log-only, same pattern as the support-ticket action).
+  Readable with no account (the middleware gate excludes the bare root);
+  a signed-in visitor is forwarded to `/launch`. `/terms` and `/privacy`
+  keep the light `(public)` shell.
 - **The Control Tower moved `/` → `/portfolio`.** One route registry
   (`GOVERNABLE_MODULES`) drives the Sidebar, ⌘K, RBAC route guard and
   governance hiding, so the move is a single `href` change there plus the
@@ -1462,7 +1470,7 @@ not a login wall.
 | DEPLOY-1 | **Serverless DB connectivity** — pooler `DATABASE_URL` + `directUrl` | `prisma/schema.prisma`, `.env.example` | live: `/api/health/ready` → `{"database":"ok"}` |
 | SEC-RLS-1 | **RLS lockdown** — ENABLE (not FORCE) on all tables, revoke anon/authenticated, alter default privileges | `prisma/migrations/00000000000007_rls_lockdown/migration.sql` | applied + verified against production (35/35 RLS-on, 0 residual grants, Prisma read+write intact); `docs/SECURITY.md` § "Database-level access control" |
 | SEC-HDR-1 | **Restored SEC-2 headers + build stamp** | `next.config.mjs` | live: response headers confirmed; `tests/build-info.test.ts` |
-| LAND-1 | **Public landing page** at `/` | `src/app/(public)/page.tsx`, `src/app/(public)/layout.tsx` | e2e regression 4a; live (200 signed-out, forward signed-in) |
+| LAND-1 | **"Coming Soon" page** at `/` — Sneak Peek modal + early-access form | `src/app/page.tsx`, `src/components/marketing/*`, `src/server/actions/early-access.ts` | e2e regression 4a; live (dark page 200 signed-out, forward signed-in; modal + form exercised) |
 | LAND-2 | **Control Tower `/` → `/portfolio`** — route registry + redirects + demo beats | `src/lib/governance/config.ts`, `src/components/layout/Sidebar.tsx`, `src/lib/workspace/lenses.ts`, `src/middleware.ts`, `src/lib/demo/demo-script.ts` | `tests/enterprise-flows.test.ts`, `tests/rbac-matrix.test.ts`; e2e Suites A/B/J1 updated to `/portfolio` |
 
 **Verification:** `npx tsc --noEmit` → 0 errors; `npx vitest run` → **388

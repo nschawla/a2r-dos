@@ -10,6 +10,23 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.5.1] — 2026-09-05
+
+_The landing page becomes a "Coming Soon" early-access page._
+
+### Changed
+- **Site root is now a dark "Coming Soon" page** (`src/app/page.tsx`, moved out of the `(public)` group to the root layout so it owns its own theme): the "Deliver Projects with Absolute Clarity. Zero Chaos." headline, a **Sneak Peek** modal that previews the platform (`src/components/marketing/SneakPeekModal.tsx`), and a lead-capture form for **full name, organization, work email, phone** (`EarlyAccessForm.tsx`). A signed-in visitor is still redirected to `/launch`. `/terms` and `/privacy` keep the light `(public)` shell.
+- The `(public)` layout no longer carries a "Launch App" button (it now only frames the legal pages).
+
+### Added
+- `submitEarlyAccessLead` (`src/server/actions/early-access.ts`) — public, unauthenticated. Zod-validated, honeypot-guarded, rate-limited to 5 / 10 min per IP. Mirrors the support-ticket action: emits one structured `[EARLY_ACCESS_LEAD]` log line for a deployment's pipeline to forward to a CRM. **No persistence yet — a submitted lead lives only in the server log until that forwarding is wired.**
+
+### Fixed
+- Pre-existing `react/no-unescaped-entities` lint error in `OnboardingJourneyWizard.tsx`.
+
+### Verification
+- `npx tsc --noEmit` → 0 errors. `npx vitest run` → **388 passed**. `npx playwright test` → **47 passed**. Live: `/` renders the dark page (200) / forwards a signed-in visitor to `/portfolio`; Sneak Peek modal opens (portaled past the `backdrop-blur` header), closes on Escape / backdrop; the form submits and logs a `WAIT-…` reference.
+
 ## [1.5.0] — 2026-09-05
 
 _A public landing page — and the app moves off the bare root._

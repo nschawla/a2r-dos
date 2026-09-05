@@ -348,7 +348,7 @@ function DataIngestionStepView({
       </div>
       <p className="text-[12px] text-ink-faint">
         {readyCount} of {ONBOARDING_DATASETS.length} datasets look ready. Nothing here blocks Go-Live — come back and
-        finish this later if you'd rather.
+        finish this later if you&rsquo;d rather.
       </p>
       <div className="flex justify-end">
         <button type="button" className="btn-primary !w-auto px-6" onClick={onContinue}>

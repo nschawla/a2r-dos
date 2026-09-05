@@ -116,6 +116,11 @@ const SUBSYSTEMS: Subsystem[] = [
     entryPoints: ['src/lib/demo/demo-script.ts', 'src/components/demo/'],
     note: '11-beat hands-free cinematic tour with spotlight highlights and 150–180 wpm captions. docs/AUTO_DEMO_SCRIPT.md is the synced production/voiceover reference.',
   },
+  {
+    area: 'Public "Coming Soon" page',
+    entryPoints: ['src/app/page.tsx', 'src/components/marketing/', 'src/server/actions/early-access.ts'],
+    note: 'Dark early-access landing at /. Sneak Peek modal (React portal, past the backdrop-blur header). submitEarlyAccessLead is public + unauthenticated — Zod + honeypot + per-IP rate limit, structured-log-only (no persistence yet, same pattern as the support-ticket action).',
+  },
 ];
 
 interface AuthAxis {
@@ -398,9 +403,10 @@ export function DevDocs({ build, releases }: { build: BuildInfo; releases: Relea
             <span className="font-semibold text-ink">Route groups.</span> <Code>src/app/(dashboard)</Code> — the
             tenant workspace (the Control Tower is <Code>/portfolio</Code>). <Code>src/app/(admin)</Code> — the
             A2R Ops Console (<Code>/ops/*</Code>), its own chrome and a hard staff gate.{' '}
-            <Code>src/app/(public)</Code> — the marketing landing page at <Code>/</Code> plus{' '}
-            <Code>/terms</Code> / <Code>/privacy</Code>, all excluded from the middleware auth gate.{' '}
-            <Code>src/app/(auth)</Code> — login / register.
+            <Code>src/app/(public)</Code> — the legal pages <Code>/terms</Code> / <Code>/privacy</Code> (light
+            shell). <Code>src/app/(auth)</Code> — login / register. The dark &ldquo;Coming Soon&rdquo; page is{' '}
+            <Code>src/app/page.tsx</Code> at the root layout only; all of <Code>/</Code>, <Code>/terms</Code>,{' '}
+            <Code>/privacy</Code> are excluded from the middleware auth gate.
           </p>
           <p>
             <span className="font-semibold text-ink">Schema workflow.</span> Edit{' '}

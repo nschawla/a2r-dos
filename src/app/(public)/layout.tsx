@@ -5,19 +5,20 @@
  */
 
 /**
- * WP8 — the unauthenticated public shell: the marketing landing page (`/`)
- * plus /terms and /privacy (all three excluded from the middleware auth
- * gate). Deliberately a separate, lighter frame from
- * src/app/(dashboard)/layout.tsx — no Sidebar/Header/RBAC-scoped data
- * fetch, since a page here must render for a visitor who isn't signed in
- * at all, which requireOrgContext() would otherwise redirect away from.
- * Shares only the same Footer.tsx the dashboard shell uses, so the
- * copyright/legal-links line never drifts between the two.
+ * WP8 — the unauthenticated public shell for the legal pages: /terms and
+ * /privacy (both excluded from the middleware auth gate). Deliberately a
+ * separate, lighter frame from src/app/(dashboard)/layout.tsx — no
+ * Sidebar/Header/RBAC-scoped data fetch, since a page here must render
+ * for a visitor who isn't signed in at all, which requireOrgContext()
+ * would otherwise redirect away from. Shares Footer.tsx with the
+ * dashboard shell so the copyright/legal-links line never drifts.
  *
- * The landing page (page.tsx) is full-bleed and manages its own section
- * widths, so it opts out of the centered `<Container>` the legal pages
- * use. `size="prose"` (legal reading width) still wraps /terms and
- * /privacy via their own layout-free content — see the wrapper below.
+ * The site root `/` (the "Coming Soon" landing page) is NOT in this group
+ * — it commits to its own dark theme and self-contained header, and
+ * lives at src/app/page.tsx under the root layout only.
+ *
+ * /terms and /privacy each wrap their own `<Container size="prose">` for
+ * reading width, so this shell imposes none.
  */
 import Link from 'next/link';
 import { Footer } from '@/components/layout/Footer';
@@ -42,9 +43,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </Link>
           <Link href="/login" className="btn-secondary !w-auto px-4 !py-1.5">
             Sign in
-          </Link>
-          <Link href="/launch" className="btn-primary !w-auto px-4 !py-1.5">
-            Launch App
           </Link>
         </nav>
       </header>
