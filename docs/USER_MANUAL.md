@@ -205,14 +205,25 @@ Three ways to get structured data in without manual entry:
 
 ### Self-service batch import (weekly BAU uploads)
 
-For a **client-wide weekly batch** — actuals or milestone/progress updates
-spanning any number of engagements in one file — rather than a single
-project's own CSV import (below), use **Admin & Org Setup → Data Ingestion
-& Templates → Batch Import**. Available to organization **Admins**.
+For a **client-wide weekly batch** — spanning any number of engagements in
+one file — rather than a single project's own CSV import (below), use
+**Admin & Org Setup → Data Ingestion & Templates → Batch Import**.
+Available to organization **Admins**. Four intake pills cover the weekly
+BAU data streams:
 
-1. Choose **Weekly Actuals** or **Milestone & Progress Updates**, then drag
-   a `.csv` or `.xlsx` file onto the drop zone (or download a starter
-   template from the **Templates** tab first).
+- **Weekly Actuals** — hours worked by person and project, filed under
+  that week's Monday.
+- **Milestone & Progress Updates** — phase status and % complete.
+- **Forecast & EAC Updates** — revised forecast-to-complete and open
+  run-rate hours by rate-card role (matrix-mode projects — a Direct
+  Intake project should still use that project's own Financial
+  Realization import).
+- **Status Reports & RAID Log** — a weekly narrative highlight, a new
+  RAID item, or both, per project.
+
+1. Choose one of the four pills, then drag a `.csv` or `.xlsx` file onto
+   the drop zone (or download a starter template from the **Templates**
+   tab first).
 2. Every row is validated the moment the file is read — you'll see a live
    count of how many rows are valid and how many will be **quarantined**,
    with the exact reason for each (an unmapped project code, an
@@ -374,6 +385,27 @@ have a membership can sign in through SSO.
 > later release; this version lands the full configuration, verification,
 > mapping and JIT engine plus enforcement of password-login lockout.
 
+### 8.3 Custom KPIs — build your own metric cards
+
+**Admin & Org Setup → Custom KPIs** (`/admin/kpis`) lets an Admin define
+metric cards that render automatically on the **Portfolio Control Tower**
+and the **Executive Hub**, for whichever roles they're assigned to.
+
+A custom KPI is a binding, not a formula you write: pick a **data
+source** — Financial Realization, Schedule & Milestones, RAID Cockpit, or
+Resource & Capacity — then a **metric** from that source's short, real
+list (e.g. Blended Baseline Margin, On-Track Phase %, Open Critical RAID
+Items, Blended Billable Utilization). Set a **target** and a **warning**
+value, choose whether **higher or lower is better**, and assign the
+personas who should see the card. Save it, and the card appears
+immediately wherever it's bound — no redeploy, no waiting.
+
+Every card shows the live value, a status dot (on track / at risk /
+critical, or "No data" when the tenant has nothing to compute it from
+yet), and which metric it's reading. Edit or delete a KPI any time from
+the same screen — every viewer's dashboard picks up the change on their
+next visit.
+
 ---
 
 ## 9. Keyboard shortcuts
@@ -413,6 +445,30 @@ server-side route guard, so a direct link to a page outside your role never
 gets further than a redirect. A2R staff can preview how a role's navigation
 looks from the **Ops Console** (a "Persona Preview" — display-only, and
 never a way to see data your own account isn't actually permitted to see).
+
+### Role-Based Scoped Filtering — where "Their practice" is actually enforced
+
+The "Portfolio scope" column above isn't just a display convention — the
+same rule filters the underlying data on every surface that lists more
+than one engagement or roster entry:
+
+- **Portfolio Control Tower** (`/`) — your stat cards, project list, and
+  program rollups already reflect only the engagements in your scope.
+- **Resource & Capacity Cockpit** (`/capacity`) — a Practice Director or
+  Delivery Manager sees their own practice's/team's roster and staffing
+  only; the page says so explicitly ("Scoped to your practice — *N*
+  resources" vs. "Tenant-wide — every practice" for VP/Admin).
+- **Financial Realization, RAID Cockpit, Commercial Baseline, Control
+  Audit, Schedule & Milestones** — each module's "choose an engagement"
+  list only ever offers engagements you're in scope for; there's nothing
+  to browse into read-only outside it.
+
+A Practice Director's scope is their `practiceId` — either the practice
+they're formally the Director of, or any project whose home practice
+matches their own. A Delivery Manager's scope is their own projects plus
+their direct reports' projects. A Project Manager's scope is their own
+assignments. VP/Executive and Admin remain tenant-wide, as the table
+above shows.
 
 ---
 

@@ -264,6 +264,33 @@ Compliance Ledger or timesheet records**.
   tenant's navigation as a given persona ahead of a demo — display-only,
   backed by client-side state the server never reads, and incapable of
   granting access a real session doesn't already have.
+- **Role-Based Scoped Filtering — data-row enforcement.** A third, distinct
+  axis from the two above: not what a role may *edit* (RBAC matrix) and not
+  what a role may *navigate to* (RBAC Master Matrix), but which *rows* a
+  scoped role's queries return at all. `src/lib/scoping.ts` classifies every
+  role as **global** (ADMIN, VP_EXECUTIVE — the org's VPs, PMO Heads, and PS
+  Ops leads) or **practice-scoped**: PRACTICE_DIRECTOR is confined to their
+  `practiceId`'s projects and resource roster, DELIVERY_MANAGER to their
+  direct reports, and PROJECT_MANAGER to their own assignments.
+  `getScopedProjectWhere`/`getScopedResourceWhere` build the identical
+  predicate as Prisma `where` clauses (kept in the same file as the
+  DB-free `isProjectInScope`/`isResourceInScope` checks so the two can
+  never drift apart), applied at the Control Tower, Resource & Capacity
+  Cockpit, Financial Realization, RAID Cockpit, Commercial Baseline,
+  Control Audit, and Schedule & Milestones project pickers. A
+  practice-scoped role with no matching rows resolves to a fail-closed
+  empty result set, never an unscoped fallback.
+- **Custom KPI Definition Engine.** `/admin/kpis` lets an Admin bind a
+  curated metric (never an arbitrary formula) from Financial Realization,
+  Schedule & Milestones, RAID Cockpit, or Resource & Capacity to a target
+  persona set; the resulting card renders on the Control Tower and
+  Executive Hub. Authoring is gated on `admin:governance`
+  (`listCustomKpis`/create/update/delete). The read path that decides
+  whether a *viewer* sees a given card, `getVisibleCustomKpis`, is
+  deliberately **ungated** — gating it would incorrectly hide a KPI card
+  from the very non-admin personas an Admin assigned it to; the security
+  boundary sits on who can define or change a KPI, not on who can see one
+  already published to their persona.
 - **Financial data masking.** Sensitive financial values are tiered by role:
   - `full` (ADMIN) — everything, including raw contractor cost rates;
   - `summary` (VP_EXECUTIVE, PRACTICE_DIRECTOR) — blended margins and EAC;
@@ -318,33 +345,40 @@ Compliance Ledger or timesheet records**.
   `admin:ingestion` permission — a single uploaded file can reference many
   projects at once, bypassing the usual per-project edit scope, so it sits
   on the same authority tier as Workspace Backup & Restore rather than
-  being opened to every delivery role. A staged row is never trusted from
-  the client: every row is re-validated against this org's live projects
-  and roster on stage, on every inline correction, and again — from
-  scratch — immediately before commit. Commit is all-or-nothing inside one
-  transaction: **no batch partially lands** while any row still errors.
-  A successful commit is written to both the general Audit Trail and the
-  hash-chained Compliance Ledger (`BATCH_IMPORT_COMMITTED`).
+  being opened to every delivery role. Four intake pillars share one
+  validation/commit pipeline: Weekly Actuals, Milestone & Progress
+  Updates, Forecast & EAC Updates, and Status Reports & RAID Log. A
+  staged row is never trusted from the client: every row is re-validated
+  against this org's live projects and roster on stage, on every inline
+  correction, and again — from scratch — immediately before commit.
+  Commit is all-or-nothing inside one transaction: **no batch partially
+  lands** while any row still errors. A successful commit is written to
+  both the general Audit Trail and the hash-chained Compliance Ledger
+  (`BATCH_IMPORT_COMMITTED`).
 
 ---
 
 ## 10. Testing & verification
 
-- **303** unit tests (Vitest) covering the calculation engine, data masking
-  (incl. the org governance override), API-key crypto, rate limiter, tenant
-  lifecycle, retention policy logic, the command-center resolver, the ⌘K
-  palette, the platform-pulse and SteerCo briefing composers, the workspace-lens
-  resolver, the governance Hybrid Configuration Model, identity-federation
-  secret crypto / IdP-metadata parsing / security-group mapping / JIT
-  provisioning, version/changelog governance, the RBAC Master Matrix, and the
-  Self-Service Batch Import Engine's schema validators and CSV/Excel reader.
+- **387** unit tests (Vitest, 29 files) covering the calculation engine, data
+  masking (incl. the org governance override), API-key crypto, rate limiter,
+  tenant lifecycle, retention policy logic, the command-center resolver, the
+  ⌘K palette, the platform-pulse and SteerCo briefing composers, the
+  workspace-lens resolver, the governance Hybrid Configuration Model,
+  identity-federation secret crypto / IdP-metadata parsing / security-group
+  mapping / JIT provisioning, version/changelog governance, the RBAC Master
+  Matrix, Role-Based Scoped Filtering, the Custom KPI Definition Engine's
+  calculation/validation logic, and the Self-Service Batch Import Engine's
+  four-pillar schema validators and CSV/Excel reader.
 - **2** live-database security suites (`tests/security/*`) that assert
   cross-tenant `organizationId` scoping and that the compliance ledger keeps a
   valid tamper-evident hash chain under parallel-append pressure (REL-3).
-- **40** end-to-end tests (Playwright, Suites A–J) covering authentication,
+- **47** end-to-end tests (Playwright, Suites A–K) covering authentication,
   multi-tenant scoping, governance workflows, the capacity cockpit, the
   compliance ledger, data masking, role-based landing/perspective switching,
-  and the tenant/data-sovereignty engine, with a self-cleaning teardown.
+  the tenant/data-sovereignty engine, practice-level scoped filtering, and
+  the Custom KPI Builder's create-to-dashboard flow, with a self-cleaning
+  teardown.
 - TypeScript strict compilation (`tsc --noEmit`) is part of the verification
   gate for every change.
 

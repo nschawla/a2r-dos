@@ -1327,11 +1327,97 @@ commit time (today the server re-validates every field authoritatively,
 but trusts the client-parsed row structure the same way any web form
 trusts submitted field values — see `data-import.ts`'s doc comment); and
 extending `BatchImportDataType` to a third weekly data kind if a future
-release needs one beyond Actuals and Milestone/Progress.
+release needs one beyond Actuals and Milestone/Progress. _(Superseded by
+Phase 3e below, which extends `BatchImportDataType` to four pillars.)_
 
 **Verification:** `npx tsc --noEmit` → 0 errors; `npx vitest run` → **303
 passed** across 25 files (23 pure-unit + 2 live-database security suites);
 `npx playwright test` → **40 passed** across Suites A–J.
+
+## Phase 3e — Role-Based Scoped Filtering, the Custom KPI Definition Engine & 4-Pillar Ingestion
+
+Phase 3e closes two gaps Phase 3d's RBAC Master Matrix deliberately left
+open — that matrix governs *navigation*, not which *rows* a scoped role's
+own queries return — and turns the Batch Import Engine from a two-pillar
+into a complete four-pillar weekly intake surface. It adds no new
+persona/role concept: scoping reuses the real `DeliveryAccessRole`, and
+Custom KPIs bind to the existing `RbacPersona` set from Phase 3d's matrix.
+
+End-user instructions live in **`docs/USER_MANUAL.md`** (§6, §8.3, the
+Role-Based Scoped Filtering subsection under §10); the security posture is
+in **`docs/SECURITY.md`** (§8, §9, §10); the schema is in **`docs/ERD.md`**;
+manual walkthroughs are **`docs/UAT_TEST_RUNBOOK.md`** UAT-3.6 and UAT-4.8.
+
+### FRD — functional summary
+
+- **Role-Based Scoped Filtering.** A third, distinct axis from edit
+  authority (`canEditProject`) and navigation (the RBAC Master Matrix):
+  which project/resource *rows* a role's own queries return.
+  `src/lib/scoping.ts` treats ADMIN and VP_EXECUTIVE (the org's VPs, PMO
+  Heads, and PS Ops leads) as **global** — every practice, every project —
+  and PRACTICE_DIRECTOR, DELIVERY_MANAGER, and PROJECT_MANAGER as
+  **scoped**, to their `practiceId`, direct reports, and own assignments
+  respectively. DB-free predicates and the Prisma `where`-clause builders
+  live in the same file so the two can never drift apart, and are applied
+  at the Control Tower, Resource & Capacity Cockpit, and every project
+  picker across Financial Realization, RAID Cockpit, Commercial Baseline,
+  Control Audit, and Schedule & Milestones.
+- **Custom KPI Definition Engine.** `/admin/kpis` lets an Admin bind a
+  curated metric — never an arbitrary formula — from one of four data
+  sources (Financial Realization, Schedule & Milestones, RAID Cockpit,
+  Resource & Capacity) to a target/warning threshold and a set of target
+  personas. The resulting card renders live on the Control Tower and the
+  Executive Hub for exactly those personas, with no redeploy. Authoring is
+  gated on `admin:governance`; the display read is deliberately ungated so
+  a KPI a viewer is bound to always renders for them.
+- **Forecast & EAC Updates (3rd ingestion pillar).** A new Batch Import
+  pill ingests forward-looking cost-to-complete and revised
+  Estimate-at-Completion hours by rate-card role, upserting real
+  `FinancialActual.forecastHours` / `openRRHours`. Matrix-mode projects
+  only — a Direct Intake project's rows quarantine with a clear pointer
+  back to that project's own Financial Realization import.
+- **Status Reports & RAID Log (4th ingestion pillar).** A new pill
+  ingests a weekly narrative status highlight, a new RAID item, or both,
+  per project — narrative rows become `ActivityLogEntry`s, RAID rows
+  become `RaidEntry`s, sharing the same stage/correct/commit pipeline as
+  the other three pillars.
+- **AutoDemo tour updates.** The cinematic walkthrough gained a dedicated
+  "role-aware scoping" beat (VP/global vs. Practice Director/scoped, on the
+  same screen) and an expanded Custom KPI Builder beat that explicitly
+  narrates the card appearing on both the Control Tower and the Executive
+  Hub; `docs/AUTO_DEMO_SCRIPT.md` stays the synced production/voiceover
+  reference for both.
+
+### RTM — requirements traceability (Phase 3e)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| SCOPE-1 | **Practice/report/assignment scoping predicates + Prisma `where` builders** | `src/lib/scoping.ts` | `tests/scoping.test.ts` (20) |
+| SCOPE-2 | **Wired at Control Tower, Capacity Cockpit, and 5 project pickers** | `src/components/dashboard/project-picker.tsx`, `src/app/(dashboard)/capacity/page.tsx`, `src/app/(dashboard)/page.tsx` | e2e Suite K1–K2; manual UAT-3.6 |
+| KPI-1 | **KPI schema + curated metric catalog** (`KpiDataSource`/`KpiFormulaType`/`KPI_METRICS`) | `src/types/kpi.ts` | type-checked via `npx tsc --noEmit` |
+| KPI-2 | **Evaluation + validation logic** — status thresholds, direction-aware warning/target ordering | `src/lib/kpi-engine.ts` | `tests/kpi-engine.test.ts` (24) |
+| KPI-3 | **`CustomKpi` schema + gated CRUD actions** | `prisma/schema.prisma`, `src/server/actions/kpis.ts` | `docs/ERD.md`; manual UAT-4.8 |
+| KPI-4 | **Ungated visibility read + widget cards on Control Tower & Executive Hub** | `src/server/queries/kpi-data.ts`, `src/components/kpi/KpiWidgetCard.tsx` | e2e Suite K3; manual UAT-4.8 |
+| KPI-5 | **`/admin/kpis` builder UI** | `src/components/admin/KpiBuilderPanel.tsx` | e2e Suite K3; manual UAT-4.8 |
+| WP7-8 | **Forecast & EAC batch pillar** — matrix-mode-only validation, `FinancialActual` upsert | `src/lib/ingestion/batch-schemas.ts` (`validateForecastEacRow`), `src/server/actions/data-import.ts` | `tests/batch-schemas.test.ts`; manual UAT-4.7 new-pillar spot-check |
+| WP7-9 | **Status Reports & RAID Log batch pillar** — narrative and/or RAID-item rows | `src/lib/ingestion/batch-schemas.ts` (`validateStatusRaidRow`) | `tests/batch-schemas.test.ts`; manual UAT-4.7 new-pillar spot-check |
+| WP7-10 | **2 new starter templates** | `src/server/services/templates.ts` (`forecast-eac-batch`, `status-raid-batch`) | `tests/templates.test.ts` |
+| DEMO-1 | **Scoped-practice-view and expanded admin-kpis tour beats** | `src/lib/demo/demo-script.ts` | `tests/demo-script.test.ts` (12) |
+
+**Ledger:** no new `LedgerActionType` — the two new ingestion pillars commit
+through the existing `BATCH_IMPORT_COMMITTED` path alongside Weekly Actuals
+and Milestone/Progress.
+
+**Not yet wired (follow-on):** practice-scoping does not yet extend to the
+Custom KPI Definition Engine's Capacity metrics, which stay tenant-wide,
+matching the Capacity Cockpit's own pre-existing simplification; and the
+two new ingestion pillars have Vitest coverage plus a manual UAT walkthrough
+but no dedicated Playwright suite yet (same follow-on noted for the
+original two pillars in Phase 3d).
+
+**Verification:** `npx tsc --noEmit` → 0 errors; `npx vitest run` → **387
+passed** across 29 files (27 pure-unit + 2 live-database security suites);
+`npx playwright test` → **47 passed** across Suites A–K.
 
 ## What's next (Phase 3b+)
 

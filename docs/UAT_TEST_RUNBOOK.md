@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — UAT Test Runbook
 
-_Applies to v1.2.x · Last updated 2026-09-03_
+_Applies to v1.2.x · Last updated 2026-09-05_
 
 This runbook is the human-executable half of the QA framework. It gives a
 tester **explicit login data, exact steps, expected visual outcomes, and a
@@ -64,9 +64,9 @@ All demo passwords are **`password12345`** unless noted.
 ## 2. Automated coverage (run before manual UAT)
 
 ```bash
-npm test            # Vitest — 303 unit + integration tests, ~5s
+npm test            # Vitest — 387 unit + integration tests across 29 files, ~5s
 npx tsc --noEmit    # strict typecheck, 0 errors
-npm run test:e2e    # Playwright — full Suites A–J against a running dev server
+npm run test:e2e    # Playwright — full Suites A–K against a running dev server
 ```
 
 | Flow | Automated by |
@@ -77,7 +77,9 @@ npm run test:e2e    # Playwright — full Suites A–J against a running dev ser
 | Financial data masking for delivery roles | `tests/enterprise-flows.test.ts` · `tests/masking.test.ts` · e2e Suites **H**, **J4** |
 | Ops Console SSO configuration | `tests/enterprise-flows.test.ts` · `tests/identity-*.test.ts` · e2e Suite **J5** |
 | Command Center / Portfolio / Governance / Reporting / Ops | e2e Suites **B–I** |
-| Self-service batch import — schema validation, plain-English errors, CSV/Excel parsing | `tests/batch-schemas.test.ts` · `tests/workbook-reader.test.ts` (no Playwright suite yet — see UAT-4.7 for the manual walkthrough) |
+| Role-Based Scoped Filtering — practice-scoped project/resource predicates | `tests/scoping.test.ts` · e2e Suite **K1–K2** |
+| Custom KPI Definition Engine — metric calc, validation, persona filtering, create-to-dashboard | `tests/kpi-engine.test.ts` · e2e Suite **K3** |
+| Self-service batch import (4 pillars: Weekly Actuals, Milestone & Progress, Forecast & EAC, Status Reports & RAID Log) — schema validation, plain-English errors, CSV/Excel parsing | `tests/batch-schemas.test.ts` · `tests/workbook-reader.test.ts` · `tests/templates.test.ts` (no Playwright suite yet — see UAT-4.7 for the manual walkthrough) |
 
 A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 
@@ -157,6 +159,19 @@ Signed in as `ops@a2rventures.com`.
 | 9 | Confirm this panel is **not** present in the tenant `/admin` module | Admin & Org Setup → Data & Compliance shows only a note that SSO is managed by A2R | |
 
 **Checkpoint:** SSO config is Ops-only, secrets never shown (only a fingerprint), verification gates enable, enable gates enforce.
+
+### UAT-3.6 · Role-Based Scoped Filtering (PD vs. Admin)
+
+| Step | Action | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | Sign in as `admin@a2rventures-demo.test`, open **Resource & Capacity** (`/capacity`) | Scope-indicator line reads **"Tenant-wide — every practice."**; the full roster count | |
+| 2 | Sign out, sign in as `pd@a2rventures-demo.test`, open **Resource & Capacity** | Scope-indicator line reads **"Scoped to your practice — N resources."**, N strictly less than the Admin's tenant-wide count | |
+| 3 | As `pd@…`, open the project picker on **Financial Realization**, **RAID Cockpit**, **Commercial Baseline**, **Control Audit**, and **Schedule & Milestones** | Every picker lists only projects in the PD's own practice — never the full tenant roster | |
+| 4 | As `admin@…`, open the same five project pickers | Every picker lists the full tenant-wide project list | |
+| 5 | Sign in as `dm@a2rventures-demo.test` (Delivery Manager) | Resource & Capacity scopes to their direct reports only, not the whole practice | |
+| 6 | Sign in as `pm@a2rventures-demo.test` | Project pickers scope to their own assigned engagements only | |
+
+**Checkpoint:** the same screens render for every role, but the row set — never the layout — narrows strictly with the role's scope; a scoped role never sees a tenant-wide fallback.
 
 ---
 
@@ -257,7 +272,7 @@ Wave 1 – Finance & Procurement,pd@a2rventures-demo.test,not-a-date,5
 
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | **Admin & Org Setup → Data Ingestion & Templates → Batch Import** tab | Data type toggle (**Weekly Actuals** / **Milestone & Progress Updates**) + a drag-and-drop zone; a **Recent Batches** table below | |
+| 1 | **Admin & Org Setup → Data Ingestion & Templates → Batch Import** tab | Data type toggle with **four** pills — **Weekly Actuals** / **Milestone & Progress Updates** / **Forecast & EAC Updates** / **Status Reports & RAID Log** — + a drag-and-drop zone; a **Recent Batches** table below | |
 | 2 | Drop the test file (Weekly Actuals selected) | Instant preview: **`0 valid`**, **`2 quarantined`**; a table lists both rows' plain-English reasons (unmapped project code; unrecognizable date) | |
 | 3 | Click **Stage 2 rows** | Redirects to the batch's own page; badges read `0 valid` / `2 in quarantine` / `2 total`; **Re-validate & Commit** is **disabled** | |
 | 4 | In row 2, correct **Week Ending** to `2026-03-08`, click **Save & re-validate** | That row's date error clears; its **Project Code** error (still bogus) stays; commit stays disabled | |
@@ -270,6 +285,25 @@ Wave 1 – Finance & Procurement,pd@a2rventures-demo.test,not-a-date,5
 
 **Checkpoint:** malformed rows never touch live data; the commit button is a genuine hard stop, not just a visual one; every field re-validates against live projects/resources on save, not a cached snapshot; only Admins see the tab.
 
+**New-pillar spot-check:** repeat steps 1-3 and 6-8 once each for the **Forecast & EAC Updates** pill (columns: Project Code, Role, Forecast Hours, Open RR Hours — a Direct Intake project's code should quarantine with a clear "use that project's own Financial Realization import" reason) and the **Status Reports & RAID Log** pill (columns: Project Code, Week Ending, Status Narrative, RAID Type/Description/Severity/Owner Email — a row with neither a narrative nor any RAID fields should quarantine as "nothing to import").
+
+### UAT-4.8 · Custom KPI Builder (`/admin/kpis`)
+
+Sign in as `admin@a2rventures-demo.test`.
+
+| # | Check | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | **Admin & Org Setup → Custom KPIs** (or `/admin/kpis` directly) | A list of existing KPI cards (empty on a fresh seed) + a **"+ New KPI"** button | |
+| 2 | Click **"+ New KPI"**, pick data source **RAID Cockpit** | The metric picker updates to that source's two metrics (Open Critical RAID Items / Escalated RAID Items); formula-type defaults sensibly for the chosen metric | |
+| 3 | Name it "Open Critical RAID", leave the default metric, set target `2`, warning `5`, assign persona **Admin** only → **Save** | Toast confirms; the new card appears in the list immediately | |
+| 4 | Open the **Control Tower** (`/`) as `admin@…` | The "Open Critical RAID" card renders with a live value and a status dot (on-track / at-risk / critical) | |
+| 5 | Sign in as `pm@a2rventures-demo.test`, open Control Tower | The card does **not** render (PM is not in its persona list) | |
+| 6 | As `admin@…`, edit the KPI and add **Project Manager** to its personas → **Save** | Sign back in as `pm@…`: the card now renders on their Control Tower | |
+| 7 | Open the **Executive Hub** (`/reports`) as a persona the KPI is bound to | The same card renders there too | |
+| 8 | Delete the KPI | It disappears from `/admin/kpis` and from every dashboard it rendered on, on next load | |
+
+**Checkpoint:** a KPI is a binding (source + metric + thresholds + personas), never a hand-written formula; persona binding is enforced on read, not just on the builder screen; changes reflect without a redeploy.
+
 ---
 
 ## 5. Regression sweep (every release)
@@ -277,7 +311,7 @@ Wave 1 – Finance & Procurement,pd@a2rventures-demo.test,not-a-date,5
 | # | Check | ✅/❌ |
 | --- | --- | --- |
 | 1 | `npm test` → all green; `npx tsc --noEmit` → 0 errors | |
-| 2 | `npm run test:e2e` → Suites A–J all green | |
+| 2 | `npm run test:e2e` → Suites A–K all green | |
 | 3 | Sign-in works for one login per role shape (admin / vp / pd / dm / pm / ops) | |
 | 4 | ⌘K palette opens on every route incl. `/login` and `/ops` | |
 | 5 | Tenant switch (header) fully re-scopes the workspace | |
@@ -285,6 +319,7 @@ Wave 1 – Finance & Procurement,pd@a2rventures-demo.test,not-a-date,5
 | 7 | Compliance Ledger integrity badge = **Verified** in every tenant | |
 | 8 | Demo tenant governance left on **Standard Delivery**; no stray identity providers | |
 | 9 | No stray `DataImportBatch` rows or test `WeeklyAssignmentSlot`/`SchedulePhase` writes left in the demo tenant from batch-import testing | |
+| 10 | No stray test `CustomKpi` rows left in the demo tenant from Custom KPI Builder testing | |
 
 ---
 

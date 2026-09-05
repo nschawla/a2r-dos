@@ -23,9 +23,9 @@ persona-filtered *subsequence* of it, in the same order, never a rewrite:
 
 | Track | Persona value | Beats played | Total runtime |
 | --- | --- | --- | --- |
-| **Full Platform Tour** | `'Full Tour'` | All 11, in script order | **1:57** (117s) |
+| **Full Platform Tour** | `'Full Tour'` | All 11, in script order | **2:02** (122s) |
 | **Executive Lens** | `'Executive'` | Welcome → Command Center → Scoped Practice View → SteerCo → Executive Hub → Closing (6 beats) | **0:59** (59s) |
-| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Scoped Practice View → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Closing (9 beats) | **1:40** (100s) |
+| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Scoped Practice View → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Closing (9 beats) | **1:45** (105s) |
 
 Because a beat's line is identical everywhere it appears, **only 11 unique
 voiceover files are ever needed** — not one per track/beat combination.
@@ -154,12 +154,12 @@ inside the comfortable 150–180 wpm band.
 - **Pacing:** 36 words / 13s ≈ **166 wpm** — the longest line in the script.
 
 #### Beat 8 — `admin-kpis`
-- **Route:** `/admin/kpis` · **Duration:** 17s · **Personas:** Admin, Full Tour
+- **Route:** `/admin/kpis` · **Duration:** 22s · **Personas:** Admin, Full Tour
 - **Highlight:** `#new-kpi-button`
 - **VO:**
-  > And this is the Custom KPI Builder. An admin picks a real metric — margin, schedule health, RAID exposure, utilization — sets a target and a warning line, and assigns it to exactly the personas who should see it. The card shows up instantly, right where they already work.
-- **Delivery note:** the four named metric families ("margin, schedule health, RAID exposure, utilization") should land as a clean list, one breath group each — this is the beat's own "look how much is in here" moment.
-- **Pacing:** 47 words / 17s ≈ **166 wpm**
+  > And this is the Custom KPI Builder. An admin picks a real metric — margin, schedule health, RAID exposure, utilization — sets a target and a warning line, and assigns it to exactly the personas who should see it. Save it, and the card appears immediately on the Control Tower and the Executive Hub for everyone in that persona — no redeploy, no waiting.
+- **Delivery note:** two distinct beats inside one line — the *builder* ("margin, schedule health, RAID exposure, utilization" as a clean list, one breath group each) and the *payoff* ("Save it, and the card appears immediately…"). Land a small lift on "immediately" — this is the line that closes the loop from configuration to the live dashboard widget (src/components/kpi/KpiWidgetCard.tsx), not just describing a settings screen.
+- **Pacing:** 61 words / 22s ≈ **166 wpm**
 
 #### Beat 9 — `ops-console`
 - **Route:** `/ops` · **Duration:** 10s · **Personas:** Admin, Full Tour
@@ -194,7 +194,7 @@ the instant `startDemo(persona)` fires) — precise to the second, since
 every beat's duration is a whole number of seconds. Each row's OUT point
 is the next beat's IN point; the route change happens exactly on cue.
 
-### 4.1 Full Platform Tour — 1:57 total, all 11 beats
+### 4.1 Full Platform Tour — 2:02 total, all 11 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
@@ -205,10 +205,10 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 0:43–0:52 | 43–52 | `executive-hub` | `/reports` | — |
 | 0:52–1:02 | 52–62 | `admin-setup` | `/admin` | — |
 | 1:02–1:15 | 62–75 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
-| 1:15–1:32 | 75–92 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
-| 1:32–1:42 | 92–102 | `ops-console` | `/ops` | — |
-| 1:42–1:50 | 102–110 | `ops-pulse` | `/ops/pulse` | — |
-| 1:50–1:57 | 110–117 | `closing` | `/` | — |
+| 1:15–1:37 | 75–97 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
+| 1:37–1:47 | 97–107 | `ops-console` | `/ops` | — |
+| 1:47–1:55 | 107–115 | `ops-pulse` | `/ops/pulse` | — |
+| 1:55–2:02 | 115–122 | `closing` | `/` | — |
 
 ### 4.2 Executive Lens — 0:59 total, 6 beats
 
@@ -221,7 +221,7 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 0:43–0:52 | 43–52 | `executive-hub` | `/reports` | — |
 | 0:52–0:59 | 52–59 | `closing` | `/` | — |
 
-### 4.3 Admin / Ops Lens — 1:40 total, 9 beats
+### 4.3 Admin / Ops Lens — 1:45 total, 9 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
@@ -230,10 +230,10 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
 | 0:35–0:45 | 35–45 | `admin-setup` | `/admin` | — |
 | 0:45–0:58 | 45–58 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
-| 0:58–1:15 | 58–75 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
-| 1:15–1:25 | 75–85 | `ops-console` | `/ops` | — |
-| 1:25–1:33 | 85–93 | `ops-pulse` | `/ops/pulse` | — |
-| 1:33–1:40 | 93–100 | `closing` | `/` | — |
+| 0:58–1:20 | 58–80 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
+| 1:20–1:30 | 80–90 | `ops-console` | `/ops` | — |
+| 1:30–1:38 | 90–98 | `ops-pulse` | `/ops/pulse` | — |
+| 1:38–1:45 | 98–105 | `closing` | `/` | — |
 
 ---
 

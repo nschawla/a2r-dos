@@ -29,10 +29,12 @@ erDiagram
     ORGANIZATION ||--o{ IMMUTABLE_AUDIT_LEDGER : "chains"
     ORGANIZATION ||--o{ AUDIT_LOG : "logs"
     ORGANIZATION ||--o{ ACTIVITY_LOG_ENTRY : "streams"
+    ORGANIZATION ||--o{ CUSTOM_KPI : "defines"
 
     USER ||--o{ MEMBERSHIP : "belongs via"
     USER ||--o| RESOURCE : "logs in as"
     USER ||--o{ DATA_IMPORT_BATCH : "uploads"
+    USER ||--o{ CUSTOM_KPI : "authors"
 
     MEMBERSHIP }o--|| ORGANIZATION : "in"
     MEMBERSHIP {
@@ -73,6 +75,15 @@ erDiagram
     IMMUTABLE_AUDIT_LEDGER }o--|| ORGANIZATION : "hash-chained per tenant"
     AUDIT_LOG }o--o| PROJECT : "may reference"
     ACTIVITY_LOG_ENTRY }o--o| PROJECT : "may reference"
+
+    CUSTOM_KPI }o--|| ORGANIZATION : "scoped to"
+    CUSTOM_KPI }o--o| USER : "created by"
+    CUSTOM_KPI {
+        string dataSource "KpiDataSource — FINANCIALS/SCHEDULE/RAID/CAPACITY"
+        string metricKey "free-text key into the KPI_METRICS catalog"
+        string formulaType "DIRECT (higher-better) or INVERSE (lower-better)"
+        string[] targetPersonas "RbacPersona values this card renders for"
+    }
 ```
 
 ## Domain notes
@@ -108,15 +119,37 @@ highest-consequence actions only (tenant lifecycle, SSO config, batch import
 `ActivityLogEntry` is the PS Control Tower's lightweight "recent activity"
 feed — a third, deliberately separate trail from the two above.
 
-**Self-Service Batch Import Engine (WP7, new this release)** — a
-`DataImportBatch` is one staged upload (CSV or Excel; `BatchImportDataType`
-is `WEEKLY_ACTUALS` or `MILESTONE_PROGRESS`); each `DataImportRow` holds that
-row's raw cell values plus its own `BatchImportRowStatus`
-(`VALID`/`ERROR`/`CORRECTED`) and plain-English `errors`. Nothing here
-writes to `WeeklyAssignmentSlot` / `SchedulePhase` until `commitImportBatch`
-re-validates every row one more time and, only if none error, upserts them
-in a single transaction — see `src/server/actions/data-import.ts` and
-`src/lib/ingestion/batch-schemas.ts`.
+**Self-Service Batch Import Engine (WP7)** — a `DataImportBatch` is one
+staged upload (CSV or Excel; `BatchImportDataType` is one of four pillars —
+`WEEKLY_ACTUALS`, `MILESTONE_PROGRESS`, `FORECAST_EAC`, or `STATUS_RAID`);
+each `DataImportRow` holds that row's raw cell values plus its own
+`BatchImportRowStatus` (`VALID`/`ERROR`/`CORRECTED`) and plain-English
+`errors`. Nothing here writes to `WeeklyAssignmentSlot` / `SchedulePhase` /
+`FinancialActual` / `ActivityLogEntry` / `RaidEntry` until
+`commitImportBatch` re-validates every row one more time and, only if none
+error, upserts them in a single transaction — see
+`src/server/actions/data-import.ts` and `src/lib/ingestion/batch-schemas.ts`.
+`FORECAST_EAC` targets matrix-mode projects only (`FinancialActual`, keyed
+by `(projectId, roleKey)`); `STATUS_RAID` fans out to `ActivityLogEntry`
+(narrative) and/or `RaidEntry` (a RAID item) per row.
+
+**Custom KPI Definition Engine** — `CustomKpi` is a *binding*, not a stored
+formula: an org-scoped row naming a data source, one metric from that
+source's fixed catalog (`src/types/kpi.ts`'s `KPI_METRICS`), a target/warning
+threshold pair, and the `targetPersonas` it renders for. There is no
+expression language and no separate "KPI value" table — every value is
+computed live off the same models above (`FinancialActual`, `SchedulePhase`,
+`RaidEntry`, and the Capacity Cockpit's resource/assignment data) by
+`src/server/queries/kpi-data.ts` at render time.
+
+**Role-Based Scoped Filtering** — adds no new table. It is a query-time
+predicate (`src/lib/scoping.ts`) applied to the existing `Project` and
+`Resource` reads above: a global role (`ADMIN`, `VP_EXECUTIVE`) gets an
+unfiltered `organizationId` where-clause; a practice-scoped role
+(`PRACTICE_DIRECTOR` via `Resource.practiceId`, `DELIVERY_MANAGER` via
+direct reports, `PROJECT_MANAGER` via own assignments) gets the same
+where-clause narrowed by that identity, built once and shared between the
+DB-free authorization check and the Prisma query so the two can't drift.
 
 ## Supporting entities (omitted from the diagram for legibility)
 

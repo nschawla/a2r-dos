@@ -141,12 +141,12 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'admin-kpis',
     route: '/admin/kpis',
-    durationMs: 17000, // 47 words at ~166 wpm
+    durationMs: 22000, // 61 words at ~166 wpm
     act: 'Ops Console',
     personas: ['Admin'],
     highlightSelector: '#new-kpi-button',
     caption:
-      'And this is the Custom KPI Builder. An admin picks a real metric — margin, schedule health, RAID exposure, utilization — sets a target and a warning line, and assigns it to exactly the personas who should see it. The card shows up instantly, right where they already work.',
+      'And this is the Custom KPI Builder. An admin picks a real metric — margin, schedule health, RAID exposure, utilization — sets a target and a warning line, and assigns it to exactly the personas who should see it. Save it, and the card appears immediately on the Control Tower and the Executive Hub for everyone in that persona — no redeploy, no waiting.',
   },
   {
     id: 'ops-console',
