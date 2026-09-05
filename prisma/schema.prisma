@@ -14,7 +14,15 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Runtime queries. On serverless (Vercel) this MUST be a connection
+  // pooler URL — Supabase's direct host (db.<ref>.supabase.co) is
+  // IPv6-only and Vercel functions have no IPv6 egress, so a direct URL
+  // fails every query there. See .env.example.
+  url       = env("DATABASE_URL")
+  // Schema pushes / migrations (`prisma db push`, `prisma migrate`) — a
+  // real session, not a transaction-mode pooler. Falls back to `url`
+  // when unset (fine for local dev where both point at the same host).
+  directUrl = env("DIRECT_URL")
 }
 
 // =========================================================

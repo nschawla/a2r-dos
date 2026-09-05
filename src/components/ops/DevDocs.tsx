@@ -171,15 +171,17 @@ const ENV_VARS: EnvVar[] = [
   {
     name: 'DATABASE_URL',
     required: 'required',
-    purpose: 'Prisma → Postgres (pooled). TLS required in production (sslmode in the query string; db.ts warns if missing).',
-    source: 'Managed Postgres provider console (Supabase).',
-    rotation: 'Rotate the DB password in the provider console, update the value, redeploy.',
+    purpose:
+      'Prisma runtime queries. On serverless (Vercel) this MUST be the connection pooler — Supabase\'s direct host db.<ref>.supabase.co is IPv6-only and Vercel has no IPv6 egress, so a direct URL fails every query there. TLS required in production (sslmode; db.ts warns if missing).',
+    source: 'Supabase dashboard → Project Settings → Database → Connection string → "Transaction pooler" (port 6543, +pgbouncer=true&connection_limit=1).',
+    rotation: 'Rotate the DB password in the provider console, update both URLs, redeploy.',
   },
   {
     name: 'DIRECT_URL',
     required: 'required',
-    purpose: 'Direct, non-pooled Postgres URL for `prisma db push` / migrations against pooled providers.',
-    source: 'Same provider — the direct (non-pooler) host.',
+    purpose:
+      'A real Postgres session for `prisma db push` / `prisma migrate` only (these cannot run through a transaction-mode pooler). Wired via datasource.directUrl in schema.prisma; falls back to DATABASE_URL when unset.',
+    source: 'Supabase "Session pooler" (port 5432 on the pooler host) or the direct connection where the migration runner has IPv4 to it.',
     rotation: 'As DATABASE_URL.',
   },
   {

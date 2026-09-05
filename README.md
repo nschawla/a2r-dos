@@ -114,6 +114,10 @@ schema. If you'd rather apply the existing SQL verbatim without letting
 Prisma re-diff it (e.g. in CI, or a fresh empty database), use
 `npm run db:migrate:deploy` instead.
 
+Schema commands use `DIRECT_URL` (a real session), not `DATABASE_URL`
+(which on a serverless deploy is a transaction-mode pooler that can't run
+DDL) — see `.env.example` and `datasource.directUrl` in the schema.
+
 ### 4. Seed demo data (optional, recommended for evaluation)
 
 ```bash
