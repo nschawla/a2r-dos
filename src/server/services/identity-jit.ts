@@ -18,6 +18,7 @@
  * is protocol-agnostic and takes an already-verified identity.
  */
 import { db } from '@/lib/db';
+import { runUnscoped } from '@/lib/db/org-scope';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
 import { resolveFederatedRole, type GroupMappingRule } from '@/lib/identity/mapping';
 import { computeJitOutcome } from '@/lib/identity/jit';
@@ -35,6 +36,16 @@ export type FederatedLoginResult =
   | { ok: false; reason: 'no-idp' | 'idp-disabled' | 'no-tenant-access'; message: string };
 
 export async function applyFederatedLogin(
+  identity: VerifiedFederatedIdentity
+): Promise<FederatedLoginResult> {
+  // The SSO callback runs before any session/tenant is resolved, so the
+  // org-scope Prisma extension has no scope to pin to. Every read and write
+  // below is explicitly keyed to identity.organizationId (which came from a
+  // signature-verified assertion), so run the whole flow unscoped.
+  return runUnscoped('sso-jit', () => applyFederatedLoginInner(identity));
+}
+
+async function applyFederatedLoginInner(
   identity: VerifiedFederatedIdentity
 ): Promise<FederatedLoginResult> {
   const email = identity.email.toLowerCase().trim();

@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { runUnscoped } from '@/lib/db/org-scope';
 import { seedOrganizationDefaults } from '@/lib/tenant/defaults';
 import { validatePasswordStrength } from '@/lib/auth/password-policy';
 
@@ -60,13 +61,18 @@ export async function registerOrganization(input: unknown): Promise<ActionResult
   const slug = await uniqueSlug(orgName);
   const passwordHash = await bcrypt.hash(password, 10);
 
-  await db.$transaction(async (tx) => {
-    const user = await tx.user.create({ data: { email: normalizedEmail, name, passwordHash } });
-    const org = await tx.organization.create({ data: { name: orgName, slug } });
-    await tx.membership.create({ data: { userId: user.id, organizationId: org.id, role: 'OWNER' } });
-    await seedOrganizationDefaults(tx, org.id);
-    await tx.activityLogEntry.create({
-      data: { organizationId: org.id, userId: user.id, text: `${name} created ${orgName}`, tab: 'home' },
+  // Tenant provisioning: the org does not exist until inside the tx, so
+  // there is no scope to pin to. The seed writes all set organizationId
+  // explicitly — run the transaction with the cross-tenant marker.
+  await runUnscoped('tenant-provisioning', async () => {
+    await db.$transaction(async (tx) => {
+      const user = await tx.user.create({ data: { email: normalizedEmail, name, passwordHash } });
+      const org = await tx.organization.create({ data: { name: orgName, slug } });
+      await tx.membership.create({ data: { userId: user.id, organizationId: org.id, role: 'OWNER' } });
+      await seedOrganizationDefaults(tx, org.id);
+      await tx.activityLogEntry.create({
+        data: { organizationId: org.id, userId: user.id, text: `${name} created ${orgName}`, tab: 'home' },
+      });
     });
   });
 
@@ -91,12 +97,14 @@ export async function createOrganizationForCurrentUser(input: unknown): Promise<
   const { orgName } = parsed.data;
   const slug = await uniqueSlug(orgName);
 
-  await db.$transaction(async (tx) => {
-    const org = await tx.organization.create({ data: { name: orgName, slug } });
-    await tx.membership.create({ data: { userId: session.user.id, organizationId: org.id, role: 'OWNER' } });
-    await seedOrganizationDefaults(tx, org.id);
-    await tx.activityLogEntry.create({
-      data: { organizationId: org.id, userId: session.user.id, text: `Organization created`, tab: 'home' },
+  await runUnscoped('tenant-provisioning', async () => {
+    await db.$transaction(async (tx) => {
+      const org = await tx.organization.create({ data: { name: orgName, slug } });
+      await tx.membership.create({ data: { userId: session.user.id, organizationId: org.id, role: 'OWNER' } });
+      await seedOrganizationDefaults(tx, org.id);
+      await tx.activityLogEntry.create({
+        data: { organizationId: org.id, userId: session.user.id, text: `Organization created`, tab: 'home' },
+      });
     });
   });
 

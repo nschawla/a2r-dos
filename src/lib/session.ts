@@ -6,14 +6,17 @@
  * restrictions this file falls under.
  */
 
+import { cache } from 'react';
 import { getServerSession, type Session } from 'next-auth';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { resolveDeliveryRole, type DeliveryRole } from '@/lib/auth/rbac';
+import { resolveIsA2rStaff } from '@/lib/ops/staff';
 import { IMPERSONATION_COOKIE, resolveImpersonation } from '@/lib/ops/tenant-management';
 import { getGovernanceConfig } from '@/lib/governance/service';
+import { registerLazyScopeResolver, runUnscoped, setOrgScope } from '@/lib/db/org-scope';
 import type { ResolvedGovernanceConfig } from '@/lib/governance/config';
 import type { SessionMembership } from '@/types/next-auth';
 
@@ -65,7 +68,54 @@ type OrgContextResult =
  * `redirect()` throws a Next.js-internal signal that only page rendering
  * catches; a route handler must return its own 401/403 JSON instead).
  */
-async function resolveOrgContext(): Promise<OrgContextResult> {
+// The body runs UNSCOPED — it is the bootstrap that decides which tenant
+// this request belongs to, so it can't be tenant-scoped yet (it reads
+// Resource / GovernanceConfig / ImpersonationGrant before the org is
+// known). requireOrgContext / getOrgContextOrNull below then call
+// setOrgScope() on the result, which pins every subsequent db call in
+// the request.
+const resolveOrgContext = cache(async (): Promise<OrgContextResult> => {
+  return runUnscoped('resolve-org-context', () => resolveOrgContextInner());
+});
+
+const cachedServerSession = cache(() => getServerSession(authOptions));
+
+// Backstop for the org-scope Prisma extension: if a tenant-model query runs
+// with no scope explicitly set but inside a live request, this hands the
+// extension the right scope. enterWith() set inside the async
+// requireOrgContext() / requireOpsContext() guards is not *guaranteed* to
+// propagate back across every App Router async boundary to the page /
+// server-action body, so this resolver — not those setOrgScope /
+// setAdminScope fast-path calls — is the dependable request-time mechanism.
+// Kept to one real resolution per request by cache(). Returns undefined
+// outside a request (scripts / jobs / tests scope explicitly) or for an
+// unauthenticated one.
+registerLazyScopeResolver(async () => {
+  // Ops Console — middleware stamps this header on every /ops/* request
+  // (page navigations and server-action POSTs alike). Legitimately
+  // cross-tenant; middleware already verified the staff token, re-check here.
+  let onOpsConsole = false;
+  try {
+    onOpsConsole = headers().get('x-a2r-scope') === 'ops';
+  } catch {
+    /* not in a request */
+  }
+  if (onOpsConsole) {
+    const session = await cachedServerSession();
+    const staff =
+      session?.user != null &&
+      (session.user.isA2rStaff === true ||
+        resolveIsA2rStaff({ email: session.user.email, isA2rStaff: session.user.isA2rStaff }));
+    if (staff) return { kind: 'admin', reason: 'ops-console' };
+    return undefined;
+  }
+
+  const result = await resolveOrgContext();
+  if (!result.ok) return undefined;
+  return { kind: 'org', organizationId: result.context.organizationId };
+});
+
+async function resolveOrgContextInner(): Promise<OrgContextResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, reason: 'unauthenticated' };
 
@@ -167,6 +217,8 @@ export async function requireOrgContext(): Promise<OrgContext> {
     const session = await getServerSession(authOptions);
     redirect(session?.user?.isA2rStaff ? '/ops' : '/onboarding');
   }
+  // Pin every db call in the rest of this request to this tenant.
+  setOrgScope(result.context.organizationId);
   return result.context;
 }
 
@@ -177,5 +229,7 @@ export async function requireOrgContext(): Promise<OrgContext> {
  */
 export async function getOrgContextOrNull(): Promise<OrgContext | null> {
   const result = await resolveOrgContext();
-  return result.ok ? result.context : null;
+  if (!result.ok) return null;
+  setOrgScope(result.context.organizationId);
+  return result.context;
 }

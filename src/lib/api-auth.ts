@@ -18,6 +18,7 @@ import { NextResponse } from 'next/server';
 import { validateApiKey, type ValidatedApiKey } from '@/lib/ops/api-keys';
 import { hit, tooManyRequestsResponse, type RateLimitRule } from '@/lib/rate-limiter';
 import { captureException, captureMessage } from '@/lib/observability';
+import { runUnscoped, setOrgScope } from '@/lib/db/org-scope';
 
 export interface ApiAuthContext {
   /** The tenant every write in this request is locked to. */
@@ -53,7 +54,8 @@ export function withApiAuth(handler: ApiRouteHandler, options: WithApiAuthOption
       );
     }
 
-    const result = await validateApiKey(token);
+    // Key lookup runs before the tenant is known — bootstrap, unscoped.
+    const result = await runUnscoped('api-key-validation', () => validateApiKey(token));
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: result.status });
     }
@@ -71,6 +73,9 @@ export function withApiAuth(handler: ApiRouteHandler, options: WithApiAuthOption
         `Rate limit exceeded for this API key (${rule.limit} requests/minute). Retry in ${rl.retryAfterSeconds}s.`
       );
     }
+
+    // Every db call in the handler is pinned to the key's tenant.
+    setOrgScope(result.key.tenantId);
 
     try {
       return await handler(request, { tenantId: result.key.tenantId, apiKey: result.key });

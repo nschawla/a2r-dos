@@ -53,7 +53,14 @@ export default withAuth(
       if (!isStaff) {
         return NextResponse.redirect(new URL('/portfolio', req.url));
       }
-      return NextResponse.next();
+      // Tell the org-scope layer this request is the (legitimately
+      // cross-tenant) Ops Console. src/lib/session.ts's lazy scope resolver
+      // reads this header — enterWith() set from inside the async
+      // requireOpsContext() guard does not reliably propagate back to the
+      // page / server-action body in the App Router.
+      const headers = new Headers(req.headers);
+      headers.set('x-a2r-scope', 'ops');
+      return NextResponse.next({ request: { headers } });
     }
 
     const memberships = token?.memberships ?? [];

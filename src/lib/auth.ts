@@ -11,6 +11,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
+import { runUnscoped } from '@/lib/db/org-scope';
 import { resolveIsA2rStaff } from '@/lib/ops/staff';
 import { isSsoEnforcedForEmail } from '@/lib/identity/service';
 
@@ -44,15 +45,20 @@ export const authOptions: AuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         try {
-          const user = await db.user.findUnique({
-            where: { email: credentials.email.toLowerCase().trim() },
+          // Pre-session: no tenant is resolved yet, so the org-scope Prisma
+          // extension has nothing to pin to. User is an UNSCOPED model, but
+          // wrap defensively so any future scoped read here can't throw.
+          return await runUnscoped('nextauth-authorize', async () => {
+            const user = await db.user.findUnique({
+              where: { email: credentials.email.toLowerCase().trim() },
+            });
+            if (!user || !user.passwordHash) return null;
+
+            const valid = await bcrypt.compare(credentials.password, user.passwordHash);
+            if (!valid) return null;
+
+            return { id: user.id, email: user.email, name: user.name ?? undefined, image: user.image ?? undefined };
           });
-          if (!user || !user.passwordHash) return null;
-
-          const valid = await bcrypt.compare(credentials.password, user.passwordHash);
-          if (!valid) return null;
-
-          return { id: user.id, email: user.email, name: user.name ?? undefined, image: user.image ?? undefined };
         } catch (err) {
           // Never let a DB/bcrypt error escape as an uncaught throw — NextAuth
           // would turn it into an empty-body 500. Fail closed (null = invalid
@@ -73,7 +79,8 @@ export const authOptions: AuthOptions = {
      */
     async signIn({ user, account }) {
       if (account?.provider === 'credentials' && user?.email) {
-        if (await isSsoEnforcedForEmail(user.email)) {
+        // Pre-session cross-tenant lookup (IdentityProvider by email domain).
+        if (await runUnscoped('nextauth-sso-enforcement', () => isSsoEnforcedForEmail(user.email!))) {
           // Denied — surfaces to the client as `error: "AccessDenied"`,
           // which the login form renders as the "use SSO" message.
           return false;
@@ -98,17 +105,22 @@ export const authOptions: AuthOptions = {
       // surfaces client-side as "Unexpected end of JSON input".
       if (token.userId) {
         try {
-          const [account, memberships] = await Promise.all([
-            db.user.findUnique({
-              where: { id: token.userId as string },
-              select: { email: true, isA2rStaff: true, mustChangePassword: true },
-            }),
-            db.membership.findMany({
-              where: { userId: token.userId as string },
-              include: { organization: { select: { id: true, name: true, slug: true, status: true } } },
-              orderBy: { createdAt: 'asc' },
-            }),
-          ]);
+          // Runs on every request before requireOrgContext resolves the
+          // active tenant — User + Membership are UNSCOPED models, but wrap
+          // so the org-scope extension never throws here.
+          const [account, memberships] = await runUnscoped('nextauth-jwt', () =>
+            Promise.all([
+              db.user.findUnique({
+                where: { id: token.userId as string },
+                select: { email: true, isA2rStaff: true, mustChangePassword: true },
+              }),
+              db.membership.findMany({
+                where: { userId: token.userId as string },
+                include: { organization: { select: { id: true, name: true, slug: true, status: true } } },
+                orderBy: { createdAt: 'asc' },
+              }),
+            ])
+          );
           token.isA2rStaff = resolveIsA2rStaff({ email: account?.email, isA2rStaff: account?.isA2rStaff });
           token.mustChangePassword = account?.mustChangePassword === true;
           token.memberships = memberships.map((m) => ({

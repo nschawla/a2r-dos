@@ -16,6 +16,7 @@ import { getServerSession, type Session } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { resolveIsA2rStaff } from '@/lib/ops/staff';
+import { setAdminScope } from '@/lib/db/org-scope';
 
 export interface OpsContext {
   session: Session;
@@ -25,6 +26,10 @@ export interface OpsContext {
 }
 
 function toOpsContext(session: Session): OpsContext {
+  // The Ops Console is legitimately cross-tenant (telemetry aggregates
+  // every org, provisioning creates them). Mark the request so the
+  // org-scope Prisma extension lets these queries through.
+  setAdminScope('ops-console');
   return {
     session,
     userId: session.user.id,

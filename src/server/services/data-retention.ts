@@ -21,6 +21,7 @@
  * `POST /api/internal/retention` (a cron scheduler / an A2R staff session).
  */
 import { db } from '@/lib/db';
+import { runUnscoped } from '@/lib/db/org-scope';
 
 const DAY_MS = 86_400_000;
 
@@ -153,6 +154,14 @@ async function purgeInChunks(model: DeletableModel, where: unknown, batchSize: n
  * failure is recorded on its entry and the rest still run.
  */
 export async function runRetentionSweep(options: RunRetentionOptions = {}): Promise<RetentionSweepResult> {
+  // Platform-wide sweep across every tenant's high-volume tables — runs from
+  // a cron / A2R-staff route with no single active tenant. Explicitly admin
+  // scope so the org-scope Prisma extension lets the cross-tenant
+  // count/deleteMany through instead of throwing per target.
+  return runUnscoped('retention-sweep', () => runRetentionSweepInner(options));
+}
+
+async function runRetentionSweepInner(options: RunRetentionOptions = {}): Promise<RetentionSweepResult> {
   const dryRun = options.dryRun ?? true;
   const batchSize = options.batchSize ?? 500;
   const policy = resolveRetentionPolicy(options.policy);
