@@ -10,6 +10,16 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.5.2] — 2026-09-05
+
+_Coming-soon mode is an env toggle — one codebase, two front doors._
+
+### Changed
+- **`NEXT_PUBLIC_COMING_SOON` gates the site root.** ON by default (a missing env var must not accidentally expose the app's front door): `/` serves the public early-access page. A deploy sets it to a falsy value (`0` / `false` / `off` / `no`) — e.g. an internal preview deployment — and `/` forwards every visitor to `/launch` (sign-in) instead. `src/app/page.tsx`, `.env.example`. Production (`main`) and the preview branch run the byte-identical build; only the Vercel environment differs. A signed-in visitor is always sent to `/launch` regardless of mode.
+
+### Verification
+- `npx tsc --noEmit` → 0 errors. `npx vitest run` → **388 passed**. `npx playwright test` → **47 passed**. Live: with the flag unset, `/` renders the dark coming-soon page; with `NEXT_PUBLIC_COMING_SOON=0`, `/` 307s to `/login`.
+
 ## [1.5.1] — 2026-09-05
 
 _The landing page becomes a "Coming Soon" early-access page._

@@ -1,7 +1,14 @@
 /**
  * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
- * Public "Coming Soon" / early-access landing page, served at `/`.
+ * The site root `/`. In the default ("coming-soon") mode it serves the
+ * public dark early-access page. A deploy that wants the full app as its
+ * front door instead — e.g. an internal preview deployment — sets
+ * `NEXT_PUBLIC_COMING_SOON` to a falsy string (`0` / `false` / `off` /
+ * `no`), and `/` then forwards every visitor to `/launch`.
+ *
+ * Same codebase either way: coming-soon mode ON is production's front
+ * door; OFF is the preview branch's. See `.env.example`.
  *
  * Top-level (uses only src/app/layout.tsx — html/body/providers, no app
  * chrome) rather than the (public) group, because it commits to its own
@@ -9,8 +16,7 @@
  * light (public) shell. The middleware auth gate already excludes the
  * bare root (the `|$` in its matcher).
  *
- * A signed-in visitor is sent straight into the app via /launch rather
- * than shown a "coming soon" page for a product they already use.
+ * A signed-in visitor is always sent straight into the app via /launch.
  */
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -26,6 +32,14 @@ export const metadata = {
     'A2R Delivery OS is the delivery operating system for professional-services organizations. Request early access.',
 };
 
+/** Coming-soon mode is ON by default (the product is pre-launch, and a
+ * missing env var must not accidentally expose the app's front door).
+ * A deploy opts OUT with NEXT_PUBLIC_COMING_SOON = 0 / false / off / no. */
+function comingSoonEnabled(): boolean {
+  const v = (process.env.NEXT_PUBLIC_COMING_SOON ?? '').trim().toLowerCase();
+  return !['0', 'false', 'off', 'no'].includes(v);
+}
+
 const VALUE_PROPS = [
   ['Real-time engagement visibility', 'Margin, schedule, risk and utilization across the portfolio — in one view.'],
   ['AI-automated status reporting', 'Paste a status email; get a structured report and RAID rows back.'],
@@ -35,6 +49,10 @@ const VALUE_PROPS = [
 export default async function ComingSoonPage() {
   const session = await getServerSession(authOptions);
   if (session?.user) redirect('/launch');
+
+  // Preview mode: no coming-soon wall — send anonymous visitors straight
+  // to the app's sign-in / landing dispatcher.
+  if (!comingSoonEnabled()) redirect('/launch');
 
   return (
     <div className="flex min-h-screen flex-col bg-[#080B14] text-white [color-scheme:dark]">

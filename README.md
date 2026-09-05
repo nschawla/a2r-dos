@@ -1472,6 +1472,7 @@ not a login wall.
 | SEC-HDR-1 | **Restored SEC-2 headers + build stamp** | `next.config.mjs` | live: response headers confirmed; `tests/build-info.test.ts` |
 | LAND-1 | **"Coming Soon" page** at `/` — Sneak Peek modal + early-access form | `src/app/page.tsx`, `src/components/marketing/*`, `src/server/actions/early-access.ts` | e2e regression 4a; live (dark page 200 signed-out, forward signed-in; modal + form exercised) |
 | LAND-2 | **Control Tower `/` → `/portfolio`** — route registry + redirects + demo beats | `src/lib/governance/config.ts`, `src/components/layout/Sidebar.tsx`, `src/lib/workspace/lenses.ts`, `src/middleware.ts`, `src/lib/demo/demo-script.ts` | `tests/enterprise-flows.test.ts`, `tests/rbac-matrix.test.ts`; e2e Suites A/B/J1 updated to `/portfolio` |
+| LAND-3 | **`NEXT_PUBLIC_COMING_SOON` toggle** — ON by default; a falsy value makes `/` forward to `/launch` (preview deploys) | `src/app/page.tsx`, `.env.example` | live: flag unset → dark page; `=0` → 307 to `/login` |
 
 **Verification:** `npx tsc --noEmit` → 0 errors; `npx vitest run` → **388
 passed** across 29 files; `npx playwright test` → **47 passed** across

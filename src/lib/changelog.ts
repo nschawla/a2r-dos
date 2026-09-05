@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.5.2',
+    date: '2026-09-05',
+    headline: 'Coming-soon mode is an env toggle — one codebase, two front doors',
+    changes: [
+      { type: 'improvement', text: 'The site root is coming-soon by default. A deploy that should present the full app instead — an internal preview, for example — sets NEXT_PUBLIC_COMING_SOON to a falsy value, and `/` then forwards every visitor to sign-in. Production and preview run the identical build; only the environment differs.' },
+    ],
+  },
+  {
     version: '1.5.1',
     date: '2026-09-05',
     headline: 'The landing page becomes a "Coming Soon" early-access page',
