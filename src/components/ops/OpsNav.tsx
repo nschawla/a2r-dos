@@ -10,6 +10,7 @@ const OPS_NAV = [
   { href: '/ops/tenants', label: 'Tenants', desc: 'Client organizations' },
   { href: '/ops/identity', label: 'Identity Federation', desc: 'Tenant SSO · SAML / OIDC' },
   { href: '/ops/ingestion', label: 'Ingestion & Templates', desc: 'Intake schemas & downloads' },
+  { href: '/ops/dev-docs', label: 'Developer Docs', desc: 'Build · architecture · setup' },
 ] as const;
 
 export function OpsNav() {
