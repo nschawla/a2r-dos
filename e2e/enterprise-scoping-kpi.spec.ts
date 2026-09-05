@@ -159,14 +159,14 @@ test.describe('Suite K3 — Custom KPI Builder reflects instantly on the Control
     await page.getByRole('button', { name: 'Create KPI' }).click();
     await expect(page.locator(`text=${TEST_KPI_NAME}`)).toBeVisible({ timeout: 10_000 });
 
-    await page.goto('/');
+    await page.goto('/portfolio');
     await expectNoErrorOverlay(page);
     await expect(page.locator(`text=${TEST_KPI_NAME}`)).toBeVisible();
   });
 
   test('the same KPI does not render for a Project Manager it is not bound to', async () => {
     await signIn(page, 'pm@a2rventures-demo.test');
-    await page.goto('/');
+    await page.goto('/portfolio');
     await expectNoErrorOverlay(page);
     await expect(page.locator(`text=${TEST_KPI_NAME}`)).toHaveCount(0);
   });
@@ -178,7 +178,7 @@ test.describe('Suite K3 — Custom KPI Builder reflects instantly on the Control
     await page.locator('li', { hasText: TEST_KPI_NAME }).getByRole('button', { name: 'Delete' }).click();
     await expect(page.locator(`text=${TEST_KPI_NAME}`)).toHaveCount(0);
 
-    await page.goto('/');
+    await page.goto('/portfolio');
     await expect(page.locator(`text=${TEST_KPI_NAME}`)).toHaveCount(0);
   });
 });

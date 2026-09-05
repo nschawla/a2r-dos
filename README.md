@@ -1424,6 +1424,52 @@ original two pillars in Phase 3d).
 passed** across 29 files (27 pure-unit + 2 live-database security suites);
 `npx playwright test` → **47 passed** across Suites A–K.
 
+## Phase 3f — Production deploy, database hardening & a public front door (v1.4.1 – v1.5.0)
+
+Phase 3f takes the platform from "runs locally" to "runs on the internet":
+a live Vercel + Supabase deployment, the database-security work that
+implies, and a marketing landing page so the bare domain is a front door,
+not a login wall.
+
+### FRD — functional summary
+
+- **v1.4.1 — production database hardening.** Runtime queries go through
+  the Supabase connection pooler (the direct host is IPv6-only; serverless
+  has no IPv6), with a dedicated `DIRECT_URL` for schema migrations
+  (`datasource.directUrl`). **Row Level Security is `ENABLE`d on every
+  `public` table** with no policies — deny-all for every role except the
+  Prisma-owned `BYPASSRLS` role — and all grants are revoked from the
+  provider's web-exposed `anon` / `authenticated` roles, closing the
+  Supabase Security Advisor finding without touching a single Prisma
+  query. The SEC-2 HTTP security headers and the Ops build stamp, dropped
+  by an earlier `next.config.mjs` edit, are restored.
+- **v1.5.0 — public landing page.** `src/app/(public)/page.tsx` at the
+  site root: hero, the three delivery problems A2R DOS solves, the three
+  capabilities that answer them, and a **Launch App** button. Readable
+  with no account (the middleware auth gate excludes the bare root); a
+  signed-in visitor is forwarded to `/launch`.
+- **The Control Tower moved `/` → `/portfolio`.** One route registry
+  (`GOVERNABLE_MODULES`) drives the Sidebar, ⌘K, RBAC route guard and
+  governance hiding, so the move is a single `href` change there plus the
+  handful of literal "go home" redirects (`middleware.ts`,
+  `requireOpsContext`, onboarding, the `/admin` back-link, the Auto Demo
+  `welcome`/`closing` beats).
+
+### RTM — requirements traceability (Phase 3f)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| DEPLOY-1 | **Serverless DB connectivity** — pooler `DATABASE_URL` + `directUrl` | `prisma/schema.prisma`, `.env.example` | live: `/api/health/ready` → `{"database":"ok"}` |
+| SEC-RLS-1 | **RLS lockdown** — ENABLE (not FORCE) on all tables, revoke anon/authenticated, alter default privileges | `prisma/migrations/00000000000007_rls_lockdown/migration.sql` | applied + verified against production (35/35 RLS-on, 0 residual grants, Prisma read+write intact); `docs/SECURITY.md` § "Database-level access control" |
+| SEC-HDR-1 | **Restored SEC-2 headers + build stamp** | `next.config.mjs` | live: response headers confirmed; `tests/build-info.test.ts` |
+| LAND-1 | **Public landing page** at `/` | `src/app/(public)/page.tsx`, `src/app/(public)/layout.tsx` | e2e regression 4a; live (200 signed-out, forward signed-in) |
+| LAND-2 | **Control Tower `/` → `/portfolio`** — route registry + redirects + demo beats | `src/lib/governance/config.ts`, `src/components/layout/Sidebar.tsx`, `src/lib/workspace/lenses.ts`, `src/middleware.ts`, `src/lib/demo/demo-script.ts` | `tests/enterprise-flows.test.ts`, `tests/rbac-matrix.test.ts`; e2e Suites A/B/J1 updated to `/portfolio` |
+
+**Verification:** `npx tsc --noEmit` → 0 errors; `npx vitest run` → **388
+passed** across 29 files; `npx playwright test` → **47 passed** across
+Suites A–K. Production `/api/health/ready` → `{"database":"ok"}`; SEC-2
+headers live; `/` public, `/portfolio` gated.
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to

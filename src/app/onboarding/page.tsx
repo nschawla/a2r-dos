@@ -6,7 +6,7 @@ import { OnboardingForm } from './onboarding-form';
 export default async function OnboardingPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect('/login');
-  if ((session.memberships ?? []).length > 0) redirect('/');
+  if ((session.memberships ?? []).length > 0) redirect('/launch');
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-bg px-4">

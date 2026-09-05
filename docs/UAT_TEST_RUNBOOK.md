@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — UAT Test Runbook
 
-_Applies to v1.4.x · Last updated 2026-09-05_
+_Applies to v1.5.x · Last updated 2026-09-05_
 
 This runbook is the human-executable half of the QA framework. It gives a
 tester **explicit login data, exact steps, expected visual outcomes, and a
@@ -31,11 +31,11 @@ All demo passwords are **`password12345`** unless noted.
 
 | Email | Console role | Delivery role | Default landing |
 | --- | --- | --- | --- |
-| `admin@a2rventures-demo.test` | Owner/Admin | ADMIN | Control Tower (`/`) |
+| `admin@a2rventures-demo.test` | Owner/Admin | ADMIN | Control Tower (`/portfolio`) |
 | `vp@a2rventures-demo.test` | Viewer | VP_EXECUTIVE | SteerCo Briefing (`/steerco`) |
-| `pd@a2rventures-demo.test` | Admin | PRACTICE_DIRECTOR | Control Tower (`/`) |
-| `dm@a2rventures-demo.test` | Member | DELIVERY_MANAGER | Control Tower (`/`) |
-| `pm@a2rventures-demo.test` | Member | PROJECT_MANAGER | Control Tower (`/`) |
+| `pd@a2rventures-demo.test` | Admin | PRACTICE_DIRECTOR | Control Tower (`/portfolio`) |
+| `dm@a2rventures-demo.test` | Member | DELIVERY_MANAGER | Control Tower (`/portfolio`) |
+| `pm@a2rventures-demo.test` | Member | PROJECT_MANAGER | Control Tower (`/portfolio`) |
 
 **Tenant: Acme Health** (`acme-health`) — same five role shapes:
 `admin@acme-health.test`, `sponsor@acme-health.test` (VP), `pd@acme-health.test`,
@@ -64,7 +64,7 @@ All demo passwords are **`password12345`** unless noted.
 ## 2. Automated coverage (run before manual UAT)
 
 ```bash
-npm test            # Vitest — 387 unit + integration tests across 29 files, ~5s
+npm test            # Vitest — 388 unit + integration tests across 29 files, ~5s
 npx tsc --noEmit    # strict typecheck, 0 errors
 npm run test:e2e    # Playwright — full Suites A–K against a running dev server
 ```
@@ -92,9 +92,11 @@ A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
 | 1 | Sign in as `vp@a2rventures-demo.test` | URL settles on **`/steerco`**; page title "…— Portfolio Review" | |
-| 2 | Sign out, sign in as `pm@a2rventures-demo.test` | URL settles on **`/`**; heading **"PS Control Tower"**; subhead says "Scoped to your Project Manager portfolio" | |
-| 3 | Sign out, sign in as `admin@a2rventures-demo.test` | URL **`/`**; subhead "Portfolio-wide view across every registered engagement" | |
+| 2 | Sign out, sign in as `pm@a2rventures-demo.test` | URL settles on **`/portfolio`**; heading **"PS Control Tower"**; subhead says "Scoped to your Project Manager portfolio" | |
+| 3 | Sign out, sign in as `admin@a2rventures-demo.test` | URL **`/portfolio`**; subhead "Portfolio-wide view across every registered engagement" | |
 | 4 | As admin, click the browser back button after any deep navigation | No full reload flash; app chrome stays mounted | |
+| 5 | Sign out entirely, visit **`/`** | The **public landing page** renders (hero "Deliver Projects with Absolute Clarity…", "Launch App" button) — no redirect to `/login` | |
+| 6 | While signed in, visit **`/`** | Forwarded straight to your workspace (`/portfolio` or your lens landing) — marketing is not shown to a signed-in user | |
 
 **Checkpoint:** each role lands on its tailored page, no `/login` bounce, no error overlay.
 
@@ -107,7 +109,7 @@ Signed in as `admin@a2rventures-demo.test`.
 | 1 | Header: click the **"Perspective · Delivery ▾"** pill | Menu "Land me on" opens with **four** rows: Executive / SteerCo, Delivery Lead, Finance Controller, Operations — each with a one-line blurb | |
 | 2 | Click **Executive / SteerCo** | Navigates to `/steerco` **instantly** (no reload); pill now reads "Perspective · Executive" | |
 | 3 | In the address bar go to `/launch` | Redirects straight back to `/steerco` (choice persisted) | |
-| 4 | Switch perspective back to **Delivery Lead** | Navigates to `/` | |
+| 4 | Switch perspective back to **Delivery Lead** | Navigates to `/portfolio` | |
 | 5 | Sign in as `pm@a2rventures-demo.test`, open the Perspective menu | Only **two** rows: Delivery Lead, Operations (PM can't see Executive/Finance) | |
 
 **Checkpoint:** switch is instant, persisted, and role-gated.
@@ -133,11 +135,11 @@ Signed in as `admin@a2rventures-demo.test` → **Admin & Org Setup** → **Gover
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
 | 1 | As `admin@…`, Governance tab → apply **Strict Financial Governance** | Toast confirms | |
-| 2 | Sign in as `pd@a2rventures-demo.test`, land on `/` (Portfolio tab) | **"Avg. Baseline Margin"** stat card shows **`••••`** with a small lock; **Total Contract Value** still shows a number | |
+| 2 | Sign in as `pd@a2rventures-demo.test`, land on `/portfolio` (Portfolio tab) | **"Avg. Baseline Margin"** stat card shows **`••••`** with a small lock; **Total Contract Value** still shows a number | |
 | 3 | As PD open **Financial Realization** for any engagement | Page shows a "Restricted to Partners" notice; EAC / margin figures masked | |
 | 4 | Sign in as `vp@a2rventures-demo.test` | Margins **still visible** (VP is unaffected by the delivery-role scrub) | |
 | 5 | As `admin@…` restore **Standard Delivery** | | |
-| 6 | Sign in as `pd@…` again, view `/` | "Avg. Baseline Margin" now shows **~37.5%** (un-masked) | |
+| 6 | Sign in as `pd@…` again, view `/portfolio` | "Avg. Baseline Margin" now shows **~37.5%** (un-masked) | |
 | 7 | Sign in as `pm@a2rventures-demo.test` (any governance) | Margins/cost always masked for a PM — role-based baseline | |
 
 **Checkpoint:** the org toggle bites Practice Director + below, never VP/Admin; masked = `••••` + lock, never a blank.
@@ -190,7 +192,7 @@ Sign in as `admin@a2rventures-demo.test`, go to **Command Center**.
 | 5 | **Active Stream** | A single chronological feed mixing Activity / Governance / Risk items with tone dots and relative timestamps | |
 | 6 | As `pm@…` view Command Center | Margin Health vital shows `••••` | |
 
-### UAT-4.2 · Portfolio / Control Tower (`/`)
+### UAT-4.2 · Portfolio / Control Tower (`/portfolio`)
 
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
@@ -237,14 +239,14 @@ Sign in as `ops@a2rventures.com` (or `navinder@…`).
 
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | Landing | `ops@…` (no membership) lands on `/ops`; a non-staff user visiting `/ops/*` is redirected to `/` | |
+| 1 | Landing | `ops@…` (no membership) lands on `/ops`; a non-staff user visiting `/ops/*` is redirected to `/portfolio` | |
 | 2 | **Telemetry** | Platform-wide totals (tenants, red engagements, at-risk RAID) + per-tenant breakdown | |
 | 3 | **Platform Pulse** | Running build + commit, live DB probe with latency, last test-suite result, Engineering Stream; header health pill refreshes | |
 | 4 | **Tenants** | Every org with status pills; each row's actions menu: Suspend / Impersonate / Export / Purge | |
 | 5 | **Identity Federation** | Tenant picker → per-tenant SSO panel (see UAT-3.5) | |
 | 6 | **Ingestion & Templates** | CSV template downloads + schema reference | |
 | 7 | Impersonate a tenant (Tenants → actions → Impersonate, give a reason) | Opens a **read-only** tenant session with a persistent banner; the reason is written to that tenant's Compliance Ledger before the session starts | |
-| 8 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.4.x`; click → Release Notes modal | |
+| 8 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.5.x`; click → Release Notes modal | |
 
 ### UAT-4.6 · Admin & Org Setup (`/admin`)
 
@@ -314,6 +316,7 @@ Sign in as `admin@a2rventures-demo.test`.
 | 2 | `npm run test:e2e` → Suites A–K all green | |
 | 3 | Sign-in works for one login per role shape (admin / vp / pd / dm / pm / ops) | |
 | 4 | ⌘K palette opens on every route incl. `/login` and `/ops` | |
+| 4a | `/` (signed out) shows the public landing page; `/` (signed in) forwards to the workspace; `/portfolio` renders the Control Tower | |
 | 5 | Tenant switch (header) fully re-scopes the workspace | |
 | 6 | No Next.js error overlay anywhere during the walkthrough | |
 | 7 | Compliance Ledger integrity badge = **Verified** in every tenant | |

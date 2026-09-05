@@ -42,7 +42,7 @@ export async function ProjectPicker({
       {projects.length === 0 ? (
         <p className="text-ink-muted text-sm">
           No projects yet —{' '}
-          <Link href="/" className="text-brand">
+          <Link href="/portfolio" className="text-brand">
             register one from the Control Tower
           </Link>
           .

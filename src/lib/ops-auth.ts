@@ -55,6 +55,6 @@ export async function requireOpsContext(): Promise<OpsContext> {
   const staff =
     session.user.isA2rStaff === true ||
     resolveIsA2rStaff({ email: session.user.email, isA2rStaff: session.user.isA2rStaff });
-  if (!staff) redirect('/');
+  if (!staff) redirect('/portfolio');
   return toOpsContext(session);
 }

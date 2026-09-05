@@ -21,7 +21,7 @@ export default function DashboardNotFound() {
           link is out of date.
         </p>
         <div className="mt-5 flex items-center justify-center gap-2">
-          <Link href="/" className="btn-primary !w-auto px-5 text-xs">
+          <Link href="/portfolio" className="btn-primary !w-auto px-5 text-xs">
             Back to the Control Tower
           </Link>
         </div>

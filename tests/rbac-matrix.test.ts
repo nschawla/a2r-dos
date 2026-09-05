@@ -123,6 +123,10 @@ describe('isRouteBlockedForPersona', () => {
   });
 
   it('never blocks the Control Tower landing route for any persona', () => {
+    for (const persona of RBAC_PERSONAS) expect(isRouteBlockedForPersona(persona, '/portfolio')).toBe(false);
+  });
+
+  it('the bare root (public landing) owns no module and is never blocked', () => {
     for (const persona of RBAC_PERSONAS) expect(isRouteBlockedForPersona(persona, '/')).toBe(false);
   });
 
@@ -145,8 +149,7 @@ describe('isRouteBlockedForPersona', () => {
   it('agrees with isModuleAllowedForPersona for every module × persona pair', () => {
     for (const persona of RBAC_PERSONAS) {
       for (const m of GOVERNABLE_MODULES) {
-        const path = m.href === '/' ? '/' : m.href;
-        expect(isRouteBlockedForPersona(persona, path)).toBe(!isModuleAllowedForPersona(persona, m.key));
+        expect(isRouteBlockedForPersona(persona, m.href)).toBe(!isModuleAllowedForPersona(persona, m.key));
       }
     }
   });

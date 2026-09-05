@@ -40,7 +40,7 @@ const NAV_GROUPS: NavGroup[] = [
         ),
       },
       {
-        href: '/',
+        href: '/portfolio',
         label: 'Control Tower',
         // 2×2 portfolio grid
         icon: (

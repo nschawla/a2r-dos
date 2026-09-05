@@ -64,7 +64,7 @@ export interface DemoStep {
 export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'welcome',
-    route: '/',
+    route: '/portfolio',
     // 28-word VO at ~168 wpm — see docs/AUTO_DEMO_SCRIPT.md §3 for the
     // pacing math behind every duration in this file.
     durationMs: 10000,
@@ -168,7 +168,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   },
   {
     id: 'closing',
-    route: '/',
+    route: '/portfolio',
     durationMs: 7000, // 19 words at ~163 wpm
     act: 'Introduction',
     personas: ['Executive', 'Admin'],

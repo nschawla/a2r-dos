@@ -48,7 +48,7 @@ async function signInAs(p: Page, email: string, password: string) {
   await p.locator('input[type="email"]').fill(email);
   await p.locator('input[type="password"]').fill(password);
   await p.getByRole('button', { name: 'Sign in' }).click();
-  await p.waitForURL('**/', { timeout: 30_000 });
+  await p.waitForURL((u) => !/\/login|\/launch/.test(u.pathname), { timeout: 30_000 });
   await p.reload();
 }
 
@@ -75,7 +75,8 @@ test.describe('Suite A — Authentication & Master Access', () => {
     await page.locator('input[type="password"]').fill(MASTER_PASSWORD);
     await page.getByRole('button', { name: 'Sign in' }).click();
 
-    await page.waitForURL('**/', { timeout: 30_000 });
+    await page.waitForURL((u) => !/\/login|\/launch/.test(u.pathname), { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/portfolio$/);
     await expect(page.getByRole('heading', { name: 'PS Control Tower', level: 1 })).toBeVisible();
     await expectNoErrorOverlay(page);
   });
@@ -96,7 +97,7 @@ test.describe('Suite A — Authentication & Master Access', () => {
 // ────────────────────────────────────────────────────────────────────────────
 test.describe('Suite B — PS Control Tower & Multi-Tenant Scoping', () => {
   test('B1 · portfolio rollup stat cards render (TCV, Avg Baseline Margin, High-Risk)', async () => {
-    await page.goto('/');
+    await page.goto('/portfolio');
     await expect(page.getByText('Total Contract Value')).toBeVisible();
     await expect(page.getByText('Avg. Baseline Margin')).toBeVisible();
     await expect(page.getByText('High-Risk (Red) Projects')).toBeVisible();
@@ -124,7 +125,7 @@ test.describe('Suite B — PS Control Tower & Multi-Tenant Scoping', () => {
 
   test('B3 · switching tenant to "Acme Health" re-scopes the portfolio', async () => {
     await switchTenant(page, 'Acme Health');
-    await page.goto('/');
+    await page.goto('/portfolio');
     await expect(page.getByRole('heading', { name: 'PS Control Tower', level: 1 })).toBeVisible();
 
     await page.getByRole('tab', { name: /Engagements/ }).click();
@@ -331,12 +332,12 @@ test.describe('Suite D — A2R Ops Console', () => {
 test.describe('Suite E — Resource & Capacity Cockpit', () => {
   test.beforeAll(async () => {
     // back to the client workspace (Suite D left us in the ops console)
-    await page.goto('/');
+    await page.goto('/portfolio');
     await switchTenant(page, 'A2R DOS Demo');
   });
 
   test('E1 · PS Control Tower shows the Blended Billable Utilization KPI linking to /capacity', async () => {
-    await page.goto('/');
+    await page.goto('/portfolio');
     const kpi = page.locator('a[href="/capacity"]', { hasText: 'Blended Billable Utilization' });
     await expect(kpi).toBeVisible();
     await expect(kpi.locator('.text-2xl')).toContainText('%');
@@ -476,7 +477,7 @@ test.describe('Suite G — Methodology Playbook', () => {
 // ────────────────────────────────────────────────────────────────────────────
 test.describe('Suite H — Role-Based Data Masking', () => {
   test('H1 · master admin (Partner) sees financials in full — no masking', async () => {
-    await page.goto('/'); // Suite E left the active tenant on A2R DOS Demo
+    await page.goto('/portfolio'); // Suite E left the active tenant on A2R DOS Demo
     await expect(page.locator('header').getByRole('button').first()).toContainText('A2R DOS Demo');
     await expect(page.locator('.card', { hasText: 'Avg. Baseline Margin' })).not.toContainText('••••');
 
@@ -555,7 +556,7 @@ test.describe('Suite I — Tenant & Data Sovereignty', () => {
     await dialog.getByRole('textbox').fill('E2E check — investigating ticket 4821');
     await dialog.getByRole('button', { name: 'Start read-only session' }).click();
 
-    await page.waitForURL('**/');
+    await page.waitForURL((u) => !/\/ops|\/launch/.test(u.pathname), { timeout: 30_000 });
     const banner = page.locator('div', { has: page.getByRole('button', { name: 'Exit impersonation' }) }).last();
     await expect(banner).toContainText('Impersonating');
     await expect(banner).toContainText('Acme Health');

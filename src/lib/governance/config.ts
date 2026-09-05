@@ -42,7 +42,7 @@ export interface GovernableModule {
 
 export const GOVERNABLE_MODULES: readonly GovernableModule[] = [
   { key: 'command', label: 'Command Center', href: '/command' },
-  { key: 'control-tower', label: 'Control Tower', href: '/', core: true },
+  { key: 'control-tower', label: 'Control Tower', href: '/portfolio', core: true },
   { key: 'capacity', label: 'Resource & Capacity', href: '/capacity' },
   { key: 'commercial-baseline', label: 'Commercial Baseline', href: '/commercial-baseline' },
   { key: 'financials', label: 'Financial Realization', href: '/financials' },
@@ -241,7 +241,9 @@ export function hiddenHrefs(cfg: ResolvedGovernanceConfig): string[] {
 /**
  * The GOVERNABLE_MODULES entry that owns a concrete pathname — the deepest
  * (longest) href that prefixes the path, so `/financials/abc` resolves to
- * the `financials` module and `/` only ever resolves to control-tower.
+ * the `financials` module and `/portfolio` resolves to control-tower. The
+ * bare root `/` is the public landing page — it owns no module, so this
+ * returns null for it.
  * Shared by governance (this file) and the RBAC matrix
  * (src/lib/governance/rbacMatrix.ts) so route-ownership is one source of
  * truth, not two similar-but-drifting implementations.
@@ -249,10 +251,6 @@ export function hiddenHrefs(cfg: ResolvedGovernanceConfig): string[] {
 export function findOwningModule(pathname: string): GovernableModule | null {
   let match: GovernableModule | null = null;
   for (const m of GOVERNABLE_MODULES) {
-    if (m.href === '/') {
-      if (pathname === '/' && !match) match = m;
-      continue;
-    }
     if ((pathname === m.href || pathname.startsWith(`${m.href}/`)) && (!match || m.href.length > match.href.length)) {
       match = m;
     }

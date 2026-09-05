@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.5.0',
+    date: '2026-09-05',
+    headline: 'A public landing page — and the app moves off the bare root',
+    changes: [
+      { type: 'feature', text: 'A2R Ventures now has a public marketing landing page at the site root, readable with no account: a hero, the delivery problems A2R DOS solves (scattered spreadsheets, invisible risks, status-report fatigue), the three capabilities that answer them, and a "Launch App" button. A signed-in visitor is forwarded straight into their workspace.' },
+      { type: 'improvement', text: 'The authenticated Portfolio Control Tower moved from "/" to "/portfolio". Every post-sign-in landing, the perspective switcher, "back to workspace" links, and the Auto Demo tour follow the new path; the sidebar and ⌘K are unchanged. Existing bookmarks to "/" now land on the marketing page, which forwards a signed-in user onward.' },
+    ],
+  },
+  {
     version: '1.4.1',
     date: '2026-09-05',
     headline: 'Production hardening — database Row Level Security, serverless connection pooling, and restored security headers',

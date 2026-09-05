@@ -100,7 +100,7 @@ inside the comfortable 150–180 wpm band.
 ### ACT I — Introduction
 
 #### Beat 1 — `welcome`
-- **Route:** `/` (Portfolio Control Tower) · **Duration:** 10s · **Personas:** Executive, Admin, Full Tour
+- **Route:** `/portfolio` (Portfolio Control Tower) · **Duration:** 10s · **Personas:** Executive, Admin, Full Tour
 - **Highlight:** `#global-header`
 - **VO:**
   > Welcome to A2R Delivery OS — the delivery operating system built for professional services firms. This is the Portfolio Control Tower: every engagement, rolled up into one live view.
@@ -178,7 +178,7 @@ inside the comfortable 150–180 wpm band.
 ### Closing (both tracks rejoin here)
 
 #### Beat 11 — `closing`
-- **Route:** `/` · **Duration:** 7s · **Personas:** Executive, Admin, Full Tour
+- **Route:** `/portfolio` · **Duration:** 7s · **Personas:** Executive, Admin, Full Tour
 - **Highlight:** — (general page view)
 - **VO:**
   > That's the tour. Feel free to take the wheel from here — everything you just saw is one click away.
@@ -198,7 +198,7 @@ is the next beat's IN point; the route change happens exactly on cue.
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
-| 0:00–0:10 | 0–10 | `welcome` | `/` | `#global-header` |
+| 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
 | 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
 | 0:35–0:43 | 35–43 | `steerco` | `/steerco` | — |
@@ -208,24 +208,24 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 1:15–1:37 | 75–97 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
 | 1:37–1:47 | 97–107 | `ops-console` | `/ops` | — |
 | 1:47–1:55 | 107–115 | `ops-pulse` | `/ops/pulse` | — |
-| 1:55–2:02 | 115–122 | `closing` | `/` | — |
+| 1:55–2:02 | 115–122 | `closing` | `/portfolio` | — |
 
 ### 4.2 Executive Lens — 0:59 total, 6 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
-| 0:00–0:10 | 0–10 | `welcome` | `/` | `#global-header` |
+| 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
 | 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
 | 0:35–0:43 | 35–43 | `steerco` | `/steerco` | — |
 | 0:43–0:52 | 43–52 | `executive-hub` | `/reports` | — |
-| 0:52–0:59 | 52–59 | `closing` | `/` | — |
+| 0:52–0:59 | 52–59 | `closing` | `/portfolio` | — |
 
 ### 4.3 Admin / Ops Lens — 1:45 total, 9 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
-| 0:00–0:10 | 0–10 | `welcome` | `/` | `#global-header` |
+| 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
 | 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
 | 0:35–0:45 | 35–45 | `admin-setup` | `/admin` | — |
@@ -233,7 +233,7 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 0:58–1:20 | 58–80 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
 | 1:20–1:30 | 80–90 | `ops-console` | `/ops` | — |
 | 1:30–1:38 | 90–98 | `ops-pulse` | `/ops/pulse` | — |
-| 1:38–1:45 | 98–105 | `closing` | `/` | — |
+| 1:38–1:45 | 98–105 | `closing` | `/portfolio` | — |
 
 ---
 

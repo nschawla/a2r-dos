@@ -14,6 +14,7 @@
  * aspirational marketing copy; keep this page honest if either changes.
  */
 import type { Metadata } from 'next';
+import { Container } from '@/components/ui/container';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — A2R Delivery OS™',
@@ -32,7 +33,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 export default function PrivacyPage() {
   return (
-    <>
+    <Container size="prose">
       <div>
         <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Legal</div>
         <h1 className="text-2xl font-display font-bold">Privacy Policy</h1>
@@ -153,6 +154,6 @@ export default function PrivacyPage() {
           feature (Help &rarr; Contact Support), available to any signed-in user of the Service.
         </p>
       </Section>
-    </>
+    </Container>
   );
 }

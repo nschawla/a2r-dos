@@ -37,7 +37,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
 
         <div className="border-t border-border px-2.5 py-2.5">
           <Link
-            href="/"
+            href="/launch"
             className="block rounded-sm px-3 py-2.5 text-[13px] font-semibold text-ink-muted hover:bg-surface-2 hover:text-ink transition-colors"
           >
             ← Client Workspace

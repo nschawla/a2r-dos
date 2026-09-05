@@ -9,9 +9,11 @@ import { personaForDeliveryRole, isRouteBlockedForPersona } from '@/lib/governan
 // which the Edge middleware runtime can't bundle.
 const ACTIVE_ORG_COOKIE = 'a2r_active_org';
 
-// Gate everything except the public auth routes, the WP8 public legal pages
-// (Terms of Service / Privacy Policy — readable by a prospective customer
-// with no account), the NextAuth API, the Bearer-token Data Ingestion API
+// Gate everything except the public marketing landing page (`/` exactly —
+// the `|$` in the matcher below), the public auth routes, the WP8 public
+// legal pages (Terms of Service / Privacy Policy — readable by a
+// prospective customer with no account), the NextAuth API, the
+// Bearer-token Data Ingestion API
 // Bridge (/api/v1/* — authenticated by API key, not a session cookie), the
 // unauthenticated health/readiness probes (/api/health/* — for load
 // balancers and uptime monitors), the token-authed internal automation
@@ -39,7 +41,7 @@ export default withAuth(
     if (pathname.startsWith('/ops')) {
       const isStaff = token?.isA2rStaff === true || isA2rStaffEmail(token?.email);
       if (!isStaff) {
-        return NextResponse.redirect(new URL('/', req.url));
+        return NextResponse.redirect(new URL('/portfolio', req.url));
       }
       return NextResponse.next();
     }
@@ -51,7 +53,7 @@ export default withAuth(
       if (active) {
         const persona = personaForDeliveryRole(resolveDeliveryRole(active));
         if (isRouteBlockedForPersona(persona, pathname)) {
-          return NextResponse.redirect(new URL('/', req.url));
+          return NextResponse.redirect(new URL('/portfolio', req.url));
         }
       }
     }
@@ -65,6 +67,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/((?!api/auth|api/v1|api/health|api/internal|login|register|onboarding|terms|privacy|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api/auth|api/v1|api/health|api/internal|login|register|onboarding|terms|privacy|_next/static|_next/image|favicon.ico|$).*)',
   ],
 };

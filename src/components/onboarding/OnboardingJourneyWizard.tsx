@@ -614,7 +614,7 @@ function GoLiveStepView({
       </div>
 
       <div className="flex justify-end">
-        <Link href="/" className="btn-primary !w-auto px-6 inline-flex items-center justify-center">
+        <Link href="/launch" className="btn-primary !w-auto px-6 inline-flex items-center justify-center">
           Enter Your Workspace →
         </Link>
       </div>

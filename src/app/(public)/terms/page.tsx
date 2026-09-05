@@ -17,6 +17,7 @@
  * before it governs a real customer relationship.
  */
 import type { Metadata } from 'next';
+import { Container } from '@/components/ui/container';
 
 export const metadata: Metadata = {
   title: 'Terms of Service — A2R Delivery OS™',
@@ -35,7 +36,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 export default function TermsPage() {
   return (
-    <>
+    <Container size="prose">
       <div>
         <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Legal</div>
         <h1 className="text-2xl font-display font-bold">Terms of Service &amp; End-User License Agreement</h1>
@@ -197,6 +198,6 @@ export default function TermsPage() {
           (Help &rarr; Contact Support), available to any signed-in user of the Service.
         </p>
       </Section>
-    </>
+    </Container>
   );
 }

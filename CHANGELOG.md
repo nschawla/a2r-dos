@@ -10,6 +10,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.5.0] — 2026-09-05
+
+_A public landing page — and the app moves off the bare root._
+
+### Added
+- **Public marketing landing page at `/`.** Readable with no account (the middleware auth gate now excludes the bare root — `src/app/(public)/page.tsx`, on the existing lightweight public shell). Hero headline "Deliver Projects with Absolute Clarity. Zero Chaos.", the three problems A2R DOS addresses (scattered spreadsheets, invisible project risks, status-report fatigue), the three capabilities that answer them (AI document parsing, real-time engagement visibility, centralized governed workflows), a clean header/footer, and a **Launch App** button → `/launch`. A signed-in visitor to `/` is redirected to `/launch` (the role-aware dispatcher) rather than shown marketing.
+
+### Changed
+- **The Portfolio Control Tower moved from `/` to `/portfolio`.** The `control-tower` route in `GOVERNABLE_MODULES`, the Delivery lens landing, `middleware.ts` fallback redirects, `requireOpsContext`'s non-staff bounce, the onboarding "enter workspace" links, the `/admin` "← Client Workspace" link, and the Auto Demo `welcome`/`closing` beats all follow the new path. The Sidebar and ⌘K entries are unchanged (they already resolve through the same route registry). `findOwningModule` no longer special-cases `/`.
+- `/terms` and `/privacy` now wrap their own reading-width container (the public layout no longer imposes one, since the landing page is full-bleed).
+
+### Verification
+- `npx tsc --noEmit` → 0 errors. `npx vitest run` → **388 passed** across 29 files. `npx playwright test` → **47 passed** (Suites A–K; sign-in helpers and Control Tower navigation updated to `/portfolio`). Live: `/` renders publicly (200), `/portfolio` gates to `/login?callbackUrl=%2Fportfolio` (307), a signed-in visit to `/` forwards to `/portfolio`.
+
 ## [1.4.1] — 2026-09-05
 
 _Production hardening — database Row Level Security, serverless connection pooling, and restored security headers._

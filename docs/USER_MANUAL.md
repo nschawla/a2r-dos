@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — User Manual & Operator's Guide
 
-_Applies to v1.4.0 · Last updated 2026-09-05_
+_Applies to v1.5.0 · Last updated 2026-09-05_
 
 A2R Delivery OS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
@@ -60,7 +60,7 @@ top-to-bottom.
 | Item | Use it to… |
 | --- | --- |
 | **Command Center** (`/command`) | Start your day. Portfolio vitals, a command bar, and the live activity stream on one screen. See §3. |
-| **Control Tower** (`/`) | See every engagement in your scope — contract value, health, open RAID, one-click into each module. |
+| **Control Tower** (`/portfolio`) | See every engagement in your scope — contract value, health, open RAID, one-click into each module. It's where a Delivery-lens sign-in lands, and `/` (the public site) forwards you here once you're signed in. |
 | **Resource & Capacity** (`/capacity`) | Blended billable utilization, the concurrency-overload radar, and a 52-week staffing forecast against role targets and the holiday calendar. |
 
 ### Engagement Governance — the delivery sequence
@@ -452,7 +452,7 @@ The "Portfolio scope" column above isn't just a display convention — the
 same rule filters the underlying data on every surface that lists more
 than one engagement or roster entry:
 
-- **Portfolio Control Tower** (`/`) — your stat cards, project list, and
+- **Portfolio Control Tower** (`/portfolio`) — your stat cards, project list, and
   program rollups already reflect only the engagements in your scope.
 - **Resource & Capacity Cockpit** (`/capacity`) — a Practice Director or
   Delivery Manager sees their own practice's/team's roster and staffing

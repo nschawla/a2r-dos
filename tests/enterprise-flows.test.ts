@@ -60,11 +60,11 @@ function landingRouteFor(ctx: LensViewerContext, storedCookie: string | null = n
 
 describe('Enterprise flow · role-based landing resolution', () => {
   const cases: [DeliveryRole, string][] = [
-    ['ADMIN', '/'],
+    ['ADMIN', '/portfolio'],
     ['VP_EXECUTIVE', '/steerco'],
-    ['PRACTICE_DIRECTOR', '/'],
-    ['DELIVERY_MANAGER', '/'],
-    ['PROJECT_MANAGER', '/'],
+    ['PRACTICE_DIRECTOR', '/portfolio'],
+    ['DELIVERY_MANAGER', '/portfolio'],
+    ['PROJECT_MANAGER', '/portfolio'],
   ];
 
   it.each(cases)('a fresh %s sign-in lands on %s', (role, route) => {
@@ -72,7 +72,7 @@ describe('Enterprise flow · role-based landing resolution', () => {
   });
 
   it('an A2R staff member who also holds a tenant membership still lands per their delivery role', () => {
-    expect(landingRouteFor({ deliveryRole: 'PROJECT_MANAGER', isA2rStaff: true })).toBe('/');
+    expect(landingRouteFor({ deliveryRole: 'PROJECT_MANAGER', isA2rStaff: true })).toBe('/portfolio');
   });
 
   it('every role resolves to a real in-app landing route', () => {
@@ -84,7 +84,7 @@ describe('Enterprise flow · role-based landing resolution', () => {
 
   it('a saved perspective wins over the role default at landing time', () => {
     const admin: LensViewerContext = { deliveryRole: 'ADMIN', isA2rStaff: false };
-    expect(landingRouteFor(admin)).toBe('/'); // default
+    expect(landingRouteFor(admin)).toBe('/portfolio'); // default
     expect(landingRouteFor(admin, 'executive')).toBe('/steerco');
     expect(landingRouteFor(admin, 'operations')).toBe('/command');
   });

@@ -48,7 +48,7 @@ export const LENSES: Record<WorkspaceLens, LensDef> = {
     key: 'delivery',
     label: 'Delivery Lead',
     short: 'Delivery',
-    landing: '/',
+    landing: '/portfolio',
     blurb: 'Every engagement, its health, and open RAID',
   },
   finance: {

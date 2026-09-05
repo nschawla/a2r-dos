@@ -396,8 +396,11 @@ export function DevDocs({ build, releases }: { build: BuildInfo; releases: Relea
           </p>
           <p>
             <span className="font-semibold text-ink">Route groups.</span> <Code>src/app/(dashboard)</Code> — the
-            tenant workspace. <Code>src/app/(admin)</Code> — the A2R Ops Console (<Code>/ops/*</Code>), its own
-            chrome and a hard staff gate. <Code>src/app/(auth)</Code> / public legal pages sit outside both.
+            tenant workspace (the Control Tower is <Code>/portfolio</Code>). <Code>src/app/(admin)</Code> — the
+            A2R Ops Console (<Code>/ops/*</Code>), its own chrome and a hard staff gate.{' '}
+            <Code>src/app/(public)</Code> — the marketing landing page at <Code>/</Code> plus{' '}
+            <Code>/terms</Code> / <Code>/privacy</Code>, all excluded from the middleware auth gate.{' '}
+            <Code>src/app/(auth)</Code> — login / register.
           </p>
           <p>
             <span className="font-semibold text-ink">Schema workflow.</span> Edit{' '}

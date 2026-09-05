@@ -96,7 +96,7 @@ test.describe('Suite J1 — role-based landing resolution', () => {
 
   test('a Project Manager lands on the Control Tower', async () => {
     await signIn(page, 'pm@a2rventures-demo.test');
-    await expect(page).toHaveURL(/localhost:\d+\/(\?.*)?$/);
+    await expect(page).toHaveURL(/\/portfolio$/);
     await expect(page.getByRole('heading', { name: 'PS Control Tower' })).toBeVisible();
   });
 
