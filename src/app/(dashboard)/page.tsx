@@ -2,13 +2,17 @@ import Link from 'next/link';
 import { requireOrgContext } from '@/lib/session';
 import { db } from '@/lib/db';
 import { getScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
+import { getScopedResourceWhere } from '@/lib/scoping';
 import { getProjectHealth } from '@/server/queries/health';
 import { getBlendedUtilization } from '@/server/queries/capacity';
+import { getVisibleCustomKpis, getKpiMetricValues } from '@/server/queries/kpi-data';
+import { personaForDeliveryRole } from '@/lib/governance/rbacMatrix';
 import { DELIVERY_ROLE_LABEL } from '@/lib/auth/rbac';
 import { canViewMargins } from '@/lib/security/masking';
 import { MaskedValue } from '@/components/security/Masked';
 import { StatCard } from '@/components/ui/stat-card';
 import { ModuleTabs } from '@/components/ui/module-tabs';
+import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
 import { CreateProjectForm } from './create-project-form';
 
 const HEALTH_DOT: Record<string, string> = { G: 'bg-success', Y: 'bg-warning', R: 'bg-critical' };
@@ -33,7 +37,12 @@ export default async function HomePage() {
       take: 10,
       include: { user: { select: { name: true, email: true } }, project: { select: { name: true } } },
     }),
-    db.resource.count({ where: { organizationId } }),
+    // Scoped like the roster on /capacity — "Resources on Roster" is
+    // headcount for someone else's team, the same kind of practice-
+    // boundary data as the project list above. `practiceCount` stays
+    // tenant-wide deliberately: it's a structural fact about the org
+    // (how many practice buckets exist at all), not a roster.
+    db.resource.count({ where: getScopedResourceWhere(context) }),
     db.practice.count({ where: { organizationId } }),
     getBlendedUtilization(organizationId),
   ]);
@@ -44,6 +53,13 @@ export default async function HomePage() {
     _count: { _all: true },
   });
   const openRaidByProject = new Map(raidCounts.map((r) => [r.projectId, r._count._all]));
+
+  // Custom KPI Definition Engine — skip the extra schedule/RAID/capacity
+  // queries entirely when the tenant hasn't defined any KPIs, the common
+  // case today.
+  const customKpis = await getVisibleCustomKpis(organizationId);
+  const kpiValues = customKpis.length > 0 ? await getKpiMetricValues(organizationId, scopedProjectIds, summary) : {};
+  const viewerPersona = personaForDeliveryRole(deliveryRole);
 
   const portfolioPanel = (
     <>
@@ -61,6 +77,8 @@ export default async function HomePage() {
           tone={summary.highRiskCount > 0 ? 'text-critical' : undefined}
         />
       </div>
+
+      <KpiWidgetRow kpis={customKpis} values={kpiValues} persona={viewerPersona} />
 
       <Link
         href="/capacity"

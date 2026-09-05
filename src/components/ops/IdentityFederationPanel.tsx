@@ -447,7 +447,7 @@ function GroupMappings({
   organizationId: string;
   idp: IdentityProviderView;
   practices: { id: string; name: string }[];
-  run: (fn: () => Promise<{ ok: boolean; error?: string }>, opts?: { success?: string; errorTitle?: string }) => Promise<void>;
+  run: (fn: () => Promise<{ ok: boolean; error?: string }>, opts?: { success?: string; errorTitle?: string }) => Promise<boolean>;
   busy: boolean;
 }) {
   const [claimValue, setClaimValue] = useState('');

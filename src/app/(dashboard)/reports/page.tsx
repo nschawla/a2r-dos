@@ -9,6 +9,11 @@ import { ExecutiveBriefing } from '@/components/reports/ExecutiveBriefing';
 import { ReportsHubClient, type ReportsProjectView } from '@/components/reports/reports-hub-client';
 import { canViewMargins } from '@/lib/security/masking';
 import { ModuleTabs } from '@/components/ui/module-tabs';
+import { computePortfolioSummary } from '@/lib/calculations/portfolio';
+import { toAuditEntries, toRateRoles, toSizingInput, hierarchyLevelLower } from '@/server/queries/calc-adapters';
+import { getVisibleCustomKpis, getKpiMetricValues } from '@/server/queries/kpi-data';
+import { personaForDeliveryRole } from '@/lib/governance/rbacMatrix';
+import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
 
 /**
  * Executive Briefing Hub (`/reports`). Server component with two layers:
@@ -53,15 +58,41 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: {
   const selectedProject = selected ?? reportable[0];
   const selectedProjectId = selectedProject?.id ?? null;
 
-  const [decisionsResult, resources, briefing] = await Promise.all([
+  const [decisionsResult, resources, briefing, deliveryRoles, customKpis] = await Promise.all([
     selectedProjectId ? listSteerCoDecisions(selectedProjectId) : Promise.resolve(null),
     db.resource.findMany({ where: { organizationId }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     getExecutiveBriefing(organizationId),
+    db.deliveryRole.findMany({ where: { organizationId } }),
+    getVisibleCustomKpis(organizationId),
   ]);
 
   const canEdit = selectedProject
     ? canEditProject({ deliveryRole, resourceId, practiceId: resourcePracticeId }, selectedProject)
     : false;
+
+  // Custom KPI Definition Engine — reuses `scoped` (this viewer's own
+  // role-scoped project list, already fetched above for the engagement
+  // picker) rather than a fresh org-wide query. That's a narrower scope
+  // than the Executive Briefing panel above it, which is deliberately
+  // org-wide for every viewer (see this file's own doc comment) — a
+  // Practice Director's custom-KPI cards here read their own practice,
+  // not the whole tenant the briefing shows. Skipped entirely when the
+  // tenant has no custom KPIs defined.
+  const scopedProjectIds = scoped.map((p) => p.id);
+  const rateRoles = toRateRoles(deliveryRoles);
+  const portfolioSummary = computePortfolioSummary(
+    scoped.map((p) => ({
+      id: p.id,
+      hierarchyLevel: hierarchyLevelLower(p.hierarchyLevel),
+      locked: p.locked,
+      sizing: toSizingInput(p),
+      auditEntries: toAuditEntries(p.auditEntries),
+    })),
+    rateRoles
+  );
+  const kpiValues =
+    customKpis.length > 0 ? await getKpiMetricValues(organizationId, scopedProjectIds, portfolioSummary) : {};
+  const viewerPersona = personaForDeliveryRole(deliveryRole);
 
   return (
     <>
@@ -82,7 +113,12 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: {
         ]}
         panels={{
           briefing: (
-            <ExecutiveBriefing briefing={briefing} showFinancials={canViewMargins(deliveryRole, governance)} />
+            <>
+              <ExecutiveBriefing briefing={briefing} showFinancials={canViewMargins(deliveryRole, governance)} />
+              <div className="no-print">
+                <KpiWidgetRow kpis={customKpis} values={kpiValues} persona={viewerPersona} />
+              </div>
+            </>
           ),
           engagements: (
             <section className="flex flex-col gap-4">

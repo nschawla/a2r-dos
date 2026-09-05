@@ -1,12 +1,22 @@
 import Link from 'next/link';
 import { requireOrgContext } from '@/lib/session';
 import { db } from '@/lib/db';
+import { getScopedProjectWhere } from '@/lib/scoping';
 
 /**
  * Shared "pick a project" landing for module index routes
  * (/commercial-baseline, /audit, /raid, /financials, /schedule) — each
  * module operates on one project at a time, addressed as
  * /<module>/[projectId].
+ *
+ * Role-Based Scoped Filtering: the list is built from
+ * `getScopedProjectWhere`, the same scoping every one of these modules'
+ * own `/<module>/[projectId]` detail pages already enforces on write via
+ * `authorizeProjectEdit` — before this, the picker itself showed every
+ * project in the tenant to every viewer, so a Delivery Manager or Project
+ * Manager could browse (read-only) into another practice's financials or
+ * RAID log even though they could never edit it. Now the picker never
+ * lists what the viewer isn't in scope for in the first place.
  */
 export async function ProjectPicker({
   modulePath,
@@ -17,9 +27,9 @@ export async function ProjectPicker({
   moduleLabel: string;
   moduleDesc: string;
 }) {
-  const { organizationId } = await requireOrgContext();
+  const context = await requireOrgContext();
   const projects = await db.project.findMany({
-    where: { organizationId },
+    where: await getScopedProjectWhere(context),
     orderBy: { createdAt: 'desc' },
     select: { id: true, name: true, client: true },
   });

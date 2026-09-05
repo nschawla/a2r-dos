@@ -46,6 +46,36 @@ export default async function AdminPage() {
         {!canEdit && <p className="text-warning text-xs mt-2">You have view-only access to org setup.</p>}
       </div>
 
+      <Link
+        href="/admin/onboarding"
+        className="card flex items-center justify-between gap-4 hover:border-brand/50 transition-colors"
+      >
+        <div>
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Guided Setup</div>
+          <h2 className="text-[15.5px] font-bold">Onboarding Journey</h2>
+          <p className="text-[12.5px] text-ink-muted mt-1 max-w-xl">
+            A five-step walkthrough — provisioning, governance, base data, role mapping, and go-live — for setting up
+            a new workspace or demoing the setup flow live.
+          </p>
+        </div>
+        <span className="text-brand text-xs font-semibold flex-none">Open →</span>
+      </Link>
+
+      <Link
+        href="/admin/kpis"
+        className="card flex items-center justify-between gap-4 hover:border-brand/50 transition-colors"
+      >
+        <div>
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Custom Metrics</div>
+          <h2 className="text-[15.5px] font-bold">Custom KPIs</h2>
+          <p className="text-[12.5px] text-ink-muted mt-1 max-w-xl">
+            Bind your own metric cards to real financials, schedule, RAID, and capacity data, and assign them to the
+            personas who should see them — cards render automatically on the portfolio dashboards they're bound to.
+          </p>
+        </div>
+        <span className="text-brand text-xs font-semibold flex-none">Open →</span>
+      </Link>
+
       <ModuleTabs
         tabs={[
           { key: 'roster', label: 'Roster' },

@@ -209,7 +209,7 @@ function RoleRow({
   practiceName: string;
   canEdit: boolean;
   canViewCost: boolean;
-  run: (fn: () => Promise<{ ok: boolean; error?: string }>, opts?: RunOpts) => Promise<void>;
+  run: (fn: () => Promise<{ ok: boolean; error?: string }>, opts?: RunOpts) => Promise<boolean>;
 }) {
   const router = useRouter();
   const runSafe = useSafeAction();

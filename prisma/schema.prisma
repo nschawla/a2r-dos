@@ -55,6 +55,8 @@ model User {
   // WP7 — every batch this user has staged via the Self-Service Ingestion
   // Portal.
   dataImportBatches DataImportBatch[]
+  // Every custom KPI definition this user authored.
+  customKpis        CustomKpi[]
 
   @@map("users")
 }
@@ -221,6 +223,7 @@ model Organization {
   apiKeys                ApiKey[]
   timesheetEntries       TimesheetEntry[]
   dataImportBatches      DataImportBatch[]
+  customKpis             CustomKpi[]
 
   @@map("organizations")
 }
@@ -1080,6 +1083,68 @@ model DataImportRow {
 
   @@index([batchId])
   @@map("data_import_rows")
+}
+
+// =========================================================
+// CUSTOM KPI DEFINITION ENGINE
+// =========================================================
+//
+// An admin-defined metric card, bound to one of the four real data
+// domains this app already computes (financials, schedule, RAID,
+// capacity — see src/lib/kpi-engine.ts's KPI_METRICS registry for the
+// exact metric catalog) and to the RbacPersona(s)
+// (src/lib/governance/rbacMatrix.ts) it should render for. This is a
+// curated metric *picker*, not a formula language: `metricKey` selects a
+// pre-computed value from the org's real calculation engines, and
+// `formulaType` only decides which direction counts as "good" when
+// comparing that value to the two thresholds below — there is nowhere to
+// inject arbitrary logic.
+
+enum KpiDataSource {
+  FINANCIALS
+  SCHEDULE
+  RAID
+  CAPACITY
+}
+
+// DIRECT: at/above `targetValue` is on-track (e.g. blended margin).
+// INVERSE: at/below `targetValue` is on-track (e.g. a count of overloaded
+// resources, where lower is always better).
+enum KpiFormulaType {
+  DIRECT
+  INVERSE
+}
+
+model CustomKpi {
+  id             String         @id @default(cuid())
+  organizationId String
+  name           String
+  dataSource     KpiDataSource
+  // One of src/lib/kpi-engine.ts's KpiMetricKey values for this
+  // dataSource — free-text column (same convention as
+  // ControlLabel.controlKey) so the metric catalog can grow without a
+  // migration.
+  metricKey      String
+  formulaType    KpiFormulaType @default(DIRECT)
+  // "On track" boundary — see KpiFormulaType above for direction.
+  targetValue    Float
+  // Beyond `targetValue` but at/within `warningValue` reads "at risk";
+  // beyond `warningValue` reads "critical". Must sit further from
+  // on-track than targetValue in the formulaType's direction — enforced
+  // in src/lib/kpi-engine.ts's validateKpiDefinition, not by the DB.
+  warningValue   Float
+  // RbacPersona values this card renders for (e.g. ["EXECUTIVE_BOARD"]) —
+  // free-text array, same convention as GovernanceConfig.hiddenModules.
+  targetPersonas String[]       @default([])
+  createdById    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@map("custom_kpis")
 }
 
 // =========================================================

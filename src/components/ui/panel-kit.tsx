@@ -24,21 +24,26 @@ export function useBusyAction() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function run(fn: () => Promise<{ ok: boolean; error?: string }>, opts: RunOpts = {}) {
+  /** Returns whether the action actually succeeded — callers that need to
+   * chain a next step only on success (e.g. advancing a wizard) can
+   * `if (await run(...)) …` rather than re-reading `error` state, which
+   * is still the *previous* render's value immediately after `await`. */
+  async function run(fn: () => Promise<{ ok: boolean; error?: string }>, opts: RunOpts = {}): Promise<boolean> {
     setBusy(true);
     setError(null);
     try {
       const outcome = await runSafe(fn, { errorTitle: opts.errorTitle ?? 'Couldn’t save changes' });
-      if (!outcome.ok) return; // threw — error toast already shown + logged
+      if (!outcome.ok) return false; // threw — error toast already shown + logged
       const result = outcome.data;
       if (!result.ok) {
         const message = result.error ?? 'Something went wrong';
         setError(message);
         toast({ variant: 'error', title: opts.errorTitle ?? 'Change not saved', description: message });
-        return;
+        return false;
       }
       if (opts.success) toast({ variant: 'success', title: opts.success });
       router.refresh();
+      return true;
     } finally {
       setBusy(false);
     }

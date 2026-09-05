@@ -18,19 +18,22 @@ against those exact windows.
 
 ## 1. Track overview
 
-Three playback tracks share one 9-beat master script — a track is a
+Three playback tracks share one 11-beat master script — a track is a
 persona-filtered *subsequence* of it, in the same order, never a rewrite:
 
 | Track | Persona value | Beats played | Total runtime |
 | --- | --- | --- | --- |
-| **Full Platform Tour** | `'Full Tour'` | All 9, in script order | **1:25** (85s) |
-| **Executive Lens** | `'Executive'` | Welcome → Command Center → SteerCo → Executive Hub → Closing (5 beats) | **0:44** (44s) |
-| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Admin Setup → Batch Import → Ops Console → Platform Pulse → Closing (7 beats) | **1:08** (68s) |
+| **Full Platform Tour** | `'Full Tour'` | All 11, in script order | **1:57** (117s) |
+| **Executive Lens** | `'Executive'` | Welcome → Command Center → Scoped Practice View → SteerCo → Executive Hub → Closing (6 beats) | **0:59** (59s) |
+| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Scoped Practice View → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Closing (9 beats) | **1:40** (100s) |
 
-Because a beat's line is identical everywhere it appears, **only 9 unique
+Because a beat's line is identical everywhere it appears, **only 11 unique
 voiceover files are ever needed** — not one per track/beat combination.
 Record each beat once; the per-track cue sheets in §4 just tell you which
-recording plays when, on which track.
+recording plays when, on which track. "Scoped Practice View" is the one
+beat shared by both single-persona tracks that isn't `welcome`,
+`command-center`, or `closing` — it's the Role-Based Scoped Filtering
+capability, and it reads the same way to either audience.
 
 ---
 
@@ -47,7 +50,7 @@ recording plays when, on which track.
   on-screen durations in §3.
 - **Suggested voice settings** (starting point — adjust by ear against the
   chosen voice):
-  - Stability: **0.45–0.55** (expressive enough to sound human across 9
+  - Stability: **0.45–0.55** (expressive enough to sound human across 11
     fairly technical beats, stable enough not to wander mid-sentence).
   - Similarity: **0.75+**.
   - Style exaggeration: **0.15–0.30** (this is narration, not a character
@@ -62,9 +65,13 @@ recording plays when, on which track.
   each recording plays back-to-back against a hard route change, so a
   clean start and a clean tail (no trailing breath/room tone beyond
   natural sentence-final decay) matters more than it would in a single
-  long-form narration.
+  long-form narration. Beat 3 (`scoped-practice-view`) is the one beat
+  that explicitly sets up a comparison — land a small, natural emphasis on
+  *"VP or Ops lead"* vs. *"Practice Director's seat"* so the contrast the
+  screen itself is about to show (the scope-indicator line flips between
+  "Tenant-wide" and "Scoped to your practice") reads clearly in audio too.
 - **File naming & delivery:** `vo-<beat-id>.mp3`, one file per beat id in
-  §3 (`vo-welcome.mp3`, `vo-command-center.mp3`, … `vo-closing.mp3` — 9
+  §3 (`vo-welcome.mp3`, `vo-command-center.mp3`, … `vo-closing.mp3` — 11
   files total). Deliver alongside a duration report (actual recorded
   length per file) so it can be checked against §3's on-screen budget
   before anything is wired into the app.
@@ -77,16 +84,18 @@ recording plays when, on which track.
 | SteerCo | "steer-co" (one word, rhymes with "hero-co") |
 | OS (in "A2R Delivery OS") | "O, S" (letters, not "oss") |
 | PDF | "P, D, F" (letters) |
+| KPI | "K, P, I" (letters) |
+| RAID | said as the word "raid," not spelled out |
 | Contoso | "con-TOE-so" — the example client name in beat 2, not a real customer |
 
 ---
 
-## 3. Master script — all 9 beats
+## 3. Master script — all 11 beats
 
 Grouped by act, exactly as `DEMO_SCRIPT` orders them. **Pacing** is words
 in the caption ÷ (`durationMs` ÷ 60000) — i.e. the words-per-minute a
-narrator would need to hit to finish exactly on cue. Every beat below now
-sits inside the comfortable 150–180 wpm band tuned in this pass.
+narrator would need to hit to finish exactly on cue. Every beat below sits
+inside the comfortable 150–180 wpm band.
 
 ### ACT I — Introduction
 
@@ -105,14 +114,22 @@ sits inside the comfortable 150–180 wpm band tuned in this pass.
 - **Delivery note:** land cleanly on the quoted example — a brief, natural emphasis on *"financials for Contoso"*, not a full character voice.
 - **Pacing:** 26 words / 10s ≈ **156 wpm**
 
-#### Beat 3 — `steerco`
+#### Beat 3 — `scoped-practice-view`
+- **Route:** `/capacity` · **Duration:** 15s · **Personas:** Executive, Admin, Full Tour
+- **Highlight:** `#capacity-scope-indicator`
+- **VO:**
+  > Every view in A2R Delivery OS is role-aware. A VP or Ops lead sees the whole portfolio here — tenant-wide. Switch to a Practice Director's seat, and the exact same screen scopes itself to just their own practice's roster and projects, automatically.
+- **Delivery note:** this is Role-Based Scoped Filtering's own beat — the highlighted line on screen literally reads "Tenant-wide — every practice." for a global role and "Scoped to your practice — N resources." for a Practice Director/Delivery Manager. The VO should land the *comparison*, not just describe one state.
+- **Pacing:** 41 words / 15s ≈ **164 wpm**
+
+#### Beat 4 — `steerco`
 - **Route:** `/steerco` · **Duration:** 8s · **Personas:** Executive, Full Tour
 - **Highlight:** — (general page view)
 - **VO:**
   > For the steering committee, the SteerCo Briefing distills the whole portfolio into a lean, board-ready read-out — and prints straight to a clean PDF.
 - **Pacing:** 23 words / 8s ≈ **172 wpm**
 
-#### Beat 4 — `executive-hub`
+#### Beat 5 — `executive-hub`
 - **Route:** `/reports` · **Duration:** 9s · **Personas:** Executive, Full Tour
 - **Highlight:** — (general page view)
 - **VO:**
@@ -121,7 +138,7 @@ sits inside the comfortable 150–180 wpm band tuned in this pass.
 
 ### ACT II — Ops Console
 
-#### Beat 5 — `admin-setup`
+#### Beat 6 — `admin-setup`
 - **Route:** `/admin` · **Duration:** 10s · **Personas:** Admin, Full Tour
 - **Highlight:** — (general page view)
 - **VO:**
@@ -129,21 +146,29 @@ sits inside the comfortable 150–180 wpm band tuned in this pass.
 - **Delivery note:** "Now let's step behind the curtain" is the act's own turn — a small tonal shift into "and here's how it's built," not a continuation of Act I's pace.
 - **Pacing:** 27 words / 10s ≈ **162 wpm**
 
-#### Beat 6 — `admin-ingestion`
+#### Beat 7 — `admin-ingestion`
 - **Route:** `/admin/ingestion?v=batch` · **Duration:** 13s · **Personas:** Admin, Full Tour
 - **Highlight:** `#batch-import-zone`
 - **VO:**
   > And this is brand new: the Self-Service Batch Import Engine. A client's own team drops in a week of actuals, and anything that doesn't check out is quarantined — never silently dropped, never committed until it's clean.
-- **Pacing:** 36 words / 13s ≈ **166 wpm** — the longest line in the script; was the pacing bottleneck at the old 8s (≈270 wpm), resolved by extending to 13s.
+- **Pacing:** 36 words / 13s ≈ **166 wpm** — the longest line in the script.
 
-#### Beat 7 — `ops-console`
+#### Beat 8 — `admin-kpis`
+- **Route:** `/admin/kpis` · **Duration:** 17s · **Personas:** Admin, Full Tour
+- **Highlight:** `#new-kpi-button`
+- **VO:**
+  > And this is the Custom KPI Builder. An admin picks a real metric — margin, schedule health, RAID exposure, utilization — sets a target and a warning line, and assigns it to exactly the personas who should see it. The card shows up instantly, right where they already work.
+- **Delivery note:** the four named metric families ("margin, schedule health, RAID exposure, utilization") should land as a clean list, one breath group each — this is the beat's own "look how much is in here" moment.
+- **Pacing:** 47 words / 17s ≈ **166 wpm**
+
+#### Beat 9 — `ops-console`
 - **Route:** `/ops` · **Duration:** 10s · **Personas:** Admin, Full Tour
 - **Highlight:** — (general page view)
 - **VO:**
   > Zooming out further, the A2R Ops Console is our own operator view across every client we run — platform health, tenant provisioning, and identity federation, all in one place.
 - **Pacing:** 28 words / 10s ≈ **168 wpm**
 
-#### Beat 8 — `ops-pulse`
+#### Beat 10 — `ops-pulse`
 - **Route:** `/ops/pulse` · **Duration:** 8s · **Personas:** Admin, Full Tour
 - **Highlight:** — (general page view)
 - **VO:**
@@ -152,7 +177,7 @@ sits inside the comfortable 150–180 wpm band tuned in this pass.
 
 ### Closing (both tracks rejoin here)
 
-#### Beat 9 — `closing`
+#### Beat 11 — `closing`
 - **Route:** `/` · **Duration:** 7s · **Personas:** Executive, Admin, Full Tour
 - **Highlight:** — (general page view)
 - **VO:**
@@ -169,41 +194,46 @@ the instant `startDemo(persona)` fires) — precise to the second, since
 every beat's duration is a whole number of seconds. Each row's OUT point
 is the next beat's IN point; the route change happens exactly on cue.
 
-### 4.1 Full Platform Tour — 1:25 total, all 9 beats
+### 4.1 Full Platform Tour — 1:57 total, all 11 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/` | `#global-header` |
 | 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
-| 0:20–0:28 | 20–28 | `steerco` | `/steerco` | — |
-| 0:28–0:37 | 28–37 | `executive-hub` | `/reports` | — |
-| 0:37–0:47 | 37–47 | `admin-setup` | `/admin` | — |
-| 0:47–1:00 | 47–60 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
-| 1:00–1:10 | 60–70 | `ops-console` | `/ops` | — |
-| 1:10–1:18 | 70–78 | `ops-pulse` | `/ops/pulse` | — |
-| 1:18–1:25 | 78–85 | `closing` | `/` | — |
+| 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
+| 0:35–0:43 | 35–43 | `steerco` | `/steerco` | — |
+| 0:43–0:52 | 43–52 | `executive-hub` | `/reports` | — |
+| 0:52–1:02 | 52–62 | `admin-setup` | `/admin` | — |
+| 1:02–1:15 | 62–75 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
+| 1:15–1:32 | 75–92 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
+| 1:32–1:42 | 92–102 | `ops-console` | `/ops` | — |
+| 1:42–1:50 | 102–110 | `ops-pulse` | `/ops/pulse` | — |
+| 1:50–1:57 | 110–117 | `closing` | `/` | — |
 
-### 4.2 Executive Lens — 0:44 total, 5 beats
-
-| Timecode | Sec | Beat | Route | Highlight |
-| --- | --- | --- | --- | --- |
-| 0:00–0:10 | 0–10 | `welcome` | `/` | `#global-header` |
-| 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
-| 0:20–0:28 | 20–28 | `steerco` | `/steerco` | — |
-| 0:28–0:37 | 28–37 | `executive-hub` | `/reports` | — |
-| 0:37–0:44 | 37–44 | `closing` | `/` | — |
-
-### 4.3 Admin / Ops Lens — 1:08 total, 7 beats
+### 4.2 Executive Lens — 0:59 total, 6 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/` | `#global-header` |
 | 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
-| 0:20–0:30 | 20–30 | `admin-setup` | `/admin` | — |
-| 0:30–0:43 | 30–43 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
-| 0:43–0:53 | 43–53 | `ops-console` | `/ops` | — |
-| 0:53–1:01 | 53–61 | `ops-pulse` | `/ops/pulse` | — |
-| 1:01–1:08 | 61–68 | `closing` | `/` | — |
+| 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
+| 0:35–0:43 | 35–43 | `steerco` | `/steerco` | — |
+| 0:43–0:52 | 43–52 | `executive-hub` | `/reports` | — |
+| 0:52–0:59 | 52–59 | `closing` | `/` | — |
+
+### 4.3 Admin / Ops Lens — 1:40 total, 9 beats
+
+| Timecode | Sec | Beat | Route | Highlight |
+| --- | --- | --- | --- | --- |
+| 0:00–0:10 | 0–10 | `welcome` | `/` | `#global-header` |
+| 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
+| 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
+| 0:35–0:45 | 35–45 | `admin-setup` | `/admin` | — |
+| 0:45–0:58 | 45–58 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
+| 0:58–1:15 | 58–75 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
+| 1:15–1:25 | 75–85 | `ops-console` | `/ops` | — |
+| 1:25–1:33 | 85–93 | `ops-pulse` | `/ops/pulse` | — |
+| 1:33–1:40 | 93–100 | `closing` | `/` | — |
 
 ---
 
@@ -216,13 +246,15 @@ is the next beat's IN point; the route change happens exactly on cue.
   the same change — a take that runs long or short by more than a second
   or so against its budget should adjust the duration, not be re-edited
   to fit it.
-- **Visual highlight:** `CinematicOverlay` now renders a soft pulsing
-  glow ring around `activeStep.highlightSelector`'s element when a beat
-  sets one (`welcome` → `#global-header`, `admin-ingestion` →
-  `#batch-import-zone`) — tracked live via `getBoundingClientRect()`, so
-  it holds position through scrolling/resizing and waits for the element
-  to mount after a route change. A future beat that wants one just sets
-  `highlightSelector` to a real, stable id already in the DOM.
+- **Visual highlight:** `CinematicOverlay` renders a soft pulsing glow
+  ring around `activeStep.highlightSelector`'s element when a beat sets
+  one (`welcome` → `#global-header`, `scoped-practice-view` →
+  `#capacity-scope-indicator`, `admin-ingestion` → `#batch-import-zone`,
+  `admin-kpis` → `#new-kpi-button`) — tracked live via
+  `getBoundingClientRect()`, so it holds position through
+  scrolling/resizing and waits for the element to mount after a route
+  change. A future beat that wants one just sets `highlightSelector` to a
+  real, stable id already in the DOM.
 - **Playback wiring:** nothing in the app plays audio today —
   `CinematicOverlay` is subtitle-only. Wiring the `vo-<beat-id>.mp3` files
   in is a follow-on (e.g. an `<audio>` element keyed by `activeStep.id`,

@@ -30,6 +30,25 @@ describe('DEMO_SCRIPT', () => {
       }
     }
   });
+
+  it('showcases Role-Based Scoped Filtering, shown to both Executive and Admin tracks', () => {
+    const step = DEMO_SCRIPT.find((s) => s.id === 'scoped-practice-view');
+    expect(step).toBeDefined();
+    expect(step?.route).toBe('/capacity');
+    expect(step?.personas).toEqual(expect.arrayContaining(['Executive', 'Admin']));
+    expect(step?.highlightSelector).toBe('#capacity-scope-indicator');
+    expect(step?.caption).toMatch(/practice/i);
+  });
+
+  it('showcases the Custom KPI Builder, Admin-track only', () => {
+    const step = DEMO_SCRIPT.find((s) => s.id === 'admin-kpis');
+    expect(step).toBeDefined();
+    expect(step?.route).toBe('/admin/kpis');
+    expect(step?.act).toBe('Ops Console');
+    expect(step?.personas).toEqual(['Admin']);
+    expect(step?.highlightSelector).toBe('#new-kpi-button');
+    expect(step?.caption).toMatch(/KPI/);
+  });
 });
 
 describe('getStepsForPersona', () => {

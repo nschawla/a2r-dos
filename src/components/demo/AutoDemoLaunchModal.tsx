@@ -38,17 +38,20 @@ const TRACKS: { persona: DemoPersona; label: string; blurb: string }[] = [
   {
     persona: 'Full Tour',
     label: 'Full Platform Tour',
-    blurb: 'Every screen, front-to-back — delivery, financials, governance, and the A2R Ops Console.',
+    blurb:
+      'Every screen, front-to-back — delivery, financials, role-based practice scoping, custom KPIs, governance, and the A2R Ops Console.',
   },
   {
     persona: 'Executive',
     label: 'Executive Lens',
-    blurb: 'The board-level view: Control Tower, Command Center, the SteerCo Briefing, and the Executive Hub.',
+    blurb:
+      'The board-level view: Control Tower, Command Center, scoped-vs-global practice visibility, the SteerCo Briefing, and the Executive Hub.',
   },
   {
     persona: 'Admin',
     label: 'Admin / Ops Lens',
-    blurb: 'Behind the curtain: roster & governance, the Self-Service Batch Import Engine, and the A2R Ops Console.',
+    blurb:
+      'Behind the curtain: roster & governance, the Self-Service Batch Import Engine, the Custom KPI Builder, and the A2R Ops Console.',
   },
 ];
 

@@ -1,5 +1,6 @@
 import { requireOrgContext } from '@/lib/session';
 import { db } from '@/lib/db';
+import { getScopedResourceWhere, getScopedProjectWhere, isGlobalRole } from '@/lib/scoping';
 import {
   mondayOf,
   startOfDay,
@@ -13,9 +14,22 @@ import { CapacityCockpit } from '@/components/modules/capacity/CapacityCockpit';
 
 const FORECAST_WEEKS = 52;
 
+/**
+ * Role-Based Scoped Filtering: before this, the Cockpit queried every
+ * resource and every project in the tenant regardless of who was
+ * looking — `role` (the tenant-console MembershipRole) only ever gated
+ * the holiday-calendar edit button, not visibility. A Practice Director
+ * now sees their own practice's roster and staffing exactly the way the
+ * Control Tower already scopes their project list (see
+ * src/lib/scoping.ts); ADMIN/VP_EXECUTIVE are unaffected — they were
+ * already seeing the whole tenant.
+ */
 export default async function CapacityPage() {
-  const { organizationId, role } = await requireOrgContext();
+  const context = await requireOrgContext();
+  const { organizationId, role, deliveryRole } = context;
   const isAdmin = role === 'OWNER' || role === 'ADMIN';
+  const resourceWhere = getScopedResourceWhere(context);
+  const projectWhere = await getScopedProjectWhere(context);
 
   const now = new Date();
   // Trailing 13 weeks — the standard PS "trailing-quarter" utilisation window.
@@ -30,7 +44,7 @@ export default async function CapacityPage() {
 
   const [resources, holidays, policies, actualsByResource, forecastSlots, activeProjects] = await Promise.all([
     db.resource.findMany({
-      where: { organizationId },
+      where: resourceWhere,
       orderBy: [{ psPractice: 'asc' }, { name: 'asc' }],
       select: {
         id: true,
@@ -56,7 +70,7 @@ export default async function CapacityPage() {
       select: { resourceId: true, weekDate: true, forecastedHours: true },
     }),
     db.project.findMany({
-      where: { organizationId, hierarchyLevel: { not: 'PARENT' } },
+      where: { ...projectWhere, hierarchyLevel: { not: 'PARENT' } },
       select: {
         id: true,
         name: true,
@@ -144,6 +158,11 @@ export default async function CapacityPage() {
         <p className="text-ink-muted text-sm mt-1 max-w-2xl">
           Blended billable utilisation, concurrency load, and a 52-week staffing forecast — measured against the
           corporate holiday calendar and each role&rsquo;s target-utilisation policy.
+        </p>
+        <p id="capacity-scope-indicator" className="text-ink-faint text-xs mt-1.5">
+          {isGlobalRole(deliveryRole)
+            ? 'Tenant-wide — every practice.'
+            : `Scoped to your practice — ${resources.length} resource${resources.length === 1 ? '' : 's'}.`}
         </p>
       </div>
 

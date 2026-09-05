@@ -47,9 +47,11 @@ export interface DemoStep {
    * file) — the ids it names are real, stable elements already in the DOM
    * (see the `id="..."` attributes on src/components/layout/Header.tsx's
    * <header>, its Perspective switcher wrapper,
-   * src/app/(admin)/layout.tsx's <header>, and
-   * src/components/ingestion/BatchUploadPortal.tsx's dropzone). Omitted
-   * where a step is about the page generally, not one element on it.
+   * src/app/(admin)/layout.tsx's <header>,
+   * src/components/ingestion/BatchUploadPortal.tsx's dropzone,
+   * src/app/(dashboard)/capacity/page.tsx's scope-indicator line, and
+   * src/components/admin/KpiBuilderPanel.tsx's "+ New KPI" button).
+   * Omitted where a step is about the page generally, not one element on it.
    */
   highlightSelector?: string;
 }
@@ -80,6 +82,16 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     personas: ['Executive', 'Admin'],
     caption:
       'The Command Center puts your portfolio’s vital signs, and a natural-language command bar, in one pane — type "financials for Contoso" and it just takes you there.',
+  },
+  {
+    id: 'scoped-practice-view',
+    route: '/capacity',
+    durationMs: 15000, // 41 words at ~164 wpm
+    act: 'Introduction',
+    personas: ['Executive', 'Admin'],
+    highlightSelector: '#capacity-scope-indicator',
+    caption:
+      'Every view in A2R Delivery OS is role-aware. A VP or Ops lead sees the whole portfolio here — tenant-wide. Switch to a Practice Director’s seat, and the exact same screen scopes itself to just their own practice’s roster and projects, automatically.',
   },
   {
     id: 'steerco',
@@ -125,6 +137,16 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     highlightSelector: '#batch-import-zone',
     caption:
       'And this is brand new: the Self-Service Batch Import Engine. A client’s own team drops in a week of actuals, and anything that doesn’t check out is quarantined — never silently dropped, never committed until it’s clean.',
+  },
+  {
+    id: 'admin-kpis',
+    route: '/admin/kpis',
+    durationMs: 17000, // 47 words at ~166 wpm
+    act: 'Ops Console',
+    personas: ['Admin'],
+    highlightSelector: '#new-kpi-button',
+    caption:
+      'And this is the Custom KPI Builder. An admin picks a real metric — margin, schedule health, RAID exposure, utilization — sets a target and a warning line, and assigns it to exactly the personas who should see it. The card shows up instantly, right where they already work.',
   },
   {
     id: 'ops-console',
