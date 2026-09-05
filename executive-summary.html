@@ -55,18 +55,6 @@
   }
   img,svg{display:block;}
 
-  /* ---------- Diagonal confidential watermark (tiled, prints on every page) ---------- */
-  .watermark{
-    position:fixed;
-    inset:0;
-    z-index:5;
-    pointer-events:none;
-    background-repeat:repeat;
-    background-position:center;
-    background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0ODAiIGhlaWdodD0iMzAwIj4KICA8dGV4dCB4PSIyNDAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgdHJhbnNmb3JtPSJyb3RhdGUoLTI4IDI0MCAxNTApIiBmb250LWZhbWlseT0iU29yYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiIGxldHRlci1zcGFjaW5nPSIxLjUiIGZpbGw9IiMwQjEyMjAiIGZpbGwtb3BhY2l0eT0iMC4wNjUiPkNPTkZJREVOVElBTCDigJQgRFJBRlQgLyBXT1JLIElOIFBST0dSRVNTPC90ZXh0Pgo8L3N2Zz4K");
-    background-size:440px 275px;
-  }
-
   /* ---------- Page shell ---------- */
   .page{
     position:relative;
@@ -478,14 +466,11 @@
     section{ margin-bottom:34px; }
     .feature-card, .stat-card, .table-wrap{ break-inside:avoid; }
     section > h2{ break-after:avoid; }
-    .watermark{ display:none; }
     @page{ margin:14mm 12mm; }
   }
 </style>
 </head>
 <body>
-
-  <div class="watermark" aria-hidden="true"></div>
 
   <div class="page">
 
