@@ -4,6 +4,7 @@ import { hasPermission } from '@/lib/auth/rbac';
 import { INGESTION_TEMPLATES } from '@/server/services/templates';
 import { IngestionTemplateHub } from '@/components/ingestion/IngestionTemplateHub';
 import { BatchImportPanel } from '@/components/ingestion/BatchImportPanel';
+import { AiDocumentParser } from '@/components/ingestion/AiDocumentParser';
 import { listImportBatches } from '@/server/actions/data-import';
 import { ModuleTabs, type ModuleTab } from '@/components/ui/module-tabs';
 import type { BatchValidationContext } from '@/lib/ingestion/batch-schemas';
@@ -58,6 +59,9 @@ export default async function AdminIngestionPage() {
 
     tabs.push({ key: 'batch', label: 'Batch Import' });
     panels.batch = <BatchImportPanel lookups={lookups} batches={batches} />;
+
+    tabs.push({ key: 'ai-parser', label: 'AI Parser' });
+    panels['ai-parser'] = <AiDocumentParser lookups={lookups} />;
   }
 
   return (
@@ -65,7 +69,8 @@ export default async function AdminIngestionPage() {
       <div>
         <h1 className="text-2xl font-display font-bold">Data Ingestion &amp; Templates</h1>
         <p className="text-ink-muted text-sm mt-1 max-w-2xl">
-          Standardized intake templates, and the self-service portal for weekly BAU batch uploads.
+          Standardized intake templates, the self-service portal for weekly BAU batch uploads, and an
+          AI parser that turns a pasted status report into reviewable batch rows.
         </p>
       </div>
 
