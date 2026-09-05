@@ -11,8 +11,11 @@ import { test, expect, type Page } from '@playwright/test';
  *   D. A2R Ops Console (telemetry, tenants, provisioning)
  */
 
-const MASTER_EMAIL = 'navinder@a2rventures.com';
-const MASTER_PASSWORD = 'Password123!';
+// Dedicated E2E super-admin (isA2rStaff + OWNER/ADMIN in every org) —
+// deliberately NOT navinder@, whose password is a rotatable real
+// credential. Seeded in prisma/seed.ts.
+const MASTER_EMAIL = 'master.e2e@a2rventures.com';
+const MASTER_PASSWORD = 'password12345';
 const RUN_ID = Date.now();
 
 let page: Page;

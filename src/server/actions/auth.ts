@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { seedOrganizationDefaults } from '@/lib/tenant/defaults';
+import { validatePasswordStrength } from '@/lib/auth/password-policy';
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -97,6 +98,62 @@ export async function createOrganizationForCurrentUser(input: unknown): Promise<
     await tx.activityLogEntry.create({
       data: { organizationId: org.id, userId: session.user.id, text: `Organization created`, tab: 'home' },
     });
+  });
+
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Change password
+// ─────────────────────────────────────────────────────────────────────────
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Enter your current password.').max(200),
+  newPassword: z.string().min(1, 'Enter a new password.').max(200),
+});
+
+/**
+ * Sets a new password for the signed-in user and clears
+ * `mustChangePassword`. Verifies the current password first (defence
+ * against a hijacked but still-forced session), enforces the shared
+ * strength policy, and refuses a no-op re-use of the current password.
+ *
+ * The JWT still carries the stale `mustChangePassword: true` until its
+ * next refresh, so the client signs the user out on success — a clean
+ * re-login with the new password is the simplest way to get a correct
+ * token, and "password changed, sign in again" is expected UX.
+ */
+export async function changePasswordAction(input: unknown): Promise<ActionResult> {
+  const parsed = changePasswordSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
+  }
+  const { currentPassword, newPassword } = parsed.data;
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return { ok: false, error: 'You are not signed in.' };
+
+  const policyError = validatePasswordStrength(newPassword);
+  if (policyError) return { ok: false, error: policyError };
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { passwordHash: true },
+  });
+  if (!user?.passwordHash) {
+    return { ok: false, error: 'This account signs in through your identity provider and has no password to change.' };
+  }
+
+  const currentOk = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!currentOk) return { ok: false, error: 'Your current password is incorrect.' };
+
+  const sameAsOld = await bcrypt.compare(newPassword, user.passwordHash);
+  if (sameAsOld) return { ok: false, error: 'Choose a password different from your current one.' };
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await db.user.update({
+    where: { id: session.user.id },
+    data: { passwordHash, mustChangePassword: false },
   });
 
   return { ok: true };

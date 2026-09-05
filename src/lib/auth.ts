@@ -101,7 +101,7 @@ export const authOptions: AuthOptions = {
           const [account, memberships] = await Promise.all([
             db.user.findUnique({
               where: { id: token.userId as string },
-              select: { email: true, isA2rStaff: true },
+              select: { email: true, isA2rStaff: true, mustChangePassword: true },
             }),
             db.membership.findMany({
               where: { userId: token.userId as string },
@@ -110,6 +110,7 @@ export const authOptions: AuthOptions = {
             }),
           ]);
           token.isA2rStaff = resolveIsA2rStaff({ email: account?.email, isA2rStaff: account?.isA2rStaff });
+          token.mustChangePassword = account?.mustChangePassword === true;
           token.memberships = memberships.map((m) => ({
             organizationId: m.organizationId,
             organizationName: m.organization.name,
@@ -121,6 +122,7 @@ export const authOptions: AuthOptions = {
         } catch (err) {
           console.error('[auth] jwt callback refresh failed; serving stale token', err);
           token.isA2rStaff ??= false;
+          token.mustChangePassword ??= false;
           token.memberships ??= [];
         }
       }
@@ -130,6 +132,7 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = token.userId as string;
         session.user.isA2rStaff = token.isA2rStaff === true;
+        session.user.mustChangePassword = token.mustChangePassword === true;
         session.memberships = (token.memberships as typeof session.memberships) ?? [];
       }
       return session;

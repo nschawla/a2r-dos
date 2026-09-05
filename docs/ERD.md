@@ -1,9 +1,9 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.4.1** (Role-Based Scoped Filtering, the Custom KPI
-Definition Engine, the complete 4-pillar Batch Import Engine, and
-database-level RLS lockdown).
+it, current as of **v1.6.0** (Role-Based Scoped Filtering, the Custom KPI
+Definition Engine, the complete 4-pillar Batch Import Engine,
+database-level RLS lockdown, and forced first-sign-in password change).
 Regenerate/extend this doc whenever a schema change adds, removes, or
 re-relates a model — it should never drift further than one release behind
 `schema.prisma`.
@@ -102,7 +102,10 @@ that puts a `User` into an `Organization` with two *independent* role axes
 delivery-portfolio RBAC enforced by `src/lib/auth/rbac.ts` and
 `src/middleware.ts`). A `User` may also link to at most one `Resource` per
 org (`Resource.userId`) — the roster/rate-card entry that person shows up as
-in staffing, effort, and RAID ownership.
+in staffing, effort, and RAID ownership. `User.mustChangePassword` (added
+v1.6.0) forces an operator-provisioned admin to set their own password on
+first sign-in — `src/middleware.ts` redirects every route to
+`/change-password` until `changePasswordAction` clears it.
 
 **Delivery spine** — `Project` is the hub every delivery module hangs off:
 `EffortCell` (the Phase × Role baseline matrix), `FinancialActual` (realized

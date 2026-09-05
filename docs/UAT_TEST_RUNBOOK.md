@@ -46,7 +46,8 @@ All demo passwords are **`password12345`** unless noted.
 | Email | Password | Notes |
 | --- | --- | --- |
 | `ops@a2rventures.com` | `password12345` | Staff, **no** client membership — lands on `/ops` |
-| `navinder@a2rventures.com` | `Password123!` | Master: staff **and** Owner/Admin in every tenant |
+| `master.e2e@a2rventures.com` | `password12345` | Master used by the E2E suite: staff **and** Owner/Admin in every tenant (defaults to A2R DOS Demo) |
+| `navinder@a2rventures.com` | _(rotated)_ | Personal master account. `Password123!` **only on a freshly-seeded local DB** — in any live deployment this is rotated and re-seed no longer resets it. |
 
 ### 1.3 Reference figures (A2R DOS Demo, fresh seed)
 
@@ -64,7 +65,7 @@ All demo passwords are **`password12345`** unless noted.
 ## 2. Automated coverage (run before manual UAT)
 
 ```bash
-npm test            # Vitest — 388 unit + integration tests across 29 files, ~5s
+npm test            # Vitest — 396 unit + integration tests across 30 files, ~5s
 npx tsc --noEmit    # strict typecheck, 0 errors
 npm run test:e2e    # Playwright — full Suites A–K against a running dev server
 ```
@@ -175,6 +176,22 @@ Signed in as `ops@a2rventures.com`.
 | 6 | Sign in as `pm@a2rventures-demo.test` | Project pickers scope to their own assigned engagements only | |
 
 **Checkpoint:** the same screens render for every role, but the row set — never the layout — narrows strictly with the role's scope; a scoped role never sees a tenant-wide fallback.
+
+### UAT-3.7 · Forced password change on first sign-in
+
+Test with an operator-provisioned admin: as `ops@a2rventures.com`, **Tenants → Provision** a new tenant and note the temp password shown. (Or, for a quick check, flip `mustChangePassword` to `true` on any demo user directly in the DB — remember to flip it back.)
+
+| Step | Action | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | Sign in as the provisioned admin with the temp password | Lands on **`/change-password`** — "Set your own password", not the workspace | |
+| 2 | While on that screen, type `/portfolio` (or any route) in the address bar | Bounced straight back to `/change-password` | |
+| 3 | Enter a weak new password (e.g. `short`) | Inline: "Use at least 12 characters." — submit stays disabled | |
+| 4 | Enter the temp password as the new password | "Choose a password different from your current one." | |
+| 5 | Enter a compliant new password (≥12 chars, upper + lower + digit) twice, submit | "Password updated" → signed out → `/login` | |
+| 6 | Sign in with the **new** password | Lands in the workspace normally; `/change-password` no longer forced | |
+| 7 | As any signed-in user, navigate to `/change-password` directly | The voluntary change screen renders (with a Cancel link) | |
+
+**Checkpoint:** an operator-set password is single-use; the workspace is unreachable until the user sets their own; the policy is enforced server-side, not just in the form.
 
 ---
 

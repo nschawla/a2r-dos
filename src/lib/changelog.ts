@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.6.0',
+    date: '2026-09-05',
+    headline: 'Forced password change on first sign-in',
+    changes: [
+      { type: 'security', text: 'An account whose password was set by someone else — an A2R-operator-provisioned tenant admin who received a temp password — must now set their own on first sign-in. Until they do, every route redirects them to a Change Password screen; a self-registered user (who chose their own password) is never prompted.' },
+      { type: 'security', text: 'New shared password policy for the change: at least 12 characters, an upper- and lowercase letter, and a number. The change screen also refuses re-using the current password.' },
+      { type: 'improvement', text: 'Any signed-in user can now reach /change-password to change their password voluntarily.' },
+    ],
+  },
+  {
     version: '1.5.2',
     date: '2026-09-05',
     headline: 'Coming-soon mode is an env toggle — one codebase, two front doors',

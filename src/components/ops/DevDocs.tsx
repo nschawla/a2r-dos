@@ -35,7 +35,12 @@ const SUBSYSTEMS: Subsystem[] = [
   {
     area: 'Auth & session',
     entryPoints: ['src/lib/session.ts', 'src/lib/ops-auth.ts', 'src/lib/auth/rbac.ts'],
-    note: 'Three independent authorization axes — see the table below.',
+    note: 'Three independent authorization axes — see the table below. NextAuth JWT sessions; the jwt callback refreshes memberships / isA2rStaff / mustChangePassword from the DB every request.',
+  },
+  {
+    area: 'Forced password change',
+    entryPoints: ['src/lib/auth/password-policy.ts', 'src/app/(auth)/change-password/', 'src/server/actions/auth.ts (changePasswordAction)'],
+    note: 'User.mustChangePassword (set by provisionTenantAction) → src/middleware.ts redirects every route to /change-password until the user sets a policy-compliant password (≥12, upper+lower+digit) and it is cleared. /change-password also serves voluntary changes.',
   },
   {
     area: 'Multi-tenancy & scoping',

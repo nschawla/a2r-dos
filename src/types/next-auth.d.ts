@@ -30,6 +30,11 @@ declare module 'next-auth' {
        * reach the internal /ops console. Derived in the jwt callback from
        * User.isA2rStaff OR an @a2rventures.com email. */
       isA2rStaff: boolean;
+      /** True while the account's password was set by someone else and the
+       * user must pick their own. src/middleware.ts forces them to
+       * /change-password until changePasswordAction clears it. Refreshed
+       * every request with the rest of the token. */
+      mustChangePassword: boolean;
     };
     memberships: SessionMembership[];
   }
@@ -39,6 +44,7 @@ declare module 'next-auth/jwt' {
   interface JWT {
     userId?: string;
     isA2rStaff?: boolean;
+    mustChangePassword?: boolean;
     memberships?: SessionMembership[];
   }
 }

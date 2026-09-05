@@ -1,6 +1,6 @@
 {
   "name": "a2r-dos-app",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "private": true,
   "description": "A2R Delivery OS — SaaS foundation (Phase 3). Next.js App Router + Prisma + Postgres.",
   "scripts": {

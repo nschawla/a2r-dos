@@ -103,7 +103,9 @@ export async function provisionTenant(input: unknown): Promise<OpsDataResult<Pro
       data: { name: orgName, slug, contractTier, status: 'ACTIVE' },
     });
     const admin = await tx.user.create({
-      data: { email: normalizedEmail, name: adminName, passwordHash },
+      // The operator set this password — force the admin to pick their own
+      // on first sign-in (src/middleware.ts → /change-password).
+      data: { email: normalizedEmail, name: adminName, passwordHash, mustChangePassword: true },
     });
     await tx.membership.create({
       data: { userId: admin.id, organizationId: org.id, role: 'OWNER', deliveryRole: 'ADMIN' },

@@ -10,6 +10,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.6.0] — 2026-09-05
+
+_Forced password change on first sign-in._
+
+### Added
+- **`User.mustChangePassword`** (`prisma/migrations/00000000000008_must_change_password/`). Set `true` for an account whose password was assigned by someone else — an A2R-operator-provisioned tenant admin (`provisionTenantAction`) who received a temp password. Rides on the JWT (refreshed from the DB every request by the `jwt` callback) and is enforced in `src/middleware.ts`: while it is set, **every route redirects to `/change-password`**, ahead of the `/ops` and RBAC checks. A self-registered user is never flagged; seeded demo accounts are left at the default `false` (the shared password is the point of the demo).
+- **`/change-password`** (`src/app/(auth)/change-password/page.tsx`, `changePasswordAction`) — used both for the forced first-sign-in change and a voluntary change by any signed-in user. Verifies the current password, enforces the new shared policy, refuses re-use of the current password, then signs the user out for a clean re-login.
+- **`src/lib/auth/password-policy.ts`** — one pure `validatePasswordStrength` (≥12 chars, upper + lower + digit, no edge whitespace), shared by the action and the form's live feedback. `tests/password-policy.test.ts` (8).
+
+### Changed
+- The seed's `navinder@a2rventures.com` master account no longer has its `passwordHash` reset on re-seed (only on a first-ever `create`), so a password rotated in a live deployment survives `npm run db:seed`. A dedicated `master.e2e@a2rventures.com` account (isA2rStaff + OWNER/ADMIN in every org, shared demo password) now backs the enterprise-verification suite's Suite A / I, so those tests never depend on a human's real credential.
+
+### Verification
+- `npx tsc --noEmit` → 0 errors. `npx vitest run` → **396 passed** across 30 files. `npx playwright test` → **47 passed**. Live: an armed demo account is redirected to `/change-password` on sign-in, can't reach `/portfolio`, and lands normally after setting a policy-compliant new password.
+
 ## [1.5.2] — 2026-09-05
 
 _Coming-soon mode is an env toggle — one codebase, two front doors._

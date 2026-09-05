@@ -71,7 +71,7 @@ membership role.
 
 | Secret | At rest | Notes |
 | --- | --- | --- |
-| User passwords | **bcrypt**, cost factor 10 | Plaintext never stored or logged. Verification is constant-time (bcrypt). |
+| User passwords | **bcrypt**, cost factor 10 | Plaintext never stored or logged. Verification is constant-time (bcrypt). New passwords must clear the shared policy (`src/lib/auth/password-policy.ts`): ≥12 chars, upper + lower + digit. An account whose password was set by an operator (`User.mustChangePassword`) is forced to `/change-password` on first sign-in before it can reach any other route (`src/middleware.ts`). |
 | API keys | **SHA-256** of the plaintext; `hashedKey` is unique-indexed | Plaintext is `a2r_live_` + 32 bytes of CSPRNG entropy (`node:crypto randomBytes`), shown **exactly once** at creation. Only a short non-secret prefix (`keyPrefix`) is displayed thereafter. |
 | Impersonation grant tokens | random `base64url`, 24 bytes CSPRNG | Single-use, time-boxed (§5). |
 | Compliance-ledger row hashes | **SHA-256** chain | See §4. |

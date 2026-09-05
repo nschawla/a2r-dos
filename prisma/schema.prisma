@@ -37,6 +37,14 @@ model User {
   image         String?
   passwordHash  String? // set for credentials-based accounts; null for OAuth-only users
 
+  // True when the account's current password was set by someone OTHER than
+  // the user — a seeded demo account left as-is, or (the real case) an
+  // A2R-operator-provisioned tenant admin who received a temp password.
+  // src/middleware.ts forces such a user to /change-password on their next
+  // sign-in until they set their own; changePasswordAction clears it. A
+  // self-registered user (who chose their own password) is never flagged.
+  mustChangePassword Boolean @default(false)
+
   // A2R Operator Control Plane — flags an A2R Ventures staff account that
   // may access the internal /ops console (cross-tenant provisioning &
   // telemetry). Deliberately a plain boolean on User, not a Membership

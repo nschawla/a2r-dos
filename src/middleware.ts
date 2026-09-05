@@ -38,6 +38,16 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const token = req.nextauth.token;
 
+    // Forced password change (temp password issued by someone else) takes
+    // precedence over everything else — an operator-provisioned admin
+    // can't reach the workspace or the Ops Console until they set their
+    // own. `mustChangePassword` rides on the JWT and is refreshed from the
+    // DB every request by the jwt callback, so changePasswordAction
+    // clearing it is visible on the next navigation.
+    if (token?.mustChangePassword === true && pathname !== '/change-password') {
+      return NextResponse.redirect(new URL('/change-password', req.url));
+    }
+
     if (pathname.startsWith('/ops')) {
       const isStaff = token?.isA2rStaff === true || isA2rStaffEmail(token?.email);
       if (!isStaff) {

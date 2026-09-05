@@ -1479,6 +1479,20 @@ passed** across 29 files; `npx playwright test` → **47 passed** across
 Suites A–K. Production `/api/health/ready` → `{"database":"ok"}`; SEC-2
 headers live; `/` public, `/portfolio` gated.
 
+### v1.6.0 — forced password change on first sign-in
+
+`User.mustChangePassword` (migration `00000000000008`) is set `true` for an
+operator-provisioned tenant admin who received a temp password.
+`src/middleware.ts` redirects every route to `/change-password` — ahead of
+the `/ops` and RBAC checks — until `changePasswordAction` clears it after
+the user sets a policy-compliant password (`src/lib/auth/password-policy.ts`
+— ≥12 chars, upper + lower + digit). `/change-password` also serves a
+voluntary change for any signed-in user. The `navinder@` seed no longer
+resets its own `passwordHash` on re-seed (so a live rotation survives), and
+a dedicated `master.e2e@a2rventures.com` account backs the Suite A / I
+tests. `npx vitest run` → **396 passed** across 30 files (+
+`tests/password-policy.test.ts`); `npx playwright test` → **47 passed**.
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to

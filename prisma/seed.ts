@@ -47,6 +47,10 @@ function daysFromNow(n: number): Date {
 
 async function upsertUser(email: string, name: string) {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  // Demo accounts keep `mustChangePassword` at its default (false) — the
+  // shared password is the whole point of the demo, and forcing a change
+  // would break the E2E suites. The forced-change flow (src/middleware.ts)
+  // is exercised by operator-provisioned tenant admins instead.
   return db.user.upsert({
     where: { email },
     update: {},
@@ -1200,21 +1204,38 @@ async function main() {
   // password is set explicitly (not the shared demo password).
   // ============================================================
   const MASTER_ADMIN_EMAIL = 'navinder@a2rventures.com';
-  const MASTER_ADMIN_PASSWORD = 'Password123!';
+  const MASTER_ADMIN_PASSWORD = 'Password123!'; // fresh-local-seed only; rotate in any live deployment
   const masterAdminHash = await bcrypt.hash(MASTER_ADMIN_PASSWORD, 10);
   const masterAdmin = await db.user.upsert({
     where: { email: MASTER_ADMIN_EMAIL },
-    update: { name: 'Navinder Chawla', passwordHash: masterAdminHash, isA2rStaff: true },
+    // Do NOT reset passwordHash on re-seed — this is a personal account
+    // whose password may have been rotated in a live deployment (see
+    // scripts / docs). Only a first-ever `create` sets the demo default.
+    update: { name: 'Navinder Chawla', isA2rStaff: true },
     create: { email: MASTER_ADMIN_EMAIL, name: 'Navinder Chawla', passwordHash: masterAdminHash, isA2rStaff: true },
   });
 
-  const allOrgs = await db.organization.findMany({ select: { id: true } });
-  for (const o of allOrgs) {
-    await db.membership.upsert({
-      where: { userId_organizationId: { userId: masterAdmin.id, organizationId: o.id } },
-      update: { role: 'OWNER', deliveryRole: 'ADMIN' },
-      create: { userId: masterAdmin.id, organizationId: o.id, role: 'OWNER', deliveryRole: 'ADMIN' },
-    });
+  // Dedicated E2E master. The enterprise-verification suite's Suite A / I
+  // need an isA2rStaff account that also holds an OWNER/ADMIN membership
+  // in every org (to reach both /ops and every tenant workspace). Kept
+  // SEPARATE from navinder@ so the suite never depends on a human's real
+  // credential — and it keeps the shared demo password, unrotated.
+  const e2eMaster = await upsertUser('master.e2e@a2rventures.com', 'E2E Master');
+  await db.user.update({ where: { id: e2eMaster.id }, data: { isA2rStaff: true } });
+
+  // Oldest org first, so the FIRST membership created for each master
+  // account is the primary demo tenant (A2R DOS Demo) — requireOrgContext
+  // falls back to memberships[0] when no active-org cookie is set, and the
+  // E2E suite's Suite B expects the master to land there.
+  const allOrgs = await db.organization.findMany({ select: { id: true }, orderBy: { createdAt: 'asc' } });
+  for (const uid of [masterAdmin.id, e2eMaster.id]) {
+    for (const o of allOrgs) {
+      await db.membership.upsert({
+        where: { userId_organizationId: { userId: uid, organizationId: o.id } },
+        update: { role: 'OWNER', deliveryRole: 'ADMIN' },
+        create: { userId: uid, organizationId: o.id, role: 'OWNER', deliveryRole: 'ADMIN' },
+      });
+    }
   }
 
   console.log('Seeded:');
