@@ -42,14 +42,14 @@ export interface DemoStep {
    * A CSS selector (always an id, e.g. "#batch-import-zone") for the DOM
    * element this step is narrating *about*, if a specific element on the
    * destination route is the point of the beat rather than the page as a
-   * whole. Not consumed by anything yet — CinematicOverlay only reads
-   * `caption`/`durationMs` today — but the ids it names are real, stable
-   * elements already in the DOM (see the `id="..."` attributes on
-   * src/components/layout/Header.tsx's <header>, its Perspective switcher
-   * wrapper, src/app/(admin)/layout.tsx's <header>, and
-   * src/components/ingestion/BatchUploadPortal.tsx's dropzone), so a
-   * future spotlight/highlight-ring effect can key off this field with no
-   * further plumbing. Omitted where a step is about the page generally.
+   * whole. CinematicOverlay draws a pulsing glow ring around this element
+   * for as long as the step is active (see HighlightSpotlight in that
+   * file) — the ids it names are real, stable elements already in the DOM
+   * (see the `id="..."` attributes on src/components/layout/Header.tsx's
+   * <header>, its Perspective switcher wrapper,
+   * src/app/(admin)/layout.tsx's <header>, and
+   * src/components/ingestion/BatchUploadPortal.tsx's dropzone). Omitted
+   * where a step is about the page generally, not one element on it.
    */
   highlightSelector?: string;
 }
@@ -63,7 +63,9 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'welcome',
     route: '/',
-    durationMs: 8000,
+    // 28-word VO at ~168 wpm — see docs/AUTO_DEMO_SCRIPT.md §3 for the
+    // pacing math behind every duration in this file.
+    durationMs: 10000,
     act: 'Introduction',
     personas: ['Executive', 'Admin'],
     highlightSelector: '#global-header',
@@ -73,7 +75,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'command-center',
     route: '/command',
-    durationMs: 7000,
+    durationMs: 10000, // 26 words at ~156 wpm
     act: 'Introduction',
     personas: ['Executive', 'Admin'],
     caption:
@@ -82,7 +84,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'steerco',
     route: '/steerco',
-    durationMs: 7000,
+    durationMs: 8000, // 23 words at ~172 wpm
     act: 'Introduction',
     personas: ['Executive'],
     caption:
@@ -91,7 +93,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'executive-hub',
     route: '/reports',
-    durationMs: 7000,
+    durationMs: 9000, // 24 words at ~160 wpm
     act: 'Introduction',
     personas: ['Executive'],
     caption:
@@ -100,7 +102,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'admin-setup',
     route: '/admin',
-    durationMs: 8000,
+    durationMs: 10000, // 27 words at ~162 wpm
     act: 'Ops Console',
     personas: ['Admin'],
     caption:
@@ -114,7 +116,10 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     // point at something invisible.
     id: 'admin-ingestion',
     route: '/admin/ingestion?v=batch',
-    durationMs: 8000,
+    // The longest line in the script (36 words) — this was the pacing
+    // bottleneck flagged in docs/AUTO_DEMO_SCRIPT.md (270 wpm at the old
+    // 8s). 13s brings it to a comfortable ~166 wpm.
+    durationMs: 13000,
     act: 'Ops Console',
     personas: ['Admin'],
     highlightSelector: '#batch-import-zone',
@@ -124,7 +129,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'ops-console',
     route: '/ops',
-    durationMs: 8000,
+    durationMs: 10000, // 28 words at ~168 wpm
     act: 'Ops Console',
     personas: ['Admin'],
     caption:
@@ -133,7 +138,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'ops-pulse',
     route: '/ops/pulse',
-    durationMs: 7000,
+    durationMs: 8000, // 22 words at ~165 wpm
     act: 'Ops Console',
     personas: ['Admin'],
     caption:
@@ -142,7 +147,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'closing',
     route: '/',
-    durationMs: 6000,
+    durationMs: 7000, // 19 words at ~163 wpm
     act: 'Introduction',
     personas: ['Executive', 'Admin'],
     caption: 'That’s the tour. Feel free to take the wheel from here — everything you just saw is one click away.',

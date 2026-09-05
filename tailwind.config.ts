@@ -86,6 +86,19 @@ const config: Config = {
         elevated:
           '0 16px 40px -12px rgba(16,24,40,0.18), 0 4px 12px -4px rgba(16,24,40,0.10), 0 0 0 1px rgba(16,24,40,0.05)',
       },
+      // Auto Demo's spotlight ring (CinematicOverlay) — a soft glow that
+      // breathes between a tight ring and a wider, softer bloom. Self-
+      // contained keyframes (not the `ring-*` utilities) so nothing else
+      // on the page fights over the box-shadow property while it plays.
+      keyframes: {
+        demoPulse: {
+          '0%, 100%': { boxShadow: '0 0 0 2px rgba(11,95,209,0.55), 0 0 16px 3px rgba(11,95,209,0.30)' },
+          '50%': { boxShadow: '0 0 0 2px rgba(11,95,209,0.85), 0 0 26px 7px rgba(11,95,209,0.45)' },
+        },
+      },
+      animation: {
+        'demo-pulse': 'demoPulse 1.8s ease-in-out infinite',
+      },
     },
   },
   plugins: [],
