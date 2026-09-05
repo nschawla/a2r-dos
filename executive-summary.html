@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A2R Delivery OS — Executive Platform Summary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-950:#0A0E19;
+    --navy-900:#0F1526;
+    --navy-800:#182036;
+    --navy-700:#232D49;
+    --brand:#0B5FD1;
+    --brand-light:#6FA5FF;
+    --logo:#545A61;
+    --bg:#F5F6F8;
+    --surface:#FFFFFF;
+    --surface-2:#F0F2F5;
+    --border:#E1E4EA;
+    --border-soft:#EAECF0;
+    --ink:#18181B;
+    --ink-muted:#3F3F46;
+    --ink-faint:#6B7280;
+    --success:#166534;
+    --success-soft:#E8F3EC;
+    --warning:#B45309;
+    --warning-soft:#FDF3E7;
+    --amber-onnavy:#F4B740;
+    --font-display:'Sora', 'Segoe UI', system-ui, sans-serif;
+    --font-body:'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    font-size:15.5px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  img,svg{display:block;}
+
+  /* ---------- Diagonal confidential watermark (tiled, prints on every page) ---------- */
+  .watermark{
+    position:fixed;
+    inset:0;
+    z-index:5;
+    pointer-events:none;
+    background-repeat:repeat;
+    background-position:center;
+    background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0ODAiIGhlaWdodD0iMzAwIj4KICA8dGV4dCB4PSIyNDAiIHk9IjE1OCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgdHJhbnNmb3JtPSJyb3RhdGUoLTI4IDI0MCAxNTApIiBmb250LWZhbWlseT0iU29yYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjEiIGZvbnQtd2VpZ2h0PSI3MDAiIGxldHRlci1zcGFjaW5nPSIxLjUiIGZpbGw9IiMwQjEyMjAiIGZpbGwtb3BhY2l0eT0iMC4wNjUiPkNPTkZJREVOVElBTCDigJQgRFJBRlQgLyBXT1JLIElOIFBST0dSRVNTPC90ZXh0Pgo8L3N2Zz4K");
+    background-size:440px 275px;
+  }
+  @media print{
+    .watermark{ background-size:400px 250px; }
+  }
+
+  /* ---------- Page shell ---------- */
+  .page{
+    position:relative;
+    z-index:1;
+    max-width:1080px;
+    margin:0 auto;
+    background:var(--surface);
+    box-shadow:0 1px 3px rgba(16,24,40,0.06);
+  }
+
+  /* ---------- Masthead ---------- */
+  .masthead{
+    background:linear-gradient(150deg,var(--navy-950) 0%,var(--navy-900) 55%,var(--navy-800) 100%);
+    color:#fff;
+    padding:40px 56px 44px;
+    border-bottom:4px solid var(--brand);
+  }
+  .masthead__top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:34px;
+  }
+  .brand-lockup{ display:flex; align-items:center; gap:11px; }
+  .brand-lockup svg{ width:26px; height:26px; color:#fff; flex:none; }
+  .brand-lockup span{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:16px;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:#fff;
+  }
+  .draft-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:6px 14px;
+    border-radius:999px;
+    background:rgba(244,183,64,0.12);
+    border:1px solid rgba(244,183,64,0.45);
+    color:var(--amber-onnavy);
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+  .draft-pill::before{
+    content:"";
+    width:6px;height:6px;border-radius:50%;
+    background:var(--amber-onnavy);
+    box-shadow:0 0 0 3px rgba(244,183,64,0.18);
+  }
+  .masthead h1{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:38px;
+    line-height:1.12;
+    margin:0 0 14px;
+    max-width:640px;
+    letter-spacing:-.01em;
+  }
+  .masthead p.lede{
+    margin:0 0 22px;
+    max-width:600px;
+    font-size:16px;
+    color:#C7D0E3;
+    font-weight:400;
+  }
+  .meta-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 28px;
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    color:#93A1C0;
+  }
+  .meta-row b{ color:#fff; font-weight:600; }
+  .meta-row .sep{ color:#3A4568; }
+
+  /* ---------- Content ---------- */
+  .content{ padding:52px 56px 12px; }
+  section{ margin-bottom:52px; }
+  section:last-of-type{ margin-bottom:0; }
+
+  .eyebrow{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-family:var(--font-mono);
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--brand);
+    margin-bottom:10px;
+  }
+  .eyebrow .num{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:22px;height:22px;
+    border-radius:6px;
+    background:var(--brand);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+  }
+  section > h2{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:26px;
+    color:var(--ink);
+    margin:0 0 6px;
+    letter-spacing:-.01em;
+  }
+  section > .section-intro{
+    color:var(--ink-muted);
+    max-width:760px;
+    margin:0 0 26px;
+    font-size:15.5px;
+  }
+  section > .section-intro:last-child{ margin-bottom:0; }
+
+  p{ margin:0 0 14px; }
+  p:last-child{ margin-bottom:0; }
+  code{
+    font-family:var(--font-mono);
+    font-size:0.86em;
+    background:var(--surface-2);
+    border:1px solid var(--border-soft);
+    border-radius:4px;
+    padding:1px 6px;
+    color:var(--ink);
+  }
+
+  /* ---------- Executive summary prose card ---------- */
+  .prose-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:26px 30px;
+    color:var(--ink-muted);
+  }
+  .prose-card p{ font-size:15.5px; }
+  .prose-card strong{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Feature cards ---------- */
+  .feature-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:22px;
+  }
+  .feature-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:0;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    break-inside:avoid;
+  }
+  .feature-card__bar{ height:4px; background:var(--brand); }
+  .feature-card__body{ padding:22px 22px 24px; display:flex; flex-direction:column; gap:14px; flex:1; }
+  .feature-card__icon{
+    width:38px;height:38px;
+    border-radius:9px;
+    background:var(--brand-subtle,rgba(11,95,209,.08));
+    display:flex;align-items:center;justify-content:center;
+    color:var(--brand);
+  }
+  .feature-card__icon svg{ width:20px;height:20px; }
+  .feature-card h3{
+    font-family:var(--font-display);
+    font-size:17px;
+    font-weight:700;
+    color:var(--ink);
+    margin:0;
+  }
+  .feature-card p.desc{
+    color:var(--ink-muted);
+    font-size:14px;
+    margin:0;
+    flex:none;
+  }
+  .feature-card .mini-table{ margin-top:auto; }
+
+  .mini-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12.5px;
+  }
+  .mini-table th,.mini-table td{
+    text-align:left;
+    padding:7px 0;
+    border-top:1px solid var(--border-soft);
+    vertical-align:top;
+  }
+  .mini-table tr:first-child th, .mini-table tr:first-child td{ border-top:none; }
+  .mini-table th{ color:var(--ink); font-weight:600; width:38%; }
+  .mini-table td{ color:var(--ink-faint); }
+
+  .bullet-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+  .bullet-list li{
+    font-size:13px;
+    color:var(--ink-muted);
+    padding-left:16px;
+    position:relative;
+  }
+  .bullet-list li::before{
+    content:"";
+    position:absolute; left:0; top:7px;
+    width:6px; height:6px; border-radius:1.5px;
+    background:var(--brand);
+    transform:rotate(45deg);
+  }
+  .bullet-list b{ color:var(--ink); font-weight:600; }
+
+  /* ---------- Data table (full width) ---------- */
+  .table-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:12px; }
+  table.data{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13.5px;
+    min-width:560px;
+  }
+  table.data thead th{
+    background:var(--navy-900);
+    color:#fff;
+    text-align:left;
+    font-family:var(--font-mono);
+    font-weight:600;
+    font-size:11.5px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    padding:12px 18px;
+  }
+  table.data tbody td{
+    padding:13px 18px;
+    border-top:1px solid var(--border-soft);
+    color:var(--ink-muted);
+  }
+  table.data tbody tr:nth-child(even){ background:var(--surface-2); }
+  table.data td.emph{ color:var(--ink); font-weight:600; }
+  table.data td code{ white-space:nowrap; }
+
+  .role-scope-badge{
+    display:inline-block;
+    padding:3px 9px;
+    border-radius:6px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .role-scope-badge.global{ background:var(--success-soft); color:var(--success); }
+  .role-scope-badge.scoped{ background:var(--warning-soft); color:var(--warning); }
+
+  /* ---------- Stat strip ---------- */
+  .stat-strip{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:18px;
+    margin-bottom:26px;
+  }
+  .stat-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-top:3px solid var(--brand);
+    border-radius:10px;
+    padding:20px 18px;
+    text-align:left;
+    break-inside:avoid;
+  }
+  .stat-card.ok{ border-top-color:var(--success); }
+  .stat-card .stat-num{
+    font-family:var(--font-mono);
+    font-weight:600;
+    font-size:30px;
+    color:var(--ink);
+    line-height:1;
+    font-variant-numeric:tabular-nums;
+    display:block;
+    margin-bottom:8px;
+  }
+  .stat-card .stat-label{
+    font-size:12.5px;
+    color:var(--ink-faint);
+    font-weight:500;
+  }
+  .verify-line{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    color:var(--ink-faint);
+    background:var(--surface-2);
+    border:1px solid var(--border-soft);
+    border-radius:8px;
+    padding:12px 16px;
+  }
+  .verify-line b{ color:var(--ink); }
+
+  /* ---------- Footer ---------- */
+  footer{
+    background:linear-gradient(150deg,var(--navy-950) 0%,var(--navy-900) 60%,var(--navy-800) 100%);
+    color:#B7C1DA;
+    padding:40px 56px 32px;
+    margin-top:8px;
+  }
+  footer .eyebrow-dark{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--amber-onnavy);
+    margin-bottom:14px;
+  }
+  footer h4{
+    font-family:var(--font-display);
+    font-size:13px;
+    font-weight:700;
+    color:#fff;
+    margin:18px 0 6px;
+  }
+  footer h4:first-of-type{ margin-top:0; }
+  footer p{
+    font-size:12.5px;
+    line-height:1.7;
+    color:#96A2C2;
+    max-width:900px;
+    margin:0 0 4px;
+  }
+  footer hr{
+    border:none;
+    border-top:1px solid rgba(255,255,255,0.12);
+    margin:26px 0 18px;
+  }
+  .copyright-line{
+    font-size:13px;
+    color:#E4E9F5;
+    font-weight:500;
+  }
+  .copyright-line .tm{ color:#fff; font-weight:700; }
+  .footer-bottom{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-top:18px;
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:#5C6892;
+    letter-spacing:.03em;
+  }
+  .footer-bottom .stamp{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    color:var(--amber-onnavy);
+    font-weight:600;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:860px){
+    .masthead{ padding:30px 26px 34px; }
+    .masthead h1{ font-size:29px; }
+    .content{ padding:36px 26px 4px; }
+    footer{ padding:32px 26px 26px; }
+    .feature-grid{ grid-template-columns:1fr; }
+    .stat-strip{ grid-template-columns:repeat(2,1fr); }
+    .masthead__top{ flex-wrap:wrap; }
+  }
+  @media (max-width:480px){
+    .stat-strip{ grid-template-columns:1fr 1fr; }
+    .masthead h1{ font-size:24px; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print{
+    body{ background:#fff; }
+    .page{ box-shadow:none; max-width:none; }
+    section{ margin-bottom:34px; }
+    .feature-card, .stat-card, .table-wrap{ break-inside:avoid; }
+    section > h2{ break-after:avoid; }
+    @page{ margin:14mm 12mm; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="watermark" aria-hidden="true"></div>
+
+  <div class="page">
+
+    <!-- ============ MASTHEAD ============ -->
+    <header class="masthead">
+      <div class="masthead__top">
+        <div class="brand-lockup">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M12 2L22 22H2L12 2ZM12 6L17 16H7L12 6Z"/></svg>
+          <span>A2R Delivery OS</span>
+        </div>
+        <span class="draft-pill">Confidential · Draft</span>
+      </div>
+      <h1>Executive Platform Summary</h1>
+      <p class="lede">The enterprise Delivery Operating System for professional services organizations — release v1.4.0, prepared for executive and board review.</p>
+      <div class="meta-row">
+        <span><b>Release</b> v1.4.0</span>
+        <span class="sep">/</span>
+        <span><b>Prepared</b> September 5, 2026</span>
+        <span class="sep">/</span>
+        <span><b>Author</b> A2R Ventures Engineering</span>
+        <span class="sep">/</span>
+        <span><b>Status</b> Work in progress</span>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ============ 01. EXECUTIVE SUMMARY ============ -->
+      <section>
+        <div class="eyebrow"><span class="num">01</span> Executive Summary</div>
+        <h2>A governed system of record for the entire delivery portfolio</h2>
+        <div class="prose-card">
+          <p><strong>A2R Delivery OS™ ("A2R DOS")</strong> is an enterprise-grade Delivery Operating System purpose-built for professional services organizations. It unifies commercial baselining, financial realization, resourcing, schedule governance, and risk management for an entire portfolio of client engagements into one governed, role-aware workspace — replacing the spreadsheets, point-in-time status decks, and disconnected timesheet tools most delivery organizations still stitch together by hand.</p>
+          <p>Every screen in A2R DOS — the Portfolio Control Tower, the Resource &amp; Capacity Cockpit, Financial Realization, the RAID Cockpit, and the SteerCo and Executive Hub briefings — is driven from the same operational data the delivery organization already produces each week, and is automatically scoped to the person viewing it: a Practice Director and a VP see the identical screen, narrowed to exactly what their role should see.</p>
+          <p>This release, <strong>v1.4.0</strong>, advances three capabilities requested directly by the platform's largest engagements: a complete four-pillar weekly intake engine, role-based scoped filtering enforced at the data layer, and a Custom KPI Definition Engine that lets an administrator stand up a governed metric card without engineering involvement. All three ship alongside the platform's existing enterprise governance framework, SAML/OIDC identity federation, and SOC&nbsp;2-aligned, hash-chained compliance ledger.</p>
+        </div>
+      </section>
+
+      <!-- ============ 02. CORE PLATFORM CAPABILITIES ============ -->
+      <section>
+        <div class="eyebrow"><span class="num">02</span> Core Platform Capabilities</div>
+        <h2>Three capabilities delivered this release</h2>
+        <p class="section-intro">Each capability below is live in production today, gated by the platform's existing role and governance model — no parallel access system, no new persona concept.</p>
+
+        <div class="feature-grid">
+
+          <!-- Feature 1: 4-pillar ingestion -->
+          <article class="feature-card">
+            <div class="feature-card__bar"></div>
+            <div class="feature-card__body">
+              <div class="feature-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg>
+              </div>
+              <h3>4-Pillar Weekly Ingestion Engine</h3>
+              <p class="desc">One self-service portal (<code>/admin/ingestion</code>) now covers every weekly operational data stream a delivery organization files, with a shared quarantine-and-correct workflow: malformed rows are isolated with a plain-English reason and never silently dropped or committed.</p>
+              <table class="mini-table">
+                <tr><th>Weekly Actuals</th><td>Hours by person &amp; project</td></tr>
+                <tr><th>Milestone &amp; Progress</th><td>Phase status, % complete</td></tr>
+                <tr><th>Forecast &amp; EAC</th><td>Revised cost-to-complete, by role</td></tr>
+                <tr><th>Status &amp; RAID Log</th><td>Narrative highlight + RAID items</td></tr>
+              </table>
+            </div>
+          </article>
+
+          <!-- Feature 2: Role-based scoping -->
+          <article class="feature-card">
+            <div class="feature-card__bar"></div>
+            <div class="feature-card__body">
+              <div class="feature-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16l-6 8v6l-4 2v-8L4 4z"/></svg>
+              </div>
+              <h3>Role-Based Scoped Filtering</h3>
+              <p class="desc">The same Control Tower, Capacity Cockpit, and Financial Realization screens now enforce visibility at the query layer, not just in navigation — a Practice Director is scoped strictly to their own <code>practiceId</code>, automatically.</p>
+              <table class="mini-table">
+                <tr><th>VP / PMO / PS Ops</th><td><span class="role-scope-badge global">Global</span> every practice, every engagement</td></tr>
+                <tr><th>Practice Director</th><td><span class="role-scope-badge scoped">Scoped</span> own practice only</td></tr>
+                <tr><th>Delivery Manager</th><td><span class="role-scope-badge scoped">Scoped</span> direct reports only</td></tr>
+                <tr><th>Project Manager</th><td><span class="role-scope-badge scoped">Scoped</span> own assignments only</td></tr>
+              </table>
+            </div>
+          </article>
+
+          <!-- Feature 3: Custom KPI engine -->
+          <article class="feature-card">
+            <div class="feature-card__bar"></div>
+            <div class="feature-card__body">
+              <div class="feature-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9"/><path d="M11 19V5"/><path d="M18 19v-7"/><path d="M2 19h20"/></svg>
+              </div>
+              <h3>Custom KPI Definition Engine</h3>
+              <p class="desc">At <code>/admin/kpis</code>, an administrator binds a real metric — never an open formula language — to a target, a warning line, and the personas who should see it. The card appears on the Control Tower and Executive Hub immediately, with no redeploy.</p>
+              <ul class="bullet-list">
+                <li><b>Financial Realization</b> — e.g. Blended Baseline Margin %</li>
+                <li><b>Schedule &amp; Milestones</b> — e.g. On-Track Phase %</li>
+                <li><b>RAID Cockpit</b> — e.g. Open Critical RAID Items</li>
+                <li><b>Resource &amp; Capacity</b> — e.g. Blended Billable Utilization %</li>
+              </ul>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ============ 03. QUALITY & VERIFICATION RECORD ============ -->
+      <section>
+        <div class="eyebrow"><span class="num">03</span> Quality &amp; Verification Record</div>
+        <h2>Verified clean ahead of release</h2>
+        <p class="section-intro">Every capability above shipped behind the platform's full automated verification gate — unit coverage, end-to-end browser coverage, and strict type-checking — executed in full immediately prior to this release.</p>
+
+        <div class="stat-strip">
+          <div class="stat-card ok">
+            <span class="stat-num">387 / 387</span>
+            <span class="stat-label">Unit tests passed (Vitest, 29 files)</span>
+          </div>
+          <div class="stat-card ok">
+            <span class="stat-num">47 / 47</span>
+            <span class="stat-label">End-to-end tests passed (Playwright, Suites A–K)</span>
+          </div>
+          <div class="stat-card ok">
+            <span class="stat-num">0</span>
+            <span class="stat-label">TypeScript errors (strict <code>tsc --noEmit</code>)</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num">v1.4.0</span>
+            <span class="stat-label">Current verified release</span>
+          </div>
+        </div>
+
+        <div class="verify-line">
+          <b>$</b> npx tsc --noEmit &nbsp;→&nbsp; 0 errors&nbsp;&nbsp;·&nbsp;&nbsp;
+          <b>$</b> npx vitest run &nbsp;→&nbsp; 387 passed&nbsp;&nbsp;·&nbsp;&nbsp;
+          <b>$</b> npx playwright test &nbsp;→&nbsp; 47 passed
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ============ FOOTER: SAFE HARBOR + CONFIDENTIALITY + TRADEMARK ============ -->
+    <footer>
+      <div class="eyebrow-dark">Safe Harbor &amp; Confidentiality Notice</div>
+
+      <h4>Safe Harbor Statement</h4>
+      <p>This document contains forward-looking statements regarding product capabilities, release timing, and platform roadmap. These statements reflect current expectations and assumptions as of the date below and are subject to change without notice. Actual features, availability, and performance may differ materially from those described herein. Nothing in this document constitutes a commitment, promise, or contractual obligation to deliver any feature, functionality, or timeline, and it should not be relied upon in making a purchasing decision.</p>
+
+      <h4>Confidentiality Notice</h4>
+      <p>This document is confidential and proprietary to A2R Ventures. It is intended solely for the individual or entity to whom it has been provided and may contain information that is privileged and exempt from disclosure. It is marked <strong style="color:#fff;">DRAFT / WORK IN PROGRESS</strong> and reflects the state of the platform as of the date below; it has not been finalized for external distribution. Any review, dissemination, distribution, or copying of this document by parties other than the intended recipient is strictly prohibited.</p>
+
+      <hr>
+
+      <div class="copyright-line">© 2026 A2R Ventures. All rights reserved. A2R DOS<span class="tm">™</span> and the A2R logo are trademarks of A2R Ventures.</div>
+
+      <div class="footer-bottom">
+        <span>A2R Delivery OS — Executive Platform Summary</span>
+        <span class="stamp">● Confidential — Draft / Work in Progress</span>
+      </div>
+    </footer>
+
+  </div>
+
+</body>
+</html>
