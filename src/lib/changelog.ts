@@ -36,6 +36,18 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.4.0',
+    date: '2026-09-05',
+    headline: 'Role-Based Scoped Filtering, the Custom KPI Definition Engine, and the complete 4-pillar Batch Import Engine',
+    changes: [
+      { type: 'feature', text: 'Role-Based Scoped Filtering — every practice-level view now enforces who sees what by row, not just by route. VPs, PMO Heads, and PS Ops leads keep a global, tenant-wide view; Practice Directors, Delivery Managers, and Project Managers are automatically scoped to their own practice, direct reports, or assignments on the Control Tower, the Resource & Capacity Cockpit, and every Financial Realization / RAID / Commercial Baseline / Control Audit / Schedule project picker.' },
+      { type: 'feature', text: 'Custom KPI Definition Engine (Admin & Org Setup → Custom KPIs) — build your own metric cards by binding a real metric from Financial Realization, Schedule & Milestones, RAID Cockpit, or Resource & Capacity to a target and warning threshold, then assign the personas who should see it. Cards render immediately on the Control Tower and the Executive Hub for everyone in that persona, with no redeploy.' },
+      { type: 'feature', text: 'Forecast & EAC Updates — a third Batch Import pillar ingesting forward-looking cost-to-complete and revised Estimate-at-Completion hours by rate-card role, for matrix-mode engagements.' },
+      { type: 'feature', text: 'Status Reports & RAID Log — a fourth Batch Import pillar ingesting a weekly narrative status highlight, a new RAID item, or both, per engagement, sharing the same quarantine/correction/commit workflow as the other three pillars.' },
+      { type: 'improvement', text: 'The Auto Demo cinematic tour gained a dedicated role-aware-scoping beat (a VP’s global view vs. a Practice Director’s scoped view on the same screen) and an expanded Custom KPI Builder beat that narrates the card appearing on both the Control Tower and the Executive Hub.' },
+    ],
+  },
+  {
     version: '1.3.0',
     date: '2026-09-04',
     headline: 'A2R DOS rebrand, the Gunmetal Ascent Vector logo, an RBAC Master Matrix, and the Self-Service Batch Import Engine',

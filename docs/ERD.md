@@ -1,10 +1,11 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.2.3** (A2R DOS rebrand, Gunmetal Ascent Vector logo,
-Self-Service Batch Import Engine). Regenerate/extend this doc whenever a
-schema change adds, removes, or re-relates a model — it should never drift
-further than one release behind `schema.prisma`.
+it, current as of **v1.4.0** (Role-Based Scoped Filtering, the Custom KPI
+Definition Engine, and the complete 4-pillar Batch Import Engine).
+Regenerate/extend this doc whenever a schema change adds, removes, or
+re-relates a model — it should never drift further than one release behind
+`schema.prisma`.
 
 Every tenant-scoped model carries an `organizationId` foreign key (row-level
 multi-tenancy — see `src/lib/db/scoped-portfolio.ts` and

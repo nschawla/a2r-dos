@@ -1334,7 +1334,7 @@ Phase 3e below, which extends `BatchImportDataType` to four pillars.)_
 passed** across 25 files (23 pure-unit + 2 live-database security suites);
 `npx playwright test` → **40 passed** across Suites A–J.
 
-## Phase 3e — Role-Based Scoped Filtering, the Custom KPI Definition Engine & 4-Pillar Ingestion
+## Phase 3e — Role-Based Scoped Filtering, the Custom KPI Definition Engine & 4-Pillar Ingestion (v1.4.0)
 
 Phase 3e closes two gaps Phase 3d's RBAC Master Matrix deliberately left
 open — that matrix governs *navigation*, not which *rows* a scoped role's
@@ -1342,6 +1342,7 @@ own queries return — and turns the Batch Import Engine from a two-pillar
 into a complete four-pillar weekly intake surface. It adds no new
 persona/role concept: scoping reuses the real `DeliveryAccessRole`, and
 Custom KPIs bind to the existing `RbacPersona` set from Phase 3d's matrix.
+Released as **v1.4.0**.
 
 End-user instructions live in **`docs/USER_MANUAL.md`** (§6, §8.3, the
 Role-Based Scoped Filtering subsection under §10); the security posture is

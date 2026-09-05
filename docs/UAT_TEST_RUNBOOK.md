@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — UAT Test Runbook
 
-_Applies to v1.2.x · Last updated 2026-09-05_
+_Applies to v1.4.x · Last updated 2026-09-05_
 
 This runbook is the human-executable half of the QA framework. It gives a
 tester **explicit login data, exact steps, expected visual outcomes, and a
@@ -244,7 +244,7 @@ Sign in as `ops@a2rventures.com` (or `navinder@…`).
 | 5 | **Identity Federation** | Tenant picker → per-tenant SSO panel (see UAT-3.5) | |
 | 6 | **Ingestion & Templates** | CSV template downloads + schema reference | |
 | 7 | Impersonate a tenant (Tenants → actions → Impersonate, give a reason) | Opens a **read-only** tenant session with a persistent banner; the reason is written to that tenant's Compliance Ledger before the session starts | |
-| 8 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.2.x`; click → Release Notes modal | |
+| 8 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.4.x`; click → Release Notes modal | |
 
 ### UAT-4.6 · Admin & Org Setup (`/admin`)
 

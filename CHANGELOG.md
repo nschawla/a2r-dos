@@ -10,6 +10,23 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0] — 2026-09-05
+
+_Role-Based Scoped Filtering, the Custom KPI Definition Engine, and the complete 4-pillar Batch Import Engine._
+
+### Added
+- **Role-Based Scoped Filtering** — a new, distinct enforcement axis from the RBAC Master Matrix's navigation gating: which project/resource *rows* a role's own queries return. VPs, PMO Heads, and PS Ops leads (`VP_EXECUTIVE`, `ADMIN`) keep a global, tenant-wide view; Practice Directors are automatically scoped to their own `practiceId`'s projects and roster, Delivery Managers to their direct reports, and Project Managers to their own assignments — enforced on the Control Tower, the Resource & Capacity Cockpit, and every Financial Realization / RAID Cockpit / Commercial Baseline / Control Audit / Schedule & Milestones project picker.
+- **Custom KPI Definition Engine** (`Admin & Org Setup → Custom KPIs`, `/admin/kpis`) — an Admin binds a curated metric (never an arbitrary formula) from one of four data sources — Financial Realization, Schedule & Milestones, RAID Cockpit, Resource & Capacity — to a target/warning threshold and a set of target personas. The resulting card renders live on the Control Tower and the Executive Hub for exactly those personas, with no redeploy.
+- **Forecast & EAC Updates** — a third Batch Import pillar. Ingests forward-looking cost-to-complete and revised Estimate-at-Completion hours by rate-card role, upserting directly into `FinancialActual`. Matrix-mode engagements only; a Direct Intake project's rows quarantine with a clear pointer back to that project's own Financial Realization import.
+- **Status Reports & RAID Log** — a fourth Batch Import pillar. Ingests a weekly narrative status highlight, a new RAID item, or both, per engagement — narrative rows become Activity Log entries, RAID rows become RAID Cockpit entries — sharing the same stage / correct / commit pipeline as the other three pillars.
+- Two new starter templates in the Data Ingestion & Templates hub (`forecast-eac-batch`, `status-raid-batch`).
+
+### Changed
+- The Auto Demo cinematic tour gained a dedicated role-aware-scoping beat (a VP's global view vs. a Practice Director's scoped view, on the same screen) and an expanded Custom KPI Builder beat that narrates the card appearing on both the Control Tower and the Executive Hub; `docs/AUTO_DEMO_SCRIPT.md` stays synced.
+
+### Verification
+- `npx tsc --noEmit` → 0 errors. `npx vitest run` → **387 passed** across 29 files. `npx playwright test` → **47 passed** across Suites A–K.
+
 ## [1.3.0] — 2026-09-04
 
 _A2R DOS rebrand, the Gunmetal Ascent Vector logo, an RBAC Master Matrix, and the Self-Service Batch Import Engine._
