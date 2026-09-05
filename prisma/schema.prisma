@@ -45,16 +45,6 @@ model User {
   // self-registered user (who chose their own password) is never flagged.
   mustChangePassword Boolean @default(false)
 
-  // A2R Operator Control Plane — flags an A2R Ventures staff account that
-  // may access the internal /ops console (cross-tenant provisioning &
-  // telemetry). Deliberately a plain boolean on User, not a Membership
-  // role: it is a platform-operator capability, entirely orthogonal to any
-  // client-tenant MembershipRole/DeliveryAccessRole, and an operator
-  // typically holds no client Membership at all. src/lib/ops-auth.ts also
-  // treats an @a2rventures.com email as staff so the very first operator
-  // can bootstrap without a manual DB edit.
-  isA2rStaff    Boolean   @default(false)
-
   createdAt DateTime @updatedAt @default(now())
   updatedAt DateTime @updatedAt
 
@@ -73,8 +63,42 @@ model User {
   dataImportBatches DataImportBatch[]
   // Every custom KPI definition this user authored.
   customKpis        CustomKpi[]
+  // A2R Operator Control Plane — every staff-access entitlement ever
+  // granted to this account (see StaffGrant). Staff status = at least one
+  // row here with revokedAt = null.
+  staffGrants       StaffGrant[]
 
   @@map("users")
+}
+
+// A2R Operator Control Plane — an EXPLICIT, auditable grant of internal
+// /ops console access (cross-tenant provisioning, telemetry, tenant
+// lifecycle) to one specific User.
+//
+// This replaces the former `User.isA2rStaff` boolean + the
+// `@a2rventures.com` email-domain wildcard (P0 #2, 2026-09). There is no
+// longer any implicit path to staff access: a compromised corporate inbox
+// grants nothing. An account is staff iff it holds a row here with
+// `revokedAt` still null. The NextAuth jwt callback resolves that into
+// `token.isA2rStaff` each request; src/lib/ops-auth.ts re-checks this table
+// directly on every /ops render / action.
+model StaffGrant {
+  id              String    @id @default(cuid())
+  userId          String
+  // The operator who granted it. Null only for the seed / initial
+  // bootstrap grant (no operator exists yet to attribute it to).
+  grantedByUserId String?
+  reason          String
+  createdAt       DateTime  @default(now())
+  // Set to soft-revoke. A revoked grant never confers access again; a new
+  // grant row is created to re-grant, so the full history is preserved.
+  revokedAt       DateTime?
+  revokedByUserId String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@map("staff_grants")
 }
 
 // Standard Auth.js (NextAuth) Prisma adapter models — kept so OAuth providers

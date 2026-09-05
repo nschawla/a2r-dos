@@ -13,7 +13,7 @@ import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { resolveDeliveryRole, type DeliveryRole } from '@/lib/auth/rbac';
-import { resolveIsA2rStaff } from '@/lib/ops/staff';
+import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
 import { IMPERSONATION_COOKIE, resolveImpersonation } from '@/lib/ops/tenant-management';
 import { getGovernanceConfig } from '@/lib/governance/service';
 import { registerLazyScopeResolver, runUnscoped, setOrgScope } from '@/lib/db/org-scope';
@@ -102,11 +102,9 @@ registerLazyScopeResolver(async () => {
   }
   if (onOpsConsole) {
     const session = await cachedServerSession();
-    const staff =
-      session?.user != null &&
-      (session.user.isA2rStaff === true ||
-        resolveIsA2rStaff({ email: session.user.email, isA2rStaff: session.user.isA2rStaff }));
-    if (staff) return { kind: 'admin', reason: 'ops-console' };
+    if (session?.user && (await hasActiveStaffGrant(session.user.id))) {
+      return { kind: 'admin', reason: 'ops-console' };
+    }
     return undefined;
   }
 
@@ -127,7 +125,7 @@ async function resolveOrgContextInner(): Promise<OrgContextResult> {
   // account inside the target tenant, read-only, regardless of whether
   // they hold a Membership in it.
   const impToken = cookieStore.get(IMPERSONATION_COOKIE)?.value;
-  if (impToken && session.user.isA2rStaff) {
+  if (impToken && (await hasActiveStaffGrant(session.user.id))) {
     const grant = await resolveImpersonation(impToken);
     if (grant) {
       const org = await db.organization.findUnique({

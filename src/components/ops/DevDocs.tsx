@@ -35,7 +35,7 @@ const SUBSYSTEMS: Subsystem[] = [
   {
     area: 'Auth & session',
     entryPoints: ['src/lib/session.ts', 'src/lib/ops-auth.ts', 'src/lib/auth/rbac.ts'],
-    note: 'Three independent authorization axes — see the table below. NextAuth JWT sessions; the jwt callback refreshes memberships / isA2rStaff / mustChangePassword from the DB every request.',
+    note: 'Three independent authorization axes — see the table below. NextAuth JWT sessions; the jwt callback refreshes memberships / staff-grant status / mustChangePassword from the DB every request.',
   },
   {
     area: 'Forced password change',
@@ -147,9 +147,9 @@ const AUTH_AXES: AuthAxis[] = [
       'canEditProject edit authority · rbacMatrix nav/route allow-list · scoping.ts row visibility. Three different questions, one role.',
   },
   {
-    axis: 'A2R staff — isA2rStaff',
-    values: 'true / @a2rventures.com email',
-    enforces: 'The Ops Console (/ops/*) only. No relationship to any tenant membership. requireOpsContext is the authoritative gate.',
+    axis: 'A2R staff — staff_grants entitlement',
+    values: 'explicit un-revoked staff_grants row (granted at /ops/staff)',
+    enforces: 'The Ops Console (/ops/*) only. No relationship to any tenant membership, and no email-domain shortcut. requireOpsContext re-checks the grant table live on every render / action.',
   },
 ];
 

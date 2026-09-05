@@ -9,6 +9,7 @@ const OPS_NAV = [
   { href: '/ops/pulse', label: 'Platform Pulse', desc: 'Build · tests · health' },
   { href: '/ops/tenants', label: 'Tenants', desc: 'Client organizations' },
   { href: '/ops/identity', label: 'Identity Federation', desc: 'Tenant SSO · SAML / OIDC' },
+  { href: '/ops/staff', label: 'Staff Access', desc: 'Who can reach this console' },
   { href: '/ops/ingestion', label: 'Ingestion & Templates', desc: 'Intake schemas & downloads' },
   { href: '/ops/dev-docs', label: 'Developer Docs', desc: 'Build · architecture · setup' },
 ] as const;

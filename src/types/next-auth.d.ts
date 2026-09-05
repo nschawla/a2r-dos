@@ -26,9 +26,10 @@ declare module 'next-auth' {
       name?: string | null;
       email?: string | null;
       image?: string | null;
-      /** A2R Operator Control Plane — true for A2R Ventures staff who may
-       * reach the internal /ops console. Derived in the jwt callback from
-       * User.isA2rStaff OR an @a2rventures.com email. */
+      /** A2R Operator Control Plane — true for accounts holding an explicit,
+       * un-revoked `staff_grants` entitlement. Resolved live in the jwt
+       * callback each request (hasActiveStaffGrant); src/lib/ops-auth.ts
+       * re-checks the table directly. No email-domain shortcut. */
       isA2rStaff: boolean;
       /** True while the account's password was set by someone else and the
        * user must pick their own. src/middleware.ts forces them to

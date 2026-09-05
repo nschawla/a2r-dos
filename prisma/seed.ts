@@ -45,6 +45,18 @@ function daysFromNow(n: number): Date {
   return daysAgo(-n);
 }
 
+/**
+ * A2R Operator Control Plane — grant explicit /ops access to a user.
+ * Replaces the former `User.isA2rStaff = true` writes + the
+ * `@a2rventures.com` email wildcard (P0 #2). Idempotent.
+ */
+async function grantStaffAccess(userId: string, reason: string) {
+  const existing = await db.staffGrant.findFirst({ where: { userId, revokedAt: null } });
+  if (!existing) {
+    await db.staffGrant.create({ data: { userId, reason } });
+  }
+}
+
 async function upsertUser(email: string, name: string) {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
   // Demo accounts keep `mustChangePassword` at its default (false) — the
@@ -823,12 +835,12 @@ async function main() {
   // ============================================================
   // A2R OPERATOR CONTROL PLANE — internal staff login
   //
-  // No client Membership: this account exists only to reach /ops. The
-  // guard in src/lib/ops-auth.ts also accepts any @a2rventures.com email,
-  // but seeding an explicit isA2rStaff account keeps the demo self-evident.
+  // No client Membership: this account exists only to reach /ops. Staff
+  // access is an explicit staff_grants entitlement — there is no email
+  // shortcut any more (P0 #2).
   // ============================================================
   const opsUser = await upsertUser('ops@a2rventures.com', 'Riley Operator');
-  await db.user.update({ where: { id: opsUser.id }, data: { isA2rStaff: true } });
+  await grantStaffAccess(opsUser.id, 'Seed — dedicated Ops Console operator login');
 
   // ============================================================
   // RESOURCE & CAPACITY COCKPIT + CONCURRENCY FOUNDATION
@@ -1198,10 +1210,11 @@ async function main() {
   // ============================================================
   // MASTER SUPER-ADMIN — navinder@a2rventures.com
   //
-  // Full reach: isA2rStaff (the /ops operator axis, cross-tenant) PLUS an
-  // OWNER / ADMIN membership in EVERY organization, so this login also has
-  // top-tier access inside every client workspace and every module. Its
-  // password is set explicitly (not the shared demo password).
+  // Full reach: an explicit staff_grants entitlement (the /ops operator
+  // axis, cross-tenant) PLUS an OWNER / ADMIN membership in EVERY
+  // organization, so this login also has top-tier access inside every
+  // client workspace and every module. Its password is set explicitly
+  // (not the shared demo password).
   // ============================================================
   const MASTER_ADMIN_EMAIL = 'navinder@a2rventures.com';
   const MASTER_ADMIN_PASSWORD = 'Password123!'; // fresh-local-seed only; rotate in any live deployment
@@ -1211,17 +1224,18 @@ async function main() {
     // Do NOT reset passwordHash on re-seed — this is a personal account
     // whose password may have been rotated in a live deployment (see
     // scripts / docs). Only a first-ever `create` sets the demo default.
-    update: { name: 'Navinder Chawla', isA2rStaff: true },
-    create: { email: MASTER_ADMIN_EMAIL, name: 'Navinder Chawla', passwordHash: masterAdminHash, isA2rStaff: true },
+    update: { name: 'Navinder Chawla' },
+    create: { email: MASTER_ADMIN_EMAIL, name: 'Navinder Chawla', passwordHash: masterAdminHash },
   });
+  await grantStaffAccess(masterAdmin.id, 'Seed — master super-admin (bootstrap operator)');
 
   // Dedicated E2E master. The enterprise-verification suite's Suite A / I
-  // need an isA2rStaff account that also holds an OWNER/ADMIN membership
-  // in every org (to reach both /ops and every tenant workspace). Kept
-  // SEPARATE from navinder@ so the suite never depends on a human's real
-  // credential — and it keeps the shared demo password, unrotated.
+  // need a staff account that also holds an OWNER/ADMIN membership in every
+  // org (to reach both /ops and every tenant workspace). Kept SEPARATE
+  // from navinder@ so the suite never depends on a human's real credential
+  // — and it keeps the shared demo password, unrotated.
   const e2eMaster = await upsertUser('master.e2e@a2rventures.com', 'E2E Master');
-  await db.user.update({ where: { id: e2eMaster.id }, data: { isA2rStaff: true } });
+  await grantStaffAccess(e2eMaster.id, 'Seed — E2E master (Ops Console + all-tenant admin)');
 
   // Oldest org first, so the FIRST membership created for each master
   // account is the primary demo tenant (A2R DOS Demo) — requireOrgContext
@@ -1262,8 +1276,8 @@ async function main() {
   console.log('               Digital Front Door (Red)');
   console.log('');
   console.log('  A2R Ops Console (internal):');
-  console.log(`    ops@a2rventures.com           -> isA2rStaff (no client membership) — password ${DEMO_PASSWORD}`);
-  console.log(`    navinder@a2rventures.com      -> MASTER super-admin: isA2rStaff + OWNER/ADMIN in all ${allOrgs.length} orgs — password Password123!`);
+  console.log(`    ops@a2rventures.com           -> staff grant (no client membership) — password ${DEMO_PASSWORD}`);
+  console.log(`    navinder@a2rventures.com      -> MASTER super-admin: staff grant + OWNER/ADMIN in all ${allOrgs.length} orgs — password Password123!`);
 }
 
 main()

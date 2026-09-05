@@ -144,6 +144,8 @@ export const UNSCOPED_MODELS: ReadonlySet<string> = new Set([
   'VerificationToken',
   'Membership',
   'Organization',
+  // Platform-operator entitlement — not tenant data.
+  'StaffGrant',
 ]);
 
 /** Models with an `organizationId` column of their own. */

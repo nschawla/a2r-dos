@@ -1,6 +1,5 @@
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
-import { isA2rStaffEmail } from '@/lib/ops/staff';
 import { resolveDeliveryRole } from '@/lib/auth/rbac';
 import { personaForDeliveryRole, isRouteBlockedForPersona } from '@/lib/governance/rbacMatrix';
 
@@ -49,8 +48,11 @@ export default withAuth(
     }
 
     if (pathname.startsWith('/ops')) {
-      const isStaff = token?.isA2rStaff === true || isA2rStaffEmail(token?.email);
-      if (!isStaff) {
+      // First-pass only. `token.isA2rStaff` is refreshed from the
+      // `staff_grants` table by the jwt callback every request;
+      // src/lib/ops-auth.ts re-checks that table directly and is the
+      // authoritative gate. There is no email-domain shortcut any more.
+      if (token?.isA2rStaff !== true) {
         return NextResponse.redirect(new URL('/portfolio', req.url));
       }
       // Tell the org-scope layer this request is the (legitimately

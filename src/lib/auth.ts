@@ -12,7 +12,7 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { runUnscoped } from '@/lib/db/org-scope';
-import { resolveIsA2rStaff } from '@/lib/ops/staff';
+import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
 import { isSsoEnforcedForEmail } from '@/lib/identity/service';
 
 /**
@@ -108,20 +108,24 @@ export const authOptions: AuthOptions = {
           // Runs on every request before requireOrgContext resolves the
           // active tenant — User + Membership are UNSCOPED models, but wrap
           // so the org-scope extension never throws here.
-          const [account, memberships] = await runUnscoped('nextauth-jwt', () =>
+          const [account, memberships, isStaff] = await runUnscoped('nextauth-jwt', () =>
             Promise.all([
               db.user.findUnique({
                 where: { id: token.userId as string },
-                select: { email: true, isA2rStaff: true, mustChangePassword: true },
+                select: { mustChangePassword: true },
               }),
               db.membership.findMany({
                 where: { userId: token.userId as string },
                 include: { organization: { select: { id: true, name: true, slug: true, status: true } } },
                 orderBy: { createdAt: 'asc' },
               }),
+              // Staff access is an explicit, revocable staff_grants row — no
+              // email-domain shortcut. Re-resolved every request so a grant
+              // or revoke takes effect on the next navigation.
+              hasActiveStaffGrant(token.userId as string),
             ])
           );
-          token.isA2rStaff = resolveIsA2rStaff({ email: account?.email, isA2rStaff: account?.isA2rStaff });
+          token.isA2rStaff = isStaff;
           token.mustChangePassword = account?.mustChangePassword === true;
           token.memberships = memberships.map((m) => ({
             organizationId: m.organizationId,
