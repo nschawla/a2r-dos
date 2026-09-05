@@ -36,6 +36,17 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.4.1',
+    date: '2026-09-05',
+    headline: 'Production hardening — database Row Level Security, serverless connection pooling, and restored security headers',
+    changes: [
+      { type: 'security', text: 'Row Level Security is now enabled on every database table, with all privileges revoked from the managed provider’s web-exposed roles — the database can no longer be read or written around the application, only through it. The application connects as a role that owns the tables and bypasses RLS, so nothing in the product is affected.' },
+      { type: 'security', text: 'Restored the baseline HTTP security headers (X-Frame-Options: DENY, CSP frame-ancestors ‘none’, nosniff, Referrer-Policy, Permissions-Policy) on every response — they had been dropped by an unrelated build-config edit. Verified live on the deployment.' },
+      { type: 'fix', text: 'The serverless deployment could not reach its database (the provider’s direct host is IPv6-only; serverless functions have no IPv6). Runtime queries now go through the connection pooler, and schema migrations use a dedicated direct URL.' },
+      { type: 'fix', text: 'Restored the build version stamp shown in the Ops Console (it had been reading “0.0.0-dev”) along with React strict mode and the server-action body-size limit.' },
+    ],
+  },
+  {
     version: '1.4.0',
     date: '2026-09-05',
     headline: 'Role-Based Scoped Filtering, the Custom KPI Definition Engine, and the complete 4-pillar Batch Import Engine',

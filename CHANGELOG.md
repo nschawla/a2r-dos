@@ -10,6 +10,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.1] — 2026-09-05
+
+_Production hardening — database Row Level Security, serverless connection pooling, and restored security headers._
+
+### Security
+- **Row Level Security on every table.** `ALTER TABLE … ENABLE ROW LEVEL SECURITY` (not `FORCE`) is now applied to all 35 `public` tables with **no policies** — deny-all for every role except the Prisma-owned role, which owns the tables and carries `BYPASSRLS`. All table / sequence / function privileges are revoked from the managed provider's web-exposed `anon` / `authenticated` roles, and the schema default privileges are altered so a future schema push does not re-grant them. The app uses no Supabase client (`@supabase/*` is not a dependency), so nothing in the product is affected — verified with full Prisma read + write after apply. See `prisma/migrations/00000000000007_rls_lockdown/migration.sql` and `docs/SECURITY.md` § "Database-level access control".
+- **Restored baseline HTTP security headers** (`X-Frame-Options: DENY`, CSP `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`) on every response — an unrelated `next.config.mjs` edit had removed them. Confirmed live via response inspection.
+
+### Fixed
+- **Serverless database connectivity.** The Vercel deployment could not reach Postgres — the provider's direct host (`db.<ref>.supabase.co`) is IPv6-only and Vercel functions have no IPv6 egress, so every query failed. `DATABASE_URL` now points at the IPv4 connection pooler; `datasource.directUrl` (a new `DIRECT_URL`) carries the direct session that `prisma db push` / `migrate` require. `.env.example` documents both.
+- **Ops Console build stamp** was reading `0.0.0-dev`; restored the `NEXT_PUBLIC_APP_VERSION` / `_BUILD_SHA` / `_BUILD_TIME` injection in `next.config.mjs`, along with `reactStrictMode` and the 2 MB server-action body limit that the same edit had dropped.
+
+### Verification
+- `npx tsc --noEmit` → 0 errors. `npx vitest run` → **387 passed** across 29 files (incl. the live-DB `tests/security/*` suites). `npx playwright test` → **47 passed**. Production `/api/health/ready` → `{"database":"ok"}`; security headers confirmed on live responses.
+
 ## [1.4.0] — 2026-09-05
 
 _Role-Based Scoped Filtering, the Custom KPI Definition Engine, and the complete 4-pillar Batch Import Engine._

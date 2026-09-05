@@ -36,6 +36,26 @@ layer:
 - **No shared mutable global state** between tenant requests. Rate-limiter and
   in-memory caches are keyed by tenant / principal.
 
+### Database-level access control (Row Level Security)
+
+The application reaches Postgres **only** through Prisma, as a single
+role that owns every table and carries `BYPASSRLS` — there is no
+Supabase-client / PostgREST usage anywhere in the codebase. To make sure
+the managed database can't be reached *around* the application:
+
+- **Row Level Security is `ENABLE`d on every table in `public`, with no
+  policies** — i.e. deny-all for any role that is not the owning role.
+  The application's role is unaffected (owner + `BYPASSRLS`); every other
+  role, including the provider's web-exposed `anon` / `authenticated`
+  roles, gets zero rows and zero writes. RLS is **not** `FORCE`d, so the
+  owning role keeps its bypass.
+- **All table / sequence / function privileges are revoked** from those
+  web-exposed roles, and the schema default privileges are altered so a
+  future schema push does not re-grant them.
+- Applied by `prisma/migrations/00000000000007_rls_lockdown/migration.sql`
+  (idempotent). Verified post-apply: 35/35 tables RLS-on, 0 residual
+  grants, and full Prisma read + write still functioning.
+
 ### Platform-operator access (A2R staff)
 
 A separate, non-tenant authorization axis governs the internal Operator Control

@@ -1,8 +1,9 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.4.0** (Role-Based Scoped Filtering, the Custom KPI
-Definition Engine, and the complete 4-pillar Batch Import Engine).
+it, current as of **v1.4.1** (Role-Based Scoped Filtering, the Custom KPI
+Definition Engine, the complete 4-pillar Batch Import Engine, and
+database-level RLS lockdown).
 Regenerate/extend this doc whenever a schema change adds, removes, or
 re-relates a model — it should never drift further than one release behind
 `schema.prisma`.
@@ -13,6 +14,12 @@ multi-tenancy — see `src/lib/db/scoped-portfolio.ts` and
 where a more specific relationship already implies the tenant (e.g. a
 `Project` belongs to an `Organization`, so everything hanging off `Project`
 is transitively tenant-scoped without its own drawn edge).
+
+Postgres **Row Level Security is enabled on every table** (deny-all, no
+policies) with all grants revoked from the managed provider's web-exposed
+roles — the app connects as the table-owning `BYPASSRLS` role, so this is
+transparent to Prisma. See `prisma/migrations/00000000000007_rls_lockdown/`
+and `docs/SECURITY.md` § "Database-level access control".
 
 ## Core schema
 

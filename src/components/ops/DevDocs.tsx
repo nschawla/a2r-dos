@@ -43,6 +43,11 @@ const SUBSYSTEMS: Subsystem[] = [
     note: 'Every tenant model carries organizationId (row-level isolation). scoping.ts adds practice/report/assignment-level row scoping for Practice Directors and below.',
   },
   {
+    area: 'Database access control (RLS)',
+    entryPoints: ['prisma/migrations/00000000000007_rls_lockdown/migration.sql'],
+    note: 'RLS is ENABLEd (not FORCEd) on every public table with no policies — deny-all for any role except the Prisma-owned BYPASSRLS role. Web-exposed anon/authenticated roles have all grants revoked. Closes the Supabase Security Advisor "RLS disabled" finding; the app is a pure Prisma client (no @supabase/*), so nothing in it is affected.',
+  },
+  {
     area: 'RBAC Master Matrix',
     entryPoints: ['src/lib/governance/rbacMatrix.ts', 'src/middleware.ts'],
     note: '5 personas → allowed sidebar groups / module pills / route prefixes. Unauthorized items are omitted from render; middleware is an edge route guard (defence in depth, not the authoritative gate).',
