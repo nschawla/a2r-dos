@@ -25,12 +25,26 @@ const EXPECTED_COLUMNS: Record<string, string[]> = {
   'milestone-progress-batch': [
     'projectCode', 'phase', 'status', 'pctComplete', 'actualStartDate', 'actualEndDate',
   ],
+  'forecast-eac-batch': [
+    'projectCode', 'role', 'forecastHours', 'openRRHours',
+  ],
+  'status-raid-batch': [
+    'projectCode', 'weekEnding', 'statusNarrative', 'raidType', 'raidDescription', 'raidSeverity', 'raidOwnerEmail',
+  ],
 };
 
 describe('INGESTION_TEMPLATES', () => {
-  it('exposes exactly the five intake templates', () => {
+  it('exposes exactly the seven intake templates', () => {
     expect(INGESTION_TEMPLATES.map((t) => t.id).sort()).toEqual(
-      ['milestone-progress-batch', 'project-baseline', 'resource-allocation', 'timesheet-actuals', 'weekly-actuals-batch']
+      [
+        'forecast-eac-batch',
+        'milestone-progress-batch',
+        'project-baseline',
+        'resource-allocation',
+        'status-raid-batch',
+        'timesheet-actuals',
+        'weekly-actuals-batch',
+      ]
     );
   });
 

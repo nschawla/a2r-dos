@@ -40,14 +40,19 @@ export default async function AdminIngestionPage() {
   };
 
   if (canBatchImport) {
-    const [projects, resources, batchesResult] = await Promise.all([
-      db.project.findMany({ where: { organizationId: context.organizationId }, select: { id: true, externalId: true, name: true } }),
+    const [projects, resources, roles, batchesResult] = await Promise.all([
+      db.project.findMany({
+        where: { organizationId: context.organizationId },
+        select: { id: true, externalId: true, name: true, estimationMode: true },
+      }),
       db.resource.findMany({ where: { organizationId: context.organizationId }, select: { id: true, name: true, email: true } }),
+      db.deliveryRole.findMany({ where: { organizationId: context.organizationId }, select: { id: true, name: true } }),
       listImportBatches(),
     ]);
     const lookups: BatchValidationContext = {
-      projects: projects.map((p) => ({ id: p.id, code: p.externalId, name: p.name })),
+      projects: projects.map((p) => ({ id: p.id, code: p.externalId, name: p.name, estimationMode: p.estimationMode })),
       resources: resources.map((r) => ({ id: r.id, name: r.name, email: r.email })),
+      roles,
     };
     const batches = batchesResult.ok ? batchesResult.batches : [];
 

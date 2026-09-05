@@ -43,6 +43,8 @@ import {
   type BatchRowIssue,
   type WeeklyActualsBatchRow,
   type MilestoneProgressBatchRow,
+  type ForecastEacBatchRow,
+  type StatusRaidBatchRow,
 } from '@/lib/ingestion/batch-schemas';
 
 export type ActionResult<T> = { ok: true } & T | { ok: false; error: string };
@@ -73,13 +75,15 @@ export interface BatchDetail extends BatchListItem {
 }
 
 async function loadLookups(organizationId: string): Promise<BatchValidationContext> {
-  const [projects, resources] = await Promise.all([
-    db.project.findMany({ where: { organizationId }, select: { id: true, externalId: true, name: true } }),
+  const [projects, resources, roles] = await Promise.all([
+    db.project.findMany({ where: { organizationId }, select: { id: true, externalId: true, name: true, estimationMode: true } }),
     db.resource.findMany({ where: { organizationId }, select: { id: true, name: true, email: true } }),
+    db.deliveryRole.findMany({ where: { organizationId }, select: { id: true, name: true } }),
   ]);
   return {
-    projects: projects.map((p) => ({ id: p.id, code: p.externalId, name: p.name })),
+    projects: projects.map((p) => ({ id: p.id, code: p.externalId, name: p.name, estimationMode: p.estimationMode })),
     resources: resources.map((r) => ({ id: r.id, name: r.name, email: r.email })),
+    roles,
   };
 }
 
@@ -334,7 +338,7 @@ export async function commitImportBatch(
             forecastedHours: data.forecastedHours ?? 0,
           },
         });
-      } else {
+      } else if (batch.dataType === 'MILESTONE_PROGRESS') {
         const data = result.data as MilestoneProgressBatchRow;
         if (!SCHEDULE_STATUS_SET.includes(data.status)) continue; // exhaustive by construction; guards the cast below
         await tx.schedulePhase.upsert({
@@ -354,6 +358,43 @@ export async function commitImportBatch(
             actualEnd: data.actualEnd ? new Date(data.actualEnd) : null,
           },
         });
+      } else if (batch.dataType === 'FORECAST_EAC') {
+        const data = result.data as ForecastEacBatchRow;
+        await tx.financialActual.upsert({
+          where: { projectId_roleKey: { projectId: data.projectId, roleKey: data.roleKey } },
+          update: { forecastHours: data.forecastHours, openRRHours: data.openRRHours },
+          create: {
+            projectId: data.projectId,
+            roleKey: data.roleKey,
+            roleId: data.roleKey,
+            forecastHours: data.forecastHours,
+            openRRHours: data.openRRHours,
+          },
+        });
+      } else {
+        const data = result.data as StatusRaidBatchRow;
+        if (data.narrative) {
+          await tx.activityLogEntry.create({
+            data: {
+              organizationId: auth.context.organizationId,
+              projectId: data.projectId,
+              userId: auth.context.userId,
+              text: `Week of ${data.weekDate.slice(0, 10)} — ${data.narrative}`,
+              tab: 'raid',
+            },
+          });
+        }
+        if (data.raid) {
+          await tx.raidEntry.create({
+            data: {
+              projectId: data.projectId,
+              type: data.raid.type,
+              description: data.raid.description,
+              severity: data.raid.severity,
+              ownerId: data.raid.ownerId,
+            },
+          });
+        }
       }
     }
 
@@ -383,6 +424,8 @@ export async function commitImportBatch(
   revalidatePath('/admin/ingestion');
   revalidatePath('/capacity');
   revalidatePath('/schedule');
+  revalidatePath('/financials');
+  revalidatePath('/raid');
   revalidatePath('/');
 
   return { ok: true, committedRows };

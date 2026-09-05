@@ -189,6 +189,57 @@ export const INGESTION_TEMPLATES: IngestionTemplate[] = [
       ['ENG-2025-188', 'Sustain (Hypercare, Warranty)', 'Delayed', '40', '', ''],
     ],
   },
+  {
+    id: 'forecast-eac-batch',
+    filename: 'forecast-eac-batch-template.csv',
+    title: 'Forecast & EAC Updates — Batch Upload',
+    purpose: 'A single weekly file of revised forecast and cost-to-complete inputs by role across projects, for the Self-Service Ingestion Portal at Admin & Org Setup → Data Ingestion → Batch Import.',
+    guidance: [
+      ENCODING_RULE,
+      EMPTY_RULE,
+      'One row per project + rate-card role. `role` must match a role name already on your rate card — matrix-mode projects only; a project in Direct Intake mode should use that project’s own Financial Realization import instead.',
+      '`forecastHours` is the updated forecast-to-complete for the role. `openRRHours` is the remaining run-rate hours still open — the driver a revised EAC is computed from downstream, not a separately typed dollar figure.',
+    ],
+    columns: [
+      { name: 'projectCode', description: 'Engagement identifier — must match a Project Baseline row.', example: 'ENG-2026-014', required: true },
+      { name: 'role', description: 'Rate-card role name — must match a role on your rate card.', example: 'Senior Consultant', required: true },
+      { name: 'forecastHours', description: 'Revised forecast-to-complete hours for the role.', example: '80', required: true },
+      { name: 'openRRHours', description: 'Remaining open run-rate hours (the cost-to-complete driver).', example: '25', required: true },
+    ],
+    sampleRows: [
+      ['ENG-2026-014', 'Senior Consultant', '80', '25'],
+      ['ENG-2026-014', 'Solution Architect', '40', '10'],
+      ['ENG-2026-021', 'Data Engineer', '60', '30'],
+    ],
+  },
+  {
+    id: 'status-raid-batch',
+    filename: 'status-raid-batch-template.csv',
+    title: 'Status Reports & RAID Log — Batch Upload',
+    purpose: 'A single weekly file of narrative status highlights and new RAID items across projects, for the Self-Service Ingestion Portal at Admin & Org Setup → Data Ingestion → Batch Import.',
+    guidance: [
+      ENCODING_RULE,
+      EMPTY_RULE,
+      ISO_DATE_RULE,
+      'One row per project update. A row may be a pure narrative update, a pure new RAID item, or both — but never neither. `statusNarrative` lands in that project’s Activity Log; the RAID columns create a new RAID Cockpit entry.',
+      '`raidType` — one of Risk, Assumption, Issue, Dependency. `raidSeverity` — Critical, High, Med, or Low (defaults to Med if left blank while a RAID item is present).',
+      '`raidOwnerEmail` must match a resource already on the roster — leave blank for an unassigned RAID item.',
+    ],
+    columns: [
+      { name: 'projectCode', description: 'Engagement identifier — must match a Project Baseline row.', example: 'ENG-2026-014', required: true },
+      { name: 'weekEnding', description: 'Reporting week (YYYY-MM-DD).', example: '2026-03-08', required: true },
+      { name: 'statusNarrative', description: 'Free-text weekly status highlight.', example: 'UAT kicked off on schedule.', required: false },
+      { name: 'raidType', description: 'Risk | Assumption | Issue | Dependency — required if any RAID column is filled in.', example: 'Risk', required: false },
+      { name: 'raidDescription', description: 'The RAID item itself — required once raidType is set.', example: 'Vendor may slip the API delivery date.', required: false },
+      { name: 'raidSeverity', description: 'Critical | High | Med | Low.', example: 'High', required: false },
+      { name: 'raidOwnerEmail', description: 'Work email of the RAID item owner, if assigned.', example: 'priya.raman@contoso.com', required: false },
+    ],
+    sampleRows: [
+      ['ENG-2026-014', '2026-03-08', 'UAT kicked off on schedule.', 'Risk', 'Vendor may slip the API delivery date.', 'High', 'priya.raman@contoso.com'],
+      ['ENG-2026-021', '2026-03-08', 'On track for go-live.', '', '', '', ''],
+      ['ENG-2025-188', '2026-03-08', '', 'Issue', 'Test environment down for 2 days.', 'Med', ''],
+    ],
+  },
 ];
 
 export function getTemplate(id: string): IngestionTemplate | undefined {

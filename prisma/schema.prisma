@@ -1015,6 +1015,14 @@ model SchedulePhase {
 enum BatchImportDataType {
   WEEKLY_ACTUALS
   MILESTONE_PROGRESS
+  // Forward-looking cost-to-complete / revised EAC inputs — commits into
+  // FinancialActual.forecastHours / openRRHours (matrix-mode projects
+  // only; see src/lib/ingestion/batch-schemas.ts for why Direct-mode
+  // isn't supported in the tenant-wide batch importer yet).
+  FORECAST_EAC
+  // Weekly narrative status highlights (-> ActivityLogEntry) and/or a new
+  // RAID item (-> RaidEntry) per row, at least one of the two required.
+  STATUS_RAID
 }
 
 enum BatchImportStatus {

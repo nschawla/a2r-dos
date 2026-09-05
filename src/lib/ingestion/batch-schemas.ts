@@ -1,31 +1,47 @@
 /**
  * WP7 — Self-Service Batch Import Engine: pure schema + validation for the
- * two weekly BAU data types (Weekly Actuals, Milestone & Progress
- * Updates). Same philosophy as src/lib/ingestion/csv-parsers.ts (zero
- * React/Next/Prisma dependency, org roster/project data passed in by the
- * caller) — but reshaped for a tenant-wide *batch* spanning many projects
- * per file, not one project's own import modal, and reused verbatim on
- * both sides of the wire: BatchUploadPortal calls these client-side for
- * instant preview, and src/server/actions/data-import.ts calls the exact
- * same functions server-side as the only source of truth a row's staged
+ * four weekly BAU data types (Weekly Actuals, Milestone & Progress
+ * Updates, Forecast & EAC Updates, Status Reports & RAID Log). Same
+ * philosophy as src/lib/ingestion/csv-parsers.ts (zero React/Next/Prisma
+ * dependency, org roster/project data passed in by the caller) — but
+ * reshaped for a tenant-wide *batch* spanning many projects per file, not
+ * one project's own import modal, and reused verbatim on both sides of
+ * the wire: BatchUploadPortal calls these client-side for instant
+ * preview, and src/server/actions/data-import.ts calls the exact same
+ * functions server-side as the only source of truth a row's staged
  * status/errors ever come from — the client's own read is never trusted
  * past the preview it renders.
  *
  * "Plain-English error messages for every failure" is the WP7 spec's own
  * words — every BatchRowIssue.message here is written to stand alone in
  * the quarantine grid with no additional context, per that requirement.
+ *
+ * Adding a data type is 4 changes, always in the same order: the
+ * `BatchImportDataType` union + `BATCH_DATA_TYPES`/`BATCH_DATA_TYPE_LABEL`
+ * here, a `*_COLUMNS` + `*BatchRow` + `validate*Row` block below, a case
+ * in `validateBatchRow`/`columnsForDataType` at the bottom of this file,
+ * and a commit branch in src/server/actions/data-import.ts's
+ * `commitImportBatch`. BatchUploadPortal's pills are fully data-driven off
+ * `BATCH_DATA_TYPES` — no UI change is needed to add a pill.
  */
 import { PHASES, type PhaseKey } from '../constants';
 
 export const MAX_BATCH_ROWS = 5000;
 
-export type BatchImportDataType = 'WEEKLY_ACTUALS' | 'MILESTONE_PROGRESS';
+export type BatchImportDataType = 'WEEKLY_ACTUALS' | 'MILESTONE_PROGRESS' | 'FORECAST_EAC' | 'STATUS_RAID';
 
-export const BATCH_DATA_TYPES: readonly BatchImportDataType[] = ['WEEKLY_ACTUALS', 'MILESTONE_PROGRESS'] as const;
+export const BATCH_DATA_TYPES: readonly BatchImportDataType[] = [
+  'WEEKLY_ACTUALS',
+  'MILESTONE_PROGRESS',
+  'FORECAST_EAC',
+  'STATUS_RAID',
+] as const;
 
 export const BATCH_DATA_TYPE_LABEL: Record<BatchImportDataType, string> = {
   WEEKLY_ACTUALS: 'Weekly Actuals',
   MILESTONE_PROGRESS: 'Milestone & Progress Updates',
+  FORECAST_EAC: 'Forecast & EAC Updates',
+  STATUS_RAID: 'Status Reports & RAID Log',
 };
 
 export interface BatchRowIssue {
@@ -40,12 +56,25 @@ export interface ProjectRefLookup {
    * case only exact-name matching applies for that project. */
   code: string | null;
   name: string;
+  /** Only consulted by FORECAST_EAC — matrix-mode projects key
+   * FinancialActual rows by rate-card role; Direct-mode projects use a
+   * "_direct" sentinel the batch importer doesn't yet support (see that
+   * validator's own comment). */
+  estimationMode: 'MATRIX' | 'DIRECT';
 }
 
 export interface ResourceRefLookup {
   id: string;
   name: string;
   email: string | null;
+}
+
+/** Only consulted by FORECAST_EAC — the org's rate-card roles, matched by
+ * name the same way the per-project CSV importer already does
+ * (src/lib/ingestion/csv-parsers.ts's RoleLookupEntry). */
+export interface RoleRefLookup {
+  id: string;
+  name: string;
 }
 
 // ------------------------------------------------------------- shared cell helpers
@@ -109,6 +138,12 @@ function matchResource(raw: string, resources: readonly ResourceRefLookup[]): Re
   );
 }
 
+function matchRole(raw: string, roles: readonly RoleRefLookup[]): RoleRefLookup | undefined {
+  const needle = raw.trim().toLowerCase();
+  if (!needle) return undefined;
+  return roles.find((r) => r.name.trim().toLowerCase() === needle);
+}
+
 function matchPhase(raw: string): PhaseKey | undefined {
   const needle = raw.trim().toLowerCase();
   if (!needle) return undefined;
@@ -153,6 +188,10 @@ export interface WeeklyActualsBatchRow {
 export interface BatchValidationContext {
   projects: readonly ProjectRefLookup[];
   resources: readonly ResourceRefLookup[];
+  /** Only consulted by FORECAST_EAC — optional so WEEKLY_ACTUALS'/
+   * MILESTONE_PROGRESS' existing callers (and every test fixture that
+   * predates this field) don't need to supply it. */
+  roles?: readonly RoleRefLookup[];
 }
 
 export function validateWeeklyActualsRow(
@@ -363,10 +402,249 @@ export function validateMilestoneProgressRow(
 }
 
 // =========================================================
+// FORECAST & EAC UPDATES
+// =========================================================
+
+export interface ForecastEacColumns {
+  projectRef: string;
+  roleRef: string;
+  forecastHours: string;
+  openRRHours: string;
+}
+
+export const FORECAST_EAC_COLUMNS: { key: keyof ForecastEacColumns; header: string; required: boolean }[] = [
+  { key: 'projectRef', header: 'Project Code', required: true },
+  { key: 'roleRef', header: 'Role', required: true },
+  { key: 'forecastHours', header: 'Forecast Hours', required: true },
+  { key: 'openRRHours', header: 'Open RR Hours', required: true },
+];
+
+export interface ForecastEacBatchRow {
+  projectId: string;
+  /** DeliveryRole.id — matrix-mode projects only. */
+  roleKey: string;
+  forecastHours: number;
+  /** Open run-rate hours — the remaining-hours driver a revised EAC is
+   * computed from downstream (src/lib/calculations); this batch stages
+   * the input, not a separately-stored dollar EAC figure. */
+  openRRHours: number;
+}
+
+export function validateForecastEacRow(
+  raw: Record<string, string>,
+  ctx: BatchValidationContext
+): { data: ForecastEacBatchRow | null; errors: BatchRowIssue[] } {
+  const errors: BatchRowIssue[] = [];
+
+  const projectRaw = get(raw, 'Project Code', 'ProjectCode', 'Project');
+  const roleRaw = get(raw, 'Role');
+  const forecastRaw = get(raw, 'Forecast Hours', 'ForecastHours');
+  const openRRRaw = get(raw, 'Open RR Hours', 'OpenRRHours', 'Open RR');
+
+  let projectId: string | null = null;
+  let roleKey: string | null = null;
+  if (!projectRaw) {
+    errors.push({ field: 'Project Code', message: 'Project Code is required — every row must reference a project.' });
+  } else {
+    const project = matchProject(projectRaw, ctx.projects);
+    if (!project) {
+      errors.push({
+        field: 'Project Code',
+        message: `No project with code "${projectRaw}" was found in this workspace — check it against the Project Baseline you were sent, or confirm the engagement code with your A2R delivery lead.`,
+      });
+    } else if (project.estimationMode === 'DIRECT') {
+      errors.push({
+        field: 'Project Code',
+        message: `"${projectRaw}" is a Direct Intake project — Forecast & EAC batch updates only support rate-card (matrix) projects today. Use that project's own Financial Realization import instead.`,
+      });
+    } else {
+      projectId = project.id;
+      if (!roleRaw) {
+        errors.push({ field: 'Role', message: 'Role is required — every row must reference a rate-card role.' });
+      } else {
+        const role = matchRole(roleRaw, ctx.roles ?? []);
+        if (!role) {
+          errors.push({ field: 'Role', message: `No delivery role named "${roleRaw}" was found on this org's rate card.` });
+        } else {
+          roleKey = role.id;
+        }
+      }
+    }
+  }
+
+  const forecastHours = parseNumber(forecastRaw);
+  if (forecastRaw === '') {
+    errors.push({ field: 'Forecast Hours', message: 'Forecast Hours is required.' });
+  } else if (forecastHours === null || forecastHours < 0) {
+    errors.push({ field: 'Forecast Hours', message: `"${forecastRaw}" isn't a valid number of hours — use a non-negative number like 120.` });
+  }
+
+  const openRRHours = parseNumber(openRRRaw);
+  if (openRRRaw === '') {
+    errors.push({ field: 'Open RR Hours', message: 'Open RR Hours is required.' });
+  } else if (openRRHours === null || openRRHours < 0) {
+    errors.push({ field: 'Open RR Hours', message: `"${openRRRaw}" isn't a valid number of hours — use a non-negative number, e.g. 40.` });
+  }
+
+  if (errors.length > 0 || !projectId || !roleKey || forecastHours === null || openRRHours === null) {
+    return { data: null, errors };
+  }
+  return { data: { projectId, roleKey, forecastHours, openRRHours }, errors: [] };
+}
+
+// =========================================================
+// STATUS REPORTS & RAID LOG
+// =========================================================
+
+export interface StatusRaidColumns {
+  projectRef: string;
+  weekEnding: string;
+  narrative: string;
+  raidType: string;
+  raidDescription: string;
+  raidSeverity: string;
+  raidOwnerRef: string;
+}
+
+export const STATUS_RAID_COLUMNS: { key: keyof StatusRaidColumns; header: string; required: boolean }[] = [
+  { key: 'projectRef', header: 'Project Code', required: true },
+  { key: 'weekEnding', header: 'Week Ending', required: true },
+  { key: 'narrative', header: 'Status Narrative', required: false },
+  { key: 'raidType', header: 'RAID Type', required: false },
+  { key: 'raidDescription', header: 'RAID Description', required: false },
+  { key: 'raidSeverity', header: 'RAID Severity', required: false },
+  { key: 'raidOwnerRef', header: 'RAID Owner Email', required: false },
+];
+
+export type StatusRaidType = 'RISK' | 'ASSUMPTION' | 'ISSUE' | 'DEPENDENCY';
+export type StatusRaidSeverity = 'CRITICAL' | 'HIGH' | 'MED' | 'LOW';
+
+const STATUS_RAID_TYPES: readonly StatusRaidType[] = ['RISK', 'ASSUMPTION', 'ISSUE', 'DEPENDENCY'];
+const STATUS_RAID_SEVERITY_ALIASES: Record<string, StatusRaidSeverity> = {
+  CRITICAL: 'CRITICAL',
+  HIGH: 'HIGH',
+  MED: 'MED',
+  MEDIUM: 'MED',
+  LOW: 'LOW',
+};
+
+export interface StatusRaidBatchRow {
+  projectId: string;
+  /** ISO date string for the Monday of the reported week — used only to
+   * date the narrative in the Activity Log; RaidEntry itself has no
+   * week-grain field of its own. */
+  weekDate: string;
+  narrative: string | null;
+  raid: {
+    type: StatusRaidType;
+    description: string;
+    severity: StatusRaidSeverity;
+    ownerId: string | null;
+  } | null;
+}
+
+/** Expected columns: Project Code, Week Ending, and *at least one of*
+ * Status Narrative or a RAID Type + RAID Description pair — a row can be
+ * a pure narrative update, a pure new RAID item, or both at once, but
+ * never neither. */
+export function validateStatusRaidRow(
+  raw: Record<string, string>,
+  ctx: BatchValidationContext
+): { data: StatusRaidBatchRow | null; errors: BatchRowIssue[] } {
+  const errors: BatchRowIssue[] = [];
+
+  const projectRaw = get(raw, 'Project Code', 'ProjectCode', 'Project');
+  const weekRaw = get(raw, 'Week Ending', 'WeekEnding', 'Week');
+  const narrativeRaw = get(raw, 'Status Narrative', 'StatusNarrative', 'Narrative');
+  const raidTypeRaw = get(raw, 'RAID Type', 'RaidType', 'Type');
+  const raidDescRaw = get(raw, 'RAID Description', 'RaidDescription', 'Description');
+  const raidSeverityRaw = get(raw, 'RAID Severity', 'RaidSeverity', 'Severity');
+  const raidOwnerRaw = get(raw, 'RAID Owner Email', 'RaidOwnerEmail', 'Owner');
+
+  let projectId: string | null = null;
+  if (!projectRaw) {
+    errors.push({ field: 'Project Code', message: 'Project Code is required — every row must reference a project.' });
+  } else {
+    const project = matchProject(projectRaw, ctx.projects);
+    if (!project) {
+      errors.push({
+        field: 'Project Code',
+        message: `No project with code "${projectRaw}" was found in this workspace — check it against the Project Baseline you were sent, or confirm the engagement code with your A2R delivery lead.`,
+      });
+    } else {
+      projectId = project.id;
+    }
+  }
+
+  let weekDate: string | null = null;
+  if (!weekRaw) {
+    errors.push({ field: 'Week Ending', message: 'Week Ending is required — every row must be dated.' });
+  } else {
+    const parsed = parseDateText(weekRaw);
+    if (!parsed) {
+      errors.push({ field: 'Week Ending', message: `"${weekRaw}" isn't a recognizable date — use YYYY-MM-DD (e.g. 2026-03-09).` });
+    } else {
+      weekDate = mondayOfWeek(parsed).toISOString();
+    }
+  }
+
+  const narrative = narrativeRaw.trim() ? narrativeRaw.trim() : null;
+
+  const hasAnyRaidField = Boolean(raidTypeRaw || raidDescRaw || raidSeverityRaw || raidOwnerRaw);
+  let raid: StatusRaidBatchRow['raid'] = null;
+  if (hasAnyRaidField) {
+    let raidType: StatusRaidType | undefined;
+    if (!raidTypeRaw) {
+      errors.push({ field: 'RAID Type', message: 'RAID Type is required once any RAID column is filled in — one of: Risk, Assumption, Issue, Dependency.' });
+    } else {
+      raidType = STATUS_RAID_TYPES.find((t) => t === raidTypeRaw.trim().toUpperCase());
+      if (!raidType) {
+        errors.push({ field: 'RAID Type', message: `"${raidTypeRaw}" must be one of: Risk, Assumption, Issue, Dependency.` });
+      }
+    }
+
+    if (!raidDescRaw.trim()) {
+      errors.push({ field: 'RAID Description', message: 'RAID Description is required once any RAID column is filled in.' });
+    }
+
+    const severity = raidSeverityRaw.trim()
+      ? STATUS_RAID_SEVERITY_ALIASES[raidSeverityRaw.trim().toUpperCase()]
+      : 'MED';
+    if (raidSeverityRaw.trim() && !severity) {
+      errors.push({ field: 'RAID Severity', message: `"${raidSeverityRaw}" must be one of: Critical, High, Med/Medium, Low.` });
+    }
+
+    let ownerId: string | null = null;
+    if (raidOwnerRaw.trim()) {
+      const owner = matchResource(raidOwnerRaw, ctx.resources);
+      if (!owner) {
+        errors.push({ field: 'RAID Owner Email', message: `No team member with the email "${raidOwnerRaw}" was found in this workspace's roster.` });
+      } else {
+        ownerId = owner.id;
+      }
+    }
+
+    if (raidType && raidDescRaw.trim() && (severity || !raidSeverityRaw.trim())) {
+      raid = { type: raidType, description: raidDescRaw.trim(), severity: severity ?? 'MED', ownerId };
+    }
+  } else if (!narrative) {
+    errors.push({
+      field: 'Status Narrative',
+      message: 'Provide a Status Narrative, a RAID item (Type + Description), or both — this row has neither.',
+    });
+  }
+
+  if (errors.length > 0 || !projectId || !weekDate) {
+    return { data: null, errors };
+  }
+  return { data: { projectId, weekDate, narrative, raid }, errors: [] };
+}
+
+// =========================================================
 // dispatch
 // =========================================================
 
-export type BatchRow = WeeklyActualsBatchRow | MilestoneProgressBatchRow;
+export type BatchRow = WeeklyActualsBatchRow | MilestoneProgressBatchRow | ForecastEacBatchRow | StatusRaidBatchRow;
 
 /** One entry point both the client preview and the server's authoritative
  * re-validation call — never two divergent code paths for "is this row OK". */
@@ -375,11 +653,25 @@ export function validateBatchRow(
   raw: Record<string, string>,
   ctx: BatchValidationContext
 ): { data: BatchRow | null; errors: BatchRowIssue[] } {
-  if (dataType === 'WEEKLY_ACTUALS') return validateWeeklyActualsRow(raw, ctx);
-  return validateMilestoneProgressRow(raw, ctx);
+  switch (dataType) {
+    case 'WEEKLY_ACTUALS':
+      return validateWeeklyActualsRow(raw, ctx);
+    case 'MILESTONE_PROGRESS':
+      return validateMilestoneProgressRow(raw, ctx);
+    case 'FORECAST_EAC':
+      return validateForecastEacRow(raw, ctx);
+    case 'STATUS_RAID':
+      return validateStatusRaidRow(raw, ctx);
+  }
 }
 
+const COLUMNS_BY_TYPE: Record<BatchImportDataType, { header: string; required: boolean }[]> = {
+  WEEKLY_ACTUALS: WEEKLY_ACTUALS_COLUMNS,
+  MILESTONE_PROGRESS: MILESTONE_PROGRESS_COLUMNS,
+  FORECAST_EAC: FORECAST_EAC_COLUMNS,
+  STATUS_RAID: STATUS_RAID_COLUMNS,
+};
+
 export function columnsForDataType(dataType: BatchImportDataType): { header: string; required: boolean }[] {
-  const cols = dataType === 'WEEKLY_ACTUALS' ? WEEKLY_ACTUALS_COLUMNS : MILESTONE_PROGRESS_COLUMNS;
-  return cols.map((c) => ({ header: c.header, required: c.required }));
+  return COLUMNS_BY_TYPE[dataType].map((c) => ({ header: c.header, required: c.required }));
 }
