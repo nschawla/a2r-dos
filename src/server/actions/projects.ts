@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
@@ -39,7 +41,7 @@ const createProjectSchema = z.object({
  * from the org's current ControlLabel overrides (falling back to the
  * catalog's methodology-appropriate default) at creation time.
  */
-export async function createProject(input: unknown): Promise<ActionResult> {
+export const createProject = withAction('createProject', async (input: unknown): Promise<ActionResult> => {
   const { organizationId, userId } = await requireOrgContext();
 
   const parsed = createProjectSchema.safeParse(input);
@@ -90,7 +92,7 @@ export async function createProject(input: unknown): Promise<ActionResult> {
 
   revalidatePath('/');
   return { ok: true };
-}
+});
 
 /**
  * Locks or unlocks a project's baseline.
@@ -111,7 +113,7 @@ export async function createProject(input: unknown): Promise<ActionResult> {
  * defaults them to ADMIN — so this is a strict widening of who can lock a
  * baseline (now also PRACTICE_DIRECTOR), not a narrowing.
  */
-export async function toggleProjectLock(projectId: string, lock: boolean): Promise<ActionResult> {
+export const toggleProjectLock = withAction('toggleProjectLock', async (projectId: string, lock: boolean): Promise<ActionResult> => {
   const { organizationId, userId, deliveryRole, resourceId, resourcePracticeId } = await requireOrgContext();
 
   const project = await db.project.findFirst({
@@ -206,7 +208,7 @@ export async function toggleProjectLock(projectId: string, lock: boolean): Promi
   revalidatePath(`/financials/${projectId}`);
   revalidatePath(`/schedule/${projectId}`);
   return { ok: true };
-}
+});
 
 // =========================================================
 // COMMERCIAL BASELINE — SIZING INTERACTIVE WORKSPACE
@@ -233,7 +235,7 @@ const effortCellSchema = z.object({
  * locked in — canEditProject already reflects that (see rbac.ts), so no
  * separate "is this project locked" check is needed here.
  */
-export async function updateEffortCell(input: unknown): Promise<ActionResult> {
+export const updateEffortCell = withAction('updateEffortCell', async (input: unknown): Promise<ActionResult> => {
   const parsed = effortCellSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { projectId, phaseKey, roleId, hours } = parsed.data;
@@ -259,7 +261,7 @@ export async function updateEffortCell(input: unknown): Promise<ActionResult> {
 
   revalidateProjectRoutes(projectId);
   return { ok: true };
-}
+});
 
 const directIntakeSchema = z.object({
   projectId: z.string().min(1),
@@ -276,7 +278,7 @@ const directIntakeSchema = z.object({
  * validation error; the form in DealEditor.tsx defaults all three to their
  * current saved value (or 0) so every submit is a complete triple.
  */
-export async function updateDirectIntake(input: unknown): Promise<ActionResult> {
+export const updateDirectIntake = withAction('updateDirectIntake', async (input: unknown): Promise<ActionResult> => {
   const parsed = directIntakeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { projectId, soldHours, targetRevenue, blendedMarginPct } = parsed.data;
@@ -295,7 +297,7 @@ export async function updateDirectIntake(input: unknown): Promise<ActionResult> 
 
   revalidateProjectRoutes(projectId);
   return { ok: true };
-}
+});
 
 const estimationModeSchema = z.object({
   projectId: z.string().min(1),
@@ -310,7 +312,7 @@ const estimationModeSchema = z.object({
  * to decide whether to sum the Phase-Effort Matrix or read Direct Intake
  * straight through, so the switch has to be saved, not just displayed.
  */
-export async function setEstimationMode(input: unknown): Promise<ActionResult> {
+export const setEstimationMode = withAction('setEstimationMode', async (input: unknown): Promise<ActionResult> => {
   const parsed = estimationModeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { projectId, mode } = parsed.data;
@@ -322,4 +324,4 @@ export async function setEstimationMode(input: unknown): Promise<ActionResult> {
 
   revalidateProjectRoutes(projectId);
   return { ok: true };
-}
+});

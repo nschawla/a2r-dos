@@ -6,6 +6,9 @@ import { CONTROL_DEFS, getControlDef } from '@/lib/constants';
 import { computeAuditProgress, computeProjectHealth } from '@/lib/calculations/audit';
 import { toAuditEntries, methodologyLower } from '@/server/queries/calc-adapters';
 import { AuditCertificateView, type AuditCertificateControlRow } from '@/components/reports/AuditCertificateView';
+import { withRouteHandler } from '@/lib/observability/route-wrapper';
+import { rateLimitGuard, tooManyRequestsResponse, withRateLimitHeaders } from '@/lib/rate-limiter';
+import { RATE_LIMITS } from '@/lib/rate-limits';
 
 /**
  * "Export Audit Certificate" / the Reports Hub's "Stage-Gate Audit
@@ -18,11 +21,14 @@ import { AuditCertificateView, type AuditCertificateControlRow } from '@/compone
  * defaulting to 'NO'/empty rather than being dropped — a control nobody
  * has touched yet is a real, reportable compliance gap, not an absent row.
  */
-export async function GET(_request: Request, { params }: { params: { projectId: string } }) {
+export const GET = withRouteHandler<{ params: { projectId: string } }>('projects/audit-certificate', async (_request, { params }) => {
   const blocked = await passwordRotationGate();
   if (blocked) return blocked;
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
+
+  const g = rateLimitGuard(`docgen:cert:${context.userId}`, RATE_LIMITS.DOC_GEN);
+  if (!g.allowed) return tooManyRequestsResponse(g.result, 'Too many certificate generations. Please slow down.');
 
   const { project, controlLabels } = await loadAuditCertificate(
     { organizationId: context.organizationId },
@@ -72,5 +78,6 @@ export async function GET(_request: Request, { params }: { params: { projectId: 
     generatedAt,
   });
 
-  return new NextResponse(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-}
+  const res = new NextResponse(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  return withRateLimitHeaders(res, g.result);
+});

@@ -109,7 +109,7 @@ describe('direct action / route calls are rejected in rotation state', () => {
 
   it('a Route Handler (GET /api/reports/portfolio-csv) responds 403 without touching the DB', async () => {
     mockGetServerSession.mockResolvedValue(rotating);
-    const res = await portfolioCsvGET();
+    const res = await portfolioCsvGET(new Request('http://localhost/api/reports/portfolio-csv'), undefined);
     expect(res.status).toBe(403);
     expect(await res.json()).toMatchObject({ error: PASSWORD_CHANGE_REQUIRED });
   });

@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -40,7 +42,7 @@ function toDateOrNull(s: string | undefined): Date | null {
  * badge server-side (client-side it's always correctly recomputed live from
  * the full draft row via computePhasePace).
  */
-export async function updateSchedulePhase(input: unknown): Promise<ActionResult> {
+export const updateSchedulePhase = withAction('updateSchedulePhase', async (input: unknown): Promise<ActionResult> => {
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { projectId, phaseKey, plannedStart, plannedEnd, actualStart, actualEnd, pctComplete, status } = parsed.data;
@@ -74,4 +76,4 @@ export async function updateSchedulePhase(input: unknown): Promise<ActionResult>
   revalidatePath('/');
   revalidatePath(`/schedule/${projectId}`);
   return { ok: true };
-}
+});

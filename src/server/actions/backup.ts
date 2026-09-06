@@ -1,5 +1,9 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+import { rateLimitByUser } from '@/lib/rate-limit-action';
+import { RATE_LIMITS } from '@/lib/rate-limits';
+
 /**
  * WP6 — Workspace Backup & Restore server actions. Both gated by
  * `authorizeAdminAction('admin:workspace')` (see src/server/authz.ts's doc
@@ -36,10 +40,13 @@ import {
 
 export type ExportWorkspaceSnapshotResult = { ok: true; snapshot: WorkspaceSnapshot } | { ok: false; error: string };
 
-export async function exportWorkspaceSnapshot(): Promise<ExportWorkspaceSnapshotResult> {
+export const exportWorkspaceSnapshot = withAction('exportWorkspaceSnapshot', async (): Promise<ExportWorkspaceSnapshotResult> => {
   const auth = await authorizeAdminAction('admin:workspace');
   if (!auth.ok) return { ok: false, error: auth.error };
   const { organizationId, userId } = auth.context;
+
+  const limited = rateLimitByUser('workspace:export', userId, RATE_LIMITS.WORKSPACE_SNAPSHOT);
+  if (limited) return limited;
 
   const [org, practices, deliveryRoles, resources, orgPolicy, controlLabels, projects] = await Promise.all([
     db.organization.findUniqueOrThrow({ where: { id: organizationId }, select: { name: true } }),
@@ -108,16 +115,19 @@ export async function exportWorkspaceSnapshot(): Promise<ExportWorkspaceSnapshot
   });
 
   return { ok: true, snapshot };
-}
+});
 
 export type RestoreWorkspaceSnapshotResult =
   | { ok: true; projectCount: number; deliveryRoleCount: number; resourceCount: number }
   | { ok: false; error: string; issues?: string[] };
 
-export async function restoreWorkspaceSnapshot(input: unknown): Promise<RestoreWorkspaceSnapshotResult> {
+export const restoreWorkspaceSnapshot = withAction('restoreWorkspaceSnapshot', async (input: unknown): Promise<RestoreWorkspaceSnapshotResult> => {
   const auth = await authorizeAdminAction('admin:workspace');
   if (!auth.ok) return { ok: false, error: auth.error };
   const { organizationId, userId } = auth.context;
+
+  const limited = rateLimitByUser('workspace:restore', userId, RATE_LIMITS.WORKSPACE_SNAPSHOT);
+  if (limited) return limited;
 
   const validated = validateWorkspaceSnapshot(input);
   if (!validated.ok) return { ok: false, error: validated.error };
@@ -319,4 +329,4 @@ export async function restoreWorkspaceSnapshot(input: unknown): Promise<RestoreW
   revalidatePath('/admin/audit-log');
 
   return { ok: true, projectCount: snapshot.projects.length, deliveryRoleCount: snapshot.deliveryRoles.length, resourceCount: snapshot.resources.length };
-}
+});

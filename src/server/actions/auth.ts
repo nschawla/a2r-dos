@@ -13,6 +13,9 @@ import {
   sessionRequiresPasswordChange,
 } from '@/lib/auth/password-rotation';
 import { establishFreshSession } from '@/lib/auth/session-mint';
+import { withAction } from '@/lib/observability/action-wrapper';
+import { rateLimitByIp, rateLimitByUser } from '@/lib/rate-limit-action';
+import { RATE_LIMITS } from '@/lib/rate-limits';
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -50,7 +53,11 @@ const registerSchema = z.object({
  * seedOrganizationDefaults). This is the SaaS equivalent of the prototype's
  * `defaultState()`.
  */
-export async function registerOrganization(input: unknown): Promise<ActionResult> {
+export const registerOrganization = withAction('registerOrganization', async (input: unknown): Promise<ActionResult> => {
+  // Public, unauthenticated boundary — per-IP brute-force / abuse cap.
+  const limited = rateLimitByIp('auth:register', RATE_LIMITS.REGISTER);
+  if (limited) return limited;
+
   // Public signup, but a signed-in forced-rotation session must not be able
   // to spin up a brand-new account/tenant to sidestep the restriction.
   if (await sessionRequiresPasswordChange()) return { ok: false, error: PASSWORD_CHANGE_REQUIRED };
@@ -86,7 +93,7 @@ export async function registerOrganization(input: unknown): Promise<ActionResult
   });
 
   return { ok: true };
-}
+});
 
 const newOrgSchema = z.object({ orgName: z.string().min(2, 'Organization name is too short').max(120) });
 
@@ -95,9 +102,11 @@ const newOrgSchema = z.object({ orgName: z.string().min(2, 'Organization name is
  * (e.g. every prior invite/org was removed). Creates a new tenant owned by
  * the current session user.
  */
-export async function createOrganizationForCurrentUser(input: unknown): Promise<ActionResult> {
+export const createOrganizationForCurrentUser = withAction('createOrganizationForCurrentUser', async (input: unknown): Promise<ActionResult> => {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, error: 'Not signed in.' };
+  const limited = rateLimitByUser('org:create', session.user.id, RATE_LIMITS.REGISTER);
+  if (limited) return limited;
   // P0 #3 — a forced-rotation session may not create a tenant.
   if (await sessionRequiresPasswordChange()) return { ok: false, error: PASSWORD_CHANGE_REQUIRED };
 
@@ -120,7 +129,7 @@ export async function createOrganizationForCurrentUser(input: unknown): Promise<
   });
 
   return { ok: true };
-}
+});
 
 // ─────────────────────────────────────────────────────────────────────────
 // Change password
@@ -153,7 +162,7 @@ export type ChangePasswordResult =
  * possible (no NEXTAUTH_SECRET), `sessionRefreshed` is false and the client
  * falls back to sign-out + re-login.
  */
-export async function changePasswordAction(input: unknown): Promise<ChangePasswordResult> {
+export const changePasswordAction = withAction('changePasswordAction', async (input: unknown): Promise<ChangePasswordResult> => {
   const parsed = changePasswordSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
@@ -163,6 +172,10 @@ export async function changePasswordAction(input: unknown): Promise<ChangePasswo
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return { ok: false, error: 'You are not signed in.' };
   const userId = session.user.id;
+
+  // Each call runs a bcrypt compare — cap the attempt rate per account.
+  const limited = rateLimitByUser('pw-change', userId, RATE_LIMITS.PASSWORD_CHANGE);
+  if (limited) return limited;
 
   const policyError = validatePasswordStrength(newPassword);
   if (policyError) return { ok: false, error: policyError };
@@ -218,4 +231,4 @@ export async function changePasswordAction(input: unknown): Promise<ChangePasswo
   });
 
   return { ok: true, sessionRefreshed };
-}
+});

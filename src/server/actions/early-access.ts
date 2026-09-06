@@ -6,6 +6,8 @@
 
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 /**
  * Early-access lead capture for the public "Coming Soon" landing page
  * (src/app/page.tsx). Unauthenticated by design — anyone can register
@@ -69,7 +71,7 @@ function clientIp(): string {
   return h.get('x-real-ip')?.trim() || 'unknown';
 }
 
-export async function submitEarlyAccessLead(input: unknown): Promise<SubmitEarlyAccessResult> {
+export const submitEarlyAccessLead = withAction('submitEarlyAccessLead', async (input: unknown): Promise<SubmitEarlyAccessResult> => {
   const parsed = submitSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Please check the form and try again.' };
@@ -116,4 +118,4 @@ export async function submitEarlyAccessLead(input: unknown): Promise<SubmitEarly
   }
 
   return { ok: true, ref };
-}
+});

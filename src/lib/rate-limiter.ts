@@ -113,6 +113,44 @@ export function __resetRateLimiter(): void {
   lastSweep = 0;
 }
 
+/**
+ * The `X-RateLimit-*` triple for a result — attach to the ALLOWED response
+ * too, so a client sees how much headroom it has left before it trips the
+ * limit. (`tooManyRequestsResponse` adds these plus `Retry-After` on the
+ * 429.)
+ */
+export function rateLimitHeaders(result: RateLimitResult): Record<string, string> {
+  return {
+    'X-RateLimit-Limit': String(result.limit),
+    'X-RateLimit-Remaining': String(result.remaining),
+    'X-RateLimit-Reset': String(Math.ceil(result.resetAt / 1000)),
+  };
+}
+
+/**
+ * One `hit()` plus its headers, ready for both branches:
+ *
+ *   const g = rateLimitGuard(`export:csv:${userId}`, RATE_LIMITS.BULK_EXPORT);
+ *   if (!g.allowed) return tooManyRequestsResponse(g.result, '…');
+ *   const res = new NextResponse(body, { status: 200 });
+ *   return withRateLimitHeaders(res, g.result);
+ */
+export function rateLimitGuard(
+  key: string,
+  rule: RateLimitRule,
+): { allowed: boolean; result: RateLimitResult; headers: Record<string, string> } {
+  const result = hit(key, rule);
+  return { allowed: result.ok, result, headers: rateLimitHeaders(result) };
+}
+
+/** Copy the `X-RateLimit-*` triple onto an existing Response / NextResponse. */
+export function withRateLimitHeaders<T extends Response>(response: T, result: RateLimitResult): T {
+  for (const [name, value] of Object.entries(rateLimitHeaders(result))) {
+    response.headers.set(name, value);
+  }
+  return response;
+}
+
 /** Standard `429 Too Many Requests` with `Retry-After` + `X-RateLimit-*`. */
 export function tooManyRequestsResponse(result: RateLimitResult, message?: string): Response {
   return new Response(

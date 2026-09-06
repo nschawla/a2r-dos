@@ -6,6 +6,8 @@
 
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 /**
  * WP8 — in-app Support & Ticket Submission.
  *
@@ -60,7 +62,7 @@ function generateTicketId(): string {
   return `SUP-${time}-${rand}`;
 }
 
-export async function submitSupportTicketAction(input: unknown): Promise<SubmitSupportTicketResult> {
+export const submitSupportTicketAction = withAction('submitSupportTicketAction', async (input: unknown): Promise<SubmitSupportTicketResult> => {
   const parsed = submitSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid ticket.' };
   const { subject, category, priority, description, route } = parsed.data;
@@ -100,4 +102,4 @@ export async function submitSupportTicketAction(input: unknown): Promise<SubmitS
   console.log(`[SUPPORT_TICKET] ${JSON.stringify(logEntry)}`);
 
   return { ok: true, ticketId };
-}
+});

@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 /**
  * A2R Operator Control Plane — request / drop a Just-In-Time privilege
  * elevation. See src/lib/ops/staff-elevation.ts and
@@ -32,7 +34,7 @@ const requestSchema = z.object({
   ttlMinutes: z.coerce.number().int().positive().optional(),
 });
 
-export async function requestOpsElevationAction(input: unknown): Promise<ElevationActionResult> {
+export const requestOpsElevationAction = withAction('requestOpsElevationAction', async (input: unknown): Promise<ElevationActionResult> => {
   const ops = await getOpsContextOrNull();
   if (!ops) return { ok: false, error: 'Not authorized.' };
 
@@ -60,7 +62,7 @@ export async function requestOpsElevationAction(input: unknown): Promise<Elevati
 
   revalidatePath('/ops', 'layout');
   return { ok: true, expiresAt: result.expiresAt.toISOString(), ttlMinutes: result.ttlMinutes };
-}
+});
 
 export async function endOpsElevationAction(): Promise<{ ok: true }> {
   // De-escalation — a signed-in session is enough (you may already be past

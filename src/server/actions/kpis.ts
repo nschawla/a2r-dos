@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 /**
  * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
@@ -55,7 +57,7 @@ function sanitizeInput(raw: unknown): { ok: true; input: CustomKpiInput } | { ok
   return { ok: true, input };
 }
 
-export async function listCustomKpis(): Promise<ActionResult<{ kpis: CustomKpiDef[] }>> {
+export const listCustomKpis = withAction('listCustomKpis', async (): Promise<ActionResult<{ kpis: CustomKpiDef[] }>> => {
   const auth = await authorizeAdminAction('admin:governance');
   if (!auth.ok) return { ok: false, error: auth.error };
 
@@ -65,9 +67,9 @@ export async function listCustomKpis(): Promise<ActionResult<{ kpis: CustomKpiDe
   });
 
   return { ok: true, kpis: rows.map(toDef) };
-}
+});
 
-export async function createCustomKpi(input: unknown): Promise<ActionResult<{ id: string }>> {
+export const createCustomKpi = withAction('createCustomKpi', async (input: unknown): Promise<ActionResult<{ id: string }>> => {
   const auth = await authorizeAdminAction('admin:governance');
   if (!auth.ok) return { ok: false, error: auth.error };
 
@@ -93,9 +95,9 @@ export async function createCustomKpi(input: unknown): Promise<ActionResult<{ id
   revalidatePath('/', 'layout');
   revalidatePath('/reports');
   return { ok: true, id: row.id };
-}
+});
 
-export async function updateCustomKpi(id: string, input: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+export const updateCustomKpi = withAction('updateCustomKpi', async (id: string, input: unknown): Promise<{ ok: true } | { ok: false; error: string }> => {
   const auth = await authorizeAdminAction('admin:governance');
   if (!auth.ok) return { ok: false, error: auth.error };
 
@@ -122,9 +124,9 @@ export async function updateCustomKpi(id: string, input: unknown): Promise<{ ok:
   revalidatePath('/', 'layout');
   revalidatePath('/reports');
   return { ok: true };
-}
+});
 
-export async function deleteCustomKpi(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export const deleteCustomKpi = withAction('deleteCustomKpi', async (id: string): Promise<{ ok: true } | { ok: false; error: string }> => {
   const auth = await authorizeAdminAction('admin:governance');
   if (!auth.ok) return { ok: false, error: auth.error };
 
@@ -137,7 +139,7 @@ export async function deleteCustomKpi(id: string): Promise<{ ok: true } | { ok: 
   revalidatePath('/', 'layout');
   revalidatePath('/reports');
   return { ok: true };
-}
+});
 
 function toDef(row: {
   id: string;

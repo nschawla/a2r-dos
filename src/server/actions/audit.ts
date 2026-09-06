@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -36,7 +38,7 @@ const schema = z.object({
  * prior entry is treated as having previously been 'NO', matching
  * computeAuditProgress's own fallback for an unlogged control.
  */
-export async function updateAuditEntry(input: unknown): Promise<UpdateAuditEntryResult> {
+export const updateAuditEntry = withAction('updateAuditEntry', async (input: unknown): Promise<UpdateAuditEntryResult> => {
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { projectId, controlKey, status, owner, repoLink, notes } = parsed.data;
@@ -84,4 +86,4 @@ export async function updateAuditEntry(input: unknown): Promise<UpdateAuditEntry
   revalidatePath('/');
   revalidatePath(`/audit/${projectId}`);
   return { ok: true, updatedAt: entry.updatedAt.toISOString() };
-}
+});

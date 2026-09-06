@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 import { cookies } from 'next/headers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -14,7 +16,7 @@ import type { ActionResult } from './auth';
  * actually holds a Membership in (checked against the session's own
  * membership list, not client input).
  */
-export async function switchActiveOrganization(organizationId: string): Promise<ActionResult> {
+export const switchActiveOrganization = withAction('switchActiveOrganization', async (organizationId: string): Promise<ActionResult> => {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, error: 'Not signed in.' };
   // P0 #3 — a forced-rotation session may not change any state.
@@ -31,4 +33,4 @@ export async function switchActiveOrganization(organizationId: string): Promise<
   });
 
   return { ok: true };
-}
+});

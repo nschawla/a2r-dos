@@ -8,7 +8,11 @@ import {
   __resetRateLimiter,
   tooManyRequestsResponse,
   clientIpFrom,
+  rateLimitHeaders,
+  rateLimitGuard,
+  withRateLimitHeaders,
 } from '../src/lib/rate-limiter';
+import { NextResponse } from 'next/server';
 
 const RULE = { limit: 3, windowMs: 1000 };
 
@@ -86,6 +90,42 @@ describe('tooManyRequestsResponse', () => {
     expect(res.headers.get('X-RateLimit-Limit')).toBe('3');
     expect(res.headers.get('X-RateLimit-Remaining')).toBe('0');
     expect(await res.json()).toMatchObject({ error: 'slow down', retryAfterSeconds: blocked.retryAfterSeconds });
+  });
+});
+
+describe('rateLimitHeaders / rateLimitGuard / withRateLimitHeaders (P2)', () => {
+  it('rateLimitHeaders is the X-RateLimit-* triple, no Retry-After', () => {
+    const r = hit('k', RULE);
+    const h = rateLimitHeaders(r);
+    expect(h).toEqual({
+      'X-RateLimit-Limit': '3',
+      'X-RateLimit-Remaining': String(r.remaining),
+      'X-RateLimit-Reset': String(Math.ceil(r.resetAt / 1000)),
+    });
+    expect(h).not.toHaveProperty('Retry-After');
+  });
+
+  it('rateLimitGuard: allowed for hits 1..limit with Remaining counting down, then blocked', () => {
+    const seen: string[] = [];
+    for (let i = 0; i < RULE.limit; i++) {
+      const g = rateLimitGuard('k', RULE);
+      expect(g.allowed).toBe(true);
+      seen.push(g.headers['X-RateLimit-Remaining']!);
+    }
+    expect(seen).toEqual(['2', '1', '0']);
+
+    const blocked = rateLimitGuard('k', RULE);
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.result.retryAfterSeconds).toBeGreaterThanOrEqual(1);
+    expect(blocked.headers['X-RateLimit-Remaining']).toBe('0');
+  });
+
+  it('withRateLimitHeaders copies the triple onto an existing NextResponse', () => {
+    const r = hit('k', RULE);
+    const res = withRateLimitHeaders(NextResponse.json({ ok: true }), r);
+    expect(res.headers.get('X-RateLimit-Limit')).toBe('3');
+    expect(res.headers.get('X-RateLimit-Remaining')).toBe(String(r.remaining));
+    expect(res.status).toBe(200);
   });
 });
 

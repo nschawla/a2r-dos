@@ -1,5 +1,9 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+import { rateLimitByUser } from '@/lib/rate-limit-action';
+import { RATE_LIMITS } from '@/lib/rate-limits';
+
 /**
  * WP6 — CSV Ingestion Server Actions: the thin Prisma-touching layer over
  * the pure parsers in src/lib/ingestion/csv-parsers.ts, mirroring the
@@ -88,16 +92,19 @@ async function parseForKind(
   return { ok: false, error: 'Unrecognized import kind.' };
 }
 
-export async function previewCsvImport(projectId: string, kind: IngestionKind, csvText: string): Promise<PreviewCsvImportResult> {
+export const previewCsvImport = withAction('previewCsvImport', async (projectId: string, kind: IngestionKind, csvText: string): Promise<PreviewCsvImportResult> => {
   const auth = await authorizeProjectEdit(projectId);
   if (!auth.ok) return { ok: false, error: auth.error };
 
   return parseForKind(kind, csvText, auth.context.organizationId, projectId);
-}
+});
 
-export async function commitCsvImport(projectId: string, kind: IngestionKind, csvText: string): Promise<CommitCsvImportResult> {
+export const commitCsvImport = withAction('commitCsvImport', async (projectId: string, kind: IngestionKind, csvText: string): Promise<CommitCsvImportResult> => {
   const auth = await authorizeProjectEdit(projectId);
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  const limited = rateLimitByUser('import:csv', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  if (limited) return limited;
 
   const parsed = await parseForKind(kind, csvText, auth.context.organizationId, projectId);
   if (!parsed.ok) return { ok: false, error: parsed.error };
@@ -186,4 +193,4 @@ export async function commitCsvImport(projectId: string, kind: IngestionKind, cs
   revalidatePath(`/financials/${projectId}`);
 
   return { ok: true, importedCount: validRows.length, skippedCount, totalRows };
-}
+});

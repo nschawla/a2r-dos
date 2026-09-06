@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -28,7 +30,7 @@ const holidaySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
 });
 
-export async function createHoliday(input: unknown): Promise<ActionResult> {
+export const createHoliday = withAction('createHoliday', async (input: unknown): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
   const parsed = holidaySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -51,9 +53,9 @@ export async function createHoliday(input: unknown): Promise<ActionResult> {
   });
   revalidateCapacity();
   return { ok: true };
-}
+});
 
-export async function deleteHoliday(id: string): Promise<ActionResult> {
+export const deleteHoliday = withAction('deleteHoliday', async (id: string): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
   const existing = await db.organizationHoliday.findFirst({
     where: { id, organizationId },
@@ -71,7 +73,7 @@ export async function deleteHoliday(id: string): Promise<ActionResult> {
   }
   revalidateCapacity();
   return { ok: true };
-}
+});
 
 // ------------------------------------------------------ Role utilisation policy
 
@@ -81,7 +83,7 @@ const policySchema = z.object({
   isBillableHead: z.boolean(),
 });
 
-export async function updateRolePolicy(input: unknown): Promise<ActionResult> {
+export const updateRolePolicy = withAction('updateRolePolicy', async (input: unknown): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
   const parsed = policySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -109,7 +111,7 @@ export async function updateRolePolicy(input: unknown): Promise<ActionResult> {
   });
   revalidateCapacity();
   return { ok: true };
-}
+});
 
 const createPolicySchema = z.object({
   roleName: z.string().min(1).max(120),
@@ -117,7 +119,7 @@ const createPolicySchema = z.object({
   isBillableHead: z.boolean(),
 });
 
-export async function createRolePolicy(input: unknown): Promise<ActionResult> {
+export const createRolePolicy = withAction('createRolePolicy', async (input: unknown): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
   const parsed = createPolicySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -137,4 +139,4 @@ export async function createRolePolicy(input: unknown): Promise<ActionResult> {
   });
   revalidateCapacity();
   return { ok: true };
-}
+});

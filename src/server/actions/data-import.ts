@@ -1,5 +1,9 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+import { rateLimitByUser } from '@/lib/rate-limit-action';
+import { RATE_LIMITS } from '@/lib/rate-limits';
+
 /**
  * WP7 — Self-Service Batch Import Engine: server actions behind the
  * BatchUploadPortal / BatchDetailView UI at /admin/ingestion.
@@ -115,13 +119,12 @@ function toListItem(batch: {
 
 // ------------------------------------------------------------- stage
 
-export async function stageImportBatch(
-  dataType: BatchImportDataType,
-  fileName: string,
-  rows: Record<string, string>[]
-): Promise<ActionResult<{ batchId: string; validRows: number; errorRows: number }>> {
+export const stageImportBatch = withAction('stageImportBatch', async (dataType: BatchImportDataType, fileName: string, rows: Record<string, string>[]): Promise<ActionResult<{ batchId: string; validRows: number; errorRows: number }>> => {
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  if (limited) return limited;
 
   if (rows.length === 0) {
     return { ok: false, error: 'That file has no data rows to import.' };
@@ -169,13 +172,16 @@ export async function stageImportBatch(
 
   revalidatePath('/admin/ingestion');
   return { ok: true, batchId: batch.id, validRows, errorRows };
-}
+});
 
 // ------------------------------------------------------------- list / detail
 
-export async function listImportBatches(): Promise<ActionResult<{ batches: BatchListItem[] }>> {
+export const listImportBatches = withAction('listImportBatches', async (): Promise<ActionResult<{ batches: BatchListItem[] }>> => {
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  if (limited) return limited;
 
   const batches = await db.dataImportBatch.findMany({
     where: { organizationId: auth.context.organizationId },
@@ -185,11 +191,14 @@ export async function listImportBatches(): Promise<ActionResult<{ batches: Batch
   });
 
   return { ok: true, batches: batches.map(toListItem) };
-}
+});
 
-export async function getImportBatch(batchId: string): Promise<ActionResult<{ batch: BatchDetail }>> {
+export const getImportBatch = withAction('getImportBatch', async (batchId: string): Promise<ActionResult<{ batch: BatchDetail }>> => {
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  if (limited) return limited;
 
   const batch = await db.dataImportBatch.findFirst({
     where: { id: batchId, organizationId: auth.context.organizationId },
@@ -213,17 +222,16 @@ export async function getImportBatch(batchId: string): Promise<ActionResult<{ ba
       })),
     },
   };
-}
+});
 
 // ------------------------------------------------------------- correct
 
-export async function updateImportRow(
-  batchId: string,
-  rowId: string,
-  patch: Record<string, string>
-): Promise<ActionResult<{ row: StagedRowView; validRows: number; errorRows: number; totalRows: number }>> {
+export const updateImportRow = withAction('updateImportRow', async (batchId: string, rowId: string, patch: Record<string, string>): Promise<ActionResult<{ row: StagedRowView; validRows: number; errorRows: number; totalRows: number }>> => {
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  if (limited) return limited;
 
   const batch = await db.dataImportBatch.findFirst({
     where: { id: batchId, organizationId: auth.context.organizationId },
@@ -261,17 +269,18 @@ export async function updateImportRow(
     errorRows,
     totalRows,
   };
-}
+});
 
 // ------------------------------------------------------------- commit / discard
 
 const SCHEDULE_STATUS_SET: readonly ScheduleStatus[] = ['NOTSTARTED', 'INPROGRESS', 'COMPLETE', 'DELAYED'];
 
-export async function commitImportBatch(
-  batchId: string
-): Promise<ActionResult<{ committedRows: number }>> {
+export const commitImportBatch = withAction('commitImportBatch', async (batchId: string): Promise<ActionResult<{ committedRows: number }>> => {
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  if (limited) return limited;
 
   const batch = await db.dataImportBatch.findFirst({
     where: { id: batchId, organizationId: auth.context.organizationId },
@@ -433,11 +442,14 @@ export async function commitImportBatch(
   revalidatePath('/');
 
   return { ok: true, committedRows };
-}
+});
 
-export async function discardImportBatch(batchId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export const discardImportBatch = withAction('discardImportBatch', async (batchId: string): Promise<{ ok: true } | { ok: false; error: string }> => {
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  if (limited) return limited;
 
   const batch = await db.dataImportBatch.findFirst({
     where: { id: batchId, organizationId: auth.context.organizationId },
@@ -460,4 +472,4 @@ export async function discardImportBatch(batchId: string): Promise<{ ok: true } 
 
   revalidatePath('/admin/ingestion');
   return { ok: true };
-}
+});

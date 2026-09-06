@@ -3,24 +3,25 @@
  *
  *   GET /api/templates/<id>   →  text/csv attachment
  *
- * `<id>` is one of the slugs in src/server/services/templates.ts
- * (resource-allocation | project-baseline | timesheet-actuals). The CSV is
- * generated from the same definition the hub UI renders its schema table
- * from, so the file and the docs can't drift.
+ * `<id>` is one of the slugs in src/server/services/templates.ts. Any
+ * authenticated session may download — templates are non-sensitive
+ * reference files.
  *
- * Any authenticated session may download — templates are non-sensitive
- * reference files, needed by both tenant admins (from /admin) and A2R
- * operators (from /ops/ingestion).
+ * P2 — per-user rate limit (RATE_LIMITS.TEMPLATE_DOWNLOAD), `X-RateLimit-*`
+ * on the 200, wrapped for structured error capture.
  */
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { getTemplate, renderTemplateCsv } from '@/server/services/templates';
+import { withRouteHandler } from '@/lib/observability/route-wrapper';
+import { rateLimitGuard, tooManyRequestsResponse, withRateLimitHeaders } from '@/lib/rate-limiter';
+import { RATE_LIMITS } from '@/lib/rate-limits';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_request: Request, { params }: { params: { template: string } }) {
+export const GET = withRouteHandler<{ params: { template: string } }>('templates/download', async (_request, { params }) => {
   const blocked = await passwordRotationGate();
   if (blocked) return blocked;
 
@@ -29,15 +30,15 @@ export async function GET(_request: Request, { params }: { params: { template: s
     return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
   }
 
+  const g = rateLimitGuard(`template:${session.user.id}`, RATE_LIMITS.TEMPLATE_DOWNLOAD);
+  if (!g.allowed) return tooManyRequestsResponse(g.result, 'Too many template downloads. Please wait a moment.');
+
   const template = getTemplate(params.template);
   if (!template) {
-    return NextResponse.json(
-      { error: `Unknown template "${params.template}".` },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: `Unknown template "${params.template}".` }, { status: 404 });
   }
 
-  return new NextResponse(renderTemplateCsv(template), {
+  const res = new NextResponse(renderTemplateCsv(template), {
     status: 200,
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
@@ -45,4 +46,5 @@ export async function GET(_request: Request, { params }: { params: { template: s
       'Cache-Control': 'no-store',
     },
   });
-}
+  return withRateLimitHeaders(res, g.result);
+});

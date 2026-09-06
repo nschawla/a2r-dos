@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -28,7 +30,7 @@ async function requireAdmin() {
 
 const practiceSchema = z.object({ name: z.string().min(1).max(120) });
 
-export async function createPractice(input: unknown): Promise<ActionResult> {
+export const createPractice = withAction('createPractice', async (input: unknown): Promise<ActionResult> => {
   const { organizationId } = await requireAdmin();
   const parsed = practiceSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -36,14 +38,14 @@ export async function createPractice(input: unknown): Promise<ActionResult> {
   await db.practice.create({ data: { organizationId, name: parsed.data.name } });
   revalidatePath('/admin');
   return { ok: true };
-}
+});
 
-export async function deletePractice(id: string): Promise<ActionResult> {
+export const deletePractice = withAction('deletePractice', async (id: string): Promise<ActionResult> => {
   const { organizationId } = await requireAdmin();
   await db.practice.deleteMany({ where: { id, organizationId } });
   revalidatePath('/admin');
   return { ok: true };
-}
+});
 
 // -------------------------------------------------------------- Rate roles
 
@@ -58,7 +60,7 @@ const roleSchema = z.object({
   employmentType: z.enum(['FTE', 'CONTRACTOR']).optional(),
 });
 
-export async function createDeliveryRole(input: unknown): Promise<ActionResult> {
+export const createDeliveryRole = withAction('createDeliveryRole', async (input: unknown): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
   const parsed = roleSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -78,9 +80,9 @@ export async function createDeliveryRole(input: unknown): Promise<ActionResult> 
   revalidatePath('/admin');
   revalidatePath('/admin/audit-log');
   return { ok: true };
-}
+});
 
-export async function deleteDeliveryRole(id: string): Promise<ActionResult> {
+export const deleteDeliveryRole = withAction('deleteDeliveryRole', async (id: string): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
   const existing = await db.deliveryRole.findFirst({ where: { id, organizationId }, select: { name: true } });
   await db.deliveryRole.deleteMany({ where: { id, organizationId } });
@@ -96,7 +98,7 @@ export async function deleteDeliveryRole(id: string): Promise<ActionResult> {
   revalidatePath('/admin');
   revalidatePath('/admin/audit-log');
   return { ok: true };
-}
+});
 
 // WP6 — a dedicated toggle rather than folding this into a general
 // "edit role" action: bill/cost rates and practice assignment have no
@@ -105,7 +107,7 @@ export async function deleteDeliveryRole(id: string): Promise<ActionResult> {
 // changeable in place, since a role's rate card entry may outlive a
 // contractor-to-FTE conversion (or vice versa) without the role itself
 // needing to be recreated.
-export async function setDeliveryRoleEmploymentType(input: unknown): Promise<ActionResult> {
+export const setDeliveryRoleEmploymentType = withAction('setDeliveryRoleEmploymentType', async (input: unknown): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
   const schema = z.object({ id: z.string().min(1), employmentType: z.enum(['FTE', 'CONTRACTOR']) });
   const parsed = schema.safeParse(input);
@@ -139,7 +141,7 @@ export async function setDeliveryRoleEmploymentType(input: unknown): Promise<Act
   revalidatePath('/');
   revalidatePath('/admin/audit-log');
   return { ok: true };
-}
+});
 
 // ----------------------------------------------------------------- Resources
 
@@ -150,7 +152,7 @@ const resourceSchema = z.object({
   practiceId: z.string().optional().or(z.literal('')),
 });
 
-export async function createResource(input: unknown): Promise<ActionResult> {
+export const createResource = withAction('createResource', async (input: unknown): Promise<ActionResult> => {
   const { organizationId } = await requireAdmin();
   const parsed = resourceSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -161,14 +163,14 @@ export async function createResource(input: unknown): Promise<ActionResult> {
   });
   revalidatePath('/admin');
   return { ok: true };
-}
+});
 
-export async function deleteResource(id: string): Promise<ActionResult> {
+export const deleteResource = withAction('deleteResource', async (id: string): Promise<ActionResult> => {
   const { organizationId } = await requireAdmin();
   await db.resource.deleteMany({ where: { id, organizationId } });
   revalidatePath('/admin');
   return { ok: true };
-}
+});
 
 // ------------------------------------------------------------------- Policy
 
@@ -179,7 +181,7 @@ const policySchema = z.object({
   methodology: z.enum(['WATERFALL', 'AGILE', 'HYBRID']),
 });
 
-export async function updateOrgPolicy(input: unknown): Promise<ActionResult> {
+export const updateOrgPolicy = withAction('updateOrgPolicy', async (input: unknown): Promise<ActionResult> => {
   const { organizationId } = await requireAdmin();
   const parsed = policySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -191,11 +193,11 @@ export async function updateOrgPolicy(input: unknown): Promise<ActionResult> {
   });
   revalidatePath('/admin');
   return { ok: true };
-}
+});
 
 const controlLabelSchema = z.object({ controlKey: z.string().min(1), label: z.string().min(1).max(160) });
 
-export async function updateControlLabel(input: unknown): Promise<ActionResult> {
+export const updateControlLabel = withAction('updateControlLabel', async (input: unknown): Promise<ActionResult> => {
   const { organizationId } = await requireAdmin();
   const parsed = controlLabelSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -208,7 +210,7 @@ export async function updateControlLabel(input: unknown): Promise<ActionResult> 
   });
   revalidatePath('/admin');
   return { ok: true };
-}
+});
 
 // -------------------------------------------------- Enterprise Governance (Step 1)
 
@@ -264,7 +266,7 @@ async function persistGovernance(
   revalidatePath('/admin/audit-log');
 }
 
-export async function applyGovernanceTemplate(input: unknown): Promise<ActionResult> {
+export const applyGovernanceTemplate = withAction('applyGovernanceTemplate', async (input: unknown): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
   const parsed = z.object({ template: z.string() }).safeParse(input);
   if (!parsed.success || !isGovernanceTemplateKey(parsed.data.template)) {
@@ -283,14 +285,14 @@ export async function applyGovernanceTemplate(input: unknown): Promise<ActionRes
     `apply-template:${GOVERNANCE_TEMPLATES[parsed.data.template].label}`
   );
   return { ok: true };
-}
+});
 
 const governanceOverrideSchema = z.object({
   hiddenModules: z.array(z.string()).max(HIDEABLE_MODULES.length),
   maskFinancialsForDelivery: z.boolean(),
 });
 
-export async function updateGovernanceConfig(input: unknown): Promise<ActionResult> {
+export const updateGovernanceConfig = withAction('updateGovernanceConfig', async (input: unknown): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
   const parsed = governanceOverrideSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -311,4 +313,4 @@ export async function updateGovernanceConfig(input: unknown): Promise<ActionResu
     'edit-overrides'
   );
   return { ok: true };
-}
+});

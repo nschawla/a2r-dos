@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 /**
  * WP7 — SteerCo Decision & Action Tracker CRUD. Mirrors raid.ts's
  * conventions closely (same `authorizeProjectEdit` gate, same
@@ -43,7 +45,7 @@ export type ListSteerCoDecisionsResult = { ok: true; decisions: SteerCoDecisionV
  * org" — not edit authority, so anyone who can load the Reports Hub for a
  * project in their scope can see its decision tracker, even if they
  * couldn't add to it themselves. */
-export async function listSteerCoDecisions(projectId: string): Promise<ListSteerCoDecisionsResult> {
+export const listSteerCoDecisions = withAction('listSteerCoDecisions', async (projectId: string): Promise<ListSteerCoDecisionsResult> => {
   const { organizationId } = await requireOrgContext();
 
   const project = await db.project.findFirst({ where: { id: projectId, organizationId }, select: { id: true } });
@@ -69,7 +71,7 @@ export async function listSteerCoDecisions(projectId: string): Promise<ListSteer
       updatedAt: r.updatedAt.toISOString(),
     })),
   };
-}
+});
 
 const createSchema = z.object({
   projectId: z.string().min(1),
@@ -78,7 +80,7 @@ const createSchema = z.object({
   resolutionTargetDate: z.string().optional().or(z.literal('')),
 });
 
-export async function createSteerCoDecision(input: unknown): Promise<ActionResult> {
+export const createSteerCoDecision = withAction('createSteerCoDecision', async (input: unknown): Promise<ActionResult> => {
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { projectId, decisionRequired, decisionOwnerId, resolutionTargetDate } = parsed.data;
@@ -99,7 +101,7 @@ export async function createSteerCoDecision(input: unknown): Promise<ActionResul
   revalidatePath('/reports');
   revalidatePath(`/commercial-baseline/${projectId}`);
   return { ok: true };
-}
+});
 
 const statusSchema = z.object({
   id: z.string().min(1),
@@ -112,7 +114,7 @@ const statusSchema = z.object({
  * resolution note — one call, matching updateRaidStatus's own
  * single-field-plus-context shape rather than splitting the note into a
  * second round trip. */
-export async function updateSteerCoDecisionStatus(input: unknown): Promise<ActionResult> {
+export const updateSteerCoDecisionStatus = withAction('updateSteerCoDecisionStatus', async (input: unknown): Promise<ActionResult> => {
   const parsed = statusSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { id, projectId, status, resolutionNotes } = parsed.data;
@@ -131,11 +133,11 @@ export async function updateSteerCoDecisionStatus(input: unknown): Promise<Actio
   revalidatePath('/reports');
   revalidatePath(`/commercial-baseline/${projectId}`);
   return { ok: true };
-}
+});
 
 const deleteSchema = z.object({ id: z.string().min(1), projectId: z.string().min(1) });
 
-export async function deleteSteerCoDecision(input: unknown): Promise<ActionResult> {
+export const deleteSteerCoDecision = withAction('deleteSteerCoDecision', async (input: unknown): Promise<ActionResult> => {
   const parsed = deleteSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { id, projectId } = parsed.data;
@@ -148,4 +150,4 @@ export async function deleteSteerCoDecision(input: unknown): Promise<ActionResul
   revalidatePath('/reports');
   revalidatePath(`/commercial-baseline/${projectId}`);
   return { ok: true };
-}
+});

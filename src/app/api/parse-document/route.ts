@@ -28,8 +28,10 @@ import { z } from 'zod';
 import { getOrgContextOrNull } from '@/lib/session';
 import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { loadParseDocumentProjectHints } from '@/server/queries/reports-exports';
-import { hit, tooManyRequestsResponse } from '@/lib/rate-limiter';
+import { rateLimitGuard, tooManyRequestsResponse } from '@/lib/rate-limiter';
+import { RATE_LIMITS } from '@/lib/rate-limits';
 import { captureException } from '@/lib/observability';
+import { withRouteHandler } from '@/lib/observability/route-wrapper';
 import {
   parseDeliveryDocument,
   toStatusRaidRows,
@@ -41,7 +43,6 @@ import {
 export const maxDuration = 30;
 
 const MAX_BODY_BYTES = 200 * 1024;
-const RATE_LIMIT = { limit: 10, windowMs: 60_000 };
 /** Cap the project hint list we hand the model. */
 const MAX_PROJECT_HINTS = 500;
 
@@ -66,7 +67,7 @@ const STATUS_BY_CODE: Record<ParseErrorCode, number> = {
   unparseable: 422,
 };
 
-export async function POST(request: Request) {
+export const POST = withRouteHandler('parse-document', async (request: Request) => {
   const blocked = await passwordRotationGate();
   if (blocked) return blocked;
   const context = await getOrgContextOrNull();
@@ -75,11 +76,11 @@ export async function POST(request: Request) {
   }
 
   // ── Per-user rate limit — LLM calls cost real money. ──
-  const rl = hit(`parse-document:${context.userId}`, RATE_LIMIT);
-  if (!rl.ok) {
+  const g = rateLimitGuard(`parse-document:${context.userId}`, RATE_LIMITS.DOC_PARSE);
+  if (!g.allowed) {
     return tooManyRequestsResponse(
-      rl,
-      `Rate limit exceeded (${RATE_LIMIT.limit} document parses/minute). Retry in ${rl.retryAfterSeconds}s.`,
+      g.result,
+      `Rate limit exceeded (${RATE_LIMITS.DOC_PARSE.limit} document parses/minute). Retry in ${g.result.retryAfterSeconds}s.`,
     );
   }
 
@@ -132,13 +133,15 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       ok: true,
       digest: result.data,
       rows: toStatusRaidRows(result.data),
       model: result.model,
       usage: result.usage,
     });
+    for (const [k, v] of Object.entries(g.headers)) res.headers.set(k, v);
+    return res;
   } catch (err) {
     captureException(err, {
       scope: 'api/parse-document',
@@ -147,7 +150,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ error: 'Internal error parsing the document.' }, { status: 500 });
   }
-}
+});
 
 export function GET() {
   return NextResponse.json(

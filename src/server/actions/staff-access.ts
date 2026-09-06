@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 /**
  * A2R Operator Control Plane — grant / revoke internal /ops access.
  *
@@ -35,7 +37,7 @@ const grantSchema = z.object({
 
 const revokeSchema = z.object({ email: z.string().email() });
 
-export async function grantStaffAction(input: unknown): Promise<StaffGrantResult> {
+export const grantStaffAction = withAction('grantStaffAction', async (input: unknown): Promise<StaffGrantResult> => {
   const gate = await elevatedOps();
   if (!gate.ok) return { ok: false, error: gate.error };
 
@@ -49,9 +51,9 @@ export async function grantStaffAction(input: unknown): Promise<StaffGrantResult
   });
   if (result.ok) revalidatePath('/ops/staff');
   return result;
-}
+});
 
-export async function revokeStaffAction(input: unknown): Promise<StaffGrantResult> {
+export const revokeStaffAction = withAction('revokeStaffAction', async (input: unknown): Promise<StaffGrantResult> => {
   const gate = await elevatedOps();
   if (!gate.ok) return { ok: false, error: gate.error };
 
@@ -64,4 +66,4 @@ export async function revokeStaffAction(input: unknown): Promise<StaffGrantResul
   });
   if (result.ok) revalidatePath('/ops/staff');
   return result;
-}
+});

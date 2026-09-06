@@ -16,6 +16,9 @@ import {
   toSizingInput,
 } from '@/server/queries/calc-adapters';
 import { SteerCoReportView, type TopRaidRiskViewData, type DecisionTrackerRowViewData } from '@/components/reports/SteerCoReportView';
+import { withRouteHandler } from '@/lib/observability/route-wrapper';
+import { rateLimitGuard, tooManyRequestsResponse, withRateLimitHeaders } from '@/lib/rate-limiter';
+import { RATE_LIMITS } from '@/lib/rate-limits';
 
 const SEVERITY_RANK: Record<'CRITICAL' | 'HIGH' | 'MED' | 'LOW', number> = { CRITICAL: 0, HIGH: 1, MED: 2, LOW: 3 };
 const RAID_TYPE_LABEL: Record<string, string> = { RISK: 'Risk', ASSUMPTION: 'Assumption', ISSUE: 'Issue', DEPENDENCY: 'Dependency' };
@@ -37,11 +40,14 @@ const RAID_TYPE_LABEL: Record<string, string> = { RISK: 'Risk', ASSUMPTION: 'Ass
  * page and the Reports Hub itself use, so this can never drift from what
  * the app's own pages show.
  */
-export async function GET(_request: Request, { params }: { params: { projectId: string } }) {
+export const GET = withRouteHandler<{ params: { projectId: string } }>('projects/status-report', async (_request, { params }) => {
   const blocked = await passwordRotationGate();
   if (blocked) return blocked;
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
+
+  const g = rateLimitGuard(`docgen:status:${context.userId}`, RATE_LIMITS.DOC_GEN);
+  if (!g.allowed) return tooManyRequestsResponse(g.result, 'Too many report generations. Please slow down.');
 
   const { project, roles, policy, escalatedRaid, decisions } = await loadStatusReport(
     { organizationId: context.organizationId },
@@ -126,5 +132,6 @@ export async function GET(_request: Request, { params }: { params: { projectId: 
     generatedAt,
   });
 
-  return new NextResponse(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-}
+  const res = new NextResponse(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  return withRateLimitHeaders(res, g.result);
+});

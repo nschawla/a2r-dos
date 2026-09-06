@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 /**
  * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
@@ -82,7 +84,7 @@ const upsertSchema = withOrg({
   oidcDiscoveryUrl: z.string().max(600).optional(),
 });
 
-export async function upsertIdentityProvider(input: unknown): Promise<ActionResult> {
+export const upsertIdentityProvider = withAction('upsertIdentityProvider', async (input: unknown): Promise<ActionResult> => {
   const parsed = upsertSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const d = parsed.data;
@@ -133,7 +135,7 @@ export async function upsertIdentityProvider(input: unknown): Promise<ActionResu
     secretRotated: newSecret !== null ? secretFingerprint(newSecret) : undefined,
   });
   return { ok: true };
-}
+});
 
 // ─────────────────────────────────────────────────── metadata verification
 
@@ -144,7 +146,7 @@ const verifySchema = withOrg({
 
 type VerifyResult = { ok: true; summary: Record<string, string> } | { ok: false; error: string };
 
-export async function verifyIdpMetadata(input: unknown): Promise<VerifyResult> {
+export const verifyIdpMetadata = withAction('verifyIdpMetadata', async (input: unknown): Promise<VerifyResult> => {
   const parsed = verifySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { organizationId } = parsed.data;
@@ -218,11 +220,11 @@ export async function verifyIdpMetadata(input: unknown): Promise<VerifyResult> {
       'JWKS URI': result.value.jwksUri,
     },
   };
-}
+});
 
 // ─────────────────────────────────────────────────── enable / enforce
 
-export async function setIdpEnabled(input: unknown): Promise<ActionResult> {
+export const setIdpEnabled = withAction('setIdpEnabled', async (input: unknown): Promise<ActionResult> => {
   const parsed = withOrg({ enabled: z.boolean() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid input' };
   const { organizationId } = parsed.data;
@@ -242,9 +244,9 @@ export async function setIdpEnabled(input: unknown): Promise<ActionResult> {
   });
   await logSsoChange(organizationId, userId, parsed.data.enabled ? 'enable' : 'disable');
   return { ok: true };
-}
+});
 
-export async function setIdpEnforced(input: unknown): Promise<ActionResult> {
+export const setIdpEnforced = withAction('setIdpEnforced', async (input: unknown): Promise<ActionResult> => {
   const parsed = withOrg({ enforced: z.boolean() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid input' };
   const { organizationId } = parsed.data;
@@ -266,9 +268,9 @@ export async function setIdpEnforced(input: unknown): Promise<ActionResult> {
     domains: idp.emailDomains,
   });
   return { ok: true };
-}
+});
 
-export async function deleteIdentityProvider(organizationId: string): Promise<ActionResult> {
+export const deleteIdentityProvider = withAction('deleteIdentityProvider', async (organizationId: string): Promise<ActionResult> => {
   const auth = await authorizeSsoAction(organizationId);
   if (!auth.ok) return { ok: false, error: auth.error };
   const userId = auth.actorId;
@@ -277,7 +279,7 @@ export async function deleteIdentityProvider(organizationId: string): Promise<Ac
   await db.identityProvider.delete({ where: { organizationId } });
   await logSsoChange(organizationId, userId, 'delete-config');
   return { ok: true };
-}
+});
 
 // ─────────────────────────────────────────────────── group mappings
 
@@ -289,7 +291,7 @@ const mappingSchema = withOrg({
   priority: z.coerce.number().int().min(1).max(999),
 });
 
-export async function upsertGroupMapping(input: unknown): Promise<ActionResult> {
+export const upsertGroupMapping = withAction('upsertGroupMapping', async (input: unknown): Promise<ActionResult> => {
   const parsed = mappingSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const m = parsed.data;
@@ -330,9 +332,9 @@ export async function upsertGroupMapping(input: unknown): Promise<ActionResult> 
     deliveryRole: m.deliveryRole,
   });
   return { ok: true };
-}
+});
 
-export async function deleteGroupMapping(organizationId: string, id: string): Promise<ActionResult> {
+export const deleteGroupMapping = withAction('deleteGroupMapping', async (organizationId: string, id: string): Promise<ActionResult> => {
   const auth = await authorizeSsoAction(organizationId);
   if (!auth.ok) return { ok: false, error: auth.error };
   const userId = auth.actorId;
@@ -340,4 +342,4 @@ export async function deleteGroupMapping(organizationId: string, id: string): Pr
   await db.ssoGroupMapping.deleteMany({ where: { id, organizationId } });
   if (row) await logSsoChange(organizationId, userId, 'delete-group-mapping', { claim: row.claimValue });
   return { ok: true };
-}
+});

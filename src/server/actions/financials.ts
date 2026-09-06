@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -37,7 +39,7 @@ const schema = z.object({
  * the role is restored), matching computeEacSummary's own tolerant
  * handling of stale roleKeys.
  */
-export async function updateFinancialActual(input: unknown): Promise<ActionResult> {
+export const updateFinancialActual = withAction('updateFinancialActual', async (input: unknown): Promise<ActionResult> => {
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { projectId, roleKey, hours, cost, forecastHours, openRRHours } = parsed.data;
@@ -81,4 +83,4 @@ export async function updateFinancialActual(input: unknown): Promise<ActionResul
   revalidatePath('/');
   revalidatePath(`/financials/${projectId}`);
   return { ok: true };
-}
+});

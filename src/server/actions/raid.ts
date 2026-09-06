@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
@@ -29,7 +31,7 @@ const createSchema = z.object({
  * is gated by `authorizeProjectEdit` (this action had no edit-authority
  * check at all before WP5 — see WP4's canEditProject).
  */
-export async function createRaidEntry(input: unknown): Promise<ActionResult> {
+export const createRaidEntry = withAction('createRaidEntry', async (input: unknown): Promise<ActionResult> => {
   const { userId } = await requireOrgContext();
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -71,7 +73,7 @@ export async function createRaidEntry(input: unknown): Promise<ActionResult> {
   revalidatePath('/');
   revalidatePath(`/raid/${projectId}`);
   return { ok: true };
-}
+});
 
 const updateSchema = z.object({
   id: z.string().min(1),
@@ -97,7 +99,7 @@ const updateSchema = z.object({
  * Supersedes the narrower `updateRaidStatus` below for the board's inline
  * editor; `updateRaidStatus` is kept for the quick status-only dropdown.
  */
-export async function updateRaidEntry(input: unknown): Promise<ActionResult> {
+export const updateRaidEntry = withAction('updateRaidEntry', async (input: unknown): Promise<ActionResult> => {
   const parsed = updateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { id, projectId, title, description, severity, likelihood, impact, mitigationPlan, ownerId, targetDate, status, escalate } = parsed.data;
@@ -127,7 +129,7 @@ export async function updateRaidEntry(input: unknown): Promise<ActionResult> {
   revalidatePath('/');
   revalidatePath(`/raid/${projectId}`);
   return { ok: true };
-}
+});
 
 const statusSchema = z.object({
   id: z.string().min(1),
@@ -137,7 +139,7 @@ const statusSchema = z.object({
 
 /** WP5: now gated by `authorizeProjectEdit` — previously any org member
  * could flip a RAID item's status regardless of RBAC edit authority. */
-export async function updateRaidStatus(input: unknown): Promise<ActionResult> {
+export const updateRaidStatus = withAction('updateRaidStatus', async (input: unknown): Promise<ActionResult> => {
   const parsed = statusSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { id, projectId, status } = parsed.data;
@@ -149,7 +151,7 @@ export async function updateRaidStatus(input: unknown): Promise<ActionResult> {
   revalidatePath('/');
   revalidatePath(`/raid/${projectId}`);
   return { ok: true };
-}
+});
 
 const escalateSchema = z.object({
   id: z.string().min(1),
@@ -166,7 +168,7 @@ const escalateSchema = z.object({
  * unlogged, matching the spec's precise scope rather than logging every
  * RAID edit.
  */
-export async function toggleRaidEscalation(input: unknown): Promise<ActionResult> {
+export const toggleRaidEscalation = withAction('toggleRaidEscalation', async (input: unknown): Promise<ActionResult> => {
   const parsed = escalateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { id, projectId, escalate } = parsed.data;
@@ -199,4 +201,4 @@ export async function toggleRaidEscalation(input: unknown): Promise<ActionResult
   revalidatePath('/');
   revalidatePath(`/raid/${projectId}`);
   return { ok: true };
-}
+});

@@ -1,5 +1,7 @@
 'use server';
 
+import { withAction } from '@/lib/observability/action-wrapper';
+
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
 import { cookies } from 'next/headers';
@@ -95,7 +97,7 @@ export interface ProvisionedTenant {
  *      & rate-card roster — see src/lib/tenant/defaults.ts).
  * All in one transaction; nothing is half-created on failure.
  */
-export async function provisionTenant(input: unknown): Promise<OpsDataResult<ProvisionedTenant>> {
+export const provisionTenant = withAction('provisionTenant', async (input: unknown): Promise<OpsDataResult<ProvisionedTenant>> => {
   const gate = await elevatedOps();
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
@@ -147,7 +149,7 @@ export async function provisionTenant(input: unknown): Promise<OpsDataResult<Pro
     ok: true,
     data: { organizationId, organizationSlug: slug, adminEmail: normalizedEmail, tempPassword },
   };
-}
+});
 
 const statusSchema = z.object({
   organizationId: z.string().min(1),
@@ -161,7 +163,7 @@ const statusSchema = z.object({
  * SUSPENDED locks non-staff members out; GRACE_PERIOD leaves it read-only
  * — both enforced in src/app/(dashboard)/layout.tsx + src/server/authz.ts.
  */
-export async function setTenantStatus(input: unknown): Promise<OpsResult> {
+export const setTenantStatus = withAction('setTenantStatus', async (input: unknown): Promise<OpsResult> => {
   const gate = await elevatedOps();
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
@@ -181,7 +183,7 @@ export async function setTenantStatus(input: unknown): Promise<OpsResult> {
   revalidatePath('/ops/tenants');
   revalidatePath('/ops/telemetry');
   return { ok: true };
-}
+});
 
 // ─────────────────────────────────────────── Impersonation Gateway
 
@@ -202,7 +204,7 @@ export interface ImpersonationStarted {
  * Ledger, then sets the `a2r_impersonation` cookie — the operator is now
  * inside the tenant workspace (read-only) until they exit or it expires.
  */
-export async function impersonateTenant(input: unknown): Promise<OpsDataResult<ImpersonationStarted>> {
+export const impersonateTenant = withAction('impersonateTenant', async (input: unknown): Promise<OpsDataResult<ImpersonationStarted>> => {
   const gate = await elevatedOps();
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
@@ -233,15 +235,15 @@ export async function impersonateTenant(input: unknown): Promise<OpsDataResult<I
       expiresAt: result.session.expiresAt.toISOString(),
     },
   };
-}
+});
 
 /** End the current impersonation session (from the workspace banner). */
-export async function endImpersonationAction(): Promise<OpsResult> {
+export const endImpersonationAction = withAction('endImpersonationAction', async (): Promise<OpsResult> => {
   const token = cookies().get(IMPERSONATION_COOKIE)?.value;
   if (token) await endImpersonation(token);
   cookies().delete(IMPERSONATION_COOKIE);
   return { ok: true };
-}
+});
 
 // ─────────────────────────────────────────── Data Sovereignty & Offboarding
 
@@ -273,7 +275,7 @@ export interface TenantExportResult {
  * operator to have typed the tenant name to confirm. Writes a
  * TENANT_DATA_EXPORT ledger entry.
  */
-export async function exportTenantData(input: unknown): Promise<OpsDataResult<TenantExportResult>> {
+export const exportTenantData = withAction('exportTenantData', async (input: unknown): Promise<OpsDataResult<TenantExportResult>> => {
   const gate = await elevatedOps();
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
@@ -309,7 +311,7 @@ export async function exportTenantData(input: unknown): Promise<OpsDataResult<Te
     ok: true,
     data: { manifest: built.package.manifest, bundleJson: JSON.stringify(built.package, null, 2) },
   };
-}
+});
 
 export interface TenantPurgeResult {
   certificate: DestructionCertificate;
@@ -322,7 +324,7 @@ export interface TenantPurgeResult {
  * the ledger, and returns a self-sealed Certificate of Destruction.
  * Requires the operator to type the tenant name to confirm.
  */
-export async function purgeTenant(input: unknown): Promise<OpsDataResult<TenantPurgeResult>> {
+export const purgeTenant = withAction('purgeTenant', async (input: unknown): Promise<OpsDataResult<TenantPurgeResult>> => {
   const gate = await elevatedOps();
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
@@ -343,7 +345,7 @@ export async function purgeTenant(input: unknown): Promise<OpsDataResult<TenantP
     ok: true,
     data: { certificate: result.certificate, certificateJson: JSON.stringify(result.certificate, null, 2) },
   };
-}
+});
 
 // ─────────────────────────────────────────── Data Ingestion API keys
 
@@ -354,7 +356,7 @@ const issueKeySchema = z.object({
 });
 
 /** Mint a tenant-scoped API key (returns the plaintext exactly once). */
-export async function issueTenantApiKey(input: unknown): Promise<OpsDataResult<IssuedApiKey>> {
+export const issueTenantApiKey = withAction('issueTenantApiKey', async (input: unknown): Promise<OpsDataResult<IssuedApiKey>> => {
   const gate = await elevatedOps();
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
@@ -374,9 +376,9 @@ export async function issueTenantApiKey(input: unknown): Promise<OpsDataResult<I
   revalidatePath('/ops/tenants');
   revalidatePath('/admin/audit-log');
   return { ok: true, data: result.key };
-}
+});
 
-export async function revokeTenantApiKey(input: unknown): Promise<OpsResult> {
+export const revokeTenantApiKey = withAction('revokeTenantApiKey', async (input: unknown): Promise<OpsResult> => {
   const gate = await elevatedOps();
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
@@ -389,7 +391,7 @@ export async function revokeTenantApiKey(input: unknown): Promise<OpsResult> {
 
   revalidatePath('/ops/tenants');
   return { ok: true };
-}
+});
 
 export interface ApiKeyRow {
   id: string;
@@ -403,7 +405,7 @@ export interface ApiKeyRow {
 }
 
 /** List a tenant's API keys (metadata only — no secrets). */
-export async function listTenantApiKeys(organizationId: string): Promise<OpsDataResult<ApiKeyRow[]>> {
+export const listTenantApiKeys = withAction('listTenantApiKeys', async (organizationId: string): Promise<OpsDataResult<ApiKeyRow[]>> => {
   const ops = await getOpsContextOrNull();
   if (!ops) return { ok: false, error: 'Not authorized.' };
 
@@ -434,4 +436,4 @@ export async function listTenantApiKeys(organizationId: string): Promise<OpsData
       revokedAt: k.revokedAt?.toISOString() ?? null,
     })),
   };
-}
+});
