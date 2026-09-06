@@ -280,6 +280,18 @@ model Organization {
   dataImportBatches      DataImportBatch[]
   customKpis             CustomKpi[]
 
+  // P1 — composite tenant keys: project/batch-scoped models now carry their
+  // own organizationId FK (migration 00000000000012).
+  projectContributors    ProjectContributor[]
+  scopeItems             ScopeItem[]
+  effortCells            EffortCell[]
+  auditEntries           AuditEntry[]
+  raidEntries            RaidEntry[]
+  financialActuals       FinancialActual[]
+  schedulePhases         SchedulePhase[]
+  steerCoDecisions       SteerCoDecision[]
+  dataImportRows         DataImportRow[]
+
   @@map("organizations")
 }
 
@@ -843,14 +855,23 @@ model Project {
 model ProjectContributor {
   id         String   @id @default(cuid())
   projectId  String
+  // P1 — composite tenant key. Denormalized from Project.organizationId so
+  // every row is tied to its tenant by its own FK (not just transitively
+  // through `project`), giving the org-scope extension a direct scalar
+  // filter and DB-level RLS a same-table policy target. Backfilled +
+  // NOT NULL in migration 00000000000012; auto-injected on create by
+  // src/lib/db/org-scope.ts.
+  organizationId String
   resourceId String
   createdAt  DateTime @default(now())
 
-  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  resource     Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, resourceId])
   @@index([resourceId])
+  @@index([organizationId])
   @@map("project_contributors")
 }
 
@@ -864,6 +885,8 @@ enum ScopeComplexity {
 model ScopeItem {
   id         String          @id @default(cuid())
   projectId  String
+  // P1 — composite tenant key (see ProjectContributor.organizationId).
+  organizationId String
   key        String // workstream key, e.g. "arch"; free-form for custom rows
   name       String
   included   Boolean         @default(true)
@@ -872,9 +895,11 @@ model ScopeItem {
   custom     Boolean         @default(false)
   sortOrder  Int             @default(0)
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
+  @@index([organizationId])
   @@map("scope_items")
 }
 
@@ -882,15 +907,19 @@ model ScopeItem {
 model EffortCell {
   id        String @id @default(cuid())
   projectId String
+  // P1 — composite tenant key (see ProjectContributor.organizationId).
+  organizationId String
   phaseKey  String // initiate | design | build | test | deploy | sustain
   roleId    String
   hours     Float  @default(0)
 
-  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  role    DeliveryRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         DeliveryRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, phaseKey, roleId])
   @@index([projectId])
+  @@index([organizationId])
   @@map("effort_cells")
 }
 
@@ -908,6 +937,8 @@ enum AuditStatus {
 model AuditEntry {
   id         String      @id @default(cuid())
   projectId  String
+  // P1 — composite tenant key (see ProjectContributor.organizationId).
+  organizationId String
   controlKey String // CTRL_01..CTRL_10
   status     AuditStatus @default(NO)
   owner      String?
@@ -919,10 +950,12 @@ model AuditEntry {
   notes      String?     @db.Text
   updatedAt  DateTime    @updatedAt
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, controlKey])
   @@index([projectId])
+  @@index([organizationId])
   @@map("audit_entries")
 }
 
@@ -964,6 +997,8 @@ enum RaidStatus {
 model RaidEntry {
   id          String       @id @default(cuid())
   projectId   String
+  // P1 — composite tenant key (see ProjectContributor.organizationId).
+  organizationId String
   type        RaidType
   // WP5 — short label the RAID Cockpit Board's Quick-Add drawer and table
   // display as the item's name, distinct from the longer free-text
@@ -987,10 +1022,12 @@ model RaidEntry {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  project Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  owner   Resource? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        Resource?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
+  @@index([organizationId])
   @@map("raid_entries")
 }
 
@@ -1007,6 +1044,8 @@ model RaidEntry {
 model FinancialActual {
   id             String  @id @default(cuid())
   projectId      String
+  // P1 — composite tenant key (see ProjectContributor.organizationId).
+  organizationId String
   roleKey        String // DeliveryRole.id, or "_direct" for direct-mode projects
   roleId         String?
   hours          Float   @default(0)
@@ -1014,11 +1053,13 @@ model FinancialActual {
   forecastHours  Float?
   openRRHours    Float?
 
-  project Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  role    DeliveryRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         DeliveryRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, roleKey])
   @@index([projectId])
+  @@index([organizationId])
   @@map("financial_actuals")
 }
 
@@ -1036,6 +1077,8 @@ enum ScheduleStatus {
 model SchedulePhase {
   id            String         @id @default(cuid())
   projectId     String
+  // P1 — composite tenant key (see ProjectContributor.organizationId).
+  organizationId String
   phaseKey      String // initiate | design | build | test | deploy | sustain
   plannedStart  DateTime?
   plannedEnd    DateTime?
@@ -1044,10 +1087,12 @@ model SchedulePhase {
   pctComplete   Float          @default(0)
   status        ScheduleStatus @default(NOTSTARTED)
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, phaseKey])
   @@index([projectId])
+  @@index([organizationId])
   @@map("schedule_phases")
 }
 
@@ -1126,6 +1171,10 @@ model DataImportBatch {
 model DataImportRow {
   id       String @id @default(cuid())
   batchId  String
+  // P1 — composite tenant key. Denormalized from DataImportBatch.organizationId
+  // (see ProjectContributor.organizationId). Backfilled via `batch` in
+  // migration 00000000000012; auto-injected on create by src/lib/db/org-scope.ts.
+  organizationId String
   rowIndex Int // 1-based, counting only data rows (no header)
 
   // The row's cell values exactly as uploaded (or as last hand-corrected
@@ -1142,9 +1191,11 @@ model DataImportRow {
 
   updatedAt DateTime @updatedAt
 
-  batch DataImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batch        DataImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([batchId])
+  @@index([organizationId])
   @@map("data_import_rows")
 }
 
@@ -1348,6 +1399,8 @@ enum SteerCoDecisionStatus {
 model SteerCoDecision {
   id                   String                @id @default(cuid())
   projectId            String
+  // P1 — composite tenant key (see ProjectContributor.organizationId).
+  organizationId       String
   decisionRequired     String                @db.Text
   decisionOwnerId      String?
   resolutionTargetDate DateTime?
@@ -1359,9 +1412,11 @@ model SteerCoDecision {
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
 
-  project Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  owner   Resource? @relation(fields: [decisionOwnerId], references: [id], onDelete: SetNull)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        Resource?    @relation(fields: [decisionOwnerId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
+  @@index([organizationId])
   @@map("steerco_decisions")
 }

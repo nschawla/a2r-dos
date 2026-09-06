@@ -88,6 +88,7 @@ export async function createSteerCoDecision(input: unknown): Promise<ActionResul
 
   await db.steerCoDecision.create({
     data: {
+      organizationId: auth.context.organizationId,
       projectId,
       decisionRequired,
       decisionOwnerId: decisionOwnerId || null,

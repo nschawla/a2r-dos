@@ -22,16 +22,18 @@ import {
 describe('org-scope — pure helpers', () => {
   it('classifies models', () => {
     expect(isTenantModel('Project')).toBe(true); // direct org column
-    expect(isTenantModel('RaidEntry')).toBe(true); // via project
-    expect(isTenantModel('DataImportRow')).toBe(true); // via batch
+    expect(isTenantModel('RaidEntry')).toBe(true); // own org column (P1 migration 12)
+    expect(isTenantModel('DataImportRow')).toBe(true); // own org column (P1 migration 12)
     expect(isTenantModel('User')).toBe(false);
     expect(isTenantModel('Membership')).toBe(false);
   });
 
   it('builds the right where fragment per scoping style', () => {
+    // P1 — the formerly project/batch-scoped models now carry their own
+    // organizationId, so every tenant model resolves to the scalar fragment.
     expect(orgWhereFragment('Project', 'org1')).toEqual({ organizationId: 'org1' });
-    expect(orgWhereFragment('RaidEntry', 'org1')).toEqual({ project: { organizationId: 'org1' } });
-    expect(orgWhereFragment('DataImportRow', 'org1')).toEqual({ batch: { organizationId: 'org1' } });
+    expect(orgWhereFragment('RaidEntry', 'org1')).toEqual({ organizationId: 'org1' });
+    expect(orgWhereFragment('DataImportRow', 'org1')).toEqual({ organizationId: 'org1' });
   });
 
   it('mergeOrgWhere ANDs the fragment into a filter where', () => {
@@ -53,12 +55,13 @@ describe('org-scope — pure helpers', () => {
       id: 'p1',
       organizationId: 'org1',
     });
-    // relation-scoped model → added via AND so an existing relation filter survives
+    // P1 — FinancialActual now has its own organizationId column, so the
+    // scope is a scalar beside the compound-key selector.
     expect(
       mergeOrgWhereUnique('FinancialActual', { projectId_roleKey: { projectId: 'p1', roleKey: 'r' } }, 'org1'),
     ).toEqual({
       projectId_roleKey: { projectId: 'p1', roleKey: 'r' },
-      AND: [{ project: { organizationId: 'org1' } }],
+      organizationId: 'org1',
     });
   });
 
@@ -90,8 +93,12 @@ describe('org-scope — pure helpers', () => {
     });
     // update-side: validate only, don't inject
     expect(applyOrgToCreateData('Project', { name: 'X' }, 'org1', { inject: false })).toEqual({ name: 'X' });
-    // transitive models pass through (can't be validated without a parent lookup)
-    expect(applyOrgToCreateData('RaidEntry', { title: 'X' }, 'org1')).toEqual({ title: 'X' });
+    // P1 — RaidEntry now has its own organizationId column, so the create
+    // path injects it just like any other DIRECT_ORG model.
+    expect(applyOrgToCreateData('RaidEntry', { title: 'X' }, 'org1')).toEqual({
+      title: 'X',
+      organizationId: 'org1',
+    });
   });
 });
 

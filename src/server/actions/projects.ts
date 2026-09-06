@@ -61,6 +61,7 @@ export async function createProject(input: unknown): Promise<ActionResult> {
 
     await tx.scopeItem.createMany({
       data: DEFAULT_SCOPE.map((s, i) => ({
+        organizationId,
         projectId: project.id,
         key: s.id,
         name: s.name,
@@ -69,11 +70,11 @@ export async function createProject(input: unknown): Promise<ActionResult> {
     });
 
     await tx.schedulePhase.createMany({
-      data: PHASES.map((p) => ({ projectId: project.id, phaseKey: p.key })),
+      data: PHASES.map((p) => ({ organizationId, projectId: project.id, phaseKey: p.key })),
     });
 
     await tx.auditEntry.createMany({
-      data: CONTROL_DEFS.map((c) => ({ projectId: project.id, controlKey: c.id })),
+      data: CONTROL_DEFS.map((c) => ({ organizationId, projectId: project.id, controlKey: c.id })),
     });
 
     await tx.activityLogEntry.create({
@@ -253,7 +254,7 @@ export async function updateEffortCell(input: unknown): Promise<ActionResult> {
   await db.effortCell.upsert({
     where: { projectId_phaseKey_roleId: { projectId, phaseKey, roleId } },
     update: { hours },
-    create: { projectId, phaseKey, roleId, hours },
+    create: { organizationId: auth.context.organizationId, projectId, phaseKey, roleId, hours },
   });
 
   revalidateProjectRoutes(projectId);

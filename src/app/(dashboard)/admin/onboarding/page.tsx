@@ -1,5 +1,5 @@
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
+import { loadAdminOnboardingPage } from '@/server/queries/pages/admin';
 import { resolveStoredGovernance } from '@/lib/governance/config';
 import { OnboardingJourneyWizard } from '@/components/onboarding/OnboardingJourneyWizard';
 
@@ -20,19 +20,7 @@ import { OnboardingJourneyWizard } from '@/components/onboarding/OnboardingJourn
 export default async function AdminOnboardingPage() {
   const { organizationId } = await requireOrgContext();
 
-  const [org, governanceRow, resources, projectCount] = await Promise.all([
-    db.organization.findUniqueOrThrow({
-      where: { id: organizationId },
-      select: { name: true, slug: true, contractTier: true, createdAt: true },
-    }),
-    db.governanceConfig.findUnique({ where: { organizationId } }),
-    db.resource.findMany({
-      where: { organizationId },
-      orderBy: { name: 'asc' },
-      include: { role: true, practice: true },
-    }),
-    db.project.count({ where: { organizationId } }),
-  ]);
+  const { org, governanceRow, resources, projectCount } = await loadAdminOnboardingPage({ organizationId });
 
   const governance = resolveStoredGovernance(governanceRow);
 

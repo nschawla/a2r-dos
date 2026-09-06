@@ -59,6 +59,7 @@ export async function updateSchedulePhase(input: unknown): Promise<ActionResult>
       status,
     },
     create: {
+      organizationId: auth.context.organizationId,
       projectId,
       phaseKey,
       plannedStart: toDateOrNull(plannedStart),

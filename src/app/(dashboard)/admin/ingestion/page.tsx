@@ -1,5 +1,5 @@
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
+import { loadBatchImportLookups } from '@/server/queries/pages/admin';
 import { hasPermission } from '@/lib/auth/rbac';
 import { INGESTION_TEMPLATES } from '@/server/services/templates';
 import { IngestionTemplateHub } from '@/components/ingestion/IngestionTemplateHub';
@@ -41,13 +41,8 @@ export default async function AdminIngestionPage() {
   };
 
   if (canBatchImport) {
-    const [projects, resources, roles, batchesResult] = await Promise.all([
-      db.project.findMany({
-        where: { organizationId: context.organizationId },
-        select: { id: true, externalId: true, name: true, estimationMode: true },
-      }),
-      db.resource.findMany({ where: { organizationId: context.organizationId }, select: { id: true, name: true, email: true } }),
-      db.deliveryRole.findMany({ where: { organizationId: context.organizationId }, select: { id: true, name: true } }),
+    const [{ projects, resources, roles }, batchesResult] = await Promise.all([
+      loadBatchImportLookups({ organizationId: context.organizationId }),
       listImportBatches(),
     ]);
     const lookups: BatchValidationContext = {

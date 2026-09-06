@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getOrgContextOrNull } from '@/lib/session';
 import { passwordRotationGate } from '@/lib/auth/password-rotation';
+import { loadProjectExport } from '@/server/queries/reports-exports';
 
 /**
  * "Export JSON Package" — a full, org-scoped snapshot of one project
@@ -17,20 +17,7 @@ export async function GET(_request: Request, { params }: { params: { projectId: 
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 
-  const project = await db.project.findFirst({
-    where: { id: params.projectId, organizationId: context.organizationId },
-    include: {
-      scopeItems: { orderBy: { sortOrder: 'asc' } },
-      effortCells: { include: { role: true } },
-      auditEntries: true,
-      raidEntries: { include: { owner: true }, orderBy: { createdAt: 'desc' } },
-      financials: { include: { role: true } },
-      schedulePhases: true,
-      practiceDirector: true,
-      deliveryManager: true,
-      projectManager: true,
-    },
-  });
+  const project = await loadProjectExport({ organizationId: context.organizationId }, params.projectId);
   if (!project) return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
 
   const payload = {

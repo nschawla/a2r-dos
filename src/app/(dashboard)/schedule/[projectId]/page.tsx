@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
+import { loadScheduleModulePage } from '@/server/queries/pages/project-modules';
 import { ScheduleTracker } from '@/components/modules/schedule/ScheduleTracker';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { getProjectHealth } from '@/server/queries/health';
@@ -14,13 +14,7 @@ function toDateInputValue(d: Date | null): string {
 export default async function ScheduleProjectPage({ params }: { params: { projectId: string } }) {
   const { organizationId, deliveryRole, resourceId, resourcePracticeId } = await requireOrgContext();
 
-  const [project, policy] = await Promise.all([
-    db.project.findFirst({
-      where: { id: params.projectId, organizationId },
-      include: { schedulePhases: true, auditEntries: { select: { controlKey: true, status: true } } },
-    }),
-    db.orgPolicy.findUnique({ where: { organizationId } }),
-  ]);
+  const { project, policy } = await loadScheduleModulePage({ organizationId }, params.projectId);
   if (!project) notFound();
 
   const health = getProjectHealth(project);

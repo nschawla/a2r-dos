@@ -1,14 +1,11 @@
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
-import { getScopedResourceWhere, getScopedProjectWhere, isGlobalRole } from '@/lib/scoping';
+import { isGlobalRole } from '@/lib/scoping';
+import { loadCapacityCockpitData } from '@/server/queries/pages/dashboards';
 import {
-  mondayOf,
-  startOfDay,
   resourceCapacityRow,
   blendedSummary,
   groupByPractice,
   type CapacityResourceInput,
-  type DateRange,
 } from '@/lib/capacity-engine';
 import { CapacityCockpit } from '@/components/modules/capacity/CapacityCockpit';
 
@@ -26,61 +23,18 @@ const FORECAST_WEEKS = 52;
  */
 export default async function CapacityPage() {
   const context = await requireOrgContext();
-  const { organizationId, role, deliveryRole } = context;
+  const { role, deliveryRole } = context;
   const isAdmin = role === 'OWNER' || role === 'ADMIN';
-  const resourceWhere = getScopedResourceWhere(context);
-  const projectWhere = await getScopedProjectWhere(context);
 
-  const now = new Date();
-  // Trailing 13 weeks — the standard PS "trailing-quarter" utilisation window.
-  const periodEnd = startOfDay(now);
-  const periodStart = mondayOf(now);
-  periodStart.setDate(periodStart.getDate() - 13 * 7);
-  const period: DateRange = { start: periodStart, end: periodEnd };
-
-  const firstWeek = mondayOf(now);
-  const lastWeekExclusive = new Date(firstWeek);
-  lastWeekExclusive.setDate(lastWeekExclusive.getDate() + FORECAST_WEEKS * 7);
-
-  const [resources, holidays, policies, actualsByResource, forecastSlots, activeProjects] = await Promise.all([
-    db.resource.findMany({
-      where: resourceWhere,
-      orderBy: [{ psPractice: 'asc' }, { name: 'asc' }],
-      select: {
-        id: true,
-        name: true,
-        psPractice: true,
-        fte: true,
-        startDate: true,
-        endDate: true,
-        targetUtilPct: true,
-        projectCount: true,
-        rolePolicy: { select: { roleName: true, targetUtilPct: true, isBillableHead: true } },
-      },
-    }),
-    db.organizationHoliday.findMany({ where: { organizationId }, orderBy: { date: 'asc' } }),
-    db.roleUtilizationPolicy.findMany({ where: { organizationId }, orderBy: { roleName: 'asc' } }),
-    db.weeklyAssignmentSlot.groupBy({
-      by: ['resourceId'],
-      where: { organizationId, weekDate: { gte: periodStart, lte: periodEnd } },
-      _sum: { actualHours: true },
-    }),
-    db.weeklyAssignmentSlot.findMany({
-      where: { organizationId, weekDate: { gte: firstWeek, lt: lastWeekExclusive } },
-      select: { resourceId: true, weekDate: true, forecastedHours: true },
-    }),
-    db.project.findMany({
-      where: { ...projectWhere, hierarchyLevel: { not: 'PARENT' } },
-      select: {
-        id: true,
-        name: true,
-        practiceDirectorId: true,
-        deliveryManagerId: true,
-        projectManagerId: true,
-        contributors: { select: { resourceId: true } },
-      },
-    }),
-  ]);
+  const {
+    window: { period, periodStart, periodEnd, firstWeek },
+    resources,
+    holidays,
+    policies,
+    actualsByResource,
+    forecastSlots,
+    activeProjects,
+  } = await loadCapacityCockpitData(context);
 
   const holidayDates = holidays.map((h) => h.date);
   const actualByResource = new Map(actualsByResource.map((a) => [a.resourceId, a._sum.actualHours ?? 0]));

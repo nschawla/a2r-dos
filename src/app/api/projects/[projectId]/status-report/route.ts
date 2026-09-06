@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getOrgContextOrNull } from '@/lib/session';
 import { passwordRotationGate } from '@/lib/auth/password-rotation';
+import { loadStatusReport } from '@/server/queries/reports-exports';
 import { computeTotalsFor, type SizingTotals } from '@/lib/calculations/sizing';
 import { computeEacSummary, computeContractorExposure } from '@/lib/calculations/financials';
 import { computeScheduleSummary } from '@/lib/calculations/schedule';
@@ -43,23 +43,10 @@ export async function GET(_request: Request, { params }: { params: { projectId: 
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 
-  const [project, roles, policy, escalatedRaid, decisions] = await Promise.all([
-    db.project.findFirst({
-      where: { id: params.projectId, organizationId: context.organizationId },
-      include: { effortCells: true, auditEntries: true, financials: true, schedulePhases: true },
-    }),
-    db.deliveryRole.findMany({ where: { organizationId: context.organizationId } }),
-    db.orgPolicy.findUnique({ where: { organizationId: context.organizationId } }),
-    db.raidEntry.findMany({
-      where: { projectId: params.projectId, escalate: true },
-      select: { id: true, type: true, title: true, description: true, severity: true, mitigationPlan: true, targetDate: true },
-    }),
-    db.steerCoDecision.findMany({
-      where: { projectId: params.projectId },
-      orderBy: [{ status: 'asc' }, { resolutionTargetDate: 'asc' }, { createdAt: 'desc' }],
-      include: { owner: { select: { name: true } } },
-    }),
-  ]);
+  const { project, roles, policy, escalatedRaid, decisions } = await loadStatusReport(
+    { organizationId: context.organizationId },
+    params.projectId,
+  );
   if (!project) return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
 
   const rateRoles = toRateRoles(roles);

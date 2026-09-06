@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getOrgContextOrNull } from '@/lib/session';
 import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { getScopedProjectsForUser } from '@/lib/db/scoped-portfolio';
+import { loadPortfolioCsvRoles } from '@/server/queries/reports-exports';
 import { computeTotalsFor } from '@/lib/calculations/sizing';
 import { computeEacSummary } from '@/lib/calculations/financials';
 import { computeProjectHealth } from '@/lib/calculations/audit';
@@ -32,7 +32,7 @@ export async function GET() {
 
   const [projects, roleRows] = await Promise.all([
     getScopedProjectsForUser(context),
-    db.deliveryRole.findMany({ where: { organizationId: context.organizationId } }),
+    loadPortfolioCsvRoles({ organizationId: context.organizationId }),
   ]);
   const roles = toRateRoles(roleRows);
 

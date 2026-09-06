@@ -147,6 +147,7 @@ export async function stageImportBatch(
       uploadedById: auth.context.userId,
       rows: {
         create: rowsWithValidation.map((rv, idx) => ({
+          organizationId: auth.context.organizationId,
           rowIndex: idx + 1,
           raw: rv.raw as Prisma.InputJsonValue,
           status: rv.result.errors.length === 0 ? 'VALID' : 'ERROR',
@@ -350,6 +351,7 @@ export async function commitImportBatch(
             ...(data.actualEnd ? { actualEnd: new Date(data.actualEnd) } : {}),
           },
           create: {
+            organizationId: auth.context.organizationId,
             projectId: data.projectId,
             phaseKey: data.phaseKey,
             status: data.status,
@@ -364,6 +366,7 @@ export async function commitImportBatch(
           where: { projectId_roleKey: { projectId: data.projectId, roleKey: data.roleKey } },
           update: { forecastHours: data.forecastHours, openRRHours: data.openRRHours },
           create: {
+            organizationId: auth.context.organizationId,
             projectId: data.projectId,
             roleKey: data.roleKey,
             roleId: data.roleKey,
@@ -387,6 +390,7 @@ export async function commitImportBatch(
         if (data.raid) {
           await tx.raidEntry.create({
             data: {
+              organizationId: auth.context.organizationId,
               projectId: data.projectId,
               type: data.raid.type,
               description: data.raid.description,

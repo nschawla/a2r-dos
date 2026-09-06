@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
+import { loadAdminConsolePage } from '@/server/queries/pages/admin';
 import { CONTROL_DEFS } from '@/lib/constants';
 import { verifyLedgerIntegrity } from '@/lib/audit-ledger';
 import { canViewCostRates } from '@/lib/security/masking';
@@ -25,12 +25,8 @@ export default async function AdminPage() {
   // `canEdit` above that gates the rest of this page's panels.
   const canManageWorkspace = hasPermission(deliveryRole, 'admin:workspace');
 
-  const [practices, roles, resources, policy, controlLabels, ledgerIntegrity] = await Promise.all([
-    db.practice.findMany({ where: { organizationId }, orderBy: { name: 'asc' } }),
-    db.deliveryRole.findMany({ where: { organizationId }, orderBy: { name: 'asc' } }),
-    db.resource.findMany({ where: { organizationId }, orderBy: { name: 'asc' }, include: { role: true, practice: true } }),
-    db.orgPolicy.findUnique({ where: { organizationId } }),
-    db.controlLabel.findMany({ where: { organizationId } }),
+  const [{ practices, roles, resources, policy, controlLabels }, ledgerIntegrity] = await Promise.all([
+    loadAdminConsolePage({ organizationId }),
     verifyLedgerIntegrity(organizationId),
   ]);
 

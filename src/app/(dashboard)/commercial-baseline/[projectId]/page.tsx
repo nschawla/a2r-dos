@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
+import { loadCommercialBaselineModulePage } from '@/server/queries/pages/project-modules';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { DealEditor } from '@/components/modules/deal/DealEditor';
 import { getProjectHealth } from '@/server/queries/health';
@@ -12,20 +12,7 @@ import { RestrictedNotice } from '@/components/security/Masked';
 export default async function DealProjectPage({ params }: { params: { projectId: string } }) {
   const { organizationId, deliveryRole, governance, resourceId, resourcePracticeId } = await requireOrgContext();
 
-  const [project, roleRows] = await Promise.all([
-    db.project.findFirst({
-      where: { id: params.projectId, organizationId },
-      include: {
-        scopeItems: { orderBy: { sortOrder: 'asc' } },
-        effortCells: { include: { role: true } },
-        auditEntries: { select: { controlKey: true, status: true } },
-        practiceDirector: true,
-        deliveryManager: true,
-        projectManager: true,
-      },
-    }),
-    db.deliveryRole.findMany({ where: { organizationId } }),
-  ]);
+  const { project, roleRows } = await loadCommercialBaselineModulePage({ organizationId }, params.projectId);
   if (!project) notFound();
 
   const health = getProjectHealth(project);

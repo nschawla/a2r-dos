@@ -1,3 +1,29 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": "next/core-web-vitals",
+  "overrides": [
+    {
+      "files": ["src/app/**/*.ts", "src/app/**/*.tsx", "src/components/**/*.ts", "src/components/**/*.tsx"],
+      "excludedFiles": [
+        "src/app/api/health/ready/route.ts",
+        "src/app/api/v1/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "@/lib/db",
+                "message": "Do not import the Prisma client into a page/route/component. Call a query function from @/server/queries/** or a server action from @/server/actions/**; see @/lib/dal and docs/DATA_ACCESS_LAYER.md."
+              },
+              {
+                "name": "@/lib/db/org-scope",
+                "message": "Do not import the org-scope extension internals into a page/route/component. Use @/server/queries/** or @/server/actions/**; see docs/DATA_ACCESS_LAYER.md."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

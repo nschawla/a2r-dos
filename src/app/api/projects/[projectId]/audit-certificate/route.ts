@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { getOrgContextOrNull } from '@/lib/session';
 import { passwordRotationGate } from '@/lib/auth/password-rotation';
+import { loadAuditCertificate } from '@/server/queries/reports-exports';
 import { CONTROL_DEFS, getControlDef } from '@/lib/constants';
 import { computeAuditProgress, computeProjectHealth } from '@/lib/calculations/audit';
 import { toAuditEntries, methodologyLower } from '@/server/queries/calc-adapters';
@@ -24,13 +24,10 @@ export async function GET(_request: Request, { params }: { params: { projectId: 
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 
-  const [project, controlLabels] = await Promise.all([
-    db.project.findFirst({
-      where: { id: params.projectId, organizationId: context.organizationId },
-      include: { auditEntries: true },
-    }),
-    db.controlLabel.findMany({ where: { organizationId: context.organizationId } }),
-  ]);
+  const { project, controlLabels } = await loadAuditCertificate(
+    { organizationId: context.organizationId },
+    params.projectId,
+  );
   if (!project) return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
 
   const labelByKey = new Map(controlLabels.map((c) => [c.controlKey, c.label]));

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
+import { loadFinancialsModulePage } from '@/server/queries/pages/project-modules';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { EacEditor } from '@/components/modules/financials/EacEditor';
 import { getProjectHealth } from '@/server/queries/health';
@@ -17,22 +17,7 @@ import { RestrictedNotice } from '@/components/security/Masked';
 export default async function FinancialsProjectPage({ params }: { params: { projectId: string } }) {
   const { organizationId, deliveryRole, governance, resourceId, resourcePracticeId } = await requireOrgContext();
 
-  const [project, roleRows, weeklySlots] = await Promise.all([
-    db.project.findFirst({
-      where: { id: params.projectId, organizationId },
-      include: {
-        financials: true,
-        effortCells: true,
-        auditEntries: { select: { controlKey: true, status: true } },
-      },
-    }),
-    db.deliveryRole.findMany({ where: { organizationId } }),
-    db.weeklyAssignmentSlot.findMany({
-      where: { projectId: params.projectId, organizationId },
-      select: { weekDate: true, forecastedHours: true, actualHours: true },
-      orderBy: { weekDate: 'asc' },
-    }),
-  ]);
+  const { project, roleRows, weeklySlots } = await loadFinancialsModulePage({ organizationId }, params.projectId);
   if (!project) notFound();
 
   const health = getProjectHealth(project);

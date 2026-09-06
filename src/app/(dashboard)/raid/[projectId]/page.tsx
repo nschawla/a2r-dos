@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
+import { loadRaidModulePage } from '@/server/queries/pages/project-modules';
 import { RaidBoard } from '@/components/modules/raid/RaidBoard';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { getProjectHealth } from '@/server/queries/health';
@@ -13,18 +13,11 @@ function toDateInputValue(d: Date | null): string {
 export default async function RaidProjectPage({ params }: { params: { projectId: string } }) {
   const { organizationId, deliveryRole, resourceId, resourcePracticeId } = await requireOrgContext();
 
-  const project = await db.project.findFirst({
-    where: { id: params.projectId, organizationId },
-    include: {
-      raidEntries: { orderBy: { createdAt: 'desc' } },
-      auditEntries: { select: { controlKey: true, status: true } },
-    },
-  });
+  const { project, resources } = await loadRaidModulePage({ organizationId }, params.projectId);
   if (!project) notFound();
 
   const health = getProjectHealth(project);
   const canEdit = canEditProject({ deliveryRole, resourceId, practiceId: resourcePracticeId }, project);
-  const resources = await db.resource.findMany({ where: { organizationId }, orderBy: { name: 'asc' } });
 
   const entries = project.raidEntries.map((e) => ({
     id: e.id,

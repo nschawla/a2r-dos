@@ -54,7 +54,15 @@ export async function updateAuditEntry(input: unknown): Promise<UpdateAuditEntry
     const row = await tx.auditEntry.upsert({
       where: { projectId_controlKey: { projectId, controlKey } },
       update: { status, owner: owner || null, repoLink: repoLink || null, notes: notes || null },
-      create: { projectId, controlKey, status, owner: owner || null, repoLink: repoLink || null, notes: notes || null },
+      create: {
+        organizationId: auth.context.organizationId,
+        projectId,
+        controlKey,
+        status,
+        owner: owner || null,
+        repoLink: repoLink || null,
+        notes: notes || null,
+      },
     });
 
     if (previousStatus !== status) {

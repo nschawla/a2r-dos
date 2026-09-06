@@ -1,5 +1,5 @@
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
+import { loadReportsHubRows } from '@/server/queries/pages/dashboards';
 import { getScopedProjectsForUser } from '@/lib/db/scoped-portfolio';
 import { getProjectHealth } from '@/server/queries/health';
 import { getExecutiveBriefing } from '@/server/queries/executive-briefing';
@@ -58,11 +58,10 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: {
   const selectedProject = selected ?? reportable[0];
   const selectedProjectId = selectedProject?.id ?? null;
 
-  const [decisionsResult, resources, briefing, deliveryRoles, customKpis] = await Promise.all([
+  const [decisionsResult, { resources, deliveryRoles }, briefing, customKpis] = await Promise.all([
     selectedProjectId ? listSteerCoDecisions(selectedProjectId) : Promise.resolve(null),
-    db.resource.findMany({ where: { organizationId }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+    loadReportsHubRows({ organizationId }),
     getExecutiveBriefing(organizationId),
-    db.deliveryRole.findMany({ where: { organizationId } }),
     getVisibleCustomKpis(organizationId),
   ]);
 

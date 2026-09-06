@@ -195,22 +195,32 @@ async function main() {
     return { project, justCreated: true };
   }
 
+  // P1 composite tenant keys — the per-project child helpers below are
+  // reused for both the demo org and Acme, so they resolve the owning
+  // organizationId from the project rather than closing over one.
+  async function orgOf(projectId: string): Promise<string> {
+    const p = await db.project.findUniqueOrThrow({ where: { id: projectId }, select: { organizationId: true } });
+    return p.organizationId;
+  }
+
   async function seedScope(projectId: string) {
+    const organizationId = await orgOf(projectId);
     for (const [i, s] of DEFAULT_SCOPE.entries()) {
       await db.scopeItem.upsert({
         where: { id: `${projectId}-${s.id}` }, // never matches on first run; upsert falls to create
         update: {},
-        create: { id: `${projectId}-${s.id}`, projectId, key: s.id, name: s.name, sortOrder: i },
+        create: { id: `${projectId}-${s.id}`, organizationId, projectId, key: s.id, name: s.name, sortOrder: i },
       });
     }
   }
 
   async function seedAudit(projectId: string, statusFor: (i: number, controlId: string) => 'YES' | 'PARTIAL' | 'NO' | 'NA') {
+    const organizationId = await orgOf(projectId);
     for (const [i, c] of CONTROL_DEFS.entries()) {
       await db.auditEntry.upsert({
         where: { projectId_controlKey: { projectId, controlKey: c.id } },
         update: {},
-        create: { projectId, controlKey: c.id, status: statusFor(i, c.id) },
+        create: { organizationId, projectId, controlKey: c.id, status: statusFor(i, c.id) },
       });
     }
   }
@@ -219,6 +229,7 @@ async function main() {
     projectId: string,
     phaseData: Record<string, { status: 'NOTSTARTED' | 'INPROGRESS' | 'COMPLETE' | 'DELAYED'; pctComplete: number; plannedStart: Date; plannedEnd: Date; actualStart?: Date; actualEnd?: Date }>
   ) {
+    const organizationId = await orgOf(projectId);
     for (const p of PHASES) {
       const d = phaseData[p.key];
       if (!d) continue;
@@ -226,6 +237,7 @@ async function main() {
         where: { projectId_phaseKey: { projectId, phaseKey: p.key } },
         update: {},
         create: {
+          organizationId,
           projectId,
           phaseKey: p.key,
           status: d.status,
@@ -240,28 +252,31 @@ async function main() {
   }
 
   async function seedEffort(projectId: string, cells: { phaseKey: string; roleId: string; hours: number }[]) {
+    const organizationId = await orgOf(projectId);
     for (const c of cells) {
       await db.effortCell.upsert({
         where: { projectId_phaseKey_roleId: { projectId, phaseKey: c.phaseKey, roleId: c.roleId } },
         update: {},
-        create: { projectId, ...c },
+        create: { organizationId, projectId, ...c },
       });
     }
   }
 
   async function seedFinancials(projectId: string, rows: { roleKey: string; roleId: string | null; hours: number; cost: number; forecastHours?: number; openRRHours?: number }[]) {
+    const organizationId = await orgOf(projectId);
     for (const r of rows) {
       await db.financialActual.upsert({
         where: { projectId_roleKey: { projectId, roleKey: r.roleKey } },
         update: {},
-        create: { projectId, ...r },
+        create: { organizationId, projectId, ...r },
       });
     }
   }
 
-  async function seedRaid(projectId: string, entries: Omit<Prisma.RaidEntryUncheckedCreateInput, 'projectId'>[]) {
+  async function seedRaid(projectId: string, entries: Omit<Prisma.RaidEntryUncheckedCreateInput, 'projectId' | 'organizationId'>[]) {
+    const organizationId = await orgOf(projectId);
     for (const e of entries) {
-      await db.raidEntry.create({ data: { projectId, ...e } });
+      await db.raidEntry.create({ data: { organizationId, projectId, ...e } });
     }
   }
 
@@ -470,7 +485,7 @@ async function main() {
     await db.projectContributor.upsert({
       where: { projectId_resourceId: { projectId: claims.id, resourceId: pmResource.id } },
       update: {},
-      create: { projectId: claims.id, resourceId: pmResource.id },
+      create: { organizationId, projectId: claims.id, resourceId: pmResource.id },
     });
     await logActivity(claims.id, 'Seeded Claims Automation Pilot');
   }
@@ -649,6 +664,7 @@ async function main() {
     for (const r of rows) {
       await db.steerCoDecision.create({
         data: {
+          organizationId: acmeId,
           projectId,
           decisionRequired: r.decisionRequired,
           decisionOwnerId: r.ownerId,
@@ -827,7 +843,7 @@ async function main() {
     await db.projectContributor.upsert({
       where: { projectId_resourceId: { projectId: dfd.id, resourceId: acmePm2Res.id } },
       update: {},
-      create: { projectId: dfd.id, resourceId: acmePm2Res.id },
+      create: { organizationId: acmeId, projectId: dfd.id, resourceId: acmePm2Res.id },
     });
     await acmeActivity(dfd.id, 'Registered engagement "Digital Front Door" (delivery at risk)');
   }

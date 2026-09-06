@@ -26,6 +26,13 @@ bug in either application layer cannot leak data — true defence in depth.
 35 models. The extension already encodes this split (`src/lib/db/org-scope.ts`); the
 RLS policies must mirror it exactly.
 
+> **P1 update (composite tenant keys).** Migration `00000000000012` added an
+> own `organization_id` column + FK + index to the 8 formerly project-scoped
+> models and to `data_import_rows`. They are now **direct-policy** tables
+> (§2b), not join-policy — so §2c is empty and §2d is folded in. Every tenant
+> table can take the simple same-table `USING (organization_id = …)` policy;
+> no `EXISTS (SELECT 1 FROM projects …)` sub-queries are needed anywhere.
+
 ### 2a. Identity / tenant-plumbing — **no tenant policy** (6)
 `User`, `Account`, `Session`, `VerificationToken`, `Membership`, `Organization`.
 A user spans tenants; `Membership` / `Organization` are how "which tenant" is resolved.
@@ -33,12 +40,14 @@ These stay protected by the app's JWT membership checks. RLS here would be
 membership-based (`Membership` visible where `user_id = auth_uid() OR
 organization_id IN (my_orgs())`), added last and carefully.
 
-### 2b. Own `organization_id` column — **direct policy** (20)
-`ActivityLogEntry`, `ApiKey`, `AuditLog`, `ControlLabel`, `CustomKpi`,
-`DataImportBatch`, `DeliveryRole`, `GovernanceConfig`, `IdentityProvider`,
+### 2b. Own `organization_id` column — **direct policy** (29, was 20)
+`ActivityLogEntry`, `ApiKey`, `AuditEntry`, `AuditLog`, `ControlLabel`,
+`CustomKpi`, `DataImportBatch`, `DataImportRow`, `DeliveryRole`, `EffortCell`,
+`FinancialActual`, `GovernanceConfig`, `IdentityProvider`,
 `ImmutableAuditLedger`, `ImpersonationGrant`, `OrganizationHoliday`, `OrgPolicy`,
-`Practice`, `Project`, `Resource`, `RoleUtilizationPolicy`, `SsoGroupMapping`,
-`TimesheetEntry`, `WeeklyAssignmentSlot`.
+`Practice`, `Project`, `ProjectContributor`, `RaidEntry`, `Resource`,
+`RoleUtilizationPolicy`, `SchedulePhase`, `ScopeItem`, `SsoGroupMapping`,
+`SteerCoDecision`, `TimesheetEntry`, `WeeklyAssignmentSlot`.
 
 ```sql
 CREATE POLICY tenant_isolation ON <table>
@@ -46,9 +55,13 @@ CREATE POLICY tenant_isolation ON <table>
   WITH CHECK (organization_id = current_setting('app.current_org', true)::uuid);
 ```
 
-### 2c. Scoped through `project` — **join policy** (8)
-`AuditEntry`, `EffortCell`, `FinancialActual`, `ProjectContributor`, `RaidEntry`,
-`SchedulePhase`, `ScopeItem`, `SteerCoDecision`.
+### 2c. Scoped through `project` — **join policy** (0, removed by P1)
+_Was: `AuditEntry`, `EffortCell`, `FinancialActual`, `ProjectContributor`,
+`RaidEntry`, `SchedulePhase`, `ScopeItem`, `SteerCoDecision`._ Migration
+`00000000000012` gave each its own `organization_id` column + FK + index, so
+they moved to §2b and take the plain direct policy. The join-policy pattern
+is kept here only as a reference for any future model added project-scoped
+without its own column:
 
 ```sql
 CREATE POLICY tenant_isolation ON <table>
@@ -59,12 +72,10 @@ CREATE POLICY tenant_isolation ON <table>
                  WHERE p.id = <table>.project_id
                    AND p.organization_id = current_setting('app.current_org', true)::uuid));
 ```
-Index prerequisite: every one of these already has a `project_id` FK index; confirm
-`projects(id, organization_id)` is covered (PK + the `organization_id` index exist).
 
-### 2d. Scoped through `batch` → `project`'s sibling — **join policy** (1)
-`DataImportRow` → `DataImportBatch.organization_id`. Same shape as 2c against
-`data_import_batches`.
+### 2d. Scoped through `batch` → `project`'s sibling — **join policy** (0, removed by P1)
+_Was: `DataImportRow` → `DataImportBatch.organization_id`._ Also given its own
+`organization_id` column by migration `00000000000012`; now §2b.
 
 ## 3. Connection & role strategy
 

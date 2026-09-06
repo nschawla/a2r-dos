@@ -43,6 +43,7 @@ export async function createRaidEntry(input: unknown): Promise<ActionResult> {
   await db.$transaction(async (tx) => {
     await tx.raidEntry.create({
       data: {
+        organizationId: auth.context.organizationId,
         projectId,
         type,
         title: title || null,

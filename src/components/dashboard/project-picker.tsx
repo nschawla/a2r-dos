@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
-import { getScopedProjectWhere } from '@/lib/scoping';
+import { loadProjectPickerList } from '@/server/queries/pages/project-modules';
 
 /**
  * Shared "pick a project" landing for module index routes
@@ -28,11 +27,7 @@ export async function ProjectPicker({
   moduleDesc: string;
 }) {
   const context = await requireOrgContext();
-  const projects = await db.project.findMany({
-    where: await getScopedProjectWhere(context),
-    orderBy: { createdAt: 'desc' },
-    select: { id: true, name: true, client: true },
-  });
+  const projects = await loadProjectPickerList(context);
 
   return (
     <div className="card">

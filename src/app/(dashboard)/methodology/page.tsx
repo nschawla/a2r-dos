@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
+import { loadMethodologyLabels } from '@/server/queries/pages/dashboards';
 import { getMethodologyPlaybook, LIFECYCLE_GATE_ORDER } from '@/lib/control-guidance';
 import { ControlGuidanceContent } from '@/components/audit/ControlGuidance';
 
@@ -11,7 +11,7 @@ export default async function MethodologyReferencePage() {
 
   const [playbook, controlLabels] = await Promise.all([
     Promise.resolve(getMethodologyPlaybook()),
-    db.controlLabel.findMany({ where: { organizationId }, select: { controlKey: true, label: true } }),
+    loadMethodologyLabels({ organizationId }),
   ]);
   const labelByKey = new Map(controlLabels.map((c) => [c.controlKey, c.label]));
 

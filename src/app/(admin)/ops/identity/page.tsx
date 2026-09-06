@@ -1,5 +1,5 @@
 import { requireOpsContext } from '@/lib/ops-auth';
-import { db } from '@/lib/db';
+import { loadOpsIdentityPractices } from '@/server/queries/pages/admin';
 import { listTenants } from '@/server/queries/ops-telemetry';
 import { getIdentityProvider } from '@/lib/identity/service';
 import { OpsTenantSelect } from '@/components/ops/OpsTenantSelect';
@@ -25,14 +25,7 @@ export default async function OpsIdentityPage({
   const selected = orgId ? tenants.find((t) => t.id === orgId) ?? null : null;
 
   const [idp, practices] = selected
-    ? await Promise.all([
-        getIdentityProvider(selected.id),
-        db.practice.findMany({
-          where: { organizationId: selected.id },
-          orderBy: { name: 'asc' },
-          select: { id: true, name: true },
-        }),
-      ])
+    ? await Promise.all([getIdentityProvider(selected.id), loadOpsIdentityPractices(selected.id)])
     : [null, [] as { id: string; name: string }[]];
 
   return (

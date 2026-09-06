@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
 import { getScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
-import { getScopedResourceWhere } from '@/lib/scoping';
+import { loadPortfolioDashboardExtras } from '@/server/queries/pages/dashboards';
 import { getProjectHealth } from '@/server/queries/health';
 import { getBlendedUtilization } from '@/server/queries/capacity';
 import { getVisibleCustomKpis, getKpiMetricValues } from '@/server/queries/kpi-data';
@@ -30,28 +29,14 @@ export default async function HomePage() {
   const scopedProjectIds = projects.map((p) => p.id);
   const showMargins = canViewMargins(deliveryRole, governance);
 
-  const [recentActivity, resourceCount, practiceCount, utilization] = await Promise.all([
-    db.activityLogEntry.findMany({
-      where: { organizationId, OR: [{ projectId: null }, { projectId: { in: scopedProjectIds } }] },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      include: { user: { select: { name: true, email: true } }, project: { select: { name: true } } },
-    }),
-    // Scoped like the roster on /capacity — "Resources on Roster" is
-    // headcount for someone else's team, the same kind of practice-
-    // boundary data as the project list above. `practiceCount` stays
-    // tenant-wide deliberately: it's a structural fact about the org
-    // (how many practice buckets exist at all), not a roster.
-    db.resource.count({ where: getScopedResourceWhere(context) }),
-    db.practice.count({ where: { organizationId } }),
+  // "Resources on Roster" is scoped like the /capacity roster — practice-
+  // boundary data, same as the project list. `practiceCount` stays
+  // tenant-wide deliberately: a structural fact about the org (how many
+  // practice buckets exist), not a roster. See loadPortfolioDashboardExtras.
+  const [{ recentActivity, resourceCount, practiceCount, raidCounts }, utilization] = await Promise.all([
+    loadPortfolioDashboardExtras(context, scopedProjectIds),
     getBlendedUtilization(organizationId),
   ]);
-
-  const raidCounts = await db.raidEntry.groupBy({
-    by: ['projectId'],
-    where: { projectId: { in: scopedProjectIds }, status: { not: 'CLOSED' } },
-    _count: { _all: true },
-  });
   const openRaidByProject = new Map(raidCounts.map((r) => [r.projectId, r._count._all]));
 
   // Custom KPI Definition Engine — skip the extra schedule/RAID/capacity

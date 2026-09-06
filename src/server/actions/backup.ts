@@ -249,25 +249,26 @@ export async function restoreWorkspaceSnapshot(input: unknown): Promise<RestoreW
       ]);
 
       if (p.scopeItems.length > 0) {
-        await tx.scopeItem.createMany({ data: p.scopeItems.map((s) => ({ projectId: p.id, ...s })) });
+        await tx.scopeItem.createMany({ data: p.scopeItems.map((s) => ({ organizationId, projectId: p.id, ...s })) });
       }
       if (p.effortCells.length > 0) {
-        await tx.effortCell.createMany({ data: p.effortCells.map((c) => ({ projectId: p.id, ...c })) });
+        await tx.effortCell.createMany({ data: p.effortCells.map((c) => ({ organizationId, projectId: p.id, ...c })) });
       }
       if (p.auditEntries.length > 0) {
-        await tx.auditEntry.createMany({ data: p.auditEntries.map((a) => ({ projectId: p.id, ...a })) });
+        await tx.auditEntry.createMany({ data: p.auditEntries.map((a) => ({ organizationId, projectId: p.id, ...a })) });
       }
       if (p.raidEntries.length > 0) {
         await tx.raidEntry.createMany({
-          data: p.raidEntries.map((r) => ({ projectId: p.id, ...r, targetDate: r.targetDate ? new Date(r.targetDate) : null })),
+          data: p.raidEntries.map((r) => ({ organizationId, projectId: p.id, ...r, targetDate: r.targetDate ? new Date(r.targetDate) : null })),
         });
       }
       if (p.financials.length > 0) {
-        await tx.financialActual.createMany({ data: p.financials.map((f) => ({ projectId: p.id, ...f })) });
+        await tx.financialActual.createMany({ data: p.financials.map((f) => ({ organizationId, projectId: p.id, ...f })) });
       }
       if (p.schedulePhases.length > 0) {
         await tx.schedulePhase.createMany({
           data: p.schedulePhases.map((s) => ({
+            organizationId,
             projectId: p.id,
             ...s,
             plannedStart: s.plannedStart ? new Date(s.plannedStart) : null,
@@ -278,7 +279,7 @@ export async function restoreWorkspaceSnapshot(input: unknown): Promise<RestoreW
         });
       }
       if (p.contributorResourceIds.length > 0) {
-        await tx.projectContributor.createMany({ data: p.contributorResourceIds.map((resourceId) => ({ projectId: p.id, resourceId })) });
+        await tx.projectContributor.createMany({ data: p.contributorResourceIds.map((resourceId) => ({ organizationId, projectId: p.id, resourceId })) });
       }
     }
 

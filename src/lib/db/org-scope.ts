@@ -148,15 +148,25 @@ export const UNSCOPED_MODELS: ReadonlySet<string> = new Set([
   'StaffGrant',
 ]);
 
-/** Models with an `organizationId` column of their own. */
+/** Models with an `organizationId` column of their own.
+ *
+ * P1 (migration 00000000000012) added the column + FK to the 8
+ * formerly project-scoped models and to `DataImportRow`, so they now scope
+ * with a direct scalar filter and get `organizationId` auto-injected on
+ * create (applyOrgToCreateData). The transitive sets below are kept for
+ * back-compat but are now empty. */
 export const DIRECT_ORG_MODELS: ReadonlySet<string> = new Set([
   'ActivityLogEntry',
   'ApiKey',
+  'AuditEntry',
   'AuditLog',
   'ControlLabel',
   'CustomKpi',
   'DataImportBatch',
+  'DataImportRow',
   'DeliveryRole',
+  'EffortCell',
+  'FinancialActual',
   'GovernanceConfig',
   'IdentityProvider',
   'ImmutableAuditLedger',
@@ -165,29 +175,27 @@ export const DIRECT_ORG_MODELS: ReadonlySet<string> = new Set([
   'OrgPolicy',
   'Practice',
   'Project',
+  'ProjectContributor',
+  'RaidEntry',
   'Resource',
   'RoleUtilizationPolicy',
+  'SchedulePhase',
+  'ScopeItem',
   'SsoGroupMapping',
+  'SteerCoDecision',
   'TimesheetEntry',
   'WeeklyAssignmentSlot',
 ]);
 
-/** Models scoped transitively through a `project` relation
- * (`Project.organizationId`). */
-export const PROJECT_SCOPED_MODELS: ReadonlySet<string> = new Set([
-  'AuditEntry',
-  'EffortCell',
-  'FinancialActual',
-  'ProjectContributor',
-  'RaidEntry',
-  'SchedulePhase',
-  'ScopeItem',
-  'SteerCoDecision',
-]);
+/** Models scoped transitively through a `project` relation. Emptied by P1
+ * — every entry now carries its own `organizationId` (DIRECT_ORG_MODELS).
+ * Retained (exported, empty) so importers and `orgWhereFragment` keep
+ * compiling; a model re-added here would scope via `project: { organizationId }`. */
+export const PROJECT_SCOPED_MODELS: ReadonlySet<string> = new Set<string>([]);
 
-/** Models scoped transitively through a `batch` relation
- * (`DataImportBatch.organizationId`). */
-export const BATCH_SCOPED_MODELS: ReadonlySet<string> = new Set(['DataImportRow']);
+/** Models scoped transitively through a `batch` relation. Emptied by P1
+ * (`DataImportRow` now carries its own `organizationId`). */
+export const BATCH_SCOPED_MODELS: ReadonlySet<string> = new Set<string>([]);
 
 export function isTenantModel(model: string): boolean {
   return (
@@ -279,9 +287,10 @@ export function mergeOrgWhereUnique(
 /**
  * For a `create` on a DIRECT_ORG model: ensure `data.organizationId` is
  * this org. Throws on a cross-tenant mismatch; injects it when absent.
- * Pure. (Transitive models can't be validated here without a parent
- * lookup — their creates pass through and rely on the existing action
- * logic; see docs/RLS_ROADMAP.md.)
+ * Pure. As of P1 every tenant model is DIRECT_ORG (the transitive sets are
+ * empty), so this covers all creates. Nested relation-form creates
+ * (`project: { connect }`) still pass through untouched — Prisma rejects a
+ * scalar FK alongside its relation, and the action code owns that path.
  */
 export function applyOrgToCreateData(
   model: string,

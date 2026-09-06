@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireOrgContext } from '@/lib/session';
-import { db } from '@/lib/db';
+import { loadAuditModulePage } from '@/server/queries/pages/project-modules';
 import { CONTROL_DEFS, getControlDef } from '@/lib/constants';
 import { AuditChecklist } from '@/components/modules/audit/AuditChecklist';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
@@ -11,15 +11,11 @@ import { canEditProject } from '@/lib/auth/rbac';
 export default async function AuditProjectPage({ params }: { params: { projectId: string } }) {
   const { organizationId, deliveryRole, resourceId, resourcePracticeId } = await requireOrgContext();
 
-  const project = await db.project.findFirst({
-    where: { id: params.projectId, organizationId },
-    include: { auditEntries: true },
-  });
+  const { project, controlLabels } = await loadAuditModulePage({ organizationId }, params.projectId);
   if (!project) notFound();
 
   const health = getProjectHealth(project);
   const canEdit = canEditProject({ deliveryRole, resourceId, practiceId: resourcePracticeId }, project);
-  const controlLabels = await db.controlLabel.findMany({ where: { organizationId } });
   const labelByKey = new Map(controlLabels.map((c) => [c.controlKey, c.label]));
   const entryByKey = new Map(project.auditEntries.map((e) => [e.controlKey, e]));
 

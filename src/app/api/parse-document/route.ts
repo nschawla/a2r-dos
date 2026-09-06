@@ -25,10 +25,9 @@
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db } from '@/lib/db';
 import { getOrgContextOrNull } from '@/lib/session';
 import { passwordRotationGate } from '@/lib/auth/password-rotation';
-import { getScopedProjectWhere } from '@/lib/scoping';
+import { loadParseDocumentProjectHints } from '@/server/queries/reports-exports';
 import { hit, tooManyRequestsResponse } from '@/lib/rate-limiter';
 import { captureException } from '@/lib/observability';
 import {
@@ -118,12 +117,7 @@ export async function POST(request: Request) {
     // Hand the model the engagements this user can actually see — a PM
     // gets only their own, a Practice Director only their practice — the
     // same scoping every portfolio view uses (src/lib/scoping.ts).
-    const projects = await db.project.findMany({
-      where: await getScopedProjectWhere(context),
-      select: { externalId: true, name: true },
-      take: MAX_PROJECT_HINTS,
-      orderBy: { name: 'asc' },
-    });
+    const projects = await loadParseDocumentProjectHints(context, MAX_PROJECT_HINTS);
 
     const result = await parseDeliveryDocument({
       text: parsedBody.data.text,

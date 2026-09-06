@@ -60,7 +60,7 @@ export async function updateFinancialActual(input: unknown): Promise<ActionResul
     await tx.financialActual.upsert({
       where: { projectId_roleKey: { projectId, roleKey } },
       update: { ...nextRow, roleId },
-      create: { projectId, roleKey, roleId, ...nextRow },
+      create: { organizationId: auth.context.organizationId, projectId, roleKey, roleId, ...nextRow },
     });
 
     const changed = !previous || JSON.stringify(previous) !== JSON.stringify(nextRow);

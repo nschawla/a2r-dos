@@ -116,13 +116,20 @@ export async function commitCsvImport(projectId: string, kind: IngestionKind, cs
         await tx.effortCell.upsert({
           where: { projectId_phaseKey_roleId: { projectId, phaseKey: row.phaseKey, roleId: row.roleId } },
           update: { hours: row.hours },
-          create: { projectId, phaseKey: row.phaseKey, roleId: row.roleId, hours: row.hours },
+          create: {
+            organizationId: auth.context.organizationId,
+            projectId,
+            phaseKey: row.phaseKey,
+            roleId: row.roleId,
+            hours: row.hours,
+          },
         });
       }
     } else if (kind === 'raid') {
       for (const row of validRows as RaidCsvRow[]) {
         await tx.raidEntry.create({
           data: {
+            organizationId: auth.context.organizationId,
             projectId,
             type: row.type,
             title: row.title || null,
@@ -148,6 +155,7 @@ export async function commitCsvImport(projectId: string, kind: IngestionKind, cs
             openRRHours: row.openRRHours,
           },
           create: {
+            organizationId: auth.context.organizationId,
             projectId,
             roleKey: row.roleKey,
             roleId: row.roleKey === '_direct' ? null : row.roleKey,
