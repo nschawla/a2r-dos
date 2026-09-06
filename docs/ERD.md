@@ -1,7 +1,7 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.8.0** (Role-Based Scoped Filtering, the Custom KPI
+it, current as of **v1.9.0** (Role-Based Scoped Filtering, the Custom KPI
 Definition Engine, the complete 4-pillar Batch Import Engine, forced
 first-sign-in password change, and the v1.7.0 security-architecture batch:
 `User.sessionVersion` (migration `00000000000011`), **composite tenant
@@ -17,9 +17,14 @@ all 11 project- / batch-scoped child tables' parent FK becomes composite
 database rejects a child row whose tenant ≠ its parent's (migration
 `00000000000014`); and **hashed bearer tokens** — `StaffElevation.token` and
 `ImpersonationGrant.token` become `tokenHash` (SHA-256 only; migration
-`00000000000015`). Migrations `00000000000016` (restricted `a2r_app` role)
-and `00000000000017` (per-table RLS `tenant_isolation` policies) are
-**authored but not applied** — see `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
+`00000000000015`).
+**v1.9.0 (Phase C)** applies migrations `00000000000016` (the restricted
+`a2r_app` role, `NOBYPASSRLS`) and `00000000000017` (`tenant_isolation`
+policies on the 28 org-owned tables + `rls_app_plumbing` `USING (true)` on
+the 9 identity / tenant-routing tables) **to a dedicated staging database**,
+where the app runs with `RLS_ENFORCE=1` — every tenant transaction does
+`SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org`. Production keeps the
+app-tier isolation until its own cutover (`docs/RLS_ENFORCEMENT_RUNBOOK.md`).
 Regenerate/extend this doc
 whenever a schema change adds, removes, or re-relates a model — it should
 never drift further than one release behind `schema.prisma`.
@@ -33,11 +38,14 @@ relationship already implies the tenant (e.g. a
 `Project` belongs to an `Organization`, so everything hanging off `Project`
 is transitively tenant-scoped without its own drawn edge).
 
-Postgres **Row Level Security is enabled on every table** (deny-all, no
-policies) with all grants revoked from the managed provider's web-exposed
-roles — the app connects as the table-owning `BYPASSRLS` role, so this is
-transparent to Prisma. See `prisma/migrations/00000000000007_rls_lockdown/`
-and `docs/SECURITY.md` § "Database-level access control".
+Postgres **Row Level Security is enabled on every table** with all grants
+revoked from the managed provider's web-exposed roles (migration
+`00000000000007`). On **production** there are still no policies and the app
+connects as the table-owning `BYPASSRLS` role, so this is transparent to
+Prisma. On **staging** (v1.9.0) migrations 16 + 17 add the `a2r_app` role +
+per-table policies and the app runs with `RLS_ENFORCE=1`. See
+`docs/SECURITY.md` § "Database-level access control" and
+`docs/RLS_ROADMAP.md`.
 
 ## Core schema
 

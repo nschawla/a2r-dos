@@ -1652,7 +1652,7 @@ Principal-Architect audit.
 | SEC-P0-3 | Composite tenant FKs — DB rejects cross-tenant child rows | `prisma/schema.prisma`, migration 14 | `tests/security/tenant-isolation.test.ts` (composite-key models) |
 | SEC-P0-5 | Hashed elevation / impersonation bearer tokens | `src/lib/crypto/bearer-token.ts`, `src/lib/ops/staff-elevation.ts`, `src/lib/ops/tenant-management.ts`, migration 15 | `tests/staff-elevation.test.ts` · e2e Suites I, P |
 | SEC-P0-6 | Distributed (Upstash) rate limiting + in-process fallback | `src/lib/rate-limiter-redis.ts`, `src/lib/rate-limiter.ts`, `src/lib/rate-limit-action.ts` | `tests/rate-limiter-redis.test.ts`, `tests/rate-limiter.test.ts`, `tests/security/rate-limit-endpoints.test.ts` |
-| SEC-P0-2 | RLS bridge + policy migrations + smoke test (dormant) | `src/lib/db/rls-transaction.ts`, `prisma/migrations/16`+`17`, `scripts/rls-smoke.ts` | `tests/security/rls-policies.test.ts` (skipped without `RLS_APP_DATABASE_URL`) |
+| SEC-P0-2 | RLS bridge + policy migrations + smoke test (groundwork; enforced in Phase 6) | `src/lib/db/rls-transaction.ts`, `prisma/migrations/16`+`17`, `scripts/rls-smoke.ts` | `tests/security/rls-policies.test.ts` |
 
 **Verification:** `npx tsc --noEmit` → 0 errors; `npm run lint` → 0 / 0;
 `npx vitest run` → **539 passed, 3 skipped** across 45 files;
@@ -1660,6 +1660,59 @@ Principal-Architect audit.
 compiled cleanly on Next 15.5.25. Migrations `00000000000014–15` rehearsed
 (`BEGIN … ROLLBACK`) then applied to the production database; `prisma
 migrate diff` reports no drift. Migrations `16`–`17` authored, not applied.
+
+## Phase 6 — Enterprise environment separation & live database RLS (v1.9.0)
+
+P0-2 of the audit, taken from "authored" to "enforced" — on a dedicated
+staging environment, ahead of the production cutover.
+
+### FRD — functional summary
+
+- **Dedicated staging database.** A separate Supabase project (its own
+  region), provisioned via `prisma db push` + `prisma/seed.ts`, so schema
+  and security migrations are rehearsed off the shared production project.
+- **DB-level Row-Level Security, enforced on staging.** With `RLS_ENFORCE=1`,
+  every tenant-scoped transaction runs `SET LOCAL ROLE a2r_app` +
+  `SET LOCAL app.current_org = <org>` as its first statements. `a2r_app` is
+  a least-privilege role (`NOSUPERUSER`, `NOBYPASSRLS`), so from that point
+  the migration-17 `tenant_isolation` policies apply for the application's
+  own queries. `SET LOCAL` reverts on COMMIT — nothing leaks onto the
+  pooled connection, and no second connection pool is needed (the pooler
+  does not accept a custom-role login, so the owner `SET ROLE`s in-band —
+  `GRANT a2r_app TO postgres` in migration 16).
+- **`withTenantTx` (`src/lib/db/with-tenant-tx.ts`).** Every former
+  `db.$transaction(fn)` that touches a tenant model (~20 call sites) routes
+  through it. Cross-tenant / pre-session flows (ops console, provisioning,
+  SSO JIT, retention) run as the owner role. When `RLS_ENFORCE` is unset —
+  i.e. production — it is a plain transaction, byte-for-byte unchanged.
+- **`src/lib/db/rls-transaction.ts`** wraps a bare `db.model.op()` in a
+  tenant request in its own per-op transaction with the same `SET LOCAL`s;
+  it detects and skips that inside a `withTenantTx`.
+- **Direct-SQL proof.** `npm run db:rls:smoke` and
+  `tests/security/rls-policies.test.ts` auto-detect the `a2r_app` role and
+  verify enforcement over raw SQL (scoped counts vs. ground truth, empty
+  GUC → 0 rows, cross-tenant `INSERT` → `42501`, cross-tenant `UPDATE` → 0).
+
+Production keeps the three application-tier isolation layers from Phases
+4–5 until its own cutover — apply migrations 16 + 17 (inert while acting as
+`postgres`), deploy `RLS_ENFORCE=1`, soak, then `FORCE ROW LEVEL SECURITY`.
+See `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
+
+### RTM — requirements traceability (Phase 6)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| SEC-P0-2a | Restricted `a2r_app` role + per-table policies (staging) | `prisma/migrations/16`, `prisma/migrations/17` | `npm run db:rls:smoke` (28 tables) |
+| SEC-P0-2b | `SET LOCAL ROLE` + GUC bridge, no-op when off | `src/lib/db/with-tenant-tx.ts`, `src/lib/db/rls-transaction.ts` | `tests/security/rls-policies.test.ts` · full suite under `RLS_ENFORCE=1` |
+| SEC-P0-2c | `db.$transaction` → `withTenantTx` at every tenant call site | `src/server/actions/**`, `src/server/services/identity-jit.ts`, `src/app/api/v1/ingest/timesheets/route.ts`, `src/lib/audit-ledger.ts` | full suite (staging + production) |
+| ENV-1 | Dedicated staging database, provisioned + seeded | `.env` (staging), `prisma/seed.ts` | full suite green against it |
+
+**Verification (staging, `RLS_ENFORCE=1`, `a2r_app`):** `npx tsc --noEmit` →
+0 errors; `npm run lint` → 0 / 0; `npx vitest run` → **542 passed** (45
+files, 0 skipped — the RLS suite now runs); `npx playwright test` → **60
+passed** (Suites A–P); `npm run build` → clean; `npm run db:rls:smoke` →
+*"OK — all 28 tenant tables enforce isolation for a2r_app"*. Re-verified
+green against production (RLS off) after the refactor.
 
 ## What's next (Phase 3b+)
 

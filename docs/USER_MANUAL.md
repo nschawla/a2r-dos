@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — User Manual & Operator's Guide
 
-_Applies to v1.8.0 · Last updated 2026-09-06_
+_Applies to v1.9.0 · Last updated 2026-09-06_
 
 A2R Delivery OS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the

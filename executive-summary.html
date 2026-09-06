@@ -484,9 +484,9 @@
         <span class="draft-pill">Confidential · Draft</span>
       </div>
       <h1>Executive Platform Summary</h1>
-      <p class="lede">The enterprise Delivery Operating System for professional services organizations — release v1.8.0, prepared for executive and board review.</p>
+      <p class="lede">The enterprise Delivery Operating System for professional services organizations — release v1.9.0, prepared for executive and board review.</p>
       <div class="meta-row">
-        <span><b>Release</b> v1.8.0</span>
+        <span><b>Release</b> v1.9.0</span>
         <span class="sep">/</span>
         <span><b>Prepared</b> September 6, 2026</span>
         <span class="sep">/</span>
@@ -507,7 +507,8 @@
           <p>Every screen in A2R DOS — the Portfolio Control Tower, the Resource &amp; Capacity Cockpit, Financial Realization, the RAID Cockpit, and the SteerCo and Executive Hub briefings — is driven from the same operational data the delivery organization already produces each week, and is automatically scoped to the person viewing it: a Practice Director and a VP see the identical screen, narrowed to exactly what their role should see.</p>
           <p>Three capabilities requested directly by the platform's largest engagements anchor the current release: a complete four-pillar weekly intake engine, role-based scoped filtering enforced at the data layer, and a Custom KPI Definition Engine that lets an administrator stand up a governed metric card without engineering involvement. They ship alongside the platform's enterprise governance framework, SAML/OIDC identity federation with just-in-time provisioning, and a SOC&nbsp;2-aligned, hash-chained compliance ledger.</p>
           <p><strong>v1.7.0</strong> completes a security-architecture hardening pass driven by an independent Principal-Architect review. Tenant isolation is now enforced at three independent layers, and every tenant record is bound to its organization at the database itself. Privileged operator access follows a zero-trust model: a standing grant confers only <em>eligibility</em>, and every consequential operation runs under a temporary, reason-logged, auto-expiring Just-In-Time elevation — there are no standing privileged sessions. Every authenticated session is re-validated against the database on every request and fails closed on any uncertainty; a password change signs the account out on every other device instantly. The high-risk boundaries — sign-in, exports, document generation, bulk ingestion — carry sliding-window rate limits, and every unhandled server error is captured as a structured, secret-redacted event.</p>
-          <p><strong>v1.8.0</strong> continues that track. The database now <em>physically</em> rejects a cross-tenant record: every child table carries a composite foreign key that ties its rows to the same organization as their parent. Short-lived operator credentials — Just-In-Time elevation and tenant impersonation — are stored only as cryptographic hashes, so a database read or a leaked backup yields nothing usable. Rate limiting can now be enforced as a single global window across every server instance. The platform also ships the complete implementation of database-level Row-Level Security — the runtime, the policies, and a direct-SQL verification harness — staged behind a switch for a controlled production rollout. The release runs on the current Next.js Long-Term-Support line.</p>
+          <p><strong>v1.8.0</strong> continues that track. The database now <em>physically</em> rejects a cross-tenant record: every child table carries a composite foreign key that ties its rows to the same organization as their parent. Short-lived operator credentials — Just-In-Time elevation and tenant impersonation — are stored only as cryptographic hashes, so a database read or a leaked backup yields nothing usable. Rate limiting can now be enforced as a single global window across every server instance. The release runs on the current Next.js Long-Term-Support line.</p>
+          <p><strong>v1.9.0</strong> stands up a dedicated staging environment — a separate database, isolated from production — and switches database-level Row-Level Security fully on there. Every tenant query now runs under a least-privilege database role (no superuser, no ability to bypass the rules) scoped to a single organization, so the database itself rejects any cross-tenant read or write, verified directly in SQL across every tenant table. Production continues on the three application-tier isolation layers until its own controlled cutover; the new mechanism is inert there by design.</p>
         </div>
       </section>
 
@@ -581,9 +582,10 @@
           SOC&nbsp;2-aligned compliance ledger, three-layer tenant isolation, an explicit fail-closed session
           state machine with instant all-device logout, Just-In-Time (reason-logged, auto-expiring) elevation
           for every privileged operator action, advanced rate limiting on the high-risk boundaries, and a
-          centralized structured error-capture layer &mdash; and, new in v1.8.0, composite foreign keys that
-          make the database itself reject a cross-tenant record, hashed-at-rest operator credentials, optional
-          globally-consistent rate limiting, and the staged groundwork for database-level Row-Level Security.
+          centralized structured error-capture layer &mdash; composite foreign keys that make the database
+          itself reject a cross-tenant record (v1.8.0), hashed-at-rest operator credentials, optional
+          globally-consistent rate limiting &mdash; and, new in v1.9.0, a dedicated staging environment with
+          database-level Row-Level Security enforced under a least-privilege database role.
         </p>
       </section>
 
@@ -595,8 +597,8 @@
 
         <div class="stat-strip">
           <div class="stat-card ok">
-            <span class="stat-num">539 / 539</span>
-            <span class="stat-label">Unit tests passed (Vitest, 45 files; +3 skipped)</span>
+            <span class="stat-num">542 / 542</span>
+            <span class="stat-label">Unit tests passed (Vitest, 45 files)</span>
           </div>
           <div class="stat-card ok">
             <span class="stat-num">60 / 60</span>
@@ -607,14 +609,14 @@
             <span class="stat-label">TypeScript errors (strict <code>tsc --noEmit</code>)</span>
           </div>
           <div class="stat-card">
-            <span class="stat-num">v1.8.0</span>
+            <span class="stat-num">v1.9.0</span>
             <span class="stat-label">Current verified release</span>
           </div>
         </div>
 
         <div class="verify-line">
           <b>$</b> npx tsc --noEmit &nbsp;→&nbsp; 0 errors&nbsp;&nbsp;·&nbsp;&nbsp;
-          <b>$</b> npx vitest run &nbsp;→&nbsp; 539 passed&nbsp;&nbsp;·&nbsp;&nbsp;
+          <b>$</b> npx vitest run &nbsp;→&nbsp; 542 passed&nbsp;&nbsp;·&nbsp;&nbsp;
           <b>$</b> npx playwright test &nbsp;→&nbsp; 60 passed
         </div>
       </section>

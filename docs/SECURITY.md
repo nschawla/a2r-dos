@@ -1,6 +1,6 @@
 # A2R Delivery OS — Security & Trust Overview
 
-_Last reviewed: 2026-09-06 · Applies to v1.8.0 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-06 · Applies to v1.9.0 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of A2R Delivery OS™. It is written for the security and
@@ -33,7 +33,20 @@ layer:
   Postgres now *physically rejects* a child row whose `organizationId`
   disagrees with its project's / batch's — a cross-tenant child cannot be
   created even if both application layers below were bypassed.
-- **Queries are `organizationId`-scoped at three layers** (defence in depth):
+- **Database-enforced isolation (RLS) — live on staging (v1.9.0).** A
+  dedicated staging database now runs with `RLS_ENFORCE=1`: every
+  tenant-scoped transaction runs `SET LOCAL ROLE a2r_app` (a least-privilege,
+  `NOBYPASSRLS` role) + `SET LOCAL app.current_org = <org>`, so the
+  per-table `tenant_isolation` policies (`organizationId =
+  current_setting('app.current_org')`, fail-closed on NULL) apply for the
+  application's own queries — not just for the out-of-band path. Cross-tenant
+  operator flows run as the owner role. `npm run db:rls:smoke` proves all 28
+  tenant tables reject cross-tenant reads and writes. Production keeps the
+  three application-tier layers below until its own cutover
+  (`docs/RLS_ENFORCEMENT_RUNBOOK.md`); the wrapper and extension are
+  byte-for-byte no-ops there.
+- **Queries are `organizationId`-scoped at three application-tier layers**
+  (defence in depth, and the sole enforcement on production today):
   1. *Verified context.* Every page, route, and action resolves the caller's
      organization from their authenticated session
      (`requireOrgContext` / `getOrgContextOrNull` / `withApiAuth`) and filters
@@ -59,16 +72,28 @@ layer:
   `AsyncLocalStorage` per-request value, never attached to a pooled
   connection.
 
-The DB-level Row Level Security follow-up (making Postgres itself reject a
+The DB-level Row Level Security work (making Postgres itself reject a
 cross-tenant row *for every query*, not only inserts/updates against a
-composite FK) is scoped in `docs/RLS_ROADMAP.md`. As of v1.8.0 the RLS
-implementation is **authored but dormant**: the per-request
-`SET LOCAL app.current_org` Prisma bridge (`src/lib/db/rls-transaction.ts`,
-inert unless `RLS_ENFORCE=1`), the restricted-role and per-table-policy
-migrations (`16` + `17`, not applied), and a direct-SQL enforcement smoke
-test (`npm run db:rls:smoke`) all ship in this release. Enforcement is a
-staged rollout (`docs/RLS_ENFORCEMENT_RUNBOOK.md`) pending a rehearsal
-database.
+composite FK) is **enforced on staging** as of v1.9.0 and scoped for
+production in `docs/RLS_ROADMAP.md`:
+
+- `src/lib/db/with-tenant-tx.ts` — `withTenantTx` / `withTenantTxFor` replace
+  `db.$transaction` at every call site that touches tenant data (~20). Under
+  `RLS_ENFORCE=1` they run the two `SET LOCAL` statements first; unset, they
+  are a plain transaction (production is unchanged).
+- `src/lib/db/rls-transaction.ts` — wraps a bare `db.model.op()` in a tenant
+  request in its own per-op transaction with the same `SET LOCAL`s.
+- Migrations `16` (the `a2r_app` role + `GRANT a2r_app TO postgres` so the
+  owner can `SET ROLE` in-band — the connection pooler does not accept a
+  custom-role login) and `17` (`tenant_isolation` on the 28 org-owned tables,
+  `USING (true)` on the 9 identity / tenant-routing tables). **Applied to
+  staging only.**
+- `npm run db:rls:smoke` / `tests/security/rls-policies.test.ts` — direct-SQL
+  enforcement checks that auto-detect the `a2r_app` role.
+
+Production cutover — apply 16 + 17 (inert while the app acts as `postgres`),
+deploy `RLS_ENFORCE=1`, soak, then `FORCE ROW LEVEL SECURITY` — is
+`docs/RLS_ENFORCEMENT_RUNBOOK.md`.
 
 ### Database-level access control (Row Level Security)
 
@@ -95,10 +120,10 @@ the managed database can't be reached *around* the application:
 - **This is distinct from the *application-tier* isolation above** — RLS here
   closes the *out-of-band* path (the provider's web-exposed roles), not the
   app's own `BYPASSRLS` connection. Making Postgres reject a cross-tenant row
-  for the application's own queries is the v1.8.0 **dormant** groundwork noted
-  above: the `tenant_isolation` policies (migration `17`) plus a
-  `NOBYPASSRLS` runtime role (migration `16`) plus the `RLS_ENFORCE=1`
-  `SET LOCAL` bridge. Rolled out per `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
+  for the application's own queries is **enforced on staging** as of v1.9.0
+  (the `tenant_isolation` policies in migration `17`, the `NOBYPASSRLS`
+  `a2r_app` role in migration `16`, and the `RLS_ENFORCE=1` `SET LOCAL ROLE`
+  bridge). Production rollout per `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
 
 ### Platform-operator access (A2R staff)
 
@@ -511,10 +536,11 @@ Compliance Ledger or timesheet records**.
 
 ## 10. Testing & verification
 
-- **539** unit tests (Vitest, 45 files) covering the calculation engine, data
+- **542** unit tests (Vitest, 45 files) covering the calculation engine, data
   masking (incl. the org governance override), API-key crypto, the bearer-token
   hash primitives, the in-process **and** distributed (Upstash) rate limiter
-  and its named-rule table, the centralized error boundary
+  and its named-rule table, direct-SQL RLS enforcement for the `a2r_app`
+  role, the centralized error boundary
   (`withAction` / `withRouteHandler` / `redactContext`), tenant lifecycle,
   retention policy logic, the session state machine (every transition +
   fail-closed path), JIT staff elevation, the command-center resolver, the
@@ -554,7 +580,8 @@ Compliance Ledger or timesheet records**.
 | --- | --- |
 | Tamper-evident audit logging | **Implemented** (§4) |
 | Logical multi-tenant isolation | **Implemented** (§1) — three app-tier layers + composite FK tenant guard at the database (v1.8.0, migration 14) |
-| DB-level Row Level Security for the application's own queries | **Authored, dormant** (§1) — SET LOCAL bridge + policy migrations + smoke test ship in v1.8.0; enforcement staged in `docs/RLS_ENFORCEMENT_RUNBOOK.md` |
+| DB-level Row Level Security for the application's own queries | **Enforced on staging** (§1) — v1.9.0, `SET LOCAL ROLE a2r_app` + policies (migrations 16/17). Production cutover per `docs/RLS_ENFORCEMENT_RUNBOOK.md` |
+| Least-privilege runtime database role (no superuser / no RLS bypass) | **Enforced on staging** (§1) — v1.9.0, `a2r_app` |
 | Bearer tokens hashed at rest (elevation / impersonation / API keys) | **Implemented** (§1) — v1.8.0 |
 | Distributed rate limiting (atomic across instances) | **Implemented** (§9) — v1.8.0, opt-in via Upstash |
 | Just-In-Time privileged access (no standing operator sessions) | **Implemented** (§1) — v1.7.0 |

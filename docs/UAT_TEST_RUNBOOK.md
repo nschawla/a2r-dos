@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — UAT Test Runbook
 
-_Applies to v1.8.x · Last updated 2026-09-06_
+_Applies to v1.9.x · Last updated 2026-09-06_
 
 This runbook is the human-executable half of the QA framework. It gives a
 tester **explicit login data, exact steps, expected visual outcomes, and a
@@ -65,7 +65,7 @@ All demo passwords are **`password12345`** unless noted.
 ## 2. Automated coverage (run before manual UAT)
 
 ```bash
-npm test            # Vitest — 539 unit + integration tests across 45 files, ~10s (+3 skipped: dormant RLS)
+npm test            # Vitest — 542 unit + integration tests across 45 files, ~10s
 npx tsc --noEmit    # strict typecheck, 0 errors
 npm run build       # next build — must compile cleanly
 npm run test:e2e    # Playwright — full Suites A–P against a running dev server
@@ -88,7 +88,7 @@ npm run test:e2e    # Playwright — full Suites A–P against a running dev ser
 | Tenant isolation — ORM auto-scope + composite keys + DAL boundary | `tests/org-scope.test.ts` · `tests/security/tenant-isolation.test.ts` · `tests/dal.test.ts` · `tests/dal-boundary.test.ts` · e2e Suite **O** |
 | Composite FK tenant guard (v1.8.0) — DB rejects a child row whose tenant ≠ its parent's | `tests/security/tenant-isolation.test.ts` (composite-key models: cross-tenant create → refused) |
 | Hashed bearer tokens (v1.8.0) — elevation / impersonation cookie stored as `sha256` only | `tests/staff-elevation.test.ts` (row `tokenHash` ≠ cookie; tampered cookie → null) · e2e Suites **I**, **P** |
-| DB-level RLS (v1.8.0, dormant) — direct-SQL enforcement for the restricted role | `tests/security/rls-policies.test.ts` · `npm run db:rls:smoke` (both skip / exit 0 until `RLS_APP_DATABASE_URL` is set) |
+| DB-level RLS (v1.9.0) — direct-SQL tenant isolation for the `a2r_app` role | `tests/security/rls-policies.test.ts` · `npm run db:rls:smoke` — auto-detect the `a2r_app` role: **enforce + verify on staging**, no-op on production |
 | JIT staff elevation — reason-logged, auto-expiring, session-bound | `tests/staff-elevation.test.ts` · e2e Suite **P** · manual UAT-3.10 |
 | Advanced rate limiting + structured error boundary | `tests/rate-limiter.test.ts` · `tests/rate-limiter-redis.test.ts` (distributed window + fallback) · `tests/security/rate-limit-endpoints.test.ts` · `tests/observability.test.ts` |
 
@@ -244,21 +244,22 @@ As `ops@a2rventures.com`:
 
 **Checkpoint:** privileged operator actions require a temporary, reason-logged, auto-expiring elevation; read views do not.
 
-### UAT-3.11 · v1.8.0 tenant-isolation hardening (regression)
+### UAT-3.11 · tenant-isolation hardening (regression)
 
 Mostly covered by the automated suites (§2); this confirms nothing regressed
 in the assembled product.
 
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | `npm run db:rls:smoke` | Prints `RLS is DORMANT … Nothing to verify`, exits 0 (RLS is authored but not enforced — this is expected) | |
-| 2 | As `ops@a2rventures.com`: elevate, then **Impersonate** any tenant (see UAT-4 Ops), land in that tenant's workspace, then **End impersonation** | Impersonation still starts and ends cleanly — the cookie token is now hashed in the DB but the flow is unchanged | |
+| 1 | `npm run db:rls:smoke` | **Staging** (`RLS_ENFORCE=1`, `a2r_app` role): `OK — all 28 tenant tables enforce isolation`. **Production**: `the a2r_app role does not exist — RLS is DORMANT here`, exits 0 (expected until the prod cutover). | |
+| 2 | As `ops@a2rventures.com`: elevate, then **Impersonate** any tenant (see UAT-4 Ops), land in that tenant's workspace, then **End impersonation** | Impersonation still starts and ends cleanly — the cookie token is hashed in the DB but the flow is unchanged | |
 | 3 | After any deploy, an operator who was mid-elevation | Sees read-only again and must re-elevate once (hashed-token migration invalidates in-flight cookies — by design) | |
-| 4 | Batch import (UAT-4.7) a Weekly Actuals file across two projects | Commits as before; composite FKs do not reject any legitimate row | |
+| 4 | Batch import (UAT-4.7) a Weekly Actuals file across two projects | Commits as before; composite FKs + RLS do not reject any legitimate row | |
 
-**Checkpoint:** the database now physically rejects a cross-tenant child row
-and stores bearer tokens only as hashes, with no change to any legitimate
-user or operator flow.
+**Checkpoint:** the database physically rejects a cross-tenant child row,
+stores bearer tokens only as hashes, and (on staging) rejects cross-tenant
+reads/writes for the `a2r_app` role — with no change to any legitimate user
+or operator flow.
 
 ---
 
@@ -333,7 +334,7 @@ Sign in as `ops@a2rventures.com` (or `navinder@…`).
 | 7 | **Ingestion & Templates** | CSV template downloads + schema reference | |
 | 8 | **Staff Access** | Grants table + the **Just-In-Time elevations** audit table (who, why, expiry, active/ended) | |
 | 9 | Impersonate a tenant (elevate first; Tenants → actions → Impersonate, give a reason) | Opens a **read-only** tenant session with a persistent banner; the reason is written to that tenant's Compliance Ledger before the session starts | |
-| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.8.x`; click → Release Notes modal (top entry: v1.8.0) | |
+| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.9.x`; click → Release Notes modal (top entry: v1.9.0) | |
 
 ### UAT-4.6 · Admin & Org Setup (`/admin`)
 
@@ -411,7 +412,7 @@ Sign in as `admin@a2rventures-demo.test`.
 | 9 | No stray `DataImportBatch` rows or test `WeeklyAssignmentSlot`/`SchedulePhase` writes left in the demo tenant from batch-import testing | |
 | 10 | No stray test `CustomKpi` rows left in the demo tenant from Custom KPI Builder testing | |
 | 11 | No stray `staff_elevations` rows or throwaway tenants (`JIT Elevation Test Inc`, `Enterprise Sanity Inc`, `Purge Target Inc`) left from Ops testing | |
-| 12 | Release Notes modal top entry = **v1.8.0**; Ops sidebar build stamp = `v1.8.x` | |
+| 12 | Release Notes modal top entry = **v1.9.0**; Ops sidebar build stamp = `v1.9.x` | |
 
 ---
 
