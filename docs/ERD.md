@@ -1,7 +1,7 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.7.0** (Role-Based Scoped Filtering, the Custom KPI
+it, current as of **v1.8.0** (Role-Based Scoped Filtering, the Custom KPI
 Definition Engine, the complete 4-pillar Batch Import Engine, forced
 first-sign-in password change, and the v1.7.0 security-architecture batch:
 `User.sessionVersion` (migration `00000000000011`), **composite tenant
@@ -9,7 +9,18 @@ keys** on the 9 child tables — `organizationId` + FK on `audit_entries`,
 `effort_cells`, `financial_actuals`, `project_contributors`, `raid_entries`,
 `schedule_phases`, `scope_items`, `steerco_decisions`, `data_import_rows`
 (migration `00000000000012`), and `staff_elevations` for JIT operator
-elevation (migration `00000000000013`)). Regenerate/extend this doc
+elevation (migration `00000000000013`)).
+**v1.8.0 (Phase B)** adds: **composite foreign keys** —
+`projects` / `data_import_batches` gain `@@unique([organizationId, id])` and
+all 11 project- / batch-scoped child tables' parent FK becomes composite
+`("organizationId", <parentId>)` → `parent("organizationId", "id")`, so the
+database rejects a child row whose tenant ≠ its parent's (migration
+`00000000000014`); and **hashed bearer tokens** — `StaffElevation.token` and
+`ImpersonationGrant.token` become `tokenHash` (SHA-256 only; migration
+`00000000000015`). Migrations `00000000000016` (restricted `a2r_app` role)
+and `00000000000017` (per-table RLS `tenant_isolation` policies) are
+**authored but not applied** — see `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
+Regenerate/extend this doc
 whenever a schema change adds, removes, or re-relates a model — it should
 never drift further than one release behind `schema.prisma`.
 
@@ -123,7 +134,9 @@ email wildcard; it is now *eligibility* only. `StaffElevation` (v1.7.0,
 migration `00000000000013`) is the Just-In-Time grant every mutating
 `/ops` action requires — reason-logged, session-bound
 (`a2r_ops_elevation` cookie + `userId`), auto-expiring
-(`docs/JIT_STAFF_ELEVATION.md`).
+(`docs/JIT_STAFF_ELEVATION.md`). As of v1.8.0 both `StaffElevation` and
+`ImpersonationGrant` persist only `tokenHash` (SHA-256 of the cookie
+secret), never the plaintext.
 
 **Delivery spine** — `Project` is the hub every delivery module hangs off:
 `EffortCell` (the Phase × Role baseline matrix), `FinancialActual` (realized
@@ -186,8 +199,8 @@ DB-free authorization check and the Prisma query so the two can't drift.
 |---|---|
 | `Account`, `Session`, `VerificationToken` | Auth.js/NextAuth adapter tables (OAuth plumbing; credentials login uses JWT sessions, not these). |
 | `StaffGrant` | Explicit, attributed, revocable A2R-operator entitlement (replaced the email-domain wildcard + `isA2rStaff` boolean in v1.6.0). A live row = *eligibility* to reach `/ops`. |
-| `StaffElevation` | v1.7.0 — the Just-In-Time, reason-logged, auto-expiring grant every *mutating* `/ops` action requires on top of a `StaffGrant`. Session-bound via the `a2r_ops_elevation` cookie. |
-| `ImpersonationGrant` | The Impersonation Gateway's time-boxed, audited operator → tenant sessions. |
+| `StaffElevation` | v1.7.0 — the Just-In-Time, reason-logged, auto-expiring grant every *mutating* `/ops` action requires on top of a `StaffGrant`. Session-bound via the `a2r_ops_elevation` cookie; row stores `tokenHash` only (v1.8.0). |
+| `ImpersonationGrant` | The Impersonation Gateway's time-boxed, audited operator → tenant sessions. Row stores `tokenHash` only (v1.8.0). |
 | `OrgPolicy` | Legacy per-tenant tolerances (slip/margin thresholds) predating `GovernanceConfig`. |
 | `ControlLabel` | Per-tenant display-label override for a `CTRL_01..10` key (the labels are editable; the keys are frozen — see `docs/` control-audit nomenclature notes). |
 | `ProjectContributor`, `ScopeItem` | Project-level contributor tagging and scope-item breakdown. |

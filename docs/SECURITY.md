@@ -1,6 +1,6 @@
 # A2R Delivery OS — Security & Trust Overview
 
-_Last reviewed: 2026-09-06 · Applies to v1.7.1 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-06 · Applies to v1.8.0 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of A2R Delivery OS™. It is written for the security and
@@ -25,6 +25,14 @@ layer:
   rows) gained their own `organizationId` column + foreign key + index
   (migration `00000000000012`), so the database itself binds every row to a
   tenant rather than relying on a join.
+- **Composite foreign keys tie every child row to its parent's tenant (v1.8.0).**
+  Migration `00000000000014` gives `projects` / `data_import_batches` a
+  composite `UNIQUE ("organizationId", "id")` and replaces the single-column
+  parent FK on all 11 project- / batch-scoped child tables with a **composite**
+  FK `("organizationId", <parentId>)` → `parent("organizationId", "id")`.
+  Postgres now *physically rejects* a child row whose `organizationId`
+  disagrees with its project's / batch's — a cross-tenant child cannot be
+  created even if both application layers below were bypassed.
 - **Queries are `organizationId`-scoped at three layers** (defence in depth):
   1. *Verified context.* Every page, route, and action resolves the caller's
      organization from their authenticated session
@@ -52,8 +60,15 @@ layer:
   connection.
 
 The DB-level Row Level Security follow-up (making Postgres itself reject a
-cross-tenant row) is scoped in `docs/RLS_ROADMAP.md`; the composite-key work
-above is its prerequisite and is now complete.
+cross-tenant row *for every query*, not only inserts/updates against a
+composite FK) is scoped in `docs/RLS_ROADMAP.md`. As of v1.8.0 the RLS
+implementation is **authored but dormant**: the per-request
+`SET LOCAL app.current_org` Prisma bridge (`src/lib/db/rls-transaction.ts`,
+inert unless `RLS_ENFORCE=1`), the restricted-role and per-table-policy
+migrations (`16` + `17`, not applied), and a direct-SQL enforcement smoke
+test (`npm run db:rls:smoke`) all ship in this release. Enforcement is a
+staged rollout (`docs/RLS_ENFORCEMENT_RUNBOOK.md`) pending a rehearsal
+database.
 
 ### Database-level access control (Row Level Security)
 
@@ -80,7 +95,10 @@ the managed database can't be reached *around* the application:
 - **This is distinct from the *application-tier* isolation above** — RLS here
   closes the *out-of-band* path (the provider's web-exposed roles), not the
   app's own `BYPASSRLS` connection. Making Postgres reject a cross-tenant row
-  for the application's queries too is the `docs/RLS_ROADMAP.md` follow-on.
+  for the application's own queries is the v1.8.0 **dormant** groundwork noted
+  above: the `tenant_isolation` policies (migration `17`) plus a
+  `NOBYPASSRLS` runtime role (migration `16`) plus the `RLS_ENFORCE=1`
+  `SET LOCAL` bridge. Rolled out per `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
 
 ### Platform-operator access (A2R staff)
 
@@ -102,7 +120,13 @@ Plane (`/ops`). It has two levels as of v1.7.0:
   reason, bound to the operator's session (an httpOnly cookie + a `userId`
   match), and auto-expiring after a strict TTL (30 min default, 60 max). There
   are **no standing privileged operator sessions**. Every elevation — who,
-  why, how long — is on the in-console audit trail at `/ops/staff`. See
+  why, how long — is on the in-console audit trail at `/ops/staff`.
+  **As of v1.8.0 the cookie token is stored hashed** — the `staff_elevations`
+  / `impersonation_grants` rows keep only `sha256(secret)` (`tokenHash`), the
+  256-bit plaintext lives solely in the httpOnly cookie, and lookup is by
+  hash with a constant-time compare (mirrors `ApiKey.hashedKey`). A database
+  read or a leaked backup no longer yields a usable elevation or impersonation
+  token. See
   `docs/JIT_STAFF_ELEVATION.md`.
 
 Staff status is unrelated to any tenant membership role.
@@ -192,12 +216,17 @@ connect Content-Security-Policy allow-list.
 
 ### Abuse protection
 
-A true sliding-window rate limiter (in-process, no external dependency; behind
-multiple instances each enforces a proportional share) guards the high-risk
-and resource-intensive boundaries. Every limit is overridable per environment
+A true sliding-window rate limiter guards the high-risk and
+resource-intensive boundaries. **As of v1.8.0 it can be backed by a shared
+store:** with `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` set,
+every limit is enforced as **one atomic global window** (a single
+server-side Lua script) consistent across all serverless instances; unset,
+it uses the in-process limiter (behind multiple instances each enforces a
+proportional share), and a per-call Redis failure falls back to it so a
+Redis blip never blocks sign-in. Every limit is overridable per environment
 (`RL_<NAME>_LIMIT`); `X-RateLimit-Limit / -Remaining / -Reset` headers are
 returned on the **allowed** response, not only the `429` (which also carries
-`Retry-After`). Defaults (v1.7.0):
+`Retry-After`). Defaults:
 
 | Boundary | Default | Key |
 | --- | --- | --- |
@@ -482,9 +511,10 @@ Compliance Ledger or timesheet records**.
 
 ## 10. Testing & verification
 
-- **536** unit tests (Vitest, 43 files) covering the calculation engine, data
-  masking (incl. the org governance override), API-key crypto, the rate
-  limiter and its named-rule table, the centralized error boundary
+- **539** unit tests (Vitest, 45 files) covering the calculation engine, data
+  masking (incl. the org governance override), API-key crypto, the bearer-token
+  hash primitives, the in-process **and** distributed (Upstash) rate limiter
+  and its named-rule table, the centralized error boundary
   (`withAction` / `withRouteHandler` / `redactContext`), tenant lifecycle,
   retention policy logic, the session state machine (every transition +
   fail-closed path), JIT staff elevation, the command-center resolver, the
@@ -497,12 +527,13 @@ Compliance Ledger or timesheet records**.
   logic, and the Self-Service Batch Import Engine's four-pillar schema
   validators and CSV/Excel reader.
 - Live-database security suites (`tests/security/*`) that assert cross-tenant
-  `organizationId` scoping (including the 9 v1.7.0 composite-key models —
+  `organizationId` scoping (including the composite-key child models —
   read → null, update → `P2025`, cross-tenant create → refused), that the
   compliance ledger keeps a valid tamper-evident hash chain under
   parallel-append pressure (REL-3), the rate-limit endpoints (served to the
-  limit then `429` with headers), and the password-rotation / all-device
-  logout flow.
+  limit then `429` with headers), the password-rotation / all-device
+  logout flow, and the DB-level RLS enforcement checks (`rls-policies.test.ts`,
+  skipped until `RLS_APP_DATABASE_URL` points at the restricted role).
 - **60** end-to-end tests (Playwright, Suites A–P) covering authentication,
   multi-tenant scoping, governance workflows, the capacity cockpit, the
   compliance ledger, data masking, role-based landing/perspective switching,
@@ -522,8 +553,10 @@ Compliance Ledger or timesheet records**.
 | Item | Status |
 | --- | --- |
 | Tamper-evident audit logging | **Implemented** (§4) |
-| Logical multi-tenant isolation | **Implemented** (§1) — three-layer, incl. ORM auto-scoping + composite tenant keys (v1.7.0) |
-| DB-level Row Level Security for the application's own queries | **Roadmap** — prerequisites complete; scoped in `docs/RLS_ROADMAP.md` |
+| Logical multi-tenant isolation | **Implemented** (§1) — three app-tier layers + composite FK tenant guard at the database (v1.8.0, migration 14) |
+| DB-level Row Level Security for the application's own queries | **Authored, dormant** (§1) — SET LOCAL bridge + policy migrations + smoke test ship in v1.8.0; enforcement staged in `docs/RLS_ENFORCEMENT_RUNBOOK.md` |
+| Bearer tokens hashed at rest (elevation / impersonation / API keys) | **Implemented** (§1) — v1.8.0 |
+| Distributed rate limiting (atomic across instances) | **Implemented** (§9) — v1.8.0, opt-in via Upstash |
 | Just-In-Time privileged access (no standing operator sessions) | **Implemented** (§1) — v1.7.0 |
 | Server-side session revocation / all-device logout | **Implemented** (§2) — v1.7.0 |
 | Structured error capture + advanced rate limiting | **Implemented** (§3, §9) — v1.7.0 |

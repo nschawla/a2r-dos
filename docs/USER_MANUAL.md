@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — User Manual & Operator's Guide
 
-_Applies to v1.7.1 · Last updated 2026-09-06_
+_Applies to v1.8.0 · Last updated 2026-09-06_
 
 A2R Delivery OS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
@@ -315,6 +315,10 @@ revoking staff — needs a **temporary elevation** first.
 - If you try a privileged action without elevating, the elevation prompt
   opens automatically; nothing is changed.
 - Every elevation — who, why, how long — is listed on **Staff Access**.
+- After a platform deploy, any elevation (or tenant impersonation) in
+  progress ends — re-elevate once. This is deliberate: as of v1.8.0 the
+  session token is stored hashed, so a deploy that rotates it invalidates
+  in-flight cookies.
 
 ### Platform Pulse (`/ops/pulse`)
 

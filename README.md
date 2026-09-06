@@ -1601,6 +1601,66 @@ passed** across 43 files; `npx playwright test` → **60 passed** (Suites
 A–P); `npm run build` → compiled cleanly. Migrations `00000000000011–13`
 applied to the production database.
 
+## Phase 5 — Framework LTS upgrade & tenant-isolation hardening (v1.7.1 – v1.8.0)
+
+Two releases from the enterprise production-readiness track: a framework
+hygiene pass, then the next batch of P0 security findings from the
+Principal-Architect audit.
+
+### v1.7.1 — Next.js 15 LTS (Phase A)
+
+- **`next` 14.2.35 → 15.5.25**, `next-auth` → 4.24.15, `eslint-config-next`
+  → 15.5.25; React stays on 18.3 (Next 15 peer-supports it). Clears the
+  Next.js advisories affecting the 14.2 line.
+- **Async request APIs** — every `cookies()` / `headers()` call and every
+  dynamic-route `params` / `searchParams` is now awaited (~25 files), as
+  Next 15 requires. `postcss` forced to `^8.5.x` via a package override.
+- Linter clean sweep — `npm run lint` → 0 errors, 0 warnings.
+
+### v1.8.0 — Tenant-isolation & security hardening (Phase B)
+
+- **Composite tenant foreign keys (P0-3).** Migration `00000000000014`
+  adds `UNIQUE ("organizationId", "id")` to `projects` /
+  `data_import_batches` and replaces the single-column parent FK on all 11
+  project- / batch-scoped child tables with a **composite** FK
+  `("organizationId", <parentId>)` → `parent("organizationId", "id")`. The
+  database now physically rejects a child row whose tenant disagrees with
+  its parent's — defence in depth under the app-tier + ORM scoping.
+- **Hashed bearer tokens (P0-5).** Migration `00000000000015` —
+  `staff_elevations.token` / `impersonation_grants.token` → `tokenHash`.
+  The httpOnly cookie carries a 256-bit secret (`src/lib/crypto/bearer-token.ts`);
+  the database stores only `sha256(secret)` and resolves sessions by hash
+  with a constant-time compare. Mirrors `ApiKey.hashedKey`.
+- **Distributed rate limiting (P0-6).** `src/lib/rate-limiter-redis.ts` —
+  when `UPSTASH_REDIS_REST_URL` / `_TOKEN` are set, every rate-limited
+  boundary enforces one atomic sliding window in Redis (single server-side
+  Lua script) consistent across all serverless instances; unset → the
+  in-process limiter, unchanged; a per-call Redis failure falls back to it.
+- **DB-level RLS groundwork (P0-2), dormant.** The per-request
+  `SET LOCAL app.current_org` Prisma bridge (`src/lib/db/rls-transaction.ts`,
+  no-op unless `RLS_ENFORCE=1`), the restricted-role + per-table-policy
+  migrations (`16` + `17`, **not applied**), a direct-SQL enforcement smoke
+  test (`npm run db:rls:smoke`), and the staged rollout procedure
+  (`docs/RLS_ENFORCEMENT_RUNBOOK.md`). Enforcement is Phase C — it needs a
+  rehearsal database and a maintenance window.
+
+### RTM — requirements traceability (Phase 5)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| FW-1 | Next.js 15 LTS + async request APIs | `package.json`, `next.config.mjs`, ~25 route/page/action files | full suite (tsc / vitest / playwright / build) |
+| SEC-P0-3 | Composite tenant FKs — DB rejects cross-tenant child rows | `prisma/schema.prisma`, migration 14 | `tests/security/tenant-isolation.test.ts` (composite-key models) |
+| SEC-P0-5 | Hashed elevation / impersonation bearer tokens | `src/lib/crypto/bearer-token.ts`, `src/lib/ops/staff-elevation.ts`, `src/lib/ops/tenant-management.ts`, migration 15 | `tests/staff-elevation.test.ts` · e2e Suites I, P |
+| SEC-P0-6 | Distributed (Upstash) rate limiting + in-process fallback | `src/lib/rate-limiter-redis.ts`, `src/lib/rate-limiter.ts`, `src/lib/rate-limit-action.ts` | `tests/rate-limiter-redis.test.ts`, `tests/rate-limiter.test.ts`, `tests/security/rate-limit-endpoints.test.ts` |
+| SEC-P0-2 | RLS bridge + policy migrations + smoke test (dormant) | `src/lib/db/rls-transaction.ts`, `prisma/migrations/16`+`17`, `scripts/rls-smoke.ts` | `tests/security/rls-policies.test.ts` (skipped without `RLS_APP_DATABASE_URL`) |
+
+**Verification:** `npx tsc --noEmit` → 0 errors; `npm run lint` → 0 / 0;
+`npx vitest run` → **539 passed, 3 skipped** across 45 files;
+`npx playwright test` → **60 passed** (Suites A–P); `npm run build` →
+compiled cleanly on Next 15.5.25. Migrations `00000000000014–15` rehearsed
+(`BEGIN … ROLLBACK`) then applied to the production database; `prisma
+migrate diff` reports no drift. Migrations `16`–`17` authored, not applied.
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to

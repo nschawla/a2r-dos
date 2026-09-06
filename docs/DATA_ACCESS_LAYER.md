@@ -18,7 +18,8 @@ UI component **cannot** reach the Prisma client directly.
 | 1 | **Verified context** | Every reachable path resolves the active tenant through `requireOrgContext()` / `getOrgContextOrNull()` / `requireOpsContext()` / `withApiAuth()` before any DB call, and passes `organizationId` into each `where`. `assertTenantContext()` is the fail-closed gate each query function calls first — a missing / blank / non-string `organizationId` throws `TenantContextError`, never falls through. | `src/lib/session.ts`, `src/lib/ops-auth.ts`, `src/lib/api-auth.ts`, `src/lib/dal/index.ts` |
 | 2 | **ORM auto-scoping** | A Prisma client extension rewrites **every** query on a tenant-owned model to include the request's `organizationId` (injected into `where`, and into `data` on `create`), and **throws `OrgScopeError`** if a tenant query runs with no resolved scope. Fed by an `AsyncLocalStorage` cell + a lazy session/cookie resolver. | `src/lib/db/org-scope.ts`, `src/lib/db.ts` |
 | 3 | **Composite tenant keys** | All 29 tenant-owned models carry their own `organization_id` column + FK to `organizations(id)` `ON DELETE CASCADE` + index. No model is scoped only through a join. This is the same-table target a future DB-level RLS policy needs. | `prisma/schema.prisma`, migration `00000000000012` |
-| 4 | **DB-level RLS** | _Planned._ Postgres itself rejects a cross-tenant row. | `docs/RLS_ROADMAP.md` |
+| 3b | **Composite parent FKs** | v1.8.0 (migration `00000000000014`) — every project-/batch-scoped child carries a composite FK `("organizationId", <parentId>)` → `parent("organizationId", "id")`, so Postgres rejects a child whose tenant ≠ its parent's. | `prisma/schema.prisma`, migration 14 |
+| 4 | **DB-level RLS** | _Authored, dormant (v1.8.0)._ `SET LOCAL` bridge + policy migrations + smoke test ship inert; enforcement staged. | `docs/RLS_ROADMAP.md`, `docs/RLS_ENFORCEMENT_RUNBOOK.md` |
 
 ## 3. The module boundary
 
