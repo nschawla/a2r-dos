@@ -184,21 +184,37 @@ export async function changePasswordAction(input: unknown): Promise<ChangePasswo
   const passwordHash = await bcrypt.hash(newPassword, 10);
   const changedAt = new Date();
 
-  await db.$transaction(async (tx) => {
-    await tx.user.update({
+  // Atomic state transition (P1): in one transaction —
+  //   1. write the new hash + clear PENDING_PASSWORD_CHANGE
+  //   2. stamp passwordChangedAt
+  //   3. `sessionVersion { increment: 1 }` — this is the all-device logout:
+  //      EVERY token minted before this instant now has
+  //      token.sessionVersion < users.sessionVersion, so the jwt callback's
+  //      deriveSessionState() resolves each of them to REVOKED on its next
+  //      request.
+  //   4. delete any NextAuth adapter Session rows.
+  const { sessionVersion: newSessionVersion } = await db.$transaction(async (tx) => {
+    const updated = await tx.user.update({
       where: { id: userId },
-      data: { passwordHash, mustChangePassword: false, passwordChangedAt: changedAt },
+      data: {
+        passwordHash,
+        mustChangePassword: false,
+        passwordChangedAt: changedAt,
+        sessionVersion: { increment: 1 },
+      },
+      select: { sessionVersion: true },
     });
-    // Revoke every adapter-backed session for this user. (Empty today under
-    // the JWT strategy for credential logins; future-proofs an OAuth
-    // addition and satisfies "invalidate all sessions".)
     await tx.session.deleteMany({ where: { userId } });
+    return updated;
   });
 
+  // Mint ONE fresh token for the current device, pinned to the NEW epoch so
+  // it is the only session that survives the increment above.
   const sessionRefreshed = await establishFreshSession({
     userId,
     email: user.email,
     name: user.name,
+    sessionVersion: newSessionVersion,
   });
 
   return { ok: true, sessionRefreshed };

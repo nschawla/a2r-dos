@@ -33,16 +33,27 @@ import { decode } from 'next-auth/jwt';
 const OLD_PW = 'OldTempPass123';
 const NEW_PW = 'FreshChosen456';
 
+// The jwt callback (default export path) — invoked directly with a fake token.
+const jwt = authOptions.callbacks!.jwt!;
+const sessionCb = authOptions.callbacks!.session!;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const callJwt = (token: Record<string, unknown>) => jwt({ token, user: undefined, account: null } as any);
+
 /**
- * P0 #3 requirement 3 — a successful password change atomically clears
- * mustChangePassword, stamps passwordChangedAt (→ revokes every prior
- * token), deletes adapter sessions, and mints one fresh session.
- * Live DB, self-cleaning.
+ * P1 — restricted-session state machine, live-DB integration.
+ *
+ * Covers changePasswordAction's atomic transaction (hash + sessionVersion
+ * bump + adapter-session delete), the fresh-session mint, and the jwt
+ * callback's DB-backed state derivation including the FAIL-CLOSED path.
+ * The pure state machine is exhaustively covered in tests/session-state.test.ts.
+ * Self-cleaning.
  */
-describe('changePasswordAction — atomic rotation + session revocation', () => {
+describe('changePasswordAction + jwt callback — the session state machine', () => {
   const createdUserIds: string[] = [];
 
   afterAll(async () => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
     const ids = createdUserIds.splice(0);
     if (ids.length) {
       await db.session.deleteMany({ where: { userId: { in: ids } } });
@@ -63,7 +74,7 @@ describe('changePasswordAction — atomic rotation + session revocation', () => 
     return u;
   }
 
-  it('rejects a wrong current password / weak new password / re-use', async () => {
+  it('rejects a wrong current password / weak new password / re-use — no state change', async () => {
     const u = await makeUser();
     mockGetServerSession.mockResolvedValue({ user: { id: u.id, mustChangePassword: true } });
 
@@ -71,12 +82,14 @@ describe('changePasswordAction — atomic rotation + session revocation', () => 
     expect(await changePasswordAction({ currentPassword: OLD_PW, newPassword: 'weak' })).toMatchObject({ ok: false });
     expect(await changePasswordAction({ currentPassword: OLD_PW, newPassword: OLD_PW })).toMatchObject({ ok: false });
 
-    const still = await db.user.findUnique({ where: { id: u.id }, select: { mustChangePassword: true, passwordChangedAt: true } });
-    expect(still?.mustChangePassword).toBe(true);
-    expect(still?.passwordChangedAt).toBeNull();
+    const still = await db.user.findUnique({
+      where: { id: u.id },
+      select: { mustChangePassword: true, passwordChangedAt: true, sessionVersion: true },
+    });
+    expect(still).toMatchObject({ mustChangePassword: true, passwordChangedAt: null, sessionVersion: 0 });
   });
 
-  it('on success clears the flag, stamps passwordChangedAt, and mints a fresh session cookie', async () => {
+  it('a successful change atomically bumps sessionVersion, clears the flag, and mints a fresh ACTIVE token', async () => {
     const u = await makeUser();
     cookieJar.store.clear();
     mockGetServerSession.mockResolvedValue({ user: { id: u.id, mustChangePassword: true } });
@@ -87,50 +100,82 @@ describe('changePasswordAction — atomic rotation + session revocation', () => 
 
     const after = await db.user.findUnique({
       where: { id: u.id },
-      select: { mustChangePassword: true, passwordChangedAt: true, passwordHash: true },
+      select: { mustChangePassword: true, passwordChangedAt: true, passwordHash: true, sessionVersion: true },
     });
     expect(after?.mustChangePassword).toBe(false);
+    expect(after?.sessionVersion).toBe(1);
     expect(after?.passwordChangedAt?.getTime()).toBeGreaterThanOrEqual(before - 1000);
     expect(await bcrypt.compare(NEW_PW, after!.passwordHash!)).toBe(true);
 
-    // a fresh, decodable NextAuth session token was written
     const cookieName = [...cookieJar.store.keys()].find((k) => k.endsWith('next-auth.session-token'));
-    expect(cookieName).toBeTruthy();
     const decoded = await decode({ token: cookieJar.store.get(cookieName!)!, secret: process.env.NEXTAUTH_SECRET! });
-    expect(decoded?.userId).toBe(u.id);
+    expect(decoded).toMatchObject({ userId: u.id, state: 'ACTIVE', sessionVersion: 1 });
   });
 
-  it('the jwt callback revokes a token issued before the change, keeps one issued after', async () => {
+  it('the jwt callback REVOKES every token minted before the change, and keeps the fresh one', async () => {
     const u = await makeUser();
     mockGetServerSession.mockResolvedValue({ user: { id: u.id, mustChangePassword: true } });
     await changePasswordAction({ currentPassword: OLD_PW, newPassword: NEW_PW });
+    // account is now sessionVersion 1.
 
-    const changedAt = (await db.user.findUnique({ where: { id: u.id }, select: { passwordChangedAt: true } }))!
-      .passwordChangedAt!;
-    const beforeSec = Math.floor(changedAt.getTime() / 1000) - 60;
-    const afterSec = Math.floor(changedAt.getTime() / 1000) + 60;
+    // an old token (version 0 — or a legacy token with no claim) on any device
+    for (const stale of [{ userId: u.id, sessionVersion: 0, iat: 1 }, { userId: u.id, iat: 1 }]) {
+      expect(await callJwt(stale)).toEqual({ revoked: true, state: 'REVOKED' });
+    }
 
-    const revoked = await authOptions.callbacks!.jwt!({
-      token: { userId: u.id, iat: beforeSec } as never,
-      user: undefined as never,
-      account: null,
-    } as never);
-    expect(revoked).toEqual({ revoked: true });
-
-    const kept = await authOptions.callbacks!.jwt!({
-      token: { userId: u.id, iat: afterSec } as never,
-      user: undefined as never,
-      account: null,
-    } as never);
-    expect((kept as { revoked?: boolean }).revoked).toBeUndefined();
-    expect((kept as { mustChangePassword?: boolean }).mustChangePassword).toBe(false);
+    // the fresh token (version 1) stays ACTIVE
+    const fresh = await callJwt({ userId: u.id, sessionVersion: 1, iat: Math.floor(Date.now() / 1000), state: 'ACTIVE' });
+    expect((fresh as { revoked?: boolean }).revoked).toBeUndefined();
+    expect(fresh).toMatchObject({ state: 'ACTIVE', mustChangePassword: false, sessionVersion: 1 });
   });
 
-  it('the session callback yields a user-less session for a revoked token', async () => {
-    const out = await authOptions.callbacks!.session!({
-      session: { user: { name: 'x', email: 'x@x.x' }, expires: '2999-01-01' },
-      token: { revoked: true },
-    } as never);
-    expect((out as { user?: unknown }).user).toBeUndefined();
+  it('a PENDING_PASSWORD_CHANGE token is derived for a mustChangePassword account', async () => {
+    const u = await makeUser(true); // sessionVersion 0, mustChangePassword true
+    const t = await callJwt({ userId: u.id, sessionVersion: 0, iat: Math.floor(Date.now() / 1000) });
+    expect(t).toMatchObject({ state: 'PENDING_PASSWORD_CHANGE', mustChangePassword: true });
+  });
+
+  it('FAIL-CLOSED — a DB error during the state lookup revokes the session', async () => {
+    const u = await makeUser(false);
+    const spy = vi.spyOn(db.user, 'findUnique').mockRejectedValueOnce(new Error('connection reset'));
+    try {
+      const t = await callJwt({ userId: u.id, sessionVersion: 0, iat: Math.floor(Date.now() / 1000), state: 'ACTIVE' });
+      expect(t).toEqual({ revoked: true, state: 'REVOKED' });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('FAIL-CLOSED — a hung DB (timeout) revokes the session', async () => {
+    const u = await makeUser(false);
+    vi.stubEnv('SESSION_LOOKUP_TIMEOUT_MS', '40');
+    const spy = vi.spyOn(db.user, 'findUnique').mockReturnValueOnce(new Promise(() => {}) as never);
+    try {
+      const t = await callJwt({ userId: u.id, sessionVersion: 0, iat: Math.floor(Date.now() / 1000), state: 'ACTIVE' });
+      expect(t).toEqual({ revoked: true, state: 'REVOKED' });
+    } finally {
+      spy.mockRestore();
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('FAIL-CLOSED — a deleted account revokes the session', async () => {
+    const u = await db.user.create({
+      data: { email: `pwrot-del-${Date.now()}@a2rventures.com`, passwordHash: await bcrypt.hash(OLD_PW, 10) },
+    });
+    await db.user.delete({ where: { id: u.id } });
+    const t = await callJwt({ userId: u.id, sessionVersion: 0, iat: Math.floor(Date.now() / 1000), state: 'ACTIVE' });
+    expect(t).toEqual({ revoked: true, state: 'REVOKED' });
+  });
+
+  it('the session callback yields a user-less session for a REVOKED token (either signal)', async () => {
+    for (const token of [{ revoked: true }, { state: 'REVOKED', userId: 'x' }, {}]) {
+      const out = await sessionCb({
+        session: { user: { name: 'x', email: 'x@x.x' }, expires: '2999-01-01' },
+        token,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+      expect((out as { user?: unknown }).user).toBeUndefined();
+    }
   });
 });

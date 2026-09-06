@@ -1,0 +1,25 @@
+-- A2R Delivery OS — P1: restricted-session state machine for password changes.
+--
+-- Adds `users.sessionVersion` — the token-version / epoch the session state
+-- machine (src/lib/auth/session-state.ts) checks against the database on
+-- every authenticated request:
+--
+--   * every session token is minted carrying the sessionVersion it saw;
+--   * changePasswordAction does `sessionVersion { increment: 1 }` in the
+--     same transaction as the hash update, so EVERY token minted before
+--     that instant now has token.sessionVersion < users.sessionVersion and
+--     the NextAuth jwt callback resolves it to REVOKED — an atomic,
+--     all-device logout;
+--   * the jwt callback FAILS CLOSED: a DB lookup that errors or times out
+--     also resolves to REVOKED, never to a stale ACTIVE session.
+--
+-- Additive, NOT NULL DEFAULT 0 — existing rows get 0, and legacy tokens
+-- (no `sessionVersion` claim) are compared as 0, so nobody is logged out
+-- on deploy; the first password change after this migration then revokes
+-- their old tokens as designed.
+--
+-- Hand-derived (see 00000000000000_init). Apply with:
+--   npx prisma db execute --file prisma/migrations/00000000000011_session_version_state_machine/migration.sql --schema prisma/schema.prisma
+--   npx prisma generate
+
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "sessionVersion" INTEGER NOT NULL DEFAULT 0;

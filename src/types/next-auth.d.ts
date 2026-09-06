@@ -47,9 +47,16 @@ declare module 'next-auth/jwt' {
     isA2rStaff?: boolean;
     mustChangePassword?: boolean;
     memberships?: SessionMembership[];
-    /** P0 #3 — set by the jwt callback when the token's `iat` predates the
-     * account's `passwordChangedAt`. The session callback then returns a
-     * user-less session, so the request is treated as signed-out. */
+    /** P1 — the session state machine's current state, re-derived from the
+     * database on every request by the jwt callback. `'REVOKED'` (or the
+     * legacy `revoked` flag) makes the session callback return a user-less
+     * session. See src/lib/auth/session-state.ts. */
+    state?: 'ACTIVE' | 'PENDING_PASSWORD_CHANGE' | 'REVOKED';
+    /** Legacy alias for `state === 'REVOKED'` (P0 #3). Still honoured. */
     revoked?: boolean;
+    /** P1 — the `users.sessionVersion` this token was minted against.
+     * Pinned once (login / fresh mint); never re-written. A mismatch with
+     * the live DB value → REVOKED (atomic all-device logout). */
+    sessionVersion?: number;
   }
 }

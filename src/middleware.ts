@@ -45,8 +45,13 @@ export default withAuth(
     const isApi = pathname.startsWith('/api/');
     const isServerAction = req.method === 'POST' && req.headers.has('next-action');
 
-    // ── P0 #3 — restricted-session turn-aways (take precedence) ──────────
-    if ((token as { revoked?: boolean } | null)?.revoked) {
+    // ── P0 #3 / P1 — restricted-session turn-aways (take precedence) ─────
+    // The jwt callback re-derives the session state from the database every
+    // request (src/lib/auth/session-state.ts). REVOKED = a version bump /
+    // password change on any device, a deleted account, or the DB check
+    // failing closed.
+    const sessionState = (token as { state?: string } | null)?.state;
+    if ((token as { revoked?: boolean } | null)?.revoked || sessionState === 'REVOKED') {
       if (isServerAction) return noStore(NextResponse.next());
       return isApi
         ? noStore(NextResponse.json({ error: 'SESSION_REVOKED' }, { status: 401 }))

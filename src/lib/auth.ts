@@ -14,7 +14,21 @@ import { db } from '@/lib/db';
 import { runUnscoped } from '@/lib/db/org-scope';
 import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
 import { isSsoEnforcedForEmail } from '@/lib/identity/service';
-import { tokenIsRevokedByPasswordChange } from '@/lib/auth/token-revocation';
+import {
+  deriveSessionState,
+  assertTransition,
+  InvalidSessionTransitionError,
+  type SessionState,
+} from '@/lib/auth/session-state';
+import { withTimeout } from '@/lib/util/with-timeout';
+import type { SessionMembership } from '@/types/next-auth';
+
+/** Fail-closed ceiling for the per-request DB-backed session-state check.
+ * A function (not a const) so a test can override the env var. */
+function sessionLookupTimeoutMs(): number {
+  const v = Number(process.env.SESSION_LOOKUP_TIMEOUT_MS);
+  return Number.isFinite(v) && v > 0 ? v : 2500;
+}
 
 /**
  * NextAuth configuration for the A2R Delivery OS SaaS foundation.
@@ -93,72 +107,110 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.userId = user.id;
       }
-      // Refresh membership list + platform-staff flag on every request that
-      // has a userId — cheap indexed queries, and keeps role/org/staff
-      // changes visible without forcing a re-login.
-      //
-      // Wrapped in try/catch so a transient DB error (or a Prisma client that
-      // is momentarily out of sync with the schema, e.g. right after a
-      // `db push` before the dev server restarts) degrades gracefully: we
-      // keep whatever the token already carried and let the next request
-      // refresh it, rather than throwing out of the callback — an uncaught
-      // throw here makes the NextAuth route return an empty-body 500, which
-      // surfaces client-side as "Unexpected end of JSON input".
-      if (token.userId) {
-        try {
-          // Runs on every request before requireOrgContext resolves the
-          // active tenant — User + Membership are UNSCOPED models, but wrap
-          // so the org-scope extension never throws here.
-          const [account, memberships, isStaff] = await runUnscoped('nextauth-jwt', () =>
+      if (!token.userId) return token;
+
+      // ── P1 — DB-backed session-state check, EVERY request ─────────────
+      // Not "trust the JWT's exp claim": the authoritative state comes from
+      // the database (users.sessionVersion / .passwordChangedAt /
+      // .mustChangePassword). Bounded so a hung DB fails the session
+      // closed. Any failure — error, timeout, missing user, version
+      // mismatch — resolves to REVOKED. There is no fail-open path.
+      let account:
+        | { mustChangePassword: boolean; passwordChangedAt: Date | null; sessionVersion: number }
+        | null = null;
+      let mappedMemberships: SessionMembership[] = [];
+      let isStaff = false;
+      let lookupFailed = false;
+
+      try {
+        const [acct, mems, staff] = await withTimeout(
+          runUnscoped('nextauth-jwt', () =>
             Promise.all([
               db.user.findUnique({
                 where: { id: token.userId as string },
-                select: { mustChangePassword: true, passwordChangedAt: true },
+                select: { mustChangePassword: true, passwordChangedAt: true, sessionVersion: true },
               }),
               db.membership.findMany({
                 where: { userId: token.userId as string },
                 include: { organization: { select: { id: true, name: true, slug: true, status: true } } },
                 orderBy: { createdAt: 'asc' },
               }),
-              // Staff access is an explicit, revocable staff_grants row — no
-              // email-domain shortcut. Re-resolved every request so a grant
-              // or revoke takes effect on the next navigation.
               hasActiveStaffGrant(token.userId as string),
-            ])
-          );
-
-          // P0 #3 — session revocation. Any token issued before the account's
-          // last password change belongs to a session that must die (e.g. a
-          // temp-password session on another device, still live after the
-          // user set their own password).
-          if (tokenIsRevokedByPasswordChange(token.iat, account?.passwordChangedAt ?? null)) {
-            return { revoked: true };
-          }
-
-          token.isA2rStaff = isStaff;
-          token.mustChangePassword = account?.mustChangePassword === true;
-          token.memberships = memberships.map((m) => ({
-            organizationId: m.organizationId,
-            organizationName: m.organization.name,
-            organizationSlug: m.organization.slug,
-            organizationStatus: m.organization.status,
-            role: m.role,
-            deliveryRole: m.deliveryRole,
-          }));
-        } catch (err) {
-          console.error('[auth] jwt callback refresh failed; serving stale token', err);
-          token.isA2rStaff ??= false;
-          token.mustChangePassword ??= false;
-          token.memberships ??= [];
-        }
+            ]),
+          ),
+          sessionLookupTimeoutMs(),
+          'session-state lookup',
+        );
+        account = acct;
+        isStaff = staff;
+        mappedMemberships = mems.map((m) => ({
+          organizationId: m.organizationId,
+          organizationName: m.organization.name,
+          organizationSlug: m.organization.slug,
+          organizationStatus: m.organization.status,
+          role: m.role,
+          deliveryRole: m.deliveryRole,
+        }));
+      } catch (err) {
+        // FAIL CLOSED — never serve a stale token when the check can't run.
+        console.error('[auth] session-state lookup failed → revoking session', err);
+        lookupFailed = true;
       }
+
+      const priorState: SessionState = (token.state as SessionState | undefined) ?? 'ACTIVE';
+      let nextState = deriveSessionState({
+        token: {
+          userId: token.userId as string,
+          sessionVersion: token.sessionVersion as number | undefined,
+          issuedAtSec: token.iat as number | undefined,
+          revoked: token.revoked,
+        },
+        account: account
+          ? {
+              exists: true,
+              sessionVersion: account.sessionVersion,
+              mustChangePassword: account.mustChangePassword,
+              passwordChangedAt: account.passwordChangedAt,
+            }
+          : { exists: false },
+        lookupFailed,
+      });
+
+      // The transition table is the last guard — a corrupted/tampered
+      // `state` claim producing an impossible move also fails closed.
+      try {
+        assertTransition(priorState, nextState);
+      } catch (err) {
+        if (err instanceof InvalidSessionTransitionError) nextState = 'REVOKED';
+        else throw err;
+      }
+
+      if (nextState === 'REVOKED') {
+        return { revoked: true, state: 'REVOKED' };
+      }
+
+      // Pin the token to the account's epoch — ONCE (fresh login, or the
+      // first refresh of a legacy pre-P1 token). Never re-pinned afterward,
+      // or a stale token would heal itself past a version bump.
+      if (token.sessionVersion === undefined && account) {
+        token.sessionVersion = account.sessionVersion;
+      }
+      token.state = nextState;
+      token.isA2rStaff = isStaff;
+      token.mustChangePassword = nextState === 'PENDING_PASSWORD_CHANGE';
+      token.memberships = mappedMemberships;
       return token;
     },
     async session({ session, token }) {
-      // P0 #3 — a token the jwt callback revoked (password changed on
-      // another device, or a malformed token) yields a session with NO
-      // user, so every server guard treats the request as signed-out.
-      if ((token as { revoked?: boolean }).revoked || !token.userId) {
+      // A token the jwt callback resolved to REVOKED (version bump / password
+      // change on another device / DB check failed closed / malformed) yields
+      // a session with NO user, so every server guard treats the request as
+      // signed-out.
+      if (
+        (token as { revoked?: boolean }).revoked ||
+        (token as { state?: string }).state === 'REVOKED' ||
+        !token.userId
+      ) {
         return { ...session, user: undefined as unknown as Session['user'] };
       }
       if (session.user) {

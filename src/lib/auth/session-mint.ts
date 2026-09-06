@@ -1,10 +1,11 @@
 /**
- * P0 #3 — mint a fresh NextAuth session cookie server-side.
+ * P0 #3 / P1 — mint a fresh NextAuth session cookie server-side.
  *
- * After `changePasswordAction` revokes every existing token (by bumping
- * `users.passwordChangedAt`), the current device would also be logged out.
- * This issues one new session token for it so the user stays signed in with
- * a clean, fully-authenticated session — no manual re-login.
+ * `changePasswordAction` bumps `users.sessionVersion` (and stamps
+ * `passwordChangedAt`), which revokes EVERY existing token — including the
+ * current device's. This issues one new token pinned to the NEW
+ * sessionVersion so the acting device stays signed in with a clean,
+ * fully-authenticated (state = ACTIVE) session — no manual re-login.
  *
  * NextAuth v4 JWT strategy: `encode` from `next-auth/jwt` produces exactly
  * the encrypted JWE the `[...nextauth]` route's `decode` expects (same
@@ -23,6 +24,9 @@ interface FreshSessionClaims {
   userId: string;
   email?: string | null;
   name?: string | null;
+  /** P1 — pin the fresh token to the account's CURRENT sessionVersion so it
+   * survives the `{ increment: 1 }` that just revoked every other token. */
+  sessionVersion: number;
 }
 
 /**
@@ -38,6 +42,8 @@ export async function establishFreshSession(claims: FreshSessionClaims): Promise
     token: {
       userId: claims.userId,
       sub: claims.userId,
+      state: 'ACTIVE',
+      sessionVersion: claims.sessionVersion,
       ...(claims.email ? { email: claims.email } : {}),
       ...(claims.name ? { name: claims.name } : {}),
     },

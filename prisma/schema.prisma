@@ -48,10 +48,17 @@ model User {
   // PASSWORD_CHANGE_REQUIRED (see src/lib/auth/password-rotation.ts).
   mustChangePassword Boolean @default(false)
 
-  // Set every time the password changes. The NextAuth jwt callback revokes
-  // any session token issued before this instant, so a password change
-  // logs out every other device (P0 #3, requirement 3).
+  // Set every time the password changes — an audit timestamp, and a
+  // belt-and-suspenders revocation signal (a token whose `iat` predates it
+  // is REVOKED).
   passwordChangedAt DateTime?
+
+  // P1 — the session state machine's token-version / epoch. Every session
+  // token is minted carrying the value it saw here; `changePasswordAction`
+  // (and any future forced-logout event) does `{ increment: 1 }`, so every
+  // token minted before that instant fails the DB-backed check in the
+  // NextAuth jwt callback and is REVOKED. See docs/SESSION_STATE_MACHINE.md.
+  sessionVersion Int @default(0)
 
   createdAt DateTime @updatedAt @default(now())
   updatedAt DateTime @updatedAt
