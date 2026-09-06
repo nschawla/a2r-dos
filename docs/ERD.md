@@ -1,9 +1,24 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.10.0** (no schema change since v1.9.0 — v1.10.0 is
-payload-validation, session-lifecycle and production-polish hardening;
-Role-Based Scoped Filtering, the Custom KPI
+it, current as of **v1.11.0**.
+**v1.11.0 (data-model integrity, Phase 1)** — (a) **financial precision:**
+13 monetary / rate / margin / EAC / BAC columns move `Float` →
+`Decimal` (Postgres `NUMERIC`; migration `00000000000018`) —
+`DeliveryRole.billRate`/`costRate` `(12,4)`, `Project.bac` / `actualsCost` /
+`unscheduledBacklog` / `vac` / `directIntakeTargetRevenue` and
+`FinancialActual.cost` `(14,2)`, `Project.contingencyPct` /
+`directIntakeBlendedMarginPct` and `OrgPolicy.marginCritPct` `(7,4)`,
+`CustomKpi.targetValue` / `warningValue` `(18,6)`. Hours / FTE / utilisation
+/ `pctComplete` stay `Float`. (b) **audit-history retention:** three FK
+`onDelete` actions become `Restrict` (migration `00000000000019`) —
+`StaffGrant.user` → `users`, `StaffElevation.user` → `users`,
+`ImpersonationGrant.organization` → `organizations` — so a raw `DELETE` of
+the principal is refused while any history row exists (mirrors the CMP-1
+`Restrict` on `audit_logs` / `activity_log_entries` /
+`immutable_audit_ledger`).
+v1.10.0 was payload-validation, session-lifecycle and production-polish
+hardening (no schema change). Role-Based Scoped Filtering, the Custom KPI
 Definition Engine, the complete 4-pillar Batch Import Engine, forced
 first-sign-in password change, and the v1.7.0 security-architecture batch:
 `User.sessionVersion` (migration `00000000000011`), **composite tenant
@@ -208,9 +223,9 @@ DB-free authorization check and the Prisma query so the two can't drift.
 | Model | Purpose |
 |---|---|
 | `Account`, `Session`, `VerificationToken` | Auth.js/NextAuth adapter tables (OAuth plumbing; credentials login uses JWT sessions, not these). |
-| `StaffGrant` | Explicit, attributed, revocable A2R-operator entitlement (replaced the email-domain wildcard + `isA2rStaff` boolean in v1.6.0). A live row = *eligibility* to reach `/ops`. |
-| `StaffElevation` | v1.7.0 — the Just-In-Time, reason-logged, auto-expiring grant every *mutating* `/ops` action requires on top of a `StaffGrant`. Session-bound via the `a2r_ops_elevation` cookie; row stores `tokenHash` only (v1.8.0). |
-| `ImpersonationGrant` | The Impersonation Gateway's time-boxed, audited operator → tenant sessions. Row stores `tokenHash` only (v1.8.0). |
+| `StaffGrant` | Explicit, attributed, revocable A2R-operator entitlement (replaced the email-domain wildcard + `isA2rStaff` boolean in v1.6.0). A live row = *eligibility* to reach `/ops`. `user` FK is `onDelete: Restrict` (v1.11.0) — the entitlement history outlives a raw user delete. Never swept by data-retention. |
+| `StaffElevation` | v1.7.0 — the Just-In-Time, reason-logged, auto-expiring grant every *mutating* `/ops` action requires on top of a `StaffGrant`. Session-bound via the `a2r_ops_elevation` cookie; row stores `tokenHash` only (v1.8.0). `user` FK `onDelete: Restrict` (v1.11.0); never swept. |
+| `ImpersonationGrant` | The Impersonation Gateway's time-boxed, audited operator → tenant sessions. Row stores `tokenHash` only (v1.8.0). `organization` FK `onDelete: Restrict` (v1.11.0); removed from the data-retention sweep (v1.11.0) — the ledger's `ADMIN_IMPERSONATION_ACCESS` entry is the permanent record. |
 | `OrgPolicy` | Legacy per-tenant tolerances (slip/margin thresholds) predating `GovernanceConfig`. |
 | `ControlLabel` | Per-tenant display-label override for a `CTRL_01..10` key (the labels are editable; the keys are frozen — see `docs/` control-audit nomenclature notes). |
 | `ProjectContributor`, `ScopeItem` | Project-level contributor tagging and scope-item breakdown. |

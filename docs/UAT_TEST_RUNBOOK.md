@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — UAT Test Runbook
 
-_Applies to v1.10.x · Last updated 2026-09-06_
+_Applies to v1.11.x · Last updated 2026-09-06_
 
 This runbook is the human-executable half of the QA framework. It gives a
 tester **explicit login data, exact steps, expected visual outcomes, and a
@@ -65,7 +65,7 @@ All demo passwords are **`password12345`** unless noted.
 ## 2. Automated coverage (run before manual UAT)
 
 ```bash
-npm test            # Vitest — 596 unit + integration tests across 48 files, ~10s
+npm test            # Vitest — 602 unit + integration tests across 50 files, ~10s
 npx tsc --noEmit    # strict typecheck, 0 errors
 npm run build       # next build — must compile cleanly
 npm run test:e2e    # Playwright — full Suites A–P against a running dev server
@@ -95,6 +95,8 @@ npm run test:e2e    # Playwright — full Suites A–P against a running dev ser
 | Explicit global sign-out (v1.10.0) — `sessionVersion` bump revokes all devices | `tests/security/sign-out-everywhere.test.ts` · manual UAT-3.12 |
 | Cookie flags (v1.10.0) — app cookies `sameSite:'strict'` + `secure` + `httpOnly`; NextAuth flags pinned | `tests/security/cookie-flags.test.ts` |
 | Error sanitization (v1.10.0) — every API route wrapped; no raw error in a response body | `tests/security/error-sanitization.test.ts` |
+| Financial precision (v1.11.0) — money / rates / margins stored as exact `NUMERIC`; exact `_sum` | `tests/financial-precision.test.ts` (round-trip + no-float-drift SUM) |
+| Security-history retention (v1.11.0) — user / org delete cannot cascade-destroy staff grants, elevations, impersonation grants | `tests/security/security-history-cascade.test.ts` · `tests/data-retention.test.ts` (sweep never touches them) |
 
 A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 
@@ -278,6 +280,20 @@ or operator flow.
 logout is device-local; app cookies are Strict/Secure/HttpOnly; no
 legitimate payload is rejected by the strict schemas.
 
+### UAT-3.13 · financial precision & audit-history retention (v1.11.0)
+
+Mostly automated (§2); this confirms the assembled product.
+
+| Step | Action | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | Admin & Org Setup → Roster → add a rate-card role with **Bill rate `210.5`**, **Cost rate `152.3399`**. | Saves; the row shows the rounded display (`$211` / masked) — and re-opening / a DB read shows the value stored exactly (no `152.33990001`). | |
+| 2 | Financial Realization for any engagement — open the EAC editor, edit an actual cost, save. | Totals reconcile exactly to the cents; no drift versus the sum of the lines. | |
+| 3 | `npm run retention:sweep` (dry run) | The report lists only `ActivityLogEntry`, `AuditLog`, `ApiKey` — **not** `ImpersonationGrant`, and never `StaffGrant` / `StaffElevation`. | |
+| 4 | (DB) attempt `DELETE FROM users WHERE id = <an operator with a staff grant>` | Rejected — foreign-key `RESTRICT`; the `staff_grants` / `staff_elevations` rows are untouched. | |
+
+**Checkpoint:** money is exact end-to-end; the operator-access and audit
+history cannot be cascade-deleted or swept away.
+
 ---
 
 ## 4. Module runbooks
@@ -351,7 +367,7 @@ Sign in as `ops@a2rventures.com` (or `navinder@…`).
 | 7 | **Ingestion & Templates** | CSV template downloads + schema reference | |
 | 8 | **Staff Access** | Grants table + the **Just-In-Time elevations** audit table (who, why, expiry, active/ended) | |
 | 9 | Impersonate a tenant (elevate first; Tenants → actions → Impersonate, give a reason) | Opens a **read-only** tenant session with a persistent banner; the reason is written to that tenant's Compliance Ledger before the session starts | |
-| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.10.x`; click → Release Notes modal (top entry: v1.10.0) | |
+| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.11.x`; click → Release Notes modal (top entry: v1.11.0) | |
 
 ### UAT-4.6 · Admin & Org Setup (`/admin`)
 
@@ -429,7 +445,7 @@ Sign in as `admin@a2rventures-demo.test`.
 | 9 | No stray `DataImportBatch` rows or test `WeeklyAssignmentSlot`/`SchedulePhase` writes left in the demo tenant from batch-import testing | |
 | 10 | No stray test `CustomKpi` rows left in the demo tenant from Custom KPI Builder testing | |
 | 11 | No stray `staff_elevations` rows or throwaway tenants (`JIT Elevation Test Inc`, `Enterprise Sanity Inc`, `Purge Target Inc`) left from Ops testing | |
-| 12 | Release Notes modal top entry = **v1.10.0**; Ops sidebar build stamp = `v1.10.x` | |
+| 12 | Release Notes modal top entry = **v1.11.0**; Ops sidebar build stamp = `v1.11.x` | |
 
 ---
 

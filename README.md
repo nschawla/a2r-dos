@@ -1763,6 +1763,56 @@ hygiene, P2 production polish.
 passed** (Suites A–P); `npm run build` → clean; staging
 `npm run db:rls:smoke` → OK (28 tables).
 
+## Phase 8 — Data-model integrity: financial precision & audit retention (v1.11.0)
+
+Phase 1 of the enterprise-readiness hardening plan.
+
+### FRD — functional summary
+
+- **Financial precision — `Float` → `Decimal` (Postgres `NUMERIC`), 13
+  columns (migration 18, applied production + staging).** `$` amounts →
+  `NUMERIC(14,2)`, `$/hr` rates → `NUMERIC(12,4)`, percentages →
+  `NUMERIC(7,4)`, KPI thresholds → `NUMERIC(18,6)`. Money is now exact at
+  rest, and a Prisma `_sum` over a portfolio is an exact decimal with no
+  accumulated float error. Hours / FTE / utilisation / `pctComplete` stay
+  `Float` (non-monetary). **Storage-only precision boundary:**
+  `src/server/queries/calc-adapters.ts` converts `Decimal` → `number` at the
+  one documented Prisma→plain-number boundary, so `src/lib/calculations/**`
+  and its test suite are untouched; other read boundaries (the reporting
+  queries, the KPI queries, the workspace-snapshot build, and the
+  financials / commercial-baseline / admin pages) convert with `Number()` —
+  a Prisma `Decimal` does not serialise into a Client Component. Writes are
+  unchanged (Prisma coerces `number` → `NUMERIC`).
+- **Security-history preserved on delete (migration 19, applied production +
+  staging).** `staff_grants.userId`, `staff_elevations.userId` and
+  `impersonation_grants.organizationId` become `ON DELETE RESTRICT` — a raw
+  `DELETE` of the user or organization is refused while any history row
+  exists, so a cascade can never destroy the operator-access trail (the
+  posture the audit tables have had since CMP-1). Normal lifecycle is
+  unaffected (revoke / end / the soft Purge Protocol).
+- **The data-retention sweep no longer deletes ended impersonation grants.**
+  Operator-access history — impersonation grants, staff grants, staff
+  elevations — is retained indefinitely; the `ImmutableAuditLedger` is the
+  permanent tamper-evident record. `RETENTION_IMPERSONATION_GRANT_DAYS`
+  removed.
+
+### RTM — requirements traceability (Phase 8)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| DATA-1 | Money / rate / margin / EAC / BAC columns are exact `NUMERIC` | `prisma/schema.prisma`, migration 18 | `tests/financial-precision.test.ts` (exact round-trip, exact `_sum`) |
+| DATA-2 | `Decimal` → `number` at the calc boundary; engine untouched | `src/server/queries/calc-adapters.ts` | full `tests/calculations.test.ts` (unchanged) + suite green |
+| SEC-HIST-1 | User / org delete cannot cascade-destroy security history | `prisma/schema.prisma`, migration 19 | `tests/security/security-history-cascade.test.ts` |
+| SEC-HIST-2 | Retention sweep excludes operator-access history | `src/server/services/data-retention.ts` | `tests/data-retention.test.ts` |
+
+**Verification:** against **production** (`.env`, RLS off) **and staging**
+(`RLS_ENFORCE=1`, `a2r_app`): `npx tsc --noEmit` → 0; `npm run lint` → 0/0;
+`npx vitest run` → **602 passed** (50 files); `npx playwright test` → **60
+passed** (Suites A–P); `npm run build` → clean; staging
+`npm run db:rls:smoke` → OK. Migrations 18 + 19 rehearsed
+(`BEGIN … ROLLBACK`) then applied to both databases; `prisma migrate diff`
+→ no drift.
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to

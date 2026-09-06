@@ -1,6 +1,6 @@
 # A2R Delivery OS — Security & Trust Overview
 
-_Last reviewed: 2026-09-06 · Applies to v1.10.0 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-06 · Applies to v1.11.0 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of A2R Delivery OS™. It is written for the security and
@@ -386,14 +386,19 @@ requests.
 
 High-volume, non-authoritative records are swept on a configurable schedule by
 `src/server/services/data-retention.ts`. It **deletes whole rows past a
-retention window and never edits a row**, and it **never touches the Immutable
-Compliance Ledger or timesheet records**.
+retention window and never edits a row**, and it **never touches**:
+
+- the Immutable Compliance Ledger or timesheet records;
+- **the operator-access history — `StaffGrant`, `StaffElevation`,
+  `ImpersonationGrant` (v1.11.0 removed `ImpersonationGrant` from the
+  sweep).** These are retained indefinitely for compliance; the ledger's
+  `ADMIN_IMPERSONATION_ACCESS` / `STAFF_*` entries are the permanent,
+  tamper-evident record.
 
 | Record class | Default window | Env override |
 | --- | --- | --- |
 | `ActivityLogEntry` (activity feed) | 730 days (24 months) | `RETENTION_ACTIVITY_LOG_DAYS` |
 | `AuditLog` (governance trail) | 2555 days (~7 years) | `RETENTION_AUDIT_LOG_DAYS` |
-| `ImpersonationGrant` (ended / long-expired) | 545 days (18 months) | `RETENTION_IMPERSONATION_GRANT_DAYS` |
 | `ApiKey` (revoked / long-expired) | 365 days (12 months) | `RETENTION_API_KEY_DAYS` |
 
 - Any window shorter than 30 days, or a non-numeric value, is ignored — a
@@ -405,6 +410,14 @@ Compliance Ledger or timesheet records**.
   `POST /api/internal/retention`, which authenticates with a shared secret
   (`RETENTION_API_TOKEN`, for a cron scheduler) or an A2R staff session, and is
   rate-limited.
+- **Cascade protection (v1.11.0).** `staff_grants.userId`,
+  `staff_elevations.userId` and `impersonation_grants.organizationId` are
+  `ON DELETE RESTRICT` — a raw `DELETE` of the user or organization is
+  refused while any history row exists, so a cascade can never destroy the
+  operator-access trail (the same posture the audit tables have carried
+  since CMP-1). Normal lifecycle is unaffected (revoke / end / the soft
+  Purge Protocol). Per-subject GDPR erasure for an operator is an in-place
+  anonymise of the `users` row, not a hard delete.
 
 ---
 
@@ -566,7 +579,7 @@ Compliance Ledger or timesheet records**.
 
 ## 10. Testing & verification
 
-- **596** unit tests (Vitest, 48 files) covering the calculation engine, data
+- **602** unit tests (Vitest, 50 files) covering the calculation engine, data
   masking (incl. the org governance override), API-key crypto, the bearer-token
   hash primitives, the in-process **and** distributed (Upstash) rate limiter
   and its named-rule table, direct-SQL RLS enforcement for the `a2r_app`
@@ -616,6 +629,8 @@ Compliance Ledger or timesheet records**.
 | Distributed rate limiting (atomic across instances) | **Implemented** (§9) — v1.8.0, opt-in via Upstash |
 | Mass-assignment protection (strict request schemas) | **Implemented** (§9) — v1.10.0 |
 | Explicit global sign-out + hardened cookie flags | **Implemented** (§2) — v1.10.0 |
+| Exact financial precision (money / rates as `NUMERIC`, not float) | **Implemented** — v1.11.0, migration 18 |
+| Security-history preserved on delete (FK `RESTRICT`) | **Implemented** (§7) — v1.11.0, migration 19 |
 | Just-In-Time privileged access (no standing operator sessions) | **Implemented** (§1) — v1.7.0 |
 | Server-side session revocation / all-device logout | **Implemented** (§2) — v1.7.0, explicit "all sessions" v1.10.0 |
 | Structured error capture + advanced rate limiting | **Implemented** (§3, §9) — v1.7.0 |
