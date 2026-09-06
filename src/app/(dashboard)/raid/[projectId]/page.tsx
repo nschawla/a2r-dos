@@ -10,10 +10,10 @@ function toDateInputValue(d: Date | null): string {
   return d ? d.toISOString().slice(0, 10) : '';
 }
 
-export default async function RaidProjectPage({ params }: { params: { projectId: string } }) {
+export default async function RaidProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { organizationId, deliveryRole, resourceId, resourcePracticeId } = await requireOrgContext();
 
-  const { project, resources } = await loadRaidModulePage({ organizationId }, params.projectId);
+  const { project, resources } = await loadRaidModulePage({ organizationId }, (await params).projectId);
   if (!project) notFound();
 
   const health = getProjectHealth(project);

@@ -25,7 +25,7 @@ export const switchActiveOrganization = withAction('switchActiveOrganization', a
   const membership = (session.memberships ?? []).find((m) => m.organizationId === organizationId);
   if (!membership) return { ok: false, error: "You don't have access to that organization." };
 
-  cookies().set(ACTIVE_ORG_COOKIE, organizationId, {
+  (await cookies()).set(ACTIVE_ORG_COOKIE, organizationId, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',

@@ -51,7 +51,7 @@ export async function establishFreshSession(claims: FreshSessionClaims): Promise
     maxAge: SESSION_MAX_AGE,
   });
 
-  const jar = cookies();
+  const jar = await cookies();
   const useSecure = (process.env.NEXTAUTH_URL ?? '').startsWith('https://');
   // Reuse the exact name of the cookie already on the request when present
   // (covers the __Secure-/__Host- prefixes and any host-specific naming),

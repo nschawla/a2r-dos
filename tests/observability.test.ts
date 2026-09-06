@@ -103,7 +103,7 @@ describe('withRouteHandler', () => {
     const wrapped = withRouteHandler('x', async () =>
       new Response(JSON.stringify({ error: 'nope' }), { status: 404 }),
     );
-    const res = await wrapped(new Request('http://t/'), undefined);
+    const res = await wrapped(new Request('http://t/'), { params: Promise.resolve({}) });
     expect(res.status).toBe(404);
     expect(captureException).not.toHaveBeenCalled();
   });
@@ -113,7 +113,7 @@ describe('withRouteHandler', () => {
     const wrapped = withRouteHandler('reports/x', async () => {
       throw boom;
     });
-    const res = await wrapped(new Request('http://t/'), undefined);
+    const res = await wrapped(new Request('http://t/'), { params: Promise.resolve({}) });
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'Internal server error.' });
     expect(captureException).toHaveBeenCalledWith(boom, { scope: 'api', route: 'reports/x' });
@@ -124,6 +124,6 @@ describe('withRouteHandler', () => {
     const wrapped = withRouteHandler('x', async () => {
       throw signal;
     });
-    await expect(wrapped(new Request('http://t/'), undefined)).rejects.toBe(signal);
+    await expect(wrapped(new Request('http://t/'), { params: Promise.resolve({}) })).rejects.toBe(signal);
   });
 });

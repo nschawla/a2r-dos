@@ -97,7 +97,7 @@ registerLazyScopeResolver(async () => {
   // cross-tenant; middleware already verified the staff token, re-check here.
   let onOpsConsole = false;
   try {
-    onOpsConsole = headers().get('x-a2r-scope') === 'ops';
+    onOpsConsole = (await headers()).get('x-a2r-scope') === 'ops';
   } catch {
     /* not in a request */
   }
@@ -118,7 +118,7 @@ async function resolveOrgContextInner(): Promise<OrgContextResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, reason: 'unauthenticated' };
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const memberships = session.memberships ?? [];
 
   // ── Impersonation Gateway override (A2R staff only) ──

@@ -41,7 +41,7 @@ export const requestOpsElevationAction = withAction('requestOpsElevationAction',
   const parsed = requestSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
 
-  const fwd = headers().get('x-forwarded-for');
+  const fwd = (await headers()).get('x-forwarded-for');
   const ip = fwd ? fwd.split(',')[0]?.trim() ?? null : null;
 
   const result = await requestElevation({
@@ -52,7 +52,7 @@ export const requestOpsElevationAction = withAction('requestOpsElevationAction',
   });
   if (!result.ok) return result;
 
-  cookies().set(ELEVATION_COOKIE, result.token, {
+  (await cookies()).set(ELEVATION_COOKIE, result.token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
@@ -68,11 +68,12 @@ export async function endOpsElevationAction(): Promise<{ ok: true }> {
   // De-escalation — a signed-in session is enough (you may already be past
   // your window and still want the cookie gone).
   const session = await getServerSession(authOptions);
-  const token = cookies().get(ELEVATION_COOKIE)?.value;
+  const jar = await cookies();
+  const token = jar.get(ELEVATION_COOKIE)?.value;
   if (session?.user && token) {
     await endElevation(token, 'operator');
   }
-  cookies().delete(ELEVATION_COOKIE);
+  jar.delete(ELEVATION_COOKIE);
   revalidatePath('/ops', 'layout');
   return { ok: true };
 }

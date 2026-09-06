@@ -40,7 +40,8 @@ const RAID_TYPE_LABEL: Record<string, string> = { RISK: 'Risk', ASSUMPTION: 'Ass
  * page and the Reports Hub itself use, so this can never drift from what
  * the app's own pages show.
  */
-export const GET = withRouteHandler<{ params: { projectId: string } }>('projects/status-report', async (_request, { params }) => {
+export const GET = withRouteHandler<{ params: Promise<{ projectId: string }> }>('projects/status-report', async (_request, { params }) => {
+  const { projectId } = await params;
   const blocked = await passwordRotationGate();
   if (blocked) return blocked;
   const context = await getOrgContextOrNull();
@@ -51,7 +52,7 @@ export const GET = withRouteHandler<{ params: { projectId: string } }>('projects
 
   const { project, roles, policy, escalatedRaid, decisions } = await loadStatusReport(
     { organizationId: context.organizationId },
-    params.projectId,
+    projectId,
   );
   if (!project) return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
 

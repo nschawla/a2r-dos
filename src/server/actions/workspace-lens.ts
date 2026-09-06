@@ -25,7 +25,7 @@ export async function setWorkspaceLens(lens: string): Promise<{ ok: boolean; len
   // else collapses to their resolved default.
   const next = isLens(lens) && availableLenses(ctx).includes(lens) ? lens : resolveLens(null, ctx);
 
-  cookies().set(LENS_COOKIE, next, {
+  (await cookies()).set(LENS_COOKIE, next, {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',

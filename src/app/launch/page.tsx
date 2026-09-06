@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 export default async function LaunchPage() {
   const { session, deliveryRole, governance } = await requireOrgContext();
   const isA2rStaff = session.user.isA2rStaff === true;
-  const stored = cookies().get(LENS_COOKIE)?.value ?? null;
+  const stored = (await cookies()).get(LENS_COOKIE)?.value ?? null;
 
   redirect(
     landingFor(

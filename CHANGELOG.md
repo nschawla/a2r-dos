@@ -10,6 +10,45 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.7.1] — 2026-09-06
+
+_Framework upgrade — Next.js 15 (LTS) and a clean lint sweep._
+
+### Changed
+
+- **Next.js `14.2.35` → `15.5.25`** (the `backport` / security-maintained LTS
+  line), **`next-auth` → `4.24.15`**, **`eslint-config-next` → `15.5.25`**.
+  React stays on `18.3` (Next 15 peer-supports it). Clears the Next.js
+  advisories affecting the 14.2 line; `npm audit` no longer flags `next`
+  or `react`.
+- **Async request APIs.** Every `cookies()` / `headers()` call and every
+  dynamic-route `params` / `searchParams` prop is now awaited, as Next 15
+  requires. ~25 files across pages, route handlers, and server actions.
+  `next.config.mjs` drops the removed `experimental.instrumentationHook`.
+- **`postcss` forced to `^8.5.6`** via a package override — Next 15 bundled
+  an 8.4.31 with the source-map path-traversal advisories.
+
+### Fixed
+
+- **The org-scope `AsyncLocalStorage` cell is now a `globalThis` singleton**
+  (`src/lib/db/org-scope.ts`). Next's dev module graph could evaluate the
+  module twice, so `runUnscoped()` wrote one instance while the Prisma
+  extension read another — a legitimately cross-tenant pre-session query
+  (the NextAuth `signIn` callback's `isSsoEnforcedForEmail`) then saw no
+  scope and threw. Pinning the cell on `globalThis` removes it.
+- **Linter clean sweep — `npm run lint` reports 0 errors, 0 warnings.**
+  Escaped three text apostrophes (`react/no-unescaped-entities`), added
+  `**/*.d.ts` / `**/*.d.mts` to `ignorePatterns` (ESLint's parser can't read
+  TS declaration syntax), and registered the `@typescript-eslint` plugin so
+  the inline rule directives in `src/lib/db.ts` resolve.
+
+### Verification
+
+- `npx tsc --noEmit` → 0 errors. `npm run lint` → **0 errors, 0 warnings**.
+  `npx vitest run` → **536 passed** (43 files). `npx playwright test` →
+  **60 passed** (Suites A–P). `npm run build` → compiled cleanly on
+  Next 15.5.25.
+
 ## [1.7.0] — 2026-09-06
 
 _Security architecture hardening — tenant isolation, session integrity, JIT operator elevation, and production observability._

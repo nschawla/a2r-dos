@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const lensCtx = { deliveryRole, isA2rStaff, maskFinancialsForDelivery: governance.maskFinancialsForDelivery };
   const lenses = availableLenses(lensCtx);
-  const currentLens = resolveLens(cookies().get(LENS_COOKIE)?.value ?? null, lensCtx);
+  const currentLens = resolveLens((await cookies()).get(LENS_COOKIE)?.value ?? null, lensCtx);
   const realRbacPersona = personaForDeliveryRole(deliveryRole);
 
   // A2R Operator Control Plane — a SUSPENDED tenant retains all its data but

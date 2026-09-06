@@ -8,10 +8,10 @@ import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { getProjectHealth } from '@/server/queries/health';
 import { canEditProject } from '@/lib/auth/rbac';
 
-export default async function AuditProjectPage({ params }: { params: { projectId: string } }) {
+export default async function AuditProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { organizationId, deliveryRole, resourceId, resourcePracticeId } = await requireOrgContext();
 
-  const { project, controlLabels } = await loadAuditModulePage({ organizationId }, params.projectId);
+  const { project, controlLabels } = await loadAuditModulePage({ organizationId }, (await params).projectId);
   if (!project) notFound();
 
   const health = getProjectHealth(project);

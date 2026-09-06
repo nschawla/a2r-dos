@@ -66,7 +66,7 @@ export default async function AdminPage() {
           <h2 className="text-[15.5px] font-bold">Custom KPIs</h2>
           <p className="text-[12.5px] text-ink-muted mt-1 max-w-xl">
             Bind your own metric cards to real financials, schedule, RAID, and capacity data, and assign them to the
-            personas who should see them — cards render automatically on the portfolio dashboards they're bound to.
+            personas who should see them — cards render automatically on the portfolio dashboards they&apos;re bound to.
           </p>
         </div>
         <span className="text-brand text-xs font-semibold flex-none">Open →</span>

@@ -36,6 +36,18 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.7.1',
+    date: '2026-09-06',
+    headline: 'Framework upgrade — Next.js 15 (LTS) and a clean lint sweep',
+    changes: [
+      { type: 'security', text: 'Upgraded to Next.js 15.5.25 (the security-maintained LTS line) and next-auth 4.24.15, clearing the Next.js advisories that affected the 14.2 line. React stays on 18.3.' },
+      { type: 'improvement', text: 'Migrated every server component, route handler, and server action to the async request APIs (cookies / headers / route params are awaited) that Next.js 15 requires.' },
+      { type: 'fix', text: 'The tenant-scope cell is now a process-wide singleton — this removes a class of spurious "ran with no tenant scope" errors that could appear during sign-in when the module was evaluated more than once.' },
+      { type: 'improvement', text: 'The linter now reports zero errors and zero warnings: fixed unescaped text entities, stopped linting TypeScript declaration files, and registered the TypeScript ESLint plugin so rule directives resolve.' },
+      { type: 'security', text: 'Forced the bundled PostCSS build tool up to a patched 8.5.x, clearing its source-map path-traversal advisories.' },
+    ],
+  },
+  {
     version: '1.7.0',
     date: '2026-09-06',
     headline: 'Security architecture hardening — tenant isolation, session integrity, JIT operator elevation, and production observability',

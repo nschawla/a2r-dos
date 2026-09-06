@@ -1,5 +1,15 @@
 {
   "extends": "next/core-web-vitals",
+  "plugins": ["@typescript-eslint"],
+  "ignorePatterns": [
+    "**/*.d.ts",
+    "**/*.d.mts",
+    ".next/",
+    "node_modules/",
+    "coverage/",
+    "playwright-report/",
+    "test-results/"
+  ],
   "overrides": [
     {
       "files": ["src/app/**/*.ts", "src/app/**/*.tsx", "src/components/**/*.ts", "src/components/**/*.tsx"],

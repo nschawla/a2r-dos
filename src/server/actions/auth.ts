@@ -55,7 +55,7 @@ const registerSchema = z.object({
  */
 export const registerOrganization = withAction('registerOrganization', async (input: unknown): Promise<ActionResult> => {
   // Public, unauthenticated boundary — per-IP brute-force / abuse cap.
-  const limited = rateLimitByIp('auth:register', RATE_LIMITS.REGISTER);
+  const limited = await rateLimitByIp('auth:register', RATE_LIMITS.REGISTER);
   if (limited) return limited;
 
   // Public signup, but a signed-in forced-rotation session must not be able

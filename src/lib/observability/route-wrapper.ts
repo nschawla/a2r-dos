@@ -3,10 +3,16 @@
  *
  * P2 — the centralized server-side error boundary for Route Handlers.
  *
- *   export const GET = withRouteHandler('reports/portfolio-csv', async (req, ctx) => {
+ *   export const GET = withRouteHandler('reports/portfolio-csv', async (req) => {
  *     …
  *     return new NextResponse(csv, { status: 200, headers });
  *   });
+ *
+ *   // dynamic route — declare the params shape (Next 15: params is async)
+ *   export const GET = withRouteHandler<{ params: Promise<{ projectId: string }> }>(
+ *     'projects/export',
+ *     async (req, { params }) => { const { projectId } = await params; … },
+ *   );
  *
  * The handler's own `Response` (any status, including the 4xx it chose for
  * an auth failure or a 404) passes through untouched. Only an *unhandled
@@ -21,7 +27,11 @@ import { NextResponse } from 'next/server';
 import { captureException } from '@/lib/observability';
 import { isNextControlFlow } from '@/lib/observability/action-wrapper';
 
-export function withRouteHandler<Ctx = undefined>(
+/** Next 15 route-handler context — `params` is always a Promise; a route
+ * with no `[segment]` gets `Promise<{}>`. */
+type RouteContext = { params: Promise<Record<string, string | string[]>> };
+
+export function withRouteHandler<Ctx extends RouteContext = RouteContext>(
   name: string,
   handler: (request: Request, ctx: Ctx) => Promise<Response> | Response,
 ): (request: Request, ctx: Ctx) => Promise<Response> {

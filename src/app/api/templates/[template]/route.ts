@@ -21,7 +21,8 @@ import { RATE_LIMITS } from '@/lib/rate-limits';
 
 export const dynamic = 'force-dynamic';
 
-export const GET = withRouteHandler<{ params: { template: string } }>('templates/download', async (_request, { params }) => {
+export const GET = withRouteHandler<{ params: Promise<{ template: string }> }>('templates/download', async (_request, { params }) => {
+  const { template: templateSlug } = await params;
   const blocked = await passwordRotationGate();
   if (blocked) return blocked;
 
@@ -33,9 +34,9 @@ export const GET = withRouteHandler<{ params: { template: string } }>('templates
   const g = rateLimitGuard(`template:${session.user.id}`, RATE_LIMITS.TEMPLATE_DOWNLOAD);
   if (!g.allowed) return tooManyRequestsResponse(g.result, 'Too many template downloads. Please wait a moment.');
 
-  const template = getTemplate(params.template);
+  const template = getTemplate(templateSlug);
   if (!template) {
-    return NextResponse.json({ error: `Unknown template "${params.template}".` }, { status: 404 });
+    return NextResponse.json({ error: `Unknown template "${templateSlug}".` }, { status: 404 });
   }
 
   const res = new NextResponse(renderTemplateCsv(template), {

@@ -58,7 +58,7 @@ describe('GET /api/reports/portfolio-csv — BULK_EXPORT rate limit', () => {
     const remainings: number[] = [];
 
     for (let i = 0; i < limit; i++) {
-      const res = await portfolioCsvGET(req(), undefined);
+      const res = await portfolioCsvGET(req(), { params: Promise.resolve({}) });
       expect(res.status, `hit ${i + 1}`).toBe(200);
       expect(res.headers.get('X-RateLimit-Limit')).toBe(String(limit));
       remainings.push(Number(res.headers.get('X-RateLimit-Remaining')));
@@ -68,7 +68,7 @@ describe('GET /api/reports/portfolio-csv — BULK_EXPORT rate limit', () => {
     expect(remainings[remainings.length - 1]).toBe(0);
     expect(remainings.every((v, i) => i === 0 || v < remainings[i - 1]!)).toBe(true);
 
-    const blocked = await portfolioCsvGET(req(), undefined);
+    const blocked = await portfolioCsvGET(req(), { params: Promise.resolve({}) });
     expect(blocked.status).toBe(429);
     expect(blocked.headers.get('Retry-After')).toBeTruthy();
     expect(blocked.headers.get('X-RateLimit-Remaining')).toBe('0');
@@ -76,8 +76,8 @@ describe('GET /api/reports/portfolio-csv — BULK_EXPORT rate limit', () => {
   });
 
   it('the limit is per user — a different session is unaffected', async () => {
-    for (let i = 0; i < RATE_LIMITS.BULK_EXPORT.limit; i++) await portfolioCsvGET(req(), undefined);
-    expect((await portfolioCsvGET(req(), undefined)).status).toBe(429);
+    for (let i = 0; i < RATE_LIMITS.BULK_EXPORT.limit; i++) await portfolioCsvGET(req(), { params: Promise.resolve({}) });
+    expect((await portfolioCsvGET(req(), { params: Promise.resolve({}) })).status).toBe(429);
 
     const { getOrgContextOrNull } = await import('@/lib/session');
     (getOrgContextOrNull as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
@@ -86,7 +86,7 @@ describe('GET /api/reports/portfolio-csv — BULK_EXPORT rate limit', () => {
       organizationName: 'RL Org',
       session: { user: { id: 'other-user' } },
     });
-    expect((await portfolioCsvGET(req(), undefined)).status).toBe(200);
+    expect((await portfolioCsvGET(req(), { params: Promise.resolve({}) })).status).toBe(200);
   });
 });
 
@@ -114,7 +114,7 @@ describe('withRouteHandler ↔ observability', () => {
     const route = withRouteHandler('probe', async () => {
       throw new Error('simulated pool timeout');
     });
-    const res = await route(req(), undefined);
+    const res = await route(req(), { params: Promise.resolve({}) });
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ error: 'Internal server error.' });
   });

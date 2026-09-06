@@ -1,6 +1,6 @@
 # A2R Delivery OS — Security & Trust Overview
 
-_Last reviewed: 2026-09-06 · Applies to v1.7.0 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-06 · Applies to v1.7.1 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of A2R Delivery OS™. It is written for the security and

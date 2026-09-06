@@ -30,7 +30,20 @@ export type OrgScope =
   | { readonly kind: 'org'; readonly organizationId: string }
   | { readonly kind: 'admin'; readonly reason: string };
 
-const storage = new AsyncLocalStorage<OrgScope>();
+// The scope cell MUST be a process-wide singleton. Next's dev module graph
+// (and, historically, HMR) can evaluate this module in more than one
+// context; if `runUnscoped()` writes to one `AsyncLocalStorage` instance and
+// the Prisma extension's `currentOrgScope()` reads another, a legitimately
+// cross-tenant pre-session query (e.g. the NextAuth signIn callback's
+// `isSsoEnforcedForEmail`) sees no scope and throws `OrgScopeError`. Pinning
+// it on `globalThis` — the same trick `src/lib/db.ts` uses for the client —
+// makes `.run()` and `.getStore()` always hit the same instance.
+const globalForScope = globalThis as unknown as {
+  __a2rOrgScopeStorage?: AsyncLocalStorage<OrgScope>;
+};
+const storage: AsyncLocalStorage<OrgScope> =
+  globalForScope.__a2rOrgScopeStorage ??
+  (globalForScope.__a2rOrgScopeStorage = new AsyncLocalStorage<OrgScope>());
 
 const IS_TEST = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
 

@@ -219,7 +219,7 @@ export const impersonateTenant = withAction('impersonateTenant', async (input: u
   });
   if (!result.ok) return { ok: false, error: result.error };
 
-  cookies().set(IMPERSONATION_COOKIE, result.session.token, {
+  (await cookies()).set(IMPERSONATION_COOKIE, result.session.token, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
@@ -239,9 +239,10 @@ export const impersonateTenant = withAction('impersonateTenant', async (input: u
 
 /** End the current impersonation session (from the workspace banner). */
 export const endImpersonationAction = withAction('endImpersonationAction', async (): Promise<OpsResult> => {
-  const token = cookies().get(IMPERSONATION_COOKIE)?.value;
+  const jar = await cookies();
+  const token = jar.get(IMPERSONATION_COOKIE)?.value;
   if (token) await endImpersonation(token);
-  cookies().delete(IMPERSONATION_COOKIE);
+  jar.delete(IMPERSONATION_COOKIE);
   return { ok: true };
 });
 

@@ -39,7 +39,8 @@ import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
  * selector — they have no sizing/financials/audit of their own to report
  * on, same reasoning as the Portfolio CSV route's own exclusion.
  */
-export default async function ReportsHubPage({ searchParams }: { searchParams: { project?: string } }) {
+export default async function ReportsHubPage({ searchParams }: { searchParams: Promise<{ project?: string }> }) {
+  const { project: requested } = await searchParams;
   const context = await requireOrgContext();
   const { organizationId, deliveryRole, governance, resourceId, resourcePracticeId } = context;
 
@@ -53,7 +54,6 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: {
     healthCode: getProjectHealth(p).code,
   }));
 
-  const requested = searchParams.project;
   const selected = requested ? reportable.find((p) => p.id === requested) : undefined;
   const selectedProject = selected ?? reportable[0];
   const selectedProjectId = selectedProject?.id ?? null;

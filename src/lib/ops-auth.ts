@@ -65,7 +65,7 @@ async function toOpsContext(session: Session): Promise<OpsContext> {
   setAdminScope('ops-console');
 
   const userId = session.user.id;
-  const token = cookies().get(ELEVATION_COOKIE)?.value;
+  const token = (await cookies()).get(ELEVATION_COOKIE)?.value;
   const row = await resolveActiveElevation(token);
   // Bind to the authenticated session: a stolen / stale cookie whose row
   // belongs to a different account confers nothing.

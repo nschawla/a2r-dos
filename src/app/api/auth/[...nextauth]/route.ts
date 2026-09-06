@@ -6,7 +6,8 @@ import { captureMessage } from '@/lib/observability';
 
 const handler = NextAuth(authOptions);
 
-type RouteContext = { params: { nextauth: string[] } };
+// Next 15 — dynamic route params are async.
+type RouteContext = { params: Promise<{ nextauth: string[] }> };
 
 // SEC-1 / P2 — brute-force / credential-stuffing guard on the credentials
 // sign-in (RATE_LIMITS.LOGIN, per client IP). Only the credentials-callback
@@ -19,7 +20,8 @@ export function GET(request: Request, ctx: RouteContext) {
 }
 
 export async function POST(request: Request, ctx: RouteContext) {
-  const isCredentialsCallback = ctx.params.nextauth?.join('/') === 'callback/credentials';
+  const { nextauth } = await ctx.params;
+  const isCredentialsCallback = nextauth?.join('/') === 'callback/credentials';
   if (!isCredentialsCallback) return handler(request, ctx);
 
   const ip = clientIpFrom(request);

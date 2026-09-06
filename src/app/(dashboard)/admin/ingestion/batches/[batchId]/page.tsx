@@ -5,13 +5,13 @@ import { hasPermission } from '@/lib/auth/rbac';
 import { getImportBatch } from '@/server/actions/data-import';
 import { BatchDetailView } from '@/components/ingestion/BatchDetailView';
 
-export default async function BatchDetailPage({ params }: { params: { batchId: string } }) {
+export default async function BatchDetailPage({ params }: { params: Promise<{ batchId: string }> }) {
   const context = await requireOrgContext();
   if (!hasPermission(context.deliveryRole, 'admin:ingestion')) {
     notFound();
   }
 
-  const result = await getImportBatch(params.batchId);
+  const result = await getImportBatch((await params).batchId);
   if (!result.ok) notFound();
 
   return (

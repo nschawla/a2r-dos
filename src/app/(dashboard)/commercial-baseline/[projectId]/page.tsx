@@ -9,10 +9,10 @@ import { toRateRoles } from '@/server/queries/calc-adapters';
 import { financialVisibility, maskRateRolesForViewer, restrictedNoticeFor } from '@/lib/security/masking';
 import { RestrictedNotice } from '@/components/security/Masked';
 
-export default async function DealProjectPage({ params }: { params: { projectId: string } }) {
+export default async function DealProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { organizationId, deliveryRole, governance, resourceId, resourcePracticeId } = await requireOrgContext();
 
-  const { project, roleRows } = await loadCommercialBaselineModulePage({ organizationId }, params.projectId);
+  const { project, roleRows } = await loadCommercialBaselineModulePage({ organizationId }, (await params).projectId);
   if (!project) notFound();
 
   const health = getProjectHealth(project);

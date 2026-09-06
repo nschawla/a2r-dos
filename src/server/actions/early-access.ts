@@ -61,8 +61,8 @@ function generateRef(): string {
   return `WAIT-${time}-${rand}`;
 }
 
-function clientIp(): string {
-  const h = headers();
+async function clientIp(): Promise<string> {
+  const h = await headers();
   const forwarded = h.get('x-forwarded-for');
   if (forwarded) {
     const first = forwarded.split(',')[0]?.trim();
@@ -84,7 +84,7 @@ export const submitEarlyAccessLead = withAction('submitEarlyAccessLead', async (
 
   // 5 submissions / 10 min per IP — generous for a real person, a wall
   // for a script.
-  const ip = clientIp();
+  const ip = await clientIp();
   const rl = hit(`early-access:${ip}`, { limit: 5, windowMs: 10 * 60_000 });
   if (!rl.ok) {
     return {

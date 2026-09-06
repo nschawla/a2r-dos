@@ -11,10 +11,10 @@ function toDateInputValue(d: Date | null): string {
   return d ? d.toISOString().slice(0, 10) : '';
 }
 
-export default async function ScheduleProjectPage({ params }: { params: { projectId: string } }) {
+export default async function ScheduleProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { organizationId, deliveryRole, resourceId, resourcePracticeId } = await requireOrgContext();
 
-  const { project, policy } = await loadScheduleModulePage({ organizationId }, params.projectId);
+  const { project, policy } = await loadScheduleModulePage({ organizationId }, (await params).projectId);
   if (!project) notFound();
 
   const health = getProjectHealth(project);

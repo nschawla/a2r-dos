@@ -95,7 +95,10 @@ export const authOptions: AuthOptions = {
     async signIn({ user, account }) {
       if (account?.provider === 'credentials' && user?.email) {
         // Pre-session cross-tenant lookup (IdentityProvider by email domain).
-        if (await runUnscoped('nextauth-sso-enforcement', () => isSsoEnforcedForEmail(user.email!))) {
+        const ssoEnforced = await runUnscoped('nextauth-sso-enforcement', async () => {
+          return await isSsoEnforcedForEmail(user.email!);
+        });
+        if (ssoEnforced) {
           // Denied — surfaces to the client as `error: "AccessDenied"`,
           // which the login form renders as the "use SSO" message.
           return false;
@@ -124,7 +127,7 @@ export const authOptions: AuthOptions = {
 
       try {
         const [acct, mems, staff] = await withTimeout(
-          runUnscoped('nextauth-jwt', () =>
+          runUnscoped('nextauth-jwt', async () =>
             Promise.all([
               db.user.findUnique({
                 where: { id: token.userId as string },

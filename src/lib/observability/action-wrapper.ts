@@ -85,7 +85,7 @@ async function actorContext(): Promise<Record<string, unknown>> {
     const session = await getServerSession(authOptions);
     return {
       userId: session?.user?.id ?? null,
-      activeOrgId: cookies().get('a2r_active_org')?.value ?? null,
+      activeOrgId: (await cookies()).get('a2r_active_org')?.value ?? null,
     };
   } catch {
     return {};

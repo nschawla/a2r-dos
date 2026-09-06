@@ -16,12 +16,12 @@ export const dynamic = 'force-dynamic';
 export default async function OpsIdentityPage({
   searchParams,
 }: {
-  searchParams: { org?: string };
+  searchParams: Promise<{ org?: string }>;
 }) {
   await requireOpsContext();
   const tenants = await listTenants();
 
-  const orgId = searchParams.org ?? null;
+  const orgId = (await searchParams).org ?? null;
   const selected = orgId ? tenants.find((t) => t.id === orgId) ?? null : null;
 
   const [idp, practices] = selected

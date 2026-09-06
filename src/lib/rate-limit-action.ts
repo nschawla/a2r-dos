@@ -15,8 +15,8 @@ import type { RateLimitRule } from '@/lib/rate-limiter';
 
 export const RATE_LIMITED = 'RATE_LIMITED';
 
-function clientIp(): string {
-  const h = headers();
+async function clientIp(): Promise<string> {
+  const h = await headers();
   const forwarded = h.get('x-forwarded-for');
   if (forwarded) {
     const first = forwarded.split(',')[0]?.trim();
@@ -33,11 +33,11 @@ function message(retryAfterSeconds: number): string {
 }
 
 /** Per-client-IP limit (unauthenticated boundaries: registration). */
-export function rateLimitByIp(
+export async function rateLimitByIp(
   scope: string,
   rule: RateLimitRule,
-): { ok: false; error: string } | null {
-  const rl = hit(`${scope}:${clientIp()}`, rule);
+): Promise<{ ok: false; error: string } | null> {
+  const rl = hit(`${scope}:${await clientIp()}`, rule);
   return rl.ok ? null : { ok: false, error: message(rl.retryAfterSeconds) };
 }
 

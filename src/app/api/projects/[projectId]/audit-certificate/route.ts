@@ -21,7 +21,8 @@ import { RATE_LIMITS } from '@/lib/rate-limits';
  * defaulting to 'NO'/empty rather than being dropped — a control nobody
  * has touched yet is a real, reportable compliance gap, not an absent row.
  */
-export const GET = withRouteHandler<{ params: { projectId: string } }>('projects/audit-certificate', async (_request, { params }) => {
+export const GET = withRouteHandler<{ params: Promise<{ projectId: string }> }>('projects/audit-certificate', async (_request, { params }) => {
+  const { projectId } = await params;
   const blocked = await passwordRotationGate();
   if (blocked) return blocked;
   const context = await getOrgContextOrNull();
@@ -32,7 +33,7 @@ export const GET = withRouteHandler<{ params: { projectId: string } }>('projects
 
   const { project, controlLabels } = await loadAuditCertificate(
     { organizationId: context.organizationId },
-    params.projectId,
+    projectId,
   );
   if (!project) return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
 

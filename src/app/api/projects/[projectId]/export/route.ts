@@ -13,9 +13,10 @@ import { RATE_LIMITS } from '@/lib/rate-limits';
  * P2 — per-user rate limit (RATE_LIMITS.BULK_EXPORT), `X-RateLimit-*` on the
  * 200, and the handler is wrapped so an unhandled throw → structured log + 500.
  */
-export const GET = withRouteHandler<{ params: { projectId: string } }>(
+export const GET = withRouteHandler<{ params: Promise<{ projectId: string }> }>(
   'projects/export',
   async (_request, { params }) => {
+    const { projectId } = await params;
     const blocked = await passwordRotationGate();
     if (blocked) return blocked;
     const context = await getOrgContextOrNull();
@@ -26,7 +27,7 @@ export const GET = withRouteHandler<{ params: { projectId: string } }>(
       return tooManyRequestsResponse(g.result, 'Too many project exports. Please wait a few minutes.');
     }
 
-    const project = await loadProjectExport({ organizationId: context.organizationId }, params.projectId);
+    const project = await loadProjectExport({ organizationId: context.organizationId }, projectId);
     if (!project) return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
 
     const payload = {

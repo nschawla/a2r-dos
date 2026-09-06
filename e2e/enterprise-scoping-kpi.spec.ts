@@ -72,7 +72,11 @@ async function signIn(p: Page, email: string, password = DEMO_PW) {
 }
 
 async function expectNoErrorOverlay(p: Page) {
-  await expect(p.locator('nextjs-portal')).toHaveCount(0);
+  // Next 15 keeps a persistent `nextjs-portal` for the dev-tools indicator —
+  // check for the actual error dialog, not the portal's presence.
+  await expect(
+    p.locator('nextjs-portal [data-nextjs-dialog-overlay], nextjs-portal [data-nextjs-error-overlay]')
+  ).toHaveCount(0);
 }
 
 // ── K1 · Capacity Cockpit scoping ────────────────────────────────────

@@ -105,11 +105,10 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    // P0 #4 — enable src/instrumentation.ts (the env-isolation guardrail
-    // also runs there, on server boot). Stable/default in Next 15; opt-in
-    // on 14.2.
-    instrumentationHook: true,
   },
+  // src/instrumentation.ts runs on every server boot (the P0 #4 env-isolation
+  // guardrail). Loaded by default in Next 15 — the old
+  // `experimental.instrumentationHook` opt-in was removed.
   async headers() {
     return [
       {

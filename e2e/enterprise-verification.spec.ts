@@ -38,11 +38,17 @@ test.afterAll(async () => {
 
 /** Fails if a Next.js runtime/server error overlay is on screen. */
 async function expectNoErrorOverlay(p: Page) {
-  const overlay = p.locator(
-    'text=/Unhandled Runtime Error|Application error: a (client|server)-side exception|Internal Server Error|This page could not be found/i'
-  );
-  await expect(overlay).toHaveCount(0);
-  await expect(p.locator('nextjs-portal')).toHaveCount(0);
+  // Next 15 keeps a persistent `nextjs-portal` for the dev-tools indicator,
+  // so presence of the portal is not itself an error — check for the actual
+  // error DIALOG and the error text.
+  await expect(
+    p.locator('nextjs-portal [data-nextjs-dialog-overlay], nextjs-portal [data-nextjs-error-overlay]')
+  ).toHaveCount(0);
+  await expect(
+    p.locator(
+      'text=/Unhandled Runtime Error|Application error: a (client|server)-side exception|Internal Server Error|This page could not be found/i'
+    )
+  ).toHaveCount(0);
 }
 
 /** Signs out the current session and signs in as another user. */
