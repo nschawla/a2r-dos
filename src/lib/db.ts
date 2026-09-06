@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { captureMessage } from '@/lib/observability';
+import { assertEnvironmentIsolation } from '@/lib/config/environment-isolation';
 import {
   currentOrgScope,
   resolveScopeLazily,
@@ -37,6 +38,9 @@ function assertDbChannelSecurity(): void {
 }
 
 function createBaseClient(): PrismaClient {
+  // P0 #4 — last line of defence: never hand out a client wired to the
+  // production database from a Vercel Preview / Development deployment.
+  assertEnvironmentIsolation();
   assertDbChannelSecurity();
   return new PrismaClient({
     // Slow-query visibility is OBS-2's job; for now keep prod quiet

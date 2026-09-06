@@ -1,5 +1,26 @@
 /** @type {import('next').NextConfig} */
 import { readFileSync } from 'node:fs';
+import { evaluateEnvironmentIsolation } from './src/lib/config/env-isolation-core.mjs';
+
+// ── P0 #4 — preview / production data-isolation guardrail ───────────────
+// Hard-fail the build if this is a Vercel Preview / Development deployment
+// wired to the PRODUCTION database. Runs at `next build` (and `next dev` /
+// `next start`) — a mis-scoped preview deploy can't ship. The same check
+// runs again at runtime (src/instrumentation.ts + src/lib/db.ts).
+// See docs/PREVIEW_ENVIRONMENT_ISOLATION.md.
+{
+  const verdict = evaluateEnvironmentIsolation(process.env);
+  if (!verdict.ok) {
+    throw new Error(
+      `\n\n🛑 ENVIRONMENT ISOLATION VIOLATION (${verdict.code})\n\n${verdict.message}\n\n` +
+        `The build has been stopped on purpose. Fix the Vercel environment-variable ` +
+        `scoping and redeploy.\n`,
+    );
+  }
+  if (verdict.warning) {
+    console.warn(`\n[env-isolation] ${verdict.warning}\n`);
+  }
+}
 
 // ── Version & build stamping ────────────────────────────────────────────
 // The app version is the single source in package.json; a short commit SHA
@@ -55,6 +76,10 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // P0 #4 — enable src/instrumentation.ts (the env-isolation guardrail
+    // also runs there, on server boot). Stable/default in Next 15; opt-in
+    // on 14.2.
+    instrumentationHook: true,
   },
   async headers() {
     return [

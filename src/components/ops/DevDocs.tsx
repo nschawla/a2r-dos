@@ -247,6 +247,14 @@ const ENV_VARS: EnvVar[] = [
     rotation: 'n/a.',
   },
   {
+    name: 'PRODUCTION_SUPABASE_PROJECT_REF · PRODUCTION_DB_HOST · ALLOW_PROD_DB_OUTSIDE_PROD',
+    required: 'optional',
+    purpose:
+      'P0 #4 preview/prod isolation guardrail (src/lib/config/env-isolation-core.mjs). A Vercel Preview/Development deployment wired to the production DB hard-fails the build (next.config.mjs), server boot (instrumentation.ts) and the Prisma client (db.ts). Production ref is baked in; these only override it. ALLOW_PROD_DB_OUTSIDE_PROD is a local-only escape hatch — never set it in Vercel. See docs/PREVIEW_ENVIRONMENT_ISOLATION.md.',
+    source: 'Only if the production database is migrated. Preview/Prod DATABASE_URL/DIRECT_URL must be scoped per environment in Vercel.',
+    rotation: 'n/a.',
+  },
+  {
     name: 'NEXT_PUBLIC_APP_VERSION · _BUILD_SHA · _BUILD_TIME',
     required: 'build-time',
     purpose: 'Feed the Ops build stamp (src/lib/build-info.ts). Normally injected by next.config.mjs from package.json + CI vars.',
