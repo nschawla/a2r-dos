@@ -61,7 +61,7 @@ export type RaidSeverity = z.infer<typeof raidSeverityEnum>;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-const parsedRaidItemSchema = z.object({
+const parsedRaidItemSchema = z.strictObject({
   type: raidTypeEnum,
   description: z.string().trim().min(1),
   severity: raidSeverityEnum,
@@ -70,7 +70,7 @@ const parsedRaidItemSchema = z.object({
   ownerRef: z.string().trim().min(1).nullable(),
 });
 
-const parsedProjectDigestSchema = z.object({
+const parsedProjectDigestSchema = z.strictObject({
   /** The project code or name as written in the document. */
   projectRef: z.string().trim().min(1),
   /** ISO yyyy-mm-dd if the document dates this update, else null. */
@@ -81,7 +81,7 @@ const parsedProjectDigestSchema = z.object({
   raid: z.array(parsedRaidItemSchema),
 });
 
-export const parsedDocumentSchema = z.object({
+export const parsedDocumentSchema = z.strictObject({
   entries: z.array(parsedProjectDigestSchema),
   /** Anything meaningful the model could not attribute to a specific
    * project — surfaced to the user rather than dropped. */

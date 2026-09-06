@@ -36,6 +36,18 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.10.0',
+    date: '2026-09-06',
+    headline: 'Payload strictness, explicit global sign-out, and production polish',
+    changes: [
+      { type: 'security', text: 'Every API request body and server-action payload is now validated with a strict schema that rejects unexpected properties — closing the mass-assignment surface, including the workspace restore snapshot which writes into ~10 tables.' },
+      { type: 'feature', text: 'Added "Sign out of all sessions" to the user menu — one click revokes every active session on every device and server instance (the same database-backed mechanism a password change uses). The normal "Sign out" stays local to the current device.' },
+      { type: 'security', text: 'The app\'s own cookies (active organization, workspace lens, operator elevation, tenant impersonation) are now SameSite=Strict + Secure in production + HttpOnly, and the NextAuth session/CSRF cookie flags are pinned explicitly so they can\'t drift.' },
+      { type: 'improvement', text: 'Serverless database pooling: the app now warns in production on Vercel if DATABASE_URL is not tuned for connection reuse, and the setup docs prescribe the pooler + connection-limit settings that prevent connection exhaustion.' },
+      { type: 'security', text: 'Hardened error sanitization — the data-retention endpoint now shares the centralized error boundary, and a static guard fails the build if any handler would surface a raw backend error or stack trace to a client.' },
+    ],
+  },
+  {
     version: '1.9.0',
     date: '2026-09-06',
     headline: 'Database-level tenant isolation enforced on staging (RLS) + a dedicated staging database',

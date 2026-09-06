@@ -46,7 +46,7 @@ const MAX_BODY_BYTES = 200 * 1024;
 /** Cap the project hint list we hand the model. */
 const MAX_PROJECT_HINTS = 500;
 
-const bodySchema = z.object({
+const bodySchema = z.strictObject({
   text: z
     .string()
     .trim()

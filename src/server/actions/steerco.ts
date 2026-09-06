@@ -73,7 +73,7 @@ export const listSteerCoDecisions = withAction('listSteerCoDecisions', async (pr
   };
 });
 
-const createSchema = z.object({
+const createSchema = z.strictObject({
   projectId: z.string().min(1),
   decisionRequired: z.string().min(1).max(2000),
   decisionOwnerId: z.string().optional().or(z.literal('')),
@@ -103,7 +103,7 @@ export const createSteerCoDecision = withAction('createSteerCoDecision', async (
   return { ok: true };
 });
 
-const statusSchema = z.object({
+const statusSchema = z.strictObject({
   id: z.string().min(1),
   projectId: z.string().min(1),
   status: z.enum(['OPEN', 'RESOLVED']),
@@ -135,7 +135,7 @@ export const updateSteerCoDecisionStatus = withAction('updateSteerCoDecisionStat
   return { ok: true };
 });
 
-const deleteSchema = z.object({ id: z.string().min(1), projectId: z.string().min(1) });
+const deleteSchema = z.strictObject({ id: z.string().min(1), projectId: z.string().min(1) });
 
 export const deleteSteerCoDecision = withAction('deleteSteerCoDecision', async (input: unknown): Promise<ActionResult> => {
   const parsed = deleteSchema.safeParse(input);

@@ -13,7 +13,7 @@ const PHASE_KEYS = PHASES.map((p) => p.key) as [string, ...string[]];
 
 const dateField = z.string().optional().or(z.literal(''));
 
-const schema = z.object({
+const schema = z.strictObject({
   projectId: z.string().min(1),
   phaseKey: z.enum(PHASE_KEYS),
   plannedStart: dateField,

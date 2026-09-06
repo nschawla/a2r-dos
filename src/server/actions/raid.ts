@@ -11,7 +11,7 @@ import { authorizeProjectEdit } from '@/server/authz';
 import { logAuditEvent } from '@/lib/audit/logger';
 import type { ActionResult } from './auth';
 
-const createSchema = z.object({
+const createSchema = z.strictObject({
   projectId: z.string().min(1),
   type: z.enum(['RISK', 'ASSUMPTION', 'ISSUE', 'DEPENDENCY']),
   title: z.string().max(200).optional().or(z.literal('')),
@@ -76,7 +76,7 @@ export const createRaidEntry = withAction('createRaidEntry', async (input: unkno
   return { ok: true };
 });
 
-const updateSchema = z.object({
+const updateSchema = z.strictObject({
   id: z.string().min(1),
   projectId: z.string().min(1),
   title: z.string().max(200).optional().or(z.literal('')),
@@ -132,7 +132,7 @@ export const updateRaidEntry = withAction('updateRaidEntry', async (input: unkno
   return { ok: true };
 });
 
-const statusSchema = z.object({
+const statusSchema = z.strictObject({
   id: z.string().min(1),
   projectId: z.string().min(1),
   status: z.enum(['OPEN', 'INPROGRESS', 'CLOSED']),
@@ -154,7 +154,7 @@ export const updateRaidStatus = withAction('updateRaidStatus', async (input: unk
   return { ok: true };
 });
 
-const escalateSchema = z.object({
+const escalateSchema = z.strictObject({
   id: z.string().min(1),
   projectId: z.string().min(1),
   escalate: z.boolean(),

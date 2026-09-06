@@ -41,7 +41,7 @@ export type SupportTicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export type SubmitSupportTicketResult = { ok: true; ticketId: string } | { ok: false; error: string };
 
-const submitSchema = z.object({
+const submitSchema = z.strictObject({
   subject: z.string().trim().min(3, 'Give the ticket a short subject (at least 3 characters).').max(200),
   category: z.enum(['bug', 'question', 'feature_request', 'billing', 'other']),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),

@@ -32,12 +32,12 @@ export const WORKSPACE_SNAPSHOT_VERSION = 1;
 
 // ------------------------------------------------------------- zod schema
 
-const practiceSchema = z.object({
+const practiceSchema = z.strictObject({
   id: z.string().min(1),
   name: z.string().min(1),
 });
 
-const deliveryRoleSchema = z.object({
+const deliveryRoleSchema = z.strictObject({
   id: z.string().min(1),
   name: z.string().min(1),
   billRate: z.number(),
@@ -46,7 +46,7 @@ const deliveryRoleSchema = z.object({
   employmentType: z.enum(['FTE', 'CONTRACTOR']),
 });
 
-const resourceSchema = z.object({
+const resourceSchema = z.strictObject({
   id: z.string().min(1),
   name: z.string().min(1),
   email: z.string().nullable(),
@@ -64,12 +64,12 @@ const orgPolicySchema = z
   })
   .nullable();
 
-const controlLabelSchema = z.object({
+const controlLabelSchema = z.strictObject({
   controlKey: z.string().min(1),
   label: z.string().min(1),
 });
 
-const scopeItemSchema = z.object({
+const scopeItemSchema = z.strictObject({
   key: z.string().min(1),
   name: z.string().min(1),
   included: z.boolean(),
@@ -79,13 +79,13 @@ const scopeItemSchema = z.object({
   sortOrder: z.number().int(),
 });
 
-const effortCellSchema = z.object({
+const effortCellSchema = z.strictObject({
   phaseKey: z.string().min(1),
   roleId: z.string().min(1),
   hours: z.number(),
 });
 
-const auditEntrySchema = z.object({
+const auditEntrySchema = z.strictObject({
   controlKey: z.string().min(1),
   status: z.enum(['YES', 'PARTIAL', 'NO', 'NA']),
   owner: z.string().nullable(),
@@ -93,7 +93,7 @@ const auditEntrySchema = z.object({
   notes: z.string().nullable(),
 });
 
-const raidEntrySchema = z.object({
+const raidEntrySchema = z.strictObject({
   type: z.enum(['RISK', 'ASSUMPTION', 'ISSUE', 'DEPENDENCY']),
   title: z.string().nullable(),
   description: z.string(),
@@ -106,7 +106,7 @@ const raidEntrySchema = z.object({
   escalate: z.boolean(),
 });
 
-const financialActualSchema = z.object({
+const financialActualSchema = z.strictObject({
   roleKey: z.string().min(1),
   roleId: z.string().min(1).nullable(),
   hours: z.number(),
@@ -115,7 +115,7 @@ const financialActualSchema = z.object({
   openRRHours: z.number().nullable(),
 });
 
-const schedulePhaseSchema = z.object({
+const schedulePhaseSchema = z.strictObject({
   phaseKey: z.string().min(1),
   plannedStart: z.string().nullable(),
   plannedEnd: z.string().nullable(),
@@ -125,7 +125,7 @@ const schedulePhaseSchema = z.object({
   status: z.enum(['NOTSTARTED', 'INPROGRESS', 'COMPLETE', 'DELAYED']),
 });
 
-const projectSchema = z.object({
+const projectSchema = z.strictObject({
   id: z.string().min(1),
   name: z.string().min(1),
   client: z.string().nullable(),
@@ -163,7 +163,7 @@ const projectSchema = z.object({
   contributorResourceIds: z.array(z.string().min(1)),
 });
 
-export const workspaceSnapshotSchema = z.object({
+export const workspaceSnapshotSchema = z.strictObject({
   version: z.number().int(),
   exportedAt: z.string(),
   organizationName: z.string(),

@@ -74,7 +74,7 @@ function generateTempPassword(): string {
   return randomBytes(12).toString('base64url');
 }
 
-const provisionSchema = z.object({
+const provisionSchema = z.strictObject({
   orgName: z.string().min(2, 'Organization name is too short').max(120),
   contractTier: z.enum(['TRIAL', 'STANDARD', 'ENTERPRISE']).default('STANDARD'),
   adminName: z.string().min(1, 'Admin name is required').max(120),
@@ -152,7 +152,7 @@ export const provisionTenant = withAction('provisionTenant', async (input: unkno
   };
 });
 
-const statusSchema = z.object({
+const statusSchema = z.strictObject({
   organizationId: z.string().min(1),
   status: z.enum(['ACTIVE', 'SUSPENDED', 'GRACE_PERIOD']),
 });
@@ -188,7 +188,7 @@ export const setTenantStatus = withAction('setTenantStatus', async (input: unkno
 
 // ─────────────────────────────────────────── Impersonation Gateway
 
-const impersonateSchema = z.object({
+const impersonateSchema = z.strictObject({
   organizationId: z.string().min(1),
   reason: z.string().min(4, 'A short reason is required for the audit record').max(500),
 });
@@ -222,7 +222,8 @@ export const impersonateTenant = withAction('impersonateTenant', async (input: u
 
   (await cookies()).set(IMPERSONATION_COOKIE, result.session.token, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
     path: '/',
     expires: result.session.expiresAt,
   });
@@ -249,7 +250,7 @@ export const endImpersonationAction = withAction('endImpersonationAction', async
 
 // ─────────────────────────────────────────── Data Sovereignty & Offboarding
 
-const tenantConfirmSchema = z.object({
+const tenantConfirmSchema = z.strictObject({
   organizationId: z.string().min(1),
   confirmName: z.string().min(1),
 });
@@ -351,7 +352,7 @@ export const purgeTenant = withAction('purgeTenant', async (input: unknown): Pro
 
 // ─────────────────────────────────────────── Data Ingestion API keys
 
-const issueKeySchema = z.object({
+const issueKeySchema = z.strictObject({
   organizationId: z.string().min(1),
   name: z.string().min(2, 'A key name is required').max(120),
   expiresInDays: z.coerce.number().int().positive().max(3650).nullable().optional(),
@@ -385,7 +386,7 @@ export const revokeTenantApiKey = withAction('revokeTenantApiKey', async (input:
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
 
-  const parsed = z.object({ apiKeyId: z.string().min(1), organizationId: z.string().min(1) }).safeParse(input);
+  const parsed = z.strictObject({ apiKeyId: z.string().min(1), organizationId: z.string().min(1) }).safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
 
   const result = await revokeApiKey(db, { ...parsed.data, actorId: ops.userId });

@@ -25,7 +25,7 @@ function revalidateCapacity() {
 
 // ---------------------------------------------------------------- Holidays
 
-const holidaySchema = z.object({
+const holidaySchema = z.strictObject({
   name: z.string().min(1).max(120),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
 });
@@ -77,7 +77,7 @@ export const deleteHoliday = withAction('deleteHoliday', async (id: string): Pro
 
 // ------------------------------------------------------ Role utilisation policy
 
-const policySchema = z.object({
+const policySchema = z.strictObject({
   id: z.string().min(1),
   targetUtilPct: z.coerce.number().min(0).max(1),
   isBillableHead: z.boolean(),
@@ -113,7 +113,7 @@ export const updateRolePolicy = withAction('updateRolePolicy', async (input: unk
   return { ok: true };
 });
 
-const createPolicySchema = z.object({
+const createPolicySchema = z.strictObject({
   roleName: z.string().min(1).max(120),
   targetUtilPct: z.coerce.number().min(0).max(1),
   isBillableHead: z.boolean(),

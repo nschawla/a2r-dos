@@ -35,7 +35,7 @@ import { recordLedgerEvent } from '@/lib/audit-ledger';
 /** Max accepted request body. 2000 entries of ~100 bytes each ≈ 200 KB. */
 const MAX_BODY_BYTES = 256 * 1024;
 
-const timesheetEntrySchema = z.object({
+const timesheetEntrySchema = z.strictObject({
   projectId: z.string().min(1, 'projectId is required'),
   resourceId: z.string().min(1, 'resourceId is required'),
   hours: z.number().finite().positive('hours must be > 0').max(24, 'hours cannot exceed 24 in a day'),
@@ -44,7 +44,7 @@ const timesheetEntrySchema = z.object({
 
 const payloadSchema = z.union([
   z.array(timesheetEntrySchema).min(1).max(2000),
-  z.object({ timesheets: z.array(timesheetEntrySchema).min(1).max(2000) }).transform((v) => v.timesheets),
+  z.strictObject({ timesheets: z.array(timesheetEntrySchema).min(1).max(2000) }).transform((v) => v.timesheets),
 ]);
 
 export const POST = withApiAuth(async (request, { tenantId, apiKey }) => {

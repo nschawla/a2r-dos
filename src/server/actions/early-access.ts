@@ -33,7 +33,7 @@ import { captureException } from '@/lib/observability';
 
 export type SubmitEarlyAccessResult = { ok: true; ref: string } | { ok: false; error: string };
 
-const submitSchema = z.object({
+const submitSchema = z.strictObject({
   fullName: z.string().trim().min(2, 'Please enter your full name.').max(120),
   organization: z.string().trim().min(2, 'Please enter your organization.').max(160),
   workEmail: z

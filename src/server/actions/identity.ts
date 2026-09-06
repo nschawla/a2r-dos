@@ -61,7 +61,7 @@ async function logSsoChange(organizationId: string, actorId: string, op: string,
 }
 
 const withOrg = <T extends z.ZodRawShape>(shape: T) =>
-  z.object({ organizationId: z.string().min(1), ...shape });
+  z.strictObject({ organizationId: z.string().min(1), ...shape });
 
 // ─────────────────────────────────────────────────── provider config
 

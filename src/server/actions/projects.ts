@@ -27,7 +27,7 @@ function revalidateProjectRoutes(projectId: string) {
   revalidatePath(`/financials/${projectId}`);
 }
 
-const createProjectSchema = z.object({
+const createProjectSchema = z.strictObject({
   name: z.string().min(1, 'Project name is required').max(200),
   client: z.string().max(200).optional().or(z.literal('')),
   commercialModel: z.enum(['FF', 'TM']).default('FF'),
@@ -217,7 +217,7 @@ export const toggleProjectLock = withAction('toggleProjectLock', async (projectI
 
 const PHASE_KEYS = PHASES.map((p) => p.key) as [string, ...string[]];
 
-const effortCellSchema = z.object({
+const effortCellSchema = z.strictObject({
   projectId: z.string().min(1),
   phaseKey: z.enum(PHASE_KEYS),
   roleId: z.string().min(1),
@@ -264,7 +264,7 @@ export const updateEffortCell = withAction('updateEffortCell', async (input: unk
   return { ok: true };
 });
 
-const directIntakeSchema = z.object({
+const directIntakeSchema = z.strictObject({
   projectId: z.string().min(1),
   soldHours: z.number().finite().min(0).max(1000000),
   targetRevenue: z.number().finite().min(0).max(1000000000),
@@ -300,7 +300,7 @@ export const updateDirectIntake = withAction('updateDirectIntake', async (input:
   return { ok: true };
 });
 
-const estimationModeSchema = z.object({
+const estimationModeSchema = z.strictObject({
   projectId: z.string().min(1),
   mode: z.enum(['MATRIX', 'DIRECT']),
 });

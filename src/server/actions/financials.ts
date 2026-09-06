@@ -10,7 +10,7 @@ import { authorizeProjectEdit } from '@/server/authz';
 import { logAuditEvent } from '@/lib/audit/logger';
 import type { ActionResult } from './auth';
 
-const schema = z.object({
+const schema = z.strictObject({
   projectId: z.string().min(1),
   // DeliveryRole.id in matrix mode, or the synthetic '_direct' row in
   // direct-intake mode — matches computeEacSummary's own convention

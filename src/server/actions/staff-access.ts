@@ -30,12 +30,12 @@ async function elevatedOps(): Promise<{ ok: true; userId: string } | { ok: false
   };
 }
 
-const grantSchema = z.object({
+const grantSchema = z.strictObject({
   email: z.string().email('Enter a valid email address.'),
   reason: z.string().min(3, 'Give a short reason for the audit trail.').max(300),
 });
 
-const revokeSchema = z.object({ email: z.string().email() });
+const revokeSchema = z.strictObject({ email: z.string().email() });
 
 export const grantStaffAction = withAction('grantStaffAction', async (input: unknown): Promise<StaffGrantResult> => {
   const gate = await elevatedOps();

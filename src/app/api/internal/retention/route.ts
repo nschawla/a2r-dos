@@ -19,7 +19,8 @@ import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { runRetentionSweep } from '@/server/services/data-retention';
 import { tooManyRequestsResponse, clientIpFrom } from '@/lib/rate-limiter';
 import { hitDistributed } from '@/lib/rate-limiter-redis';
-import { captureException, captureMessage } from '@/lib/observability';
+import { captureMessage } from '@/lib/observability';
+import { withRouteHandler } from '@/lib/observability/route-wrapper';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +42,7 @@ async function authorize(
   return { ok: false };
 }
 
-export async function GET(request: Request) {
+export const GET = withRouteHandler('internal/retention', async (request) => {
   const rl = await hitDistributed(`internal:retention:${clientIpFrom(request)}`, { limit: 12, windowMs: 60_000 });
   if (!rl.ok) return tooManyRequestsResponse(rl);
 
@@ -53,9 +54,9 @@ export async function GET(request: Request) {
 
   const result = await runRetentionSweep({ dryRun: true });
   return NextResponse.json(result, { status: 200, headers: { 'Cache-Control': 'no-store' } });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withRouteHandler('internal/retention', async (request) => {
   const rl = await hitDistributed(`internal:retention:${clientIpFrom(request)}`, { limit: 6, windowMs: 60_000 });
   if (!rl.ok) return tooManyRequestsResponse(rl);
 
@@ -68,18 +69,15 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { dryRun?: unknown };
   const dryRun = body?.dryRun === true;
 
-  try {
-    const result = await runRetentionSweep({ dryRun });
-    captureMessage('Data retention sweep executed', {
-      scope: 'internal/retention',
-      actor: auth.actor,
-      dryRun,
-      totalDeleted: result.totalDeleted,
-      totalMatched: result.totalMatched,
-    });
-    return NextResponse.json(result, { status: 200, headers: { 'Cache-Control': 'no-store' } });
-  } catch (err) {
-    captureException(err, { scope: 'internal/retention', actor: auth.actor });
-    return NextResponse.json({ error: 'Retention sweep failed.' }, { status: 500 });
-  }
-}
+  // An unhandled throw here → withRouteHandler logs it + returns a generic
+  // 500 (no stack, no Prisma internals).
+  const result = await runRetentionSweep({ dryRun });
+  captureMessage('Data retention sweep executed', {
+    scope: 'internal/retention',
+    actor: auth.actor,
+    dryRun,
+    totalDeleted: result.totalDeleted,
+    totalMatched: result.totalMatched,
+  });
+  return NextResponse.json(result, { status: 200, headers: { 'Cache-Control': 'no-store' } });
+});

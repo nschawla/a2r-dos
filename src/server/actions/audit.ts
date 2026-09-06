@@ -14,7 +14,7 @@ import { logAuditEvent } from '@/lib/audit/logger';
  * timestamp, rather than trusting the client's clock. */
 export type UpdateAuditEntryResult = { ok: true; updatedAt: string } | { ok: false; error: string };
 
-const schema = z.object({
+const schema = z.strictObject({
   projectId: z.string().min(1),
   controlKey: z.string().min(1),
   status: z.enum(['YES', 'PARTIAL', 'NO', 'NA']),

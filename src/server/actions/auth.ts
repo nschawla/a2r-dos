@@ -15,6 +15,7 @@ import {
 } from '@/lib/auth/password-rotation';
 import { establishFreshSession } from '@/lib/auth/session-mint';
 import { withAction } from '@/lib/observability/action-wrapper';
+import { captureMessage } from '@/lib/observability';
 import { rateLimitByIp, rateLimitByUser } from '@/lib/rate-limit-action';
 import { RATE_LIMITS } from '@/lib/rate-limits';
 
@@ -41,7 +42,7 @@ async function uniqueSlug(name: string): Promise<string> {
   return slug;
 }
 
-const registerSchema = z.object({
+const registerSchema = z.strictObject({
   orgName: z.string().min(2, 'Organization name is too short').max(120),
   name: z.string().min(1, 'Name is required').max(120),
   email: z.string().email(),
@@ -96,7 +97,7 @@ export const registerOrganization = withAction('registerOrganization', async (in
   return { ok: true };
 });
 
-const newOrgSchema = z.object({ orgName: z.string().min(2, 'Organization name is too short').max(120) });
+const newOrgSchema = z.strictObject({ orgName: z.string().min(2, 'Organization name is too short').max(120) });
 
 /**
  * Onboarding path for an already-authenticated user with zero memberships
@@ -133,10 +134,57 @@ export const createOrganizationForCurrentUser = withAction('createOrganizationFo
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// Global sign-out ("sign out of all sessions")
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * P1 — explicit all-device / all-instance session revocation, without a
+ * password change. Bumps `users.sessionVersion` (same mechanism as
+ * `changePasswordAction`): every token minted before this instant now has
+ * `token.sessionVersion < users.sessionVersion`, so the jwt callback's
+ * `deriveSessionState()` resolves each of them to REVOKED on its next
+ * request — on every serverless instance, because the check is DB-backed
+ * (`src/lib/auth/session-state.ts`), not an in-memory cache.
+ *
+ * Unlike the password-change flow this does NOT mint a fresh cookie for the
+ * caller — the client calls `signOut()` straight after, so the acting
+ * device is logged out too (that is the whole point of "all sessions").
+ */
+export const signOutEverywhereAction = withAction(
+  'signOutEverywhereAction',
+  async (): Promise<ActionResult> => {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return { ok: false, error: 'You are not signed in.' };
+    const userId = session.user.id;
+
+    await withTenantTx(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { sessionVersion: { increment: 1 } },
+      });
+      // Clear any NextAuth adapter Session rows too (JWT strategy doesn't
+      // create these, but a future DB-session provider would).
+      await tx.session.deleteMany({ where: { userId } });
+    });
+
+    // Security event — like JIT elevation, this is a platform/account event,
+    // not tenant governance, so it goes to the structured log, not the
+    // per-tenant ledger.
+    captureMessage(
+      'Account sessions globally revoked (sign out everywhere)',
+      { scope: 'auth/session', userId },
+      'info',
+    );
+
+    return { ok: true };
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────
 // Change password
 // ─────────────────────────────────────────────────────────────────────────
 
-const changePasswordSchema = z.object({
+const changePasswordSchema = z.strictObject({
   currentPassword: z.string().min(1, 'Enter your current password.').max(200),
   newPassword: z.string().min(1, 'Enter a new password.').max(200),
 });

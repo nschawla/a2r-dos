@@ -27,7 +27,7 @@ export async function setWorkspaceLens(lens: string): Promise<{ ok: boolean; len
 
   (await cookies()).set(LENS_COOKIE, next, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'strict',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: 60 * 60 * 24 * 365,

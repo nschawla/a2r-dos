@@ -10,6 +10,7 @@ import { LensSwitcher } from './LensSwitcher';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { AutoDemoLaunchModal } from '@/components/demo/AutoDemoLaunchModal';
 import { switchActiveOrganization } from '@/server/actions/organizations';
+import { signOutEverywhereAction } from '@/server/actions/auth';
 import type { NotificationSummary } from '@/server/queries/notifications';
 import type { SessionMembership } from '@/types/next-auth';
 import type { WorkspaceLens } from '@/lib/workspace/lenses';
@@ -320,9 +321,19 @@ function UserMenu({ userName, role }: { userName: string; role: SessionMembershi
             <button
               type="button"
               onClick={() => signOut({ callbackUrl: '/login' })}
-              className="w-full px-3 py-2.5 text-sm text-left text-critical hover:bg-surface-2 transition-colors"
+              className="w-full px-3 py-2.5 text-sm text-left text-ink-muted hover:bg-surface-2 transition-colors"
             >
               Sign out
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await signOutEverywhereAction();
+                void signOut({ callbackUrl: '/login' });
+              }}
+              className="w-full px-3 pb-2.5 pt-1 text-xs text-left text-critical hover:bg-surface-2 transition-colors"
+            >
+              Sign out of all sessions
             </button>
           </div>
         </div>

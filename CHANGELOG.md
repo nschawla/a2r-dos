@@ -10,6 +10,65 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.10.0] — 2026-09-06
+
+_Payload strictness, session lifecycle & production polish — Phase D of the
+enterprise production-readiness track (P1 + P2)._
+
+### Added
+
+- **"Sign out of all sessions" (P1).** `signOutEverywhereAction`
+  (`src/server/actions/auth.ts`) bumps `users.sessionVersion` + clears
+  adapter `Session` rows — every token minted earlier resolves to `REVOKED`
+  on its next request, on every serverless instance (the DB-backed check in
+  the jwt callback, `src/lib/auth/session-state.ts`). Wired to a second item
+  in the header user menu; the existing "Sign out" stays device-local.
+- **`tests/security/cookie-flags.test.ts`**, **`tests/security/error-sanitization.test.ts`**,
+  **`tests/security/sign-out-everywhere.test.ts`** — static + live guards.
+
+### Changed
+
+- **Zod `.strict()` everywhere (P1).** Every request-input `z.object` in
+  `src/app/api/**`, `src/server/actions/**`, `src/lib/backup/workspace-io.ts`
+  (the restore snapshot — the top mass-assignment surface, ~10 models) and
+  `src/lib/ai-parser.ts` became `z.strictObject(...)` — an unexpected
+  property is now a validation failure, not a silent drop. **Out of scope:**
+  the `src/lib/ingestion/**` CSV row schemas (extra columns are legitimate
+  there and already whitelisted).
+- **Cookie flags (P1).** `a2r_active_org` / `a2r_lens` / `a2r_ops_elevation`
+  / `a2r_impersonation` → `sameSite: 'strict'`, `secure` in production,
+  `httpOnly` (already set). `authOptions.cookies` in `src/lib/auth.ts` now
+  pins the session / CSRF / callback-url flags explicitly (session cookie
+  stays `sameSite: 'lax'` deliberately — Strict would drop it on an external
+  deep-link into the app; Lax still blocks the cross-site POST CSRF needs).
+- **Serverless pooling (P2).** `src/lib/db.ts` gains
+  `assertServerlessPooling()` — a loud, non-fatal production warning (Vercel
+  only) when `DATABASE_URL` lacks a pooler host + `connection_limit`.
+  `.env.example` prescribes `pgbouncer=true&connection_limit=1&pool_timeout=20`.
+- **Error sanitization (P2).** `src/app/api/internal/retention/route.ts`'s
+  hand-written `GET`/`POST` now run through `withRouteHandler` (generic 500,
+  no stack). Audit confirmed no handler anywhere interpolates a caught
+  error's `.message` / `.stack` / `String(err)` into a response —
+  `error-sanitization.test.ts` locks that in.
+
+### Security
+
+- Mass-assignment is blocked at every validated entry point.
+- One user action revokes all sessions globally; cookie flags are the
+  strongest posture compatible with the app's navigation model.
+- No raw backend error can reach a client, enforced by a test.
+- High-privilege events remain hash-chained & append-only in
+  `ImmutableAuditLedger` (16 `actionType`s; no `update`/`delete` path
+  exists) — audited, no change needed.
+
+### Verification
+
+- Against **production** (`.env`, RLS off) **and staging** (`RLS_ENFORCE=1`,
+  `a2r_app`): `npx tsc --noEmit` → 0 · `npm run lint` → 0/0 ·
+  `npx vitest run` → **596 passed** (48 files) · `npx playwright test` →
+  **60 passed** · `npm run build` → clean · staging `npm run db:rls:smoke`
+  → OK (28 tables).
+
 ## [1.9.0] — 2026-09-06
 
 _Enterprise environment separation & live database security — Phase C of the

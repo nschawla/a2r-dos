@@ -43,9 +43,34 @@ function sessionLookupTimeoutMs(): number {
  * server components and actions can resolve "which organization is this
  * request for" without an extra round trip. See src/lib/session.ts.
  */
+const useSecureCookies = (process.env.NEXTAUTH_URL ?? '').startsWith('https://');
+
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(db),
   session: { strategy: 'jwt' },
+  // Pin the hardened cookie flags explicitly rather than relying on
+  // NextAuth's derived defaults (so a future NextAuth change can't loosen
+  // them). The session token stays `sameSite: 'lax'` deliberately — Strict
+  // would drop the cookie on a top-level navigation into the app from an
+  // external link (email / Slack) and show the login page until a reload;
+  // Lax still blocks the cross-site POST that CSRF needs. The app's OWN
+  // cookies (a2r_active_org / a2r_lens / a2r_ops_elevation /
+  // a2r_impersonation) ARE `sameSite: 'strict'` — see those actions.
+  useSecureCookies,
+  cookies: {
+    sessionToken: {
+      name: `${useSecureCookies ? '__Secure-' : ''}next-auth.session-token`,
+      options: { httpOnly: true, sameSite: 'lax', path: '/', secure: useSecureCookies },
+    },
+    csrfToken: {
+      name: `${useSecureCookies ? '__Host-' : ''}next-auth.csrf-token`,
+      options: { httpOnly: true, sameSite: 'lax', path: '/', secure: useSecureCookies },
+    },
+    callbackUrl: {
+      name: `${useSecureCookies ? '__Secure-' : ''}next-auth.callback-url`,
+      options: { sameSite: 'lax', path: '/', secure: useSecureCookies },
+    },
+  },
   pages: {
     signIn: '/login',
   },

@@ -28,7 +28,7 @@ async function requireAdmin() {
 
 // ---------------------------------------------------------------- Practices
 
-const practiceSchema = z.object({ name: z.string().min(1).max(120) });
+const practiceSchema = z.strictObject({ name: z.string().min(1).max(120) });
 
 export const createPractice = withAction('createPractice', async (input: unknown): Promise<ActionResult> => {
   const { organizationId } = await requireAdmin();
@@ -49,7 +49,7 @@ export const deletePractice = withAction('deletePractice', async (id: string): P
 
 // -------------------------------------------------------------- Rate roles
 
-const roleSchema = z.object({
+const roleSchema = z.strictObject({
   name: z.string().min(1).max(120),
   billRate: z.coerce.number().min(0),
   costRate: z.coerce.number().min(0),
@@ -109,7 +109,7 @@ export const deleteDeliveryRole = withAction('deleteDeliveryRole', async (id: st
 // needing to be recreated.
 export const setDeliveryRoleEmploymentType = withAction('setDeliveryRoleEmploymentType', async (input: unknown): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
-  const schema = z.object({ id: z.string().min(1), employmentType: z.enum(['FTE', 'CONTRACTOR']) });
+  const schema = z.strictObject({ id: z.string().min(1), employmentType: z.enum(['FTE', 'CONTRACTOR']) });
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
 
@@ -145,7 +145,7 @@ export const setDeliveryRoleEmploymentType = withAction('setDeliveryRoleEmployme
 
 // ----------------------------------------------------------------- Resources
 
-const resourceSchema = z.object({
+const resourceSchema = z.strictObject({
   name: z.string().min(1).max(120),
   email: z.string().email().optional().or(z.literal('')),
   roleId: z.string().optional().or(z.literal('')),
@@ -174,7 +174,7 @@ export const deleteResource = withAction('deleteResource', async (id: string): P
 
 // ------------------------------------------------------------------- Policy
 
-const policySchema = z.object({
+const policySchema = z.strictObject({
   slipWarnDays: z.coerce.number().int().min(0),
   slipCritDays: z.coerce.number().int().min(0),
   marginCritPct: z.coerce.number().min(0),
@@ -195,7 +195,7 @@ export const updateOrgPolicy = withAction('updateOrgPolicy', async (input: unkno
   return { ok: true };
 });
 
-const controlLabelSchema = z.object({ controlKey: z.string().min(1), label: z.string().min(1).max(160) });
+const controlLabelSchema = z.strictObject({ controlKey: z.string().min(1), label: z.string().min(1).max(160) });
 
 export const updateControlLabel = withAction('updateControlLabel', async (input: unknown): Promise<ActionResult> => {
   const { organizationId } = await requireAdmin();
@@ -268,7 +268,7 @@ async function persistGovernance(
 
 export const applyGovernanceTemplate = withAction('applyGovernanceTemplate', async (input: unknown): Promise<ActionResult> => {
   const { organizationId, userId } = await requireAdmin();
-  const parsed = z.object({ template: z.string() }).safeParse(input);
+  const parsed = z.strictObject({ template: z.string() }).safeParse(input);
   if (!parsed.success || !isGovernanceTemplateKey(parsed.data.template)) {
     return { ok: false, error: 'Unknown compliance template' };
   }
@@ -287,7 +287,7 @@ export const applyGovernanceTemplate = withAction('applyGovernanceTemplate', asy
   return { ok: true };
 });
 
-const governanceOverrideSchema = z.object({
+const governanceOverrideSchema = z.strictObject({
   hiddenModules: z.array(z.string()).max(HIDEABLE_MODULES.length),
   maskFinancialsForDelivery: z.boolean(),
 });

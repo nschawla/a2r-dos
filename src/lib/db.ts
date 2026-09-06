@@ -38,11 +38,37 @@ function assertDbChannelSecurity(): void {
   }
 }
 
+/**
+ * P2 — serverless connection-pool sanity. On Vercel every warm function
+ * instance runs its own Prisma engine + pool; without a small
+ * `connection_limit` (and a PgBouncer/pooler host) a traffic spike opens
+ * hundreds of Postgres connections and exhausts the server. Prisma reads
+ * both from the DATABASE_URL query string. Loud, non-fatal — same posture
+ * as the TLS check. Only fires on Vercel (`VERCEL=1`); a long-lived server
+ * or local dev is unaffected.
+ */
+function assertServerlessPooling(): void {
+  if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') return;
+  const url = process.env.DATABASE_URL ?? '';
+  const limitMatch = url.match(/[?&]connection_limit=(\d+)/i);
+  const limitOk = limitMatch && Number(limitMatch[1]) > 0 && Number(limitMatch[1]) <= 5;
+  const pooled = /[?&](pgbouncer=true|pool_mode=transaction)/i.test(url) || /pooler\./i.test(url);
+  if (!limitOk || !pooled) {
+    captureMessage(
+      'DATABASE_URL is not tuned for serverless — expected a pooler host with `pgbouncer=true&connection_limit=1` ' +
+        '(+ `pool_timeout`). Each Vercel instance keeps its own pool; an untuned URL can exhaust Postgres connections. See .env.example.',
+      { scope: 'db/pooling', hasConnectionLimit: Boolean(limitMatch), pooled },
+      'warning'
+    );
+  }
+}
+
 function createBaseClient(): PrismaClient {
   // P0 #4 — last line of defence: never hand out a client wired to the
   // production database from a Vercel Preview / Development deployment.
   assertEnvironmentIsolation();
   assertDbChannelSecurity();
+  assertServerlessPooling();
   return new PrismaClient({
     // Slow-query visibility is OBS-2's job; for now keep prod quiet
     // (errors only) and dev at warn+error.

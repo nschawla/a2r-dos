@@ -29,7 +29,7 @@ export type ElevationActionResult =
   | { ok: true; expiresAt: string; ttlMinutes: number }
   | { ok: false; error: string };
 
-const requestSchema = z.object({
+const requestSchema = z.strictObject({
   reason: z.string().min(10, 'A reason of at least 10 characters is required.').max(500),
   ttlMinutes: z.coerce.number().int().positive().optional(),
 });
@@ -54,7 +54,7 @@ export const requestOpsElevationAction = withAction('requestOpsElevationAction',
 
   (await cookies()).set(ELEVATION_COOKIE, result.token, {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: 'strict',
     secure: process.env.NODE_ENV === 'production',
     path: '/',
     expires: result.expiresAt,
