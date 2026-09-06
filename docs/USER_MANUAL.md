@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — User Manual & Operator's Guide
 
-_Applies to v1.5.0 · Last updated 2026-09-05_
+_Applies to v1.7.0 · Last updated 2026-09-06_
 
 A2R Delivery OS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
@@ -16,8 +16,23 @@ data-handling posture, see [`SECURITY.md`](./SECURITY.md).
 
 ## 1. Signing in & getting oriented
 
-Open the app and sign in with your work email. Your organization admin
-issues you a one-time password to change on first sign-in.
+Open the app and sign in with your work email and password.
+
+**First sign-in.** If your account was set up for you — an admin
+provisioned your organization and sent you a temporary password — the
+first time you sign in you land on a **Set your own password** screen and
+can't reach the workspace until you do. Pick a password with at least 12
+characters, including an upper- and lowercase letter and a number; it
+can't be the temporary one. You're then signed out to sign back in with
+the new password. (If you created your own organization and chose your
+own password at sign-up, this step is skipped.)
+
+**Changing it later.** Any time you're signed in, go to
+`/change-password` to set a new one — same rules apply. Changing your
+password **signs you out of every other device immediately** (the one you
+changed it on stays signed in). If a session ever looks stale — you're
+bounced to the sign-in screen mid-task — signing back in resolves it;
+nothing is lost.
 
 The workspace has three regions:
 
@@ -271,15 +286,35 @@ API on a schedule. Each ingest appears automatically in your Active Stream.
 
 ## 7. For A2R operators — the internal console (`/ops`)
 
-Visible only to A2R Ventures staff accounts. It's a separate shell with no
-tenant context.
+Visible only to A2R Ventures staff accounts holding an explicit access grant
+(there is no "any @a2rventures.com email is staff" shortcut). It's a separate
+shell with no tenant context.
 
 | Page | Use it to… |
 | --- | --- |
 | **Telemetry** (`/ops/telemetry`) | High-level health across every tenant — totals, red engagements, at-risk RAID, per-tenant breakdown. |
 | **Platform Pulse** (`/ops/pulse`) | The engineering health of A2R Delivery OS *itself* — see below. |
-| **Tenants** (`/ops/tenants`) | Provision a new client organization; suspend / reactivate / move to grace period; **impersonate** (read-only, time-boxed, audited); export a tenant's data; execute the Purge Protocol; manage a tenant's API keys. |
+| **Tenants** (`/ops/tenants`) | Provision a new client organization (the new admin gets a one-time password shown to you once — they're forced to set their own on first sign-in); suspend / reactivate / move to grace period; **impersonate** (read-only, time-boxed, audited); export a tenant's data; execute the Purge Protocol; manage a tenant's API keys. |
+| **Staff Access** (`/ops/staff`) | Grant / revoke operator access (attributed, revocable — you can't revoke your own), and the **Just-In-Time elevations** audit trail. |
 | **Ingestion & Templates** (`/ops/ingestion`) | The intake templates and schema reference to hand a new tenant admin during onboarding. |
+| **Developer Docs** (`/ops/dev-docs`) | The in-app engineering reference — build stamp, release history, architecture map, setup steps, and the environment/credentials reference. |
+
+### Just-In-Time elevation
+
+Your access grant lets you **read** every page above. Every action that
+*changes* something — provisioning, suspension, impersonation, data export,
+the Purge Protocol, API keys, identity-federation changes, granting or
+revoking staff — needs a **temporary elevation** first.
+
+- The bar at the top of every `/ops` page shows your status. Amber
+  "read-only" → click **Elevate**, type a reason (this goes on the audit
+  trail), pick a window (15 / 30 / 60 minutes), and submit.
+- The bar turns green with a live countdown. Run what you came to run.
+- It **auto-expires** — there's no standing elevated session. Click **Drop
+  elevation** when you're done, or just let it lapse.
+- If you try a privileged action without elevating, the elevation prompt
+  opens automatically; nothing is changed.
+- Every elevation — who, why, how long — is listed on **Staff Access**.
 
 ### Platform Pulse (`/ops/pulse`)
 

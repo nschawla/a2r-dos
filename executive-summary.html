@@ -484,11 +484,11 @@
         <span class="draft-pill">Confidential · Draft</span>
       </div>
       <h1>Executive Platform Summary</h1>
-      <p class="lede">The enterprise Delivery Operating System for professional services organizations — release v1.4.0, prepared for executive and board review.</p>
+      <p class="lede">The enterprise Delivery Operating System for professional services organizations — release v1.7.0, prepared for executive and board review.</p>
       <div class="meta-row">
-        <span><b>Release</b> v1.4.0</span>
+        <span><b>Release</b> v1.7.0</span>
         <span class="sep">/</span>
-        <span><b>Prepared</b> September 5, 2026</span>
+        <span><b>Prepared</b> September 6, 2026</span>
         <span class="sep">/</span>
         <span><b>Author</b> A2R Ventures Engineering</span>
         <span class="sep">/</span>
@@ -505,14 +505,15 @@
         <div class="prose-card">
           <p><strong>A2R Delivery OS™ ("A2R DOS")</strong> is an enterprise-grade Delivery Operating System purpose-built for professional services organizations. It unifies commercial baselining, financial realization, resourcing, schedule governance, and risk management for an entire portfolio of client engagements into one governed, role-aware workspace — replacing the spreadsheets, point-in-time status decks, and disconnected timesheet tools most delivery organizations still stitch together by hand.</p>
           <p>Every screen in A2R DOS — the Portfolio Control Tower, the Resource &amp; Capacity Cockpit, Financial Realization, the RAID Cockpit, and the SteerCo and Executive Hub briefings — is driven from the same operational data the delivery organization already produces each week, and is automatically scoped to the person viewing it: a Practice Director and a VP see the identical screen, narrowed to exactly what their role should see.</p>
-          <p>This release, <strong>v1.4.0</strong>, advances three capabilities requested directly by the platform's largest engagements: a complete four-pillar weekly intake engine, role-based scoped filtering enforced at the data layer, and a Custom KPI Definition Engine that lets an administrator stand up a governed metric card without engineering involvement. All three ship alongside the platform's existing enterprise governance framework, SAML/OIDC identity federation, and SOC&nbsp;2-aligned, hash-chained compliance ledger.</p>
+          <p>Three capabilities requested directly by the platform's largest engagements anchor the current release: a complete four-pillar weekly intake engine, role-based scoped filtering enforced at the data layer, and a Custom KPI Definition Engine that lets an administrator stand up a governed metric card without engineering involvement. They ship alongside the platform's enterprise governance framework, SAML/OIDC identity federation with just-in-time provisioning, and a SOC&nbsp;2-aligned, hash-chained compliance ledger.</p>
+          <p><strong>v1.7.0</strong> completes a security-architecture hardening pass driven by an independent Principal-Architect review. Tenant isolation is now enforced at three independent layers, and every tenant record is bound to its organization at the database itself. Privileged operator access follows a zero-trust model: a standing grant confers only <em>eligibility</em>, and every consequential operation runs under a temporary, reason-logged, auto-expiring Just-In-Time elevation — there are no standing privileged sessions. Every authenticated session is re-validated against the database on every request and fails closed on any uncertainty; a password change signs the account out on every other device instantly. The high-risk boundaries — sign-in, exports, document generation, bulk ingestion — carry sliding-window rate limits, and every unhandled server error is captured as a structured, secret-redacted event.</p>
         </div>
       </section>
 
       <!-- ============ 02. CORE PLATFORM CAPABILITIES ============ -->
       <section>
         <div class="eyebrow"><span class="num">02</span> Core Platform Capabilities</div>
-        <h2>Three capabilities delivered this release</h2>
+        <h2>Three capabilities that define the platform</h2>
         <p class="section-intro">Each capability below is live in production today, gated by the platform's existing role and governance model — no parallel access system, no new persona concept.</p>
 
         <div class="feature-grid">
@@ -572,6 +573,15 @@
           </article>
 
         </div>
+
+        <p class="section-intro" style="margin-top:24px;margin-bottom:0;">
+          Running alongside these in production: enterprise governance (compliance templates and role-based
+          financial masking), per-tenant SAML/OIDC identity federation with JIT provisioning, a hash-chained
+          SOC&nbsp;2-aligned compliance ledger, and — new in v1.7.0 — three-layer tenant isolation with
+          composite database keys, an explicit fail-closed session state machine with instant all-device
+          logout, Just-In-Time (reason-logged, auto-expiring) elevation for every privileged operator action,
+          advanced rate limiting on the high-risk boundaries, and a centralized structured error-capture layer.
+        </p>
       </section>
 
       <!-- ============ 03. QUALITY & VERIFICATION RECORD ============ -->
@@ -582,27 +592,27 @@
 
         <div class="stat-strip">
           <div class="stat-card ok">
-            <span class="stat-num">387 / 387</span>
-            <span class="stat-label">Unit tests passed (Vitest, 29 files)</span>
+            <span class="stat-num">536 / 536</span>
+            <span class="stat-label">Unit tests passed (Vitest, 43 files)</span>
           </div>
           <div class="stat-card ok">
-            <span class="stat-num">47 / 47</span>
-            <span class="stat-label">End-to-end tests passed (Playwright, Suites A–K)</span>
+            <span class="stat-num">60 / 60</span>
+            <span class="stat-label">End-to-end tests passed (Playwright, Suites A–P)</span>
           </div>
           <div class="stat-card ok">
             <span class="stat-num">0</span>
             <span class="stat-label">TypeScript errors (strict <code>tsc --noEmit</code>)</span>
           </div>
           <div class="stat-card">
-            <span class="stat-num">v1.4.0</span>
+            <span class="stat-num">v1.7.0</span>
             <span class="stat-label">Current verified release</span>
           </div>
         </div>
 
         <div class="verify-line">
           <b>$</b> npx tsc --noEmit &nbsp;→&nbsp; 0 errors&nbsp;&nbsp;·&nbsp;&nbsp;
-          <b>$</b> npx vitest run &nbsp;→&nbsp; 387 passed&nbsp;&nbsp;·&nbsp;&nbsp;
-          <b>$</b> npx playwright test &nbsp;→&nbsp; 47 passed
+          <b>$</b> npx vitest run &nbsp;→&nbsp; 536 passed&nbsp;&nbsp;·&nbsp;&nbsp;
+          <b>$</b> npx playwright test &nbsp;→&nbsp; 60 passed
         </div>
       </section>
 

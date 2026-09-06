@@ -1,6 +1,6 @@
 # The Data Access Layer (DAL)
 
-_Status: shipped (P1). Builds on P0 #1 (ORM tenant auto-scoping) and the
+_Status: shipped in v1.7.0 (P1). Builds on P0 #1 (ORM tenant auto-scoping) and the
 composite-tenant-key migration `00000000000012`._
 _Audience: engineering + security audit._
 
@@ -37,8 +37,9 @@ src/lib/**  (services)       ← may use @/lib/db directly (identity, governance
 **`src/app/**` and `src/components/**` may not import `@/lib/db`** (or
 `@/lib/db/*`, or `PrismaClient`). Enforced two ways:
 
-- **ESLint** — `@typescript-eslint/no-restricted-imports` in `.eslintrc.json`,
-  scoped to those two trees. `import type` from `@prisma/client` stays legal.
+- **ESLint** — a `no-restricted-imports` rule in `.eslintrc.json`, scoped via
+  `overrides` to those two trees, banning `@/lib/db` and `@/lib/db/org-scope`.
+  `import type` from `@prisma/client` stays legal.
 - **vitest** — `tests/dal-boundary.test.ts` walks the trees and fails on any
   non-type `@/lib/db` import, so `vitest run` catches it too.
 

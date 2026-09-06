@@ -10,6 +10,81 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.7.0] — 2026-09-06
+
+_Security architecture hardening — tenant isolation, session integrity, JIT operator elevation, and production observability._
+
+Nine focused changes from a Principal-Architect audit of the v1.6.0 release,
+plus a production-readiness observability pass.
+
+### Security
+
+- **ORM-level tenant auto-scoping.** A Prisma client extension
+  (`src/lib/db/org-scope.ts`, `src/lib/db.ts`) rewrites every query on a
+  tenant-owned model to include the request's `organizationId` and **throws**
+  if a tenant query runs with no resolved scope — a backstop under the
+  hand-written `where` clauses. Fed by an `AsyncLocalStorage` cell + a lazy
+  session/cookie resolver. `docs/RLS_ROADMAP.md` covers the DB-level follow-up.
+- **Composite tenant keys** (migration `00000000000012`). `audit_entries`,
+  `effort_cells`, `financial_actuals`, `project_contributors`, `raid_entries`,
+  `schedule_phases`, `scope_items`, `steerco_decisions`, `data_import_rows`
+  each gained an `organizationId` column + FK + index (backfilled from the
+  parent). Every tenant table now ties its rows to a tenant at the database.
+- **Explicit A2R-staff grants (P0 #2).** The `@a2rventures.com` email wildcard
+  and the `User.isA2rStaff` boolean are removed (migration
+  `00000000000009`). Staff access is one attributed, revocable `staff_grants`
+  row. Manage at `/ops/staff` or `npm run staff:grant|revoke|list`.
+- **Deep forced-password-rotation enforcement (P0 #3).** `mustChangePassword`
+  is now rejected with `403 PASSWORD_CHANGE_REQUIRED` in **every**
+  server-action / route-handler auth path, not only the middleware redirect.
+  `changePasswordAction` atomically bumps `users.sessionVersion` →
+  every other device is logged out on its next request (migration
+  `00000000000011`).
+- **Restricted-session state machine (P1).** `src/lib/auth/session-state.ts`
+  — `ACTIVE | PENDING_PASSWORD_CHANGE | REVOKED`, re-derived from the
+  database on every authenticated request. Any lookup error / timeout →
+  `REVOKED` (**fail-closed**). `docs/SESSION_STATE_MACHINE.md`.
+- **Just-In-Time (JIT) staff elevation (P1).** A standing `staff_grants` row
+  is now eligibility only; every mutating `/ops` operation requires a live,
+  reason-logged, auto-expiring `staff_elevations` grant (migration
+  `00000000000013`, TTL 30 min default / 60 max). `docs/JIT_STAFF_ELEVATION.md`.
+- **Preview / production data-isolation guardrail (P0 #4).** The build, the
+  server boot, and the Prisma client all hard-fail a Vercel Preview /
+  Development deployment wired to the production database.
+  `docs/PREVIEW_ENVIRONMENT_ISOLATION.md`.
+- **Advanced rate limiting (P2).** Named sliding-window rules
+  (`src/lib/rate-limits.ts`, `RL_*_LIMIT` overrides) on sign-in,
+  registration, password change, the AI parser, bulk exports, print-doc
+  generation, batch ingestion, and workspace snapshots. `X-RateLimit-*`
+  headers on the allowed 200, not only the 429. `docs/OBSERVABILITY.md`.
+
+### Added
+
+- **A named, server-only Data Access Layer** (`src/lib/dal/`). `src/app/**`
+  and `src/components/**` may no longer import `@/lib/db` — enforced by an
+  ESLint `no-restricted-imports` rule **and** `tests/dal-boundary.test.ts`.
+  Reads go through `src/server/queries/**`, writes through
+  `src/server/actions/**`. `docs/DATA_ACCESS_LAYER.md`.
+- **Server-only site routing** — `A2R_SITE_MODE` (`marketing | internal |
+  live`), a strict fail-closed enum. An unknown / missing value in
+  production serves the marketing page, never the internal app. Replaces the
+  browser-exposed `NEXT_PUBLIC_COMING_SOON`. `docs/SITE_ROUTING_MODEL.md`.
+
+### Changed
+
+- **Centralized server-side error boundary** — `withAction()` wraps every
+  `{ ok }`-returning mutation action, `withRouteHandler()` wraps the
+  download / report routes. An unhandled throw becomes one structured,
+  secret-redacted `captureException` line + a safe generic error, never an
+  opaque 500. Next.js control-flow (`redirect` / `notFound` / static
+  bailout) still propagates.
+
+### Verification
+
+- `npx tsc --noEmit` → 0 errors. `npx vitest run` → **536 passed** across
+  43 files. `npx playwright test` → **60 passed** (Suites A–P). `npm run
+  build` → compiled cleanly.
+
 ## [1.6.0] — 2026-09-05
 
 _Forced password change on first sign-in._

@@ -1,16 +1,22 @@
 # Database-level Row Level Security — implementation roadmap
 
-_Status: **planned**. Applies from v1.6.0._
+_Status: **planned**. Prerequisites complete as of v1.7.0._
 _Owner: platform / security. Audience: engineering + the security auditor._
 
-## 1. Where we are today (v1.6.0)
+## 1. Where we are today (v1.7.0)
 
-Tenant isolation is enforced at **two** layers, both in the application tier:
+Tenant isolation is enforced at **three** layers, all in the application tier:
 
 | Layer | Mechanism | File |
 | --- | --- | --- |
 | 1 — hand-written scoping | Every server component / action / route resolves the active tenant through `requireOrgContext()` / `requireOpsContext()` / `withApiAuth()` and passes `organizationId` into each Prisma `where`. Role narrowing on top via `getScopedProjectWhere` / `getScopedResourceWhere`. | `src/lib/session.ts`, `src/lib/db/scoping.ts` |
-| 2 — ORM auto-scoping (new in v1.6.0) | A Prisma client extension (`$allModels.$allOperations`) rewrites **every** query on a tenant-owned model to include the request's `organizationId`, and **throws** if a tenant query runs with no scope resolved. Fed by an `AsyncLocalStorage` cell + a lazy session/cookie resolver. | `src/lib/db/org-scope.ts`, `src/lib/db.ts` |
+| 2 — ORM auto-scoping (v1.7.0) | A Prisma client extension (`$allModels.$allOperations`) rewrites **every** query on a tenant-owned model to include the request's `organizationId`, and **throws** if a tenant query runs with no scope resolved. Fed by an `AsyncLocalStorage` cell + a lazy session/cookie resolver. | `src/lib/db/org-scope.ts`, `src/lib/db.ts` |
+| 3 — named DAL boundary (v1.7.0) | `src/app/**` / `src/components/**` may not import `@/lib/db` (ESLint + `tests/dal-boundary.test.ts`). Reads go through `src/server/queries/**`, writes through `src/server/actions/**`; the query fns fail closed on a missing tenant context. | `src/lib/dal/`, `docs/DATA_ACCESS_LAYER.md` |
+
+Migration `00000000000012` (v1.7.0) added an own `organization_id` column + FK to the
+9 formerly join-scoped tables, so **every** tenant table can now take a same-table RLS
+policy — §2 below is updated to match, and the composite-key prep work this roadmap
+called for is done.
 
 The database **does not** enforce isolation for the application's own queries. Prisma
 connects as the Supabase `postgres` role, which has `BYPASSRLS` and owns every table,
@@ -112,7 +118,7 @@ this release already introduced (`currentOrgScope()`). The `admin` scope maps to
 
 ## 4. Call-site work
 
-The v1.6.0 ORM extension already inventoried and tagged every entry point:
+The v1.7.0 ORM extension already inventoried and tagged every entry point:
 
 - **~40** `requireOrgContext()` callers → already funnel through one resolver.
 - **~13** `requireOpsContext()` callers → cross-tenant; need the `bypass`/`postgres`
@@ -136,7 +142,7 @@ rather than re-deriving it.
    `app_rls` GUC (`ALTER DATABASE ... SET app.current_org = ''`).
 2. **Shadow mode** — deploy the SET-LOCAL extension writing the GUC on every
    request, but **do not** add policies yet. Verify via logs that every tenant
-   query carries a non-empty `app.current_org`. (The v1.6.0 extension's throw
+   query carries a non-empty `app.current_org`. (The v1.7.0 extension's throw
    already guarantees this; this step is belt-and-braces telemetry.)
 3. **Policies on read-mostly tables first** — `ControlLabel`, `DeliveryRole`,
    `Practice`, `GovernanceConfig`, `OrgPolicy`. Low write volume, easy rollback.
@@ -178,11 +184,11 @@ Because RLS is added table-by-table and only step 6 uses `FORCE`, at any point:
 ALTER TABLE <table> NO FORCE ROW LEVEL SECURITY;   -- if forced
 DROP POLICY tenant_isolation ON <table>;
 -- RLS stays ENABLED (migration 07) so the anon/authenticated lockdown is intact;
--- the app is back to app-tier-only isolation, exactly as v1.6.0 shipped.
+-- the app is back to app-tier-only isolation, exactly as v1.7.0 shipped.
 ```
 
 The SET-LOCAL Prisma extension is feature-flagged (`RLS_SET_LOCAL=1`); turning it
-off reverts to the v1.6.0 behaviour with no redeploy of policies.
+off reverts to the v1.7.0 behaviour with no redeploy of policies.
 
 ## 8. Estimate
 
@@ -193,5 +199,5 @@ off reverts to the v1.6.0 behaviour with no redeploy of policies.
 | Test suite + CI smoke script | ~3 days |
 | Staged rollout + load validation + FORCE | ~1 week (elapsed, mostly soak time) |
 
-~2–3 focused weeks. The v1.6.0 ORM auto-scoping layer is the prerequisite and is
+~2–3 focused weeks. The v1.7.0 ORM auto-scoping layer is the prerequisite and is
 now in place.

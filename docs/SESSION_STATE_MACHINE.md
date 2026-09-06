@@ -1,6 +1,6 @@
 # Restricted-session state machine
 
-_Status: shipped (P1). Builds on P0 #3 (forced-password-rotation enforcement)._
+_Status: shipped in v1.7.0 (P1). Builds on P0 #3 (forced-password-rotation enforcement)._
 _Audience: engineering + security audit._
 
 ## 1. Purpose

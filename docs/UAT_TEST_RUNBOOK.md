@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — UAT Test Runbook
 
-_Applies to v1.5.x · Last updated 2026-09-05_
+_Applies to v1.7.x · Last updated 2026-09-06_
 
 This runbook is the human-executable half of the QA framework. It gives a
 tester **explicit login data, exact steps, expected visual outcomes, and a
@@ -65,9 +65,10 @@ All demo passwords are **`password12345`** unless noted.
 ## 2. Automated coverage (run before manual UAT)
 
 ```bash
-npm test            # Vitest — 396 unit + integration tests across 30 files, ~5s
+npm test            # Vitest — 536 unit + integration tests across 43 files, ~10s
 npx tsc --noEmit    # strict typecheck, 0 errors
-npm run test:e2e    # Playwright — full Suites A–K against a running dev server
+npm run build       # next build — must compile cleanly
+npm run test:e2e    # Playwright — full Suites A–P against a running dev server
 ```
 
 | Flow | Automated by |
@@ -80,7 +81,13 @@ npm run test:e2e    # Playwright — full Suites A–K against a running dev ser
 | Command Center / Portfolio / Governance / Reporting / Ops | e2e Suites **B–I** |
 | Role-Based Scoped Filtering — practice-scoped project/resource predicates | `tests/scoping.test.ts` · e2e Suite **K1–K2** |
 | Custom KPI Definition Engine — metric calc, validation, persona filtering, create-to-dashboard | `tests/kpi-engine.test.ts` · e2e Suite **K3** |
+| Password-strength policy (forced first-sign-in change) | `tests/password-policy.test.ts` · manual UAT-3.7 |
 | Self-service batch import (4 pillars: Weekly Actuals, Milestone & Progress, Forecast & EAC, Status Reports & RAID Log) — schema validation, plain-English errors, CSV/Excel parsing | `tests/batch-schemas.test.ts` · `tests/workbook-reader.test.ts` · `tests/templates.test.ts` (no Playwright suite yet — see UAT-4.7 for the manual walkthrough) |
+| Server-only site routing (`A2R_SITE_MODE` fail-closed enum) | `tests/site-mode.test.ts` · e2e Suite **M** · manual UAT-3.8 |
+| Restricted-session state machine — all-device logout on password change, fail-closed on DB error | `tests/session-state.test.ts` · `tests/security/password-rotation-flow.test.ts` · e2e Suite **N** · manual UAT-3.9 |
+| Tenant isolation — ORM auto-scope + composite keys + DAL boundary | `tests/org-scope.test.ts` · `tests/security/tenant-isolation.test.ts` · `tests/dal.test.ts` · `tests/dal-boundary.test.ts` · e2e Suite **O** |
+| JIT staff elevation — reason-logged, auto-expiring, session-bound | `tests/staff-elevation.test.ts` · e2e Suite **P** · manual UAT-3.10 |
+| Advanced rate limiting + structured error boundary | `tests/rate-limiter.test.ts` · `tests/security/rate-limit-endpoints.test.ts` · `tests/observability.test.ts` |
 
 A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 
@@ -195,6 +202,47 @@ Test with an operator-provisioned admin: as `ops@a2rventures.com`, **Tenants →
 
 ---
 
+### UAT-3.8 · Site routing model (`A2R_SITE_MODE`)
+
+Requires setting the server env var and a restart. Never a `NEXT_PUBLIC_*` value.
+
+| Step | Action | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | `A2R_SITE_MODE=marketing` (or unset), visit `/` signed-out | The public early-access page renders | |
+| 2 | `A2R_SITE_MODE=live`, visit `/` signed-out | 307 → `/login` | |
+| 3 | `A2R_SITE_MODE=nonsense`, restart, visit `/` signed-out | Falls back to the marketing page — **never** the internal app | |
+| 4 | View source / network on `/` | No `A2R_SITE_MODE` value anywhere in the HTML or JS bundle | |
+
+**Checkpoint:** the routing decision is server-only and fail-closed.
+
+### UAT-3.9 · Restricted-session state machine
+
+| Step | Action | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | Sign in as a demo user in browser A **and** browser B (same account) | Both reach `/portfolio` | |
+| 2 | In browser A, go to `/change-password` and set a new compliant password | Browser A stays signed in (fresh session) | |
+| 3 | In browser B, click any nav link or reload | Bounced to `/login` — the old session is dead | |
+| 4 | In browser B, call a protected API (`/api/reports/portfolio-csv`) | `401` | |
+
+**Checkpoint:** a password change is an atomic all-device logout; a stale session fails closed.
+
+### UAT-3.10 · Just-In-Time staff elevation
+
+As `ops@a2rventures.com`:
+
+| Step | Action | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | Open `/ops/telemetry` | Page renders; the top bar reads **"Read-only — elevate to make changes"** (amber) | |
+| 2 | `/ops/tenants` → **Provision New Tenant** → fill → Provision | Blocked — an **elevation modal** appears; no tenant is created | |
+| 3 | Bar → **Elevate**, enter a reason (≥10 chars), pick 15 min, submit | Bar turns green with a live countdown | |
+| 4 | Retry the provision | Succeeds; the new tenant appears | |
+| 5 | `/ops/staff` → **Just-In-Time elevations** table | Your elevation is listed with reason, time, expiry, "Active" | |
+| 6 | Bar → **Drop elevation**, retry any mutating action | Blocked again — back to read-only | |
+
+**Checkpoint:** privileged operator actions require a temporary, reason-logged, auto-expiring elevation; read views do not.
+
+---
+
 ## 4. Module runbooks
 
 ### UAT-4.1 · Command Center (`/command`)
@@ -258,13 +306,15 @@ Sign in as `ops@a2rventures.com` (or `navinder@…`).
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
 | 1 | Landing | `ops@…` (no membership) lands on `/ops`; a non-staff user visiting `/ops/*` is redirected to `/portfolio` | |
-| 2 | **Telemetry** | Platform-wide totals (tenants, red engagements, at-risk RAID) + per-tenant breakdown | |
-| 3 | **Platform Pulse** | Running build + commit, live DB probe with latency, last test-suite result, Engineering Stream; header health pill refreshes | |
-| 4 | **Tenants** | Every org with status pills; each row's actions menu: Suspend / Impersonate / Export / Purge | |
-| 5 | **Identity Federation** | Tenant picker → per-tenant SSO panel (see UAT-3.5) | |
-| 6 | **Ingestion & Templates** | CSV template downloads + schema reference | |
-| 7 | Impersonate a tenant (Tenants → actions → Impersonate, give a reason) | Opens a **read-only** tenant session with a persistent banner; the reason is written to that tenant's Compliance Ledger before the session starts | |
-| 8 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.5.x`; click → Release Notes modal | |
+| 2 | **Elevation bar** (top of every `/ops` page) | Amber "Read-only — elevate to make changes" when unelevated; green "Elevated · expires in mm:ss" with a live countdown after elevating (see UAT-3.10) | |
+| 3 | **Telemetry** | Platform-wide totals (tenants, red engagements, at-risk RAID) + per-tenant breakdown — reachable **unelevated** (read view) | |
+| 4 | **Platform Pulse** | Running build + commit, live DB probe with latency, last test-suite result, Engineering Stream; header health pill refreshes | |
+| 5 | **Tenants** | Every org with status pills; each row's actions menu: Suspend / Impersonate / Export / Purge — each requires a live JIT elevation | |
+| 6 | **Identity Federation** | Tenant picker → per-tenant SSO panel (see UAT-3.5); saving a connection requires an elevation | |
+| 7 | **Ingestion & Templates** | CSV template downloads + schema reference | |
+| 8 | **Staff Access** | Grants table + the **Just-In-Time elevations** audit table (who, why, expiry, active/ended) | |
+| 9 | Impersonate a tenant (elevate first; Tenants → actions → Impersonate, give a reason) | Opens a **read-only** tenant session with a persistent banner; the reason is written to that tenant's Compliance Ledger before the session starts | |
+| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.7.x`; click → Release Notes modal (top entry: v1.7.0) | |
 
 ### UAT-4.6 · Admin & Org Setup (`/admin`)
 
@@ -330,17 +380,19 @@ Sign in as `admin@a2rventures-demo.test`.
 
 | # | Check | ✅/❌ |
 | --- | --- | --- |
-| 1 | `npm test` → all green; `npx tsc --noEmit` → 0 errors | |
-| 2 | `npm run test:e2e` → Suites A–K all green | |
+| 1 | `npm test` → all green; `npx tsc --noEmit` → 0 errors; `npm run build` → compiles | |
+| 2 | `npm run test:e2e` → Suites A–P all green (kill any stray `next` + `rm -rf .next` first) | |
 | 3 | Sign-in works for one login per role shape (admin / vp / pd / dm / pm / ops) | |
 | 4 | ⌘K palette opens on every route incl. `/login` and `/ops` | |
-| 4a | `/` (signed out) shows the dark Coming Soon page + working Sneak Peek modal + early-access form; `/` (signed in) forwards to the workspace; `/portfolio` renders the Control Tower | |
+| 4a | `/` (signed out) reflects `A2R_SITE_MODE`; `/` (signed in) forwards to the workspace; `/portfolio` renders the Control Tower | |
 | 5 | Tenant switch (header) fully re-scopes the workspace | |
 | 6 | No Next.js error overlay anywhere during the walkthrough | |
 | 7 | Compliance Ledger integrity badge = **Verified** in every tenant | |
 | 8 | Demo tenant governance left on **Standard Delivery**; no stray identity providers | |
 | 9 | No stray `DataImportBatch` rows or test `WeeklyAssignmentSlot`/`SchedulePhase` writes left in the demo tenant from batch-import testing | |
 | 10 | No stray test `CustomKpi` rows left in the demo tenant from Custom KPI Builder testing | |
+| 11 | No stray `staff_elevations` rows or throwaway tenants (`JIT Elevation Test Inc`, `Enterprise Sanity Inc`, `Purge Target Inc`) left from Ops testing | |
+| 12 | Release Notes modal top entry = **v1.7.0**; Ops sidebar build stamp = `v1.7.x` | |
 
 ---
 

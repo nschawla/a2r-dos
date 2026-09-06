@@ -1424,12 +1424,13 @@ original two pillars in Phase 3d).
 passed** across 29 files (27 pure-unit + 2 live-database security suites);
 `npx playwright test` → **47 passed** across Suites A–K.
 
-## Phase 3f — Production deploy, database hardening & a public front door (v1.4.1 – v1.5.0)
+## Phase 3f — Production deploy, database hardening & a public front door (v1.4.1 – v1.6.0)
 
 Phase 3f takes the platform from "runs locally" to "runs on the internet":
 a live Vercel + Supabase deployment, the database-security work that
-implies, and a marketing landing page so the bare domain is a front door,
-not a login wall.
+implies, a marketing / "Coming Soon" front door so the bare domain isn't a
+login wall, and a forced-password-change flow for operator-provisioned
+accounts.
 
 ### FRD — functional summary
 
@@ -1481,17 +1482,124 @@ headers live; `/` public, `/portfolio` gated.
 
 ### v1.6.0 — forced password change on first sign-in
 
-`User.mustChangePassword` (migration `00000000000008`) is set `true` for an
-operator-provisioned tenant admin who received a temp password.
-`src/middleware.ts` redirects every route to `/change-password` — ahead of
-the `/ops` and RBAC checks — until `changePasswordAction` clears it after
-the user sets a policy-compliant password (`src/lib/auth/password-policy.ts`
-— ≥12 chars, upper + lower + digit). `/change-password` also serves a
-voluntary change for any signed-in user. The `navinder@` seed no longer
-resets its own `passwordHash` on re-seed (so a live rotation survives), and
-a dedicated `master.e2e@a2rventures.com` account backs the Suite A / I
-tests. `npx vitest run` → **396 passed** across 30 files (+
-`tests/password-policy.test.ts`); `npx playwright test` → **47 passed**.
+FRD:
+
+- **A password set by anyone other than the user is single-use.** When an
+  A2R operator provisions a tenant, the new admin gets a temp password
+  (shown to the operator once). `provisionTenantAction` stamps
+  `User.mustChangePassword = true` on that account (migration
+  `00000000000008` — additive, existing rows unaffected). A self-registered
+  user, who chose their own password, is never flagged; seeded demo
+  accounts are left at the default `false`.
+- **The workspace is unreachable until they set their own.** The flag
+  rides on the NextAuth JWT (refreshed from the DB every request by the
+  `jwt` callback), and `src/middleware.ts` redirects **every** route to
+  `/change-password` while it's set — ahead of the `/ops` and RBAC
+  Master Matrix checks.
+- **One shared password policy.** `src/lib/auth/password-policy.ts`'s pure
+  `validatePasswordStrength` (≥12 chars, an upper- and lowercase letter, a
+  digit, no edge whitespace) backs both `changePasswordAction` and the
+  form's live feedback. The change also refuses re-use of the current
+  password, and verifies the current password before accepting a new one.
+- **`/change-password` is also a voluntary change screen** for any
+  signed-in user; on success the user is signed out for a clean re-login
+  (the simplest way to shed the stale token).
+- **Credential hygiene in the seed.** `navinder@a2rventures.com`'s
+  `passwordHash` is no longer reset on re-seed (only on a first-ever
+  `create`), so a password rotated in a live deployment survives
+  `npm run db:seed`. A dedicated `master.e2e@a2rventures.com` account
+  (isA2rStaff + OWNER/ADMIN in every org, oldest-org-first) now backs the
+  enterprise-verification suite's Suite A / I, so those tests never depend
+  on a human's real credential.
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| AUTH-PW-1 | **`mustChangePassword` flag + JWT/session plumbing** | `prisma/schema.prisma`, `src/lib/auth.ts`, `src/types/next-auth.d.ts` | `npx tsc --noEmit`; e2e Suite A (master account sign-in unaffected) |
+| AUTH-PW-2 | **Middleware enforcement** — every route → `/change-password` while flagged | `src/middleware.ts` | live-verified (armed demo account: redirected, `/portfolio` bounced, cleared after change); manual UAT-3.7 |
+| AUTH-PW-3 | **`/change-password` page + `changePasswordAction`** | `src/app/(auth)/change-password/`, `src/components/auth/ChangePasswordForm.tsx`, `src/server/actions/auth.ts` | live-verified end-to-end; manual UAT-3.7 |
+| AUTH-PW-4 | **Shared strength policy** | `src/lib/auth/password-policy.ts` | `tests/password-policy.test.ts` (8) |
+| AUTH-PW-5 | **Provision flow sets the flag; seed credential hygiene** | `src/server/actions/ops.ts`, `prisma/seed.ts` | e2e Suites A / D / I (provisioned + master accounts) |
+
+**Verification (current):** `npx tsc --noEmit` → 0 errors; `npx vitest run`
+→ **396 passed** across 30 files (28 pure-unit + 2 live-database security
+suites); `npx playwright test` → **47 passed** across Suites A–K.
+
+## Phase 4 — Security architecture hardening (v1.7.0)
+
+Nine focused changes from a Principal-Architect audit of the v1.6.0 release,
+plus a production-readiness observability pass. Every item ships with
+migration, tests (vitest + playwright), and all four verification gates
+green. Feature docs live under `docs/`.
+
+### FRD — functional summary
+
+- **ORM-level tenant auto-scoping (P0 #1).** A Prisma client extension
+  (`src/lib/db.ts` + `src/lib/db/org-scope.ts`) rewrites **every** query on a
+  tenant-owned model to include the request's `organizationId`, and throws
+  `OrgScopeError` if a tenant query runs with no resolved scope. Fed by an
+  `AsyncLocalStorage` cell + a lazy session/cookie resolver (`enterWith` is
+  unreliable across App Router boundaries). A structural backstop under the
+  hand-written `where` clauses. `docs/RLS_ROADMAP.md`.
+- **Explicit A2R-staff grants (P0 #2).** The `@a2rventures.com` email wildcard
+  and `User.isA2rStaff` are gone (migration `00000000000009`). Staff access
+  is one attributed, revocable `staff_grants` row — grant/revoke from
+  `/ops/staff` or `npm run staff:grant|revoke|list`.
+- **Deep forced-password-rotation enforcement (P0 #3).** `mustChangePassword`
+  is rejected with `403 PASSWORD_CHANGE_REQUIRED` in every server-action /
+  route-handler auth path, not just the middleware redirect.
+  `changePasswordAction` bumps `users.sessionVersion` in the same
+  transaction as the hash write → every other device is `REVOKED` on its
+  next request (migration `00000000000011`).
+- **Preview / production data-isolation guardrail (P0 #4).** Build,
+  server-boot, and Prisma-client hard-fail if a Vercel Preview/Development
+  deployment points `DATABASE_URL` at the production Supabase ref.
+  `docs/PREVIEW_ENVIRONMENT_ISOLATION.md`.
+- **Server-only site routing (P1).** `A2R_SITE_MODE` (`marketing | internal |
+  live`) — a strict, fail-closed enum read at request time in the Edge
+  middleware. Replaces `NEXT_PUBLIC_COMING_SOON`. An unknown value in
+  production fails the deploy; at runtime it falls back to marketing, never
+  the internal app. `docs/SITE_ROUTING_MODEL.md`.
+- **Restricted-session state machine (P1).** `ACTIVE | PENDING_PASSWORD_CHANGE
+  | REVOKED`, re-derived from the DB every request (`src/lib/auth/session-state.ts`),
+  token-version pinned. Any DB error / timeout → `REVOKED` (fail-closed).
+  `docs/SESSION_STATE_MACHINE.md`.
+- **Composite tenant keys + named DAL (P1).** Migration `00000000000012`
+  adds `organizationId` + FK to the 9 formerly join-scoped models — every
+  tenant table now binds its rows to a tenant at the database. `src/lib/dal/`
+  is the named entry point; `src/app/**` / `src/components/**` may not import
+  `@/lib/db` (ESLint + `tests/dal-boundary.test.ts`). `docs/DATA_ACCESS_LAYER.md`.
+- **Just-In-Time staff elevation (P1).** A standing `staff_grants` row is now
+  eligibility only. Every mutating `/ops` action requires a live,
+  reason-logged, session-bound, auto-expiring `staff_elevations` grant
+  (migration `00000000000013`, TTL 30 min default / 60 max). In-console audit
+  trail at `/ops/staff`. `docs/JIT_STAFF_ELEVATION.md`.
+- **Centralized error boundary + advanced rate limiting (P2).**
+  `withAction` / `withRouteHandler` wrap every mutation action + the
+  download/report routes: an unhandled throw → one structured,
+  secret-redacted log line + a safe generic error. Named sliding-window
+  rate-limit rules (`src/lib/rate-limits.ts`, `RL_*_LIMIT` overrides) on the
+  auth / export / doc-gen / ingest / snapshot boundaries, with `X-RateLimit-*`
+  on the allowed 200. `docs/OBSERVABILITY.md`.
+
+### RTM — requirements traceability (Phase 4)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| SEC-P0-1 | ORM tenant auto-scoping + fail-closed | `src/lib/db.ts`, `src/lib/db/org-scope.ts` | `tests/org-scope.test.ts`, `tests/security/tenant-isolation.test.ts` |
+| SEC-P0-2 | Explicit staff grants (no email wildcard) | `src/lib/ops/staff-grants.ts`, `src/lib/ops-auth.ts`, migration 09 | `tests/staff-grants.test.ts` · e2e Suites D/I |
+| SEC-P0-3 | Deep password-rotation + all-device logout | `src/server/actions/auth.ts`, `src/lib/auth.ts`, migration 11 | `tests/password-rotation.test.ts`, `tests/security/password-rotation-flow.test.ts` · e2e Suite N |
+| SEC-P0-4 | Preview/prod isolation guardrail | `src/lib/config/env-isolation-core.mjs`, `next.config.mjs`, `src/instrumentation.ts` | `tests/environment-isolation.test.ts` |
+| SEC-P1-1 | Server-only `A2R_SITE_MODE` routing | `src/lib/config/site-mode.mjs`, `src/middleware.ts` | `tests/site-mode.test.ts` · e2e Suite M |
+| SEC-P1-2 | Session state machine (fail-closed) | `src/lib/auth/session-state.ts`, `src/lib/auth.ts` | `tests/session-state.test.ts` (29), `tests/with-timeout.test.ts` · e2e Suite N |
+| SEC-P1-3 | Composite tenant keys + DAL boundary | `prisma` migration 12, `src/lib/dal/`, `.eslintrc.json` | `tests/dal.test.ts`, `tests/dal-boundary.test.ts`, `tests/security/tenant-isolation.test.ts` · e2e Suite O |
+| SEC-P1-4 | JIT staff elevation | `src/lib/ops/staff-elevation.ts`, `src/lib/ops-auth.ts`, migration 13 | `tests/staff-elevation.test.ts` (11) · e2e Suite P |
+| SEC-P2-1 | Centralized error boundary | `src/lib/observability/{action,route}-wrapper.ts` | `tests/observability.test.ts` (10) |
+| SEC-P2-2 | Advanced rate limiting + headers | `src/lib/rate-limits.ts`, `src/lib/rate-limiter.ts`, `src/lib/rate-limit-action.ts` | `tests/rate-limiter.test.ts`, `tests/security/rate-limit-endpoints.test.ts` |
+
+**Verification:** `npx tsc --noEmit` → 0 errors; `npx vitest run` → **536
+passed** across 43 files; `npx playwright test` → **60 passed** (Suites
+A–P); `npm run build` → compiled cleanly. Migrations `00000000000011–13`
+applied to the production database.
 
 ## What's next (Phase 3b+)
 

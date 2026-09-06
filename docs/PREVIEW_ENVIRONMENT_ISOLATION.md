@@ -1,6 +1,6 @@
 # Preview / Production environment isolation
 
-_Status: **code guardrail shipped (P0 #4). Vercel dashboard steps below are
+_Status: **code guardrail shipped in v1.7.0 (P0 #4). Vercel dashboard steps below are
 manual and still outstanding.**_
 
 ## The risk

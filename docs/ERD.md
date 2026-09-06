@@ -1,17 +1,24 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.6.0** (Role-Based Scoped Filtering, the Custom KPI
-Definition Engine, the complete 4-pillar Batch Import Engine,
-database-level RLS lockdown, and forced first-sign-in password change).
-Regenerate/extend this doc whenever a schema change adds, removes, or
-re-relates a model — it should never drift further than one release behind
-`schema.prisma`.
+it, current as of **v1.7.0** (Role-Based Scoped Filtering, the Custom KPI
+Definition Engine, the complete 4-pillar Batch Import Engine, forced
+first-sign-in password change, and the v1.7.0 security-architecture batch:
+`User.sessionVersion` (migration `00000000000011`), **composite tenant
+keys** on the 9 child tables — `organizationId` + FK on `audit_entries`,
+`effort_cells`, `financial_actuals`, `project_contributors`, `raid_entries`,
+`schedule_phases`, `scope_items`, `steerco_decisions`, `data_import_rows`
+(migration `00000000000012`), and `staff_elevations` for JIT operator
+elevation (migration `00000000000013`)). Regenerate/extend this doc
+whenever a schema change adds, removes, or re-relates a model — it should
+never drift further than one release behind `schema.prisma`.
 
-Every tenant-scoped model carries an `organizationId` foreign key (row-level
-multi-tenancy — see `src/lib/db/scoped-portfolio.ts` and
-`tests/security/tenant-isolation.test.ts`); those edges are omitted below
-where a more specific relationship already implies the tenant (e.g. a
+**Every** tenant-owned model now carries its own `organizationId` foreign
+key (row-level multi-tenancy — enforced at the app tier by
+`src/lib/db/org-scope.ts` + `src/lib/dal/`, verified by
+`tests/security/tenant-isolation.test.ts`; the DB-level RLS follow-up is
+`docs/RLS_ROADMAP.md`); those edges are omitted below where a more specific
+relationship already implies the tenant (e.g. a
 `Project` belongs to an `Organization`, so everything hanging off `Project`
 is transitively tenant-scoped without its own drawn edge).
 
@@ -104,8 +111,19 @@ delivery-portfolio RBAC enforced by `src/lib/auth/rbac.ts` and
 org (`Resource.userId`) — the roster/rate-card entry that person shows up as
 in staffing, effort, and RAID ownership. `User.mustChangePassword` (added
 v1.6.0) forces an operator-provisioned admin to set their own password on
-first sign-in — `src/middleware.ts` redirects every route to
-`/change-password` until `changePasswordAction` clears it.
+first sign-in. `User.sessionVersion` (v1.7.0, migration
+`00000000000011`) is the session-token epoch: `changePasswordAction`
+increments it in one transaction, so every token minted earlier fails the
+DB-backed check in the NextAuth `jwt` callback and is `REVOKED` — an atomic
+all-device logout (`docs/SESSION_STATE_MACHINE.md`).
+
+**Operator control plane** — `StaffGrant` (v1.6.0) is the explicit,
+attributed, revocable entitlement that replaced the `@a2rventures.com`
+email wildcard; it is now *eligibility* only. `StaffElevation` (v1.7.0,
+migration `00000000000013`) is the Just-In-Time grant every mutating
+`/ops` action requires — reason-logged, session-bound
+(`a2r_ops_elevation` cookie + `userId`), auto-expiring
+(`docs/JIT_STAFF_ELEVATION.md`).
 
 **Delivery spine** — `Project` is the hub every delivery module hangs off:
 `EffortCell` (the Phase × Role baseline matrix), `FinancialActual` (realized
@@ -167,6 +185,8 @@ DB-free authorization check and the Prisma query so the two can't drift.
 | Model | Purpose |
 |---|---|
 | `Account`, `Session`, `VerificationToken` | Auth.js/NextAuth adapter tables (OAuth plumbing; credentials login uses JWT sessions, not these). |
+| `StaffGrant` | Explicit, attributed, revocable A2R-operator entitlement (replaced the email-domain wildcard + `isA2rStaff` boolean in v1.6.0). A live row = *eligibility* to reach `/ops`. |
+| `StaffElevation` | v1.7.0 — the Just-In-Time, reason-logged, auto-expiring grant every *mutating* `/ops` action requires on top of a `StaffGrant`. Session-bound via the `a2r_ops_elevation` cookie. |
 | `ImpersonationGrant` | The Impersonation Gateway's time-boxed, audited operator → tenant sessions. |
 | `OrgPolicy` | Legacy per-tenant tolerances (slip/margin thresholds) predating `GovernanceConfig`. |
 | `ControlLabel` | Per-tenant display-label override for a `CTRL_01..10` key (the labels are editable; the keys are frozen — see `docs/` control-audit nomenclature notes). |

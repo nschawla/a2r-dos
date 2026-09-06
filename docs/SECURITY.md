@@ -1,6 +1,6 @@
 # A2R Delivery OS — Security & Trust Overview
 
-_Last reviewed: 2026-09-05 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-06 · Applies to v1.7.0 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of A2R Delivery OS™. It is written for the security and
@@ -19,22 +19,41 @@ A2R Delivery OS is a single application serving many customer organizations
 layer:
 
 - **Every tenant-owned row carries `organizationId` directly** — not only via a
-  parent record. The Prisma schema models `Organization` as the root of every
-  tenant aggregate (projects, scope, effort, audit entries, RAID registers,
-  financial actuals, schedule, resources, rate card, governance policy,
-  activity, audit trail, and the compliance ledger).
-- **Queries are `organizationId`-scoped at the source.** Portfolio and detail
-  reads resolve the caller's organization from their authenticated session
-  (`requireOrgContext`) and filter every query by it. Role-based scoping
-  (`getScopedProjectsForUser`) further narrows a project manager to their own
-  engagements, a practice director to their practice, and so on — the returned
-  row set *is* the authorization boundary.
-- **Cross-tenant writes are structurally prevented.** The Data Ingestion API
-  (below) re-validates that every `projectId` and `resourceId` in a payload
-  belongs to the key's tenant before any write; a foreign reference rejects the
-  whole batch.
+  parent record. As of v1.7.0 this is true of **all 29 tenant-owned models**:
+  the nine remaining "child" tables (audit entries, RAID, financials, schedule,
+  scope items, effort cells, SteerCo decisions, project contributors, import
+  rows) gained their own `organizationId` column + foreign key + index
+  (migration `00000000000012`), so the database itself binds every row to a
+  tenant rather than relying on a join.
+- **Queries are `organizationId`-scoped at three layers** (defence in depth):
+  1. *Verified context.* Every page, route, and action resolves the caller's
+     organization from their authenticated session
+     (`requireOrgContext` / `getOrgContextOrNull` / `withApiAuth`) and filters
+     every query by it. Role-based scoping (`getScopedProjectsForUser`) further
+     narrows a project manager to their own engagements, a practice director to
+     their practice — the returned row set *is* the authorization boundary.
+  2. *ORM auto-scoping (new in v1.7.0).* A Prisma client extension
+     (`src/lib/db/org-scope.ts`) rewrites **every** query on a tenant-owned
+     model to include the request's `organizationId`, and **throws** if a
+     tenant query runs with no resolved scope — a structural backstop under
+     the hand-written filters.
+  3. *Named Data Access Layer.* `src/app/**` and UI components may not import
+     the database client directly (enforced by an ESLint rule **and**
+     `tests/dal-boundary.test.ts`); reads go through `src/server/queries/**`,
+     writes through `src/server/actions/**`. See `docs/DATA_ACCESS_LAYER.md`.
+- **Cross-tenant writes are structurally prevented.** A `create` / `update`
+  that names another tenant's `organizationId` is rejected by the ORM
+  extension; the Data Ingestion API additionally re-validates that every
+  `projectId` / `resourceId` in a payload belongs to the key's tenant before
+  any write.
 - **No shared mutable global state** between tenant requests. Rate-limiter and
-  in-memory caches are keyed by tenant / principal.
+  in-memory caches are keyed by tenant / principal; the scope cell is an
+  `AsyncLocalStorage` per-request value, never attached to a pooled
+  connection.
+
+The DB-level Row Level Security follow-up (making Postgres itself reject a
+cross-tenant row) is scoped in `docs/RLS_ROADMAP.md`; the composite-key work
+above is its prerequisite and is now complete.
 
 ### Database-level access control (Row Level Security)
 
@@ -53,17 +72,40 @@ the managed database can't be reached *around* the application:
   web-exposed roles, and the schema default privileges are altered so a
   future schema push does not re-grant them.
 - Applied by `prisma/migrations/00000000000007_rls_lockdown/migration.sql`
-  (idempotent). Verified post-apply: 35/35 tables RLS-on, 0 residual
-  grants, and full Prisma read + write still functioning.
+  (idempotent), and each later migration that adds a table repeats the
+  posture (`ENABLE ROW LEVEL SECURITY` + `REVOKE ALL FROM anon, authenticated`
+  — e.g. `staff_grants`, `staff_elevations`). Verified post-apply: every
+  `public` table RLS-on, 0 residual grants, full Prisma read + write still
+  functioning.
+- **This is distinct from the *application-tier* isolation above** — RLS here
+  closes the *out-of-band* path (the provider's web-exposed roles), not the
+  app's own `BYPASSRLS` connection. Making Postgres reject a cross-tenant row
+  for the application's queries too is the `docs/RLS_ROADMAP.md` follow-on.
 
 ### Platform-operator access (A2R staff)
 
 A separate, non-tenant authorization axis governs the internal Operator Control
-Plane (`/ops`). An account is A2R staff only if its `User.isA2rStaff` flag is
-set **or** its email is on an `@a2rventures.com` domain. This is checked in
-middleware (defence in depth) and authoritatively in every operator route and
-server action (`requireOpsContext`). Staff status is unrelated to any tenant
-membership role.
+Plane (`/ops`). It has two levels as of v1.7.0:
+
+- **Eligibility** — an account can reach the `/ops` *read* views only if it
+  holds an explicit, attributed, revocable `staff_grants` row (migration
+  `00000000000009`). The former "`isA2rStaff` flag **or** `@a2rventures.com`
+  email" rule is **removed** — a compromised corporate inbox grants nothing.
+  Grant / revoke from `/ops/staff` or `npm run staff:grant|revoke|list`;
+  every change is attributed and you cannot revoke your own access. Checked in
+  middleware (defence in depth) and authoritatively, live, in every operator
+  route and server action (`requireOpsContext`).
+- **Just-In-Time elevation** — every *state-changing* `/ops` operation
+  (provisioning, suspension, impersonation, data export, purge, API keys,
+  identity federation, granting/revoking staff) additionally requires a live
+  `staff_elevations` grant (migration `00000000000013`): requested with a
+  reason, bound to the operator's session (an httpOnly cookie + a `userId`
+  match), and auto-expiring after a strict TTL (30 min default, 60 max). There
+  are **no standing privileged operator sessions**. Every elevation — who,
+  why, how long — is on the in-console audit trail at `/ops/staff`. See
+  `docs/JIT_STAFF_ELEVATION.md`.
+
+Staff status is unrelated to any tenant membership role.
 
 ---
 
@@ -81,6 +123,22 @@ membership role.
   internal-token checks.
 - Session tokens are JWTs signed with `NEXTAUTH_SECRET` (operator-supplied,
   generated via `openssl rand -base64 32`).
+- **Server-side session validation (new in v1.7.0).** A session is not
+  trusted on its `exp` claim alone. On every authenticated request the
+  NextAuth `jwt` callback re-derives the session's state from the database
+  through an explicit state machine (`ACTIVE | PENDING_PASSWORD_CHANGE |
+  REVOKED`, `src/lib/auth/session-state.ts`) and checks the token's pinned
+  `sessionVersion` against the live `users.sessionVersion`. **Any lookup
+  failure or timeout resolves to `REVOKED` — fail-closed.** A password
+  change increments `sessionVersion` in the same transaction as the hash
+  write, so **every other device is logged out** on its next request — an
+  atomic "sign out everywhere". No stale token survives a password event.
+  See `docs/SESSION_STATE_MACHINE.md`.
+- **Forced-rotation enforcement is server-deep (new in v1.7.0).** A session
+  flagged `mustChangePassword` is rejected with `403 PASSWORD_CHANGE_REQUIRED`
+  in **every** server-action and route-handler auth path — not only the
+  middleware redirect — so a script holding a temp-password session cannot
+  bypass the UI to invoke actions or APIs directly.
 - Enterprise SSO IdP secrets (the OIDC client secret) are AES-256-GCM
   encrypted at rest with a key derived from `NEXTAUTH_SECRET` (see §8);
   the plaintext is never returned to a client — only a fingerprint.
@@ -89,7 +147,9 @@ membership role.
 application-level (column) encryption for the most sensitive fields (contractor
 cost rates, resource PII) via a managed KMS; the live SSO (SAML/OIDC) IdP
 handshake (configuration, verification and JIT ship in v1.2.0 — §8) and SCIM
-provisioning; server-side session revocation ("sign out everywhere"); MFA.
+provisioning; MFA.
+_(Server-side session revocation / "sign out everywhere" shipped in v1.7.0 —
+see the `sessionVersion` bullet above.)_
 
 ---
 
@@ -132,14 +192,29 @@ connect Content-Security-Policy allow-list.
 
 ### Abuse protection
 
-- **Authentication:** the credentials sign-in endpoint is rate-limited to 10
-  attempts per minute per client IP; over-limit requests get `429` with
-  `Retry-After`.
-- **Data Ingestion API:** 60 requests per minute per API key; request bodies are
-  capped (a `Content-Length` is required and must be ≤ 256 KB) before the body
-  is read.
-- The rate limiter is an in-process sliding window (no external dependency);
-  behind multiple instances each enforces a proportional share.
+A true sliding-window rate limiter (in-process, no external dependency; behind
+multiple instances each enforces a proportional share) guards the high-risk
+and resource-intensive boundaries. Every limit is overridable per environment
+(`RL_<NAME>_LIMIT`); `X-RateLimit-Limit / -Remaining / -Reset` headers are
+returned on the **allowed** response, not only the `429` (which also carries
+`Retry-After`). Defaults (v1.7.0):
+
+| Boundary | Default | Key |
+| --- | --- | --- |
+| Credentials sign-in | 10 / min | client IP |
+| Public tenant registration | 5 / 15 min | client IP |
+| Password change | 5 / 10 min | user |
+| AI document parser (paid LLM calls) | 10 / min | user |
+| Bulk exports — portfolio CSV, project JSON | 30 / 5 min | user |
+| Print-document generation — SteerCo deck, audit certificate | 30 / min | user |
+| Intake CSV template downloads | 60 / min | user |
+| Self-service batch import (stage / commit / correct) | 20 / min | user |
+| Workspace snapshot export / restore | 5 / 10 min | user |
+| Data Ingestion API (`/api/v1`) | 60 / min | API key |
+
+Request bodies on the ingestion and document-parser endpoints are size-capped
+(a `Content-Length` is required and enforced) before the body is read. See
+`docs/OBSERVABILITY.md` for the full table and the wiring.
 
 ---
 
@@ -357,7 +432,27 @@ Compliance Ledger or timesheet records**.
 - **Error handling.** Unhandled errors are caught by application error
   boundaries (branded recovery screens, not stack traces) and routed to a
   central reporting utility (`src/lib/observability.ts`), which emits structured
-  JSON today and has a documented integration point for Sentry.
+  JSON today and has a documented integration point for Sentry. **As of v1.7.0
+  a centralized server-side boundary** (`withAction` / `withRouteHandler`)
+  wraps every mutation server action and the download / report API routes: an
+  unhandled exception or database timeout is captured as **one structured,
+  secret-redacted log line** (`redactContext` scrubs any `password` / `token` /
+  `secret` / `hash` / `authorization` key, recursively) and returned to the
+  caller as a **safe generic error**, never an opaque 500 with a leaked stack
+  or digest. Next.js control-flow signals (`redirect` / `notFound` / the
+  static-generation bailout) still propagate untouched. See
+  `docs/OBSERVABILITY.md`.
+- **Environment isolation guardrail (v1.7.0).** The build, the server boot,
+  and the Prisma client each hard-fail if a Vercel Preview / Development
+  deployment is wired to the production database — a mis-scoped preview
+  deploy cannot ship or serve traffic. See
+  `docs/PREVIEW_ENVIRONMENT_ISOLATION.md`.
+- **Front-door routing is server-only (v1.7.0).** `A2R_SITE_MODE`
+  (`marketing | internal | live`) is a strict, fail-closed enum read at
+  request time in the Edge middleware — never a `NEXT_PUBLIC_*` value in the
+  browser or the build artifact. An unknown / missing value in a production
+  build fails the deployment; at runtime it falls back to the marketing
+  page, never "show the internal app". See `docs/SITE_ROUTING_MODEL.md`.
 - **Health checks.** `GET /api/health` (liveness) and `GET /api/health/ready`
   (readiness — a 2-second-bounded database probe) support external monitoring
   and deploy gating.
@@ -387,27 +482,38 @@ Compliance Ledger or timesheet records**.
 
 ## 10. Testing & verification
 
-- **387** unit tests (Vitest, 29 files) covering the calculation engine, data
-  masking (incl. the org governance override), API-key crypto, rate limiter,
-  tenant lifecycle, retention policy logic, the command-center resolver, the
+- **536** unit tests (Vitest, 43 files) covering the calculation engine, data
+  masking (incl. the org governance override), API-key crypto, the rate
+  limiter and its named-rule table, the centralized error boundary
+  (`withAction` / `withRouteHandler` / `redactContext`), tenant lifecycle,
+  retention policy logic, the session state machine (every transition +
+  fail-closed path), JIT staff elevation, the command-center resolver, the
   ⌘K palette, the platform-pulse and SteerCo briefing composers, the
   workspace-lens resolver, the governance Hybrid Configuration Model,
   identity-federation secret crypto / IdP-metadata parsing / security-group
   mapping / JIT provisioning, version/changelog governance, the RBAC Master
-  Matrix, Role-Based Scoped Filtering, the Custom KPI Definition Engine's
-  calculation/validation logic, and the Self-Service Batch Import Engine's
-  four-pillar schema validators and CSV/Excel reader.
-- **2** live-database security suites (`tests/security/*`) that assert
-  cross-tenant `organizationId` scoping and that the compliance ledger keeps a
-  valid tamper-evident hash chain under parallel-append pressure (REL-3).
-- **47** end-to-end tests (Playwright, Suites A–K) covering authentication,
+  Matrix, Role-Based Scoped Filtering, the password-strength policy, the DAL
+  fail-closed gates, the Custom KPI Definition Engine's calculation/validation
+  logic, and the Self-Service Batch Import Engine's four-pillar schema
+  validators and CSV/Excel reader.
+- Live-database security suites (`tests/security/*`) that assert cross-tenant
+  `organizationId` scoping (including the 9 v1.7.0 composite-key models —
+  read → null, update → `P2025`, cross-tenant create → refused), that the
+  compliance ledger keeps a valid tamper-evident hash chain under
+  parallel-append pressure (REL-3), the rate-limit endpoints (served to the
+  limit then `429` with headers), and the password-rotation / all-device
+  logout flow.
+- **60** end-to-end tests (Playwright, Suites A–P) covering authentication,
   multi-tenant scoping, governance workflows, the capacity cockpit, the
   compliance ledger, data masking, role-based landing/perspective switching,
-  the tenant/data-sovereignty engine, practice-level scoped filtering, and
-  the Custom KPI Builder's create-to-dashboard flow, with a self-cleaning
+  the tenant/data-sovereignty engine, practice-level scoped filtering, the
+  Custom KPI Builder, the server-only site-routing model (M), the
+  restricted-session state machine — a live session is logged out and blocked
+  the instant its `sessionVersion` is bumped (N), DAL tenant isolation at the
+  HTTP boundary (O), and the JIT staff-elevation lifecycle (P). Self-cleaning
   teardown.
-- TypeScript strict compilation (`tsc --noEmit`) is part of the verification
-  gate for every change.
+- TypeScript strict compilation (`tsc --noEmit`) and a clean `next build` are
+  part of the verification gate for every change.
 
 ---
 
@@ -416,7 +522,11 @@ Compliance Ledger or timesheet records**.
 | Item | Status |
 | --- | --- |
 | Tamper-evident audit logging | **Implemented** (§4) |
-| Logical multi-tenant isolation | **Implemented** (§1) |
+| Logical multi-tenant isolation | **Implemented** (§1) — three-layer, incl. ORM auto-scoping + composite tenant keys (v1.7.0) |
+| DB-level Row Level Security for the application's own queries | **Roadmap** — prerequisites complete; scoped in `docs/RLS_ROADMAP.md` |
+| Just-In-Time privileged access (no standing operator sessions) | **Implemented** (§1) — v1.7.0 |
+| Server-side session revocation / all-device logout | **Implemented** (§2) — v1.7.0 |
+| Structured error capture + advanced rate limiting | **Implemented** (§3, §9) — v1.7.0 |
 | Encryption in transit (app + DB) | **Implemented** (§3) |
 | Encryption at rest (DB volumes) | **Provided by managed-DB provider** (§3) |
 | Data export & portability | **Implemented** (§6) |

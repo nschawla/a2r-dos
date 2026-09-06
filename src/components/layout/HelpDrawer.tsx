@@ -162,10 +162,10 @@ const HELP_CONTENT: { prefix: string; section: HelpSection }[] = [
   },
 ];
 
-// WP6 — explicit '/' entry (previously folded into the generic fallback
-// below). Home is common enough, and now carries enough of its own
-// governance guidance (Workspace Backup, the Audit Trail), that it earns a
-// dedicated section rather than sharing one with "everything unmatched."
+// The Portfolio Control Tower (/portfolio since v1.5.0 — the bare root is
+// now the public landing page). Carries enough of its own governance
+// guidance (Workspace Backup, the Audit Trail) to earn a dedicated
+// section rather than sharing one with "everything unmatched."
 const HOME_SECTION: HelpSection = {
   eyebrow: 'A2R Delivery OS',
   title: 'PS Control Tower',
@@ -202,7 +202,7 @@ const DEFAULT_SECTION: HelpSection = {
 
 function sectionForPath(pathname: string | null): HelpSection {
   if (!pathname) return DEFAULT_SECTION;
-  if (pathname === '/') return HOME_SECTION;
+  if (pathname === '/portfolio') return HOME_SECTION;
   const match = HELP_CONTENT.find((h) => pathname.startsWith(h.prefix));
   return match?.section ?? DEFAULT_SECTION;
 }

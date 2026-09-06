@@ -1,6 +1,6 @@
 # Just-In-Time (JIT) staff elevation
 
-_Status: shipped (P1). Builds on P0 #2 (explicit staff grants) and the
+_Status: shipped in v1.7.0 (P1). Builds on P0 #2 (explicit staff grants) and the
 Impersonation Gateway._
 _Audience: engineering + security audit._
 

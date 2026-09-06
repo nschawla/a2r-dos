@@ -1,6 +1,6 @@
 # Site routing model — `A2R_SITE_MODE`
 
-_Status: shipped (P1). Replaces `NEXT_PUBLIC_COMING_SOON`._
+_Status: shipped in v1.7.0 (P1). Replaces `NEXT_PUBLIC_COMING_SOON`._
 
 ## Why it changed
 

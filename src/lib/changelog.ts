@@ -36,6 +36,24 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.7.0',
+    date: '2026-09-06',
+    headline: 'Security architecture hardening — tenant isolation, session integrity, JIT operator elevation, and production observability',
+    changes: [
+      { type: 'security', text: 'Every tenant database query is now auto-scoped by organization at the ORM layer. A Prisma client extension rewrites each query on a tenant-owned table to include the active organization and refuses to run one with no resolved tenant — a backstop under the hand-written scoping the app already applied.' },
+      { type: 'security', text: 'The 9 remaining "child" tables (audit entries, RAID, financials, schedule, scope, effort cells, SteerCo decisions, contributors, import rows) now carry their own organization column + foreign key, so the database itself ties every row to its tenant (migration 00000000000012).' },
+      { type: 'security', text: 'A2R operator access is now split into eligibility (a standing staff grant) and use (a Just-In-Time elevation): every state-changing /ops action — provisioning, suspension, impersonation, export, purge, API keys, identity federation, granting staff — requires a reason-logged elevation that auto-expires after a strict TTL (default 30 minutes). No standing privileged sessions. Every elevation is on the in-console audit trail.' },
+      { type: 'security', text: 'Operator access is an explicit, attributed database grant — the previous "any @a2rventures.com email is staff" wildcard and the isA2rStaff boolean are gone. Grant/revoke from /ops/staff or the staff CLI.' },
+      { type: 'security', text: 'Forced-password-rotation is now enforced on every server action and API route, not just the browser redirect: a restricted session is rejected with 403 rather than being able to script around the UI. Changing a password atomically revokes every other device in one step.' },
+      { type: 'security', text: 'Sessions are validated against the database on every authenticated request through an explicit state machine (Active / Pending-password-change / Revoked). Any lookup failure or timeout fails closed — the session is treated as revoked, never served stale.' },
+      { type: 'security', text: 'Advanced sliding-window rate limiting on the high-risk boundaries — sign-in, registration, password change, the AI document parser, bulk CSV / JSON exports, print-document generation, batch ingestion, and workspace snapshots — with X-RateLimit-* headers on allowed responses, not just the 429.' },
+      { type: 'feature', text: 'A named, server-only Data Access Layer: pages and UI components can no longer import the database client directly (enforced by lint + a test). Reads go through query modules, writes through server actions.' },
+      { type: 'improvement', text: 'A centralized server-side error boundary wraps every mutation action and the download/report API routes: an unhandled exception or database timeout is captured as one structured, secret-redacted log line and returned as a safe generic error instead of an opaque 500.' },
+      { type: 'improvement', text: 'The site front door is now a server-only setting (A2R_SITE_MODE = marketing | internal | live), fail-closed: an unknown or missing value in production serves the marketing page and never the internal app. Replaces the browser-exposed NEXT_PUBLIC_COMING_SOON flag.' },
+      { type: 'security', text: 'A build- and boot-time guardrail hard-fails any Vercel Preview / Development deployment that is wired to the production database.' },
+    ],
+  },
+  {
     version: '1.6.0',
     date: '2026-09-05',
     headline: 'Forced password change on first sign-in',

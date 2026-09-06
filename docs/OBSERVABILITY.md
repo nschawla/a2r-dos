@@ -1,6 +1,6 @@
 # Observability & rate limiting
 
-_Status: shipped (P2). Builds on the GA-readiness `observability.ts` /
+_Status: shipped in v1.7.0 (P2). Builds on the GA-readiness `observability.ts` /
 `rate-limiter.ts` primitives._
 _Audience: engineering + on-call._
 
