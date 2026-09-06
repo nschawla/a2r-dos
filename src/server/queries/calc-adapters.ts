@@ -36,14 +36,30 @@ const EMPLOYMENT_TYPE_MAP: Record<PrismaEmploymentType, RateRole['employmentType
   CONTRACTOR: 'contractor',
 };
 
+/**
+ * Financial precision (v1.11.0) — the monetary / rate / margin columns are
+ * Postgres NUMERIC, so Prisma hands them back as `Decimal`. This adapter is
+ * the ONE documented boundary between the Prisma row shape and the plain-
+ * `number` shapes `src/lib/calculations/**` works in, so it is also the one
+ * place the `Decimal → number` conversion happens. `Number(Decimal)` is
+ * exact for any value that fits a double, which every stored figure does
+ * (14,2 / 12,4 / 7,4). See migration 00000000000018.
+ */
+type Dec = { toNumber(): number };
+function dec(v: Dec): number;
+function dec(v: Dec | null): number | null;
+function dec(v: Dec | null): number | null {
+  return v == null ? null : v.toNumber();
+}
+
 export function toRateRoles(
   roles: Pick<DeliveryRole, 'id' | 'name' | 'billRate' | 'costRate' | 'employmentType'>[]
 ): RateRole[] {
   return roles.map((r) => ({
     id: r.id,
     name: r.name,
-    billRate: r.billRate,
-    costRate: r.costRate,
+    billRate: dec(r.billRate),
+    costRate: dec(r.costRate),
     employmentType: EMPLOYMENT_TYPE_MAP[r.employmentType],
   }));
 }
@@ -72,12 +88,12 @@ export function toSizingInput(project: SizingProjectRow): SizingProjectInput {
   return {
     estimationMode: ESTIMATION_MODE_MAP[project.estimationMode],
     commercialModel: COMMERCIAL_MODEL_MAP[project.commercialModel],
-    contingencyPct: project.contingencyPct,
+    contingencyPct: dec(project.contingencyPct),
     effortCells: project.effortCells.map((c) => ({ phaseKey: c.phaseKey, roleId: c.roleId, hours: c.hours })),
     directIntake: {
       soldHours: project.directIntakeSoldHours,
-      targetRevenue: project.directIntakeTargetRevenue,
-      blendedMarginPct: project.directIntakeBlendedMarginPct,
+      targetRevenue: dec(project.directIntakeTargetRevenue),
+      blendedMarginPct: dec(project.directIntakeBlendedMarginPct),
     },
   };
 }
@@ -88,7 +104,7 @@ export function toFinancialActuals(
   return rows.map((r) => ({
     roleKey: r.roleKey,
     hours: r.hours,
-    cost: r.cost,
+    cost: dec(r.cost),
     forecastHours: r.forecastHours,
     openRRHours: r.openRRHours,
   }));

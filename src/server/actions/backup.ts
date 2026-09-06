@@ -94,14 +94,24 @@ export const exportWorkspaceSnapshot = withAction('exportWorkspaceSnapshot', asy
     }),
   ]);
 
+  // v1.11.0 — the monetary / rate / margin columns are Prisma Decimal;
+  // buildWorkspaceSnapshot (and the JSON snapshot) is plain `number`. This
+  // is the server↔pure-lib boundary, so convert here.
+  const n = (d: { toNumber(): number }) => d.toNumber();
   const snapshot = buildWorkspaceSnapshot({
     organizationName: org.name,
     practices,
-    deliveryRoles,
+    deliveryRoles: deliveryRoles.map((r) => ({ ...r, billRate: n(r.billRate), costRate: n(r.costRate) })),
     resources,
-    orgPolicy,
+    orgPolicy: orgPolicy && { ...orgPolicy, marginCritPct: n(orgPolicy.marginCritPct) },
     controlLabels,
-    projects,
+    projects: projects.map((p) => ({
+      ...p,
+      contingencyPct: n(p.contingencyPct),
+      directIntakeTargetRevenue: n(p.directIntakeTargetRevenue),
+      directIntakeBlendedMarginPct: n(p.directIntakeBlendedMarginPct),
+      financials: p.financials.map((f) => ({ ...f, cost: n(f.cost) })),
+    })),
   });
 
   await logAuditEvent(db, {

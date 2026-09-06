@@ -32,6 +32,15 @@ export default async function AdminPage() {
 
   const labelByKey = new Map(controlLabels.map((c) => [c.controlKey, c.label]));
 
+  // v1.11.0 — billRate / costRate are Prisma Decimal (NUMERIC); Decimal
+  // doesn't serialize to a Client Component, so convert to `number` before
+  // handing the roster rows to the panels.
+  const roleViews = roles.map((r) => ({ ...r, billRate: Number(r.billRate), costRate: Number(r.costRate) }));
+  const resourceViews = resources.map((res) => ({
+    ...res,
+    role: res.role ? { ...res.role, billRate: Number(res.role.billRate), costRate: Number(res.role.costRate) } : null,
+  }));
+
   return (
     <>
       <div>
@@ -83,19 +92,21 @@ export default async function AdminPage() {
             <>
               <PracticesPanel practices={practices} canEdit={canEdit} />
               <RolesPanel
-                roles={roles}
+                roles={roleViews}
                 practices={practices}
                 canEdit={canEdit}
                 canViewCost={canViewCostRates(deliveryRole, governance)}
               />
-              <ResourcesPanel resources={resources} roles={roles} practices={practices} canEdit={canEdit} />
+              <ResourcesPanel resources={resourceViews} roles={roleViews} practices={practices} canEdit={canEdit} />
             </>
           ),
           governance: (
             <>
               <PolicyPanel
                 policy={
-                  policy ?? { slipWarnDays: 5, slipCritDays: 15, marginCritPct: 5, methodology: 'WATERFALL' as const }
+                  policy
+                    ? { ...policy, marginCritPct: Number(policy.marginCritPct) }
+                    : { slipWarnDays: 5, slipCritDays: 15, marginCritPct: 5, methodology: 'WATERFALL' as const }
                 }
                 canEdit={canEdit}
               />

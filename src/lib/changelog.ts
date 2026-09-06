@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.11.0',
+    date: '2026-09-06',
+    headline: 'Financial precision (exact NUMERIC money) + audit-trail retention',
+    changes: [
+      { type: 'improvement', text: 'Every monetary, rate, margin and EAC/BAC field is now stored as exact decimal (Postgres NUMERIC), not floating point — so amounts are exact at rest and totals never accumulate rounding error as a portfolio grows. The calculation engine is unchanged; values are converted at one boundary.' },
+      { type: 'security', text: 'Deleting a user or an organization can no longer cascade-destroy the operator-access history. Staff entitlements, Just-In-Time elevations and tenant-impersonation records are now protected by the database from any cascade, matching the immutable audit ledger.' },
+      { type: 'security', text: 'The data-retention sweep no longer deletes ended impersonation grants — operator-access history is retained indefinitely for compliance, with the tamper-evident ledger as the permanent record. Staff grants and elevations were already never swept.' },
+    ],
+  },
+  {
     version: '1.10.0',
     date: '2026-09-06',
     headline: 'Payload strictness, explicit global sign-out, and production polish',

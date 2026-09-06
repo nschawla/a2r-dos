@@ -82,13 +82,13 @@ export default async function FinancialsProjectPage({ params }: { params: Promis
         visibility={visibility}
         estimationMode={project.estimationMode}
         commercialModel={project.commercialModel}
-        contingencyPct={project.contingencyPct}
+        contingencyPct={Number(project.contingencyPct)}
         roles={maskedRoles}
         effortCells={project.effortCells.map((c) => ({ phaseKey: c.phaseKey, roleId: c.roleId, hours: c.hours }))}
         directIntake={{
           soldHours: project.directIntakeSoldHours,
-          targetRevenue: project.directIntakeTargetRevenue,
-          blendedMarginPct: visibility === 'restricted' ? 0 : project.directIntakeBlendedMarginPct,
+          targetRevenue: Number(project.directIntakeTargetRevenue),
+          blendedMarginPct: visibility === 'restricted' ? 0 : Number(project.directIntakeBlendedMarginPct),
         }}
         actuals={maskedActuals}
         burnSeries={burnSeries}

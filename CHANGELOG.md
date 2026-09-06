@@ -10,6 +10,65 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.11.0] — 2026-09-06
+
+_Data-model integrity — Phase 1 of the enterprise-readiness hardening plan:
+financial precision + audit-history retention._
+
+### Changed
+
+- **Financial precision: `Float` → `Decimal` (Postgres `NUMERIC`) on 13
+  columns** (migration `00000000000018`, **applied to production &
+  staging**): `$` amounts → `NUMERIC(14,2)` (`Project.bac` / `actualsCost` /
+  `unscheduledBacklog` / `vac` / `directIntakeTargetRevenue`,
+  `FinancialActual.cost`), `$/hr` rates → `NUMERIC(12,4)`
+  (`DeliveryRole.billRate` / `costRate`), percentages → `NUMERIC(7,4)`
+  (`contingencyPct`, `directIntakeBlendedMarginPct`,
+  `OrgPolicy.marginCritPct`), KPI thresholds → `NUMERIC(18,6)`
+  (`CustomKpi.targetValue` / `warningValue`). Exact at rest; a Prisma
+  `_sum` of these columns is now an exact decimal. Data-preserving
+  (`double precision → numeric` re-stores at the target scale; DEFAULTs
+  survive). **Hours / FTE / utilisation / `pctComplete` stay `Float`**
+  (non-monetary).
+  - Precision boundary: **storage only.** `src/server/queries/calc-adapters.ts`
+    (the one documented Prisma→plain-number boundary) converts `Decimal` →
+    `number` via a local `dec()` helper, so `src/lib/calculations/**` and
+    its test suite are untouched. Reads at other boundaries
+    (`executive-briefing.ts`, `kpi-data.ts` / `kpis.ts`, `backup.ts`
+    snapshot build, the `financials` / `commercial-baseline` / `admin`
+    pages, `admin-panels.tsx`) convert with `Number()` / `.toNumber()` —
+    a Prisma `Decimal` does not serialise to a Client Component. Writes
+    need no change (Prisma coerces `number` → `NUMERIC`).
+- **`data-retention.ts` no longer sweeps `ImpersonationGrant`.**
+  Operator-access history — impersonation grants, staff grants, staff
+  elevations — is now retained indefinitely; the `ImmutableAuditLedger`
+  `ADMIN_IMPERSONATION_ACCESS` entries are the permanent tamper-evident
+  record. `RETENTION_IMPERSONATION_GRANT_DAYS` removed. `ActivityLogEntry`
+  (24 mo), `AuditLog` (~7 yr) and `ApiKey` (12 mo) still swept.
+
+### Security
+
+- **Migration `00000000000019` (applied production & staging)** — three FK
+  `onDelete` actions `Cascade` → `Restrict`, so a raw `DELETE` of the
+  principal is refused while any history row exists:
+  `staff_grants.userId` → `users`, `staff_elevations.userId` → `users`,
+  `impersonation_grants.organizationId` → `organizations`. Mirrors the
+  CMP-1 `Restrict` already on `audit_logs` / `activity_log_entries` /
+  `immutable_audit_ledger`. Normal lifecycle is unaffected (revoke / end /
+  purge are all soft). GDPR erasure for an operator = in-place anonymise of
+  the `users` row, not a hard delete.
+
+### Verification
+
+- Against **production** (`.env`, RLS off) **and staging** (`RLS_ENFORCE=1`,
+  `a2r_app`): `npx tsc --noEmit` → 0 · `npm run lint` → 0/0 ·
+  `npx vitest run` → **602 passed** (50 files; +`financial-precision` exact
+  round-trip / exact `_sum`, +`security-history-cascade` FK-restrict proof) ·
+  `npx playwright test` → **60 passed** · `npm run build` → clean ·
+  staging `npm run db:rls:smoke` → OK (28 tables). Migrations 18 + 19
+  rehearsed (`BEGIN … ROLLBACK`) then applied to both databases;
+  `prisma migrate diff` → no drift.
+
 ## [1.10.0] — 2026-09-06
 
 _Payload strictness, session lifecycle & production polish — Phase D of the

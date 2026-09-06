@@ -114,7 +114,12 @@ model StaffGrant {
   revokedAt       DateTime?
   revokedByUserId String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // onDelete: Restrict (not Cascade) — an operator-entitlement grant is a
+  // security-audit record and must outlive a raw `User` DELETE. Revoke is
+  // a soft `revokedAt`, never a row delete; GDPR erasure for an operator is
+  // an in-place anonymise of the User row, not a hard delete. See
+  // migration 00000000000019 and docs/SECURITY.md.
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId, revokedAt])
   @@map("staff_grants")
@@ -147,7 +152,11 @@ model StaffElevation {
   endedReason     String? // 'operator' | 'superseded' | 'expired-sweep'
   requestedFromIp String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // onDelete: Restrict — the JIT-elevation audit trail must outlive a raw
+  // `User` DELETE (see StaffGrant.user). These rows ARE the elevation
+  // history; nothing ever deletes them, and the retention sweep never
+  // touches them.
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([userId, expiresAt])
   @@map("staff_elevations")
@@ -351,7 +360,11 @@ model ImpersonationGrant {
   expiresAt      DateTime
   endedAt        DateTime?
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  // onDelete: Restrict — mirrors the CMP-1 Restrict on AuditLog /
+  // ActivityLogEntry / ImmutableAuditLedger: the operator → tenant access
+  // history must survive a raw Organization DELETE. Offboarding is the
+  // soft Purge Protocol (Organization.purgedAt), which never removes rows.
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@index([organizationId, createdAt])
   @@map("impersonation_grants")
@@ -374,7 +387,11 @@ model OrgPolicy {
   organizationId String      @unique
   slipWarnDays   Int         @default(5)
   slipCritDays   Int         @default(15)
-  marginCritPct  Float       @default(5)
+  // Financial precision (v1.11.0): monetary / rate / margin fields are
+  // Postgres NUMERIC, not double precision — exact at rest and under
+  // SQL SUM(). Converted to `number` at the calc boundary
+  // (src/server/queries/calc-adapters.ts). Percentage, 2–4 dp.
+  marginCritPct  Decimal     @default(5) @db.Decimal(7, 4)
   methodology    Methodology @default(WATERFALL)
   updatedAt      DateTime    @updatedAt
 
@@ -566,8 +583,9 @@ model DeliveryRole {
   id             String                 @id @default(cuid())
   organizationId String
   name           String
-  billRate       Float
-  costRate       Float
+  // Financial precision (v1.11.0) — $/hr, NUMERIC(12,4) allows sub-cent rates.
+  billRate       Decimal @db.Decimal(12, 4)
+  costRate       Decimal @db.Decimal(12, 4)
   practiceId     String?
   // WP6 — see ResourceEmploymentType above.
   employmentType ResourceEmploymentType @default(FTE)
@@ -800,7 +818,7 @@ model Project {
   methodology     Methodology     @default(WATERFALL)
   govProfile      GovProfile      @default(STANDARD)
   estimationMode  EstimationMode  @default(MATRIX)
-  contingencyPct  Float           @default(12)
+  contingencyPct  Decimal        @default(12) @db.Decimal(7, 4)
 
   practiceDirectorId String?
   deliveryManagerId  String?
@@ -821,9 +839,10 @@ model Project {
   baselineSnapshot Json?
 
   // Direct Baseline Intake (used when estimationMode = DIRECT)
-  directIntakeSoldHours         Float @default(0)
-  directIntakeTargetRevenue     Float @default(0)
-  directIntakeBlendedMarginPct  Float @default(0)
+  directIntakeSoldHours         Float   @default(0)
+  // Financial precision (v1.11.0) — $ amount NUMERIC(14,2), % NUMERIC(7,4).
+  directIntakeTargetRevenue     Decimal @default(0) @db.Decimal(14, 2)
+  directIntakeBlendedMarginPct  Decimal @default(0) @db.Decimal(7, 4)
 
   // Status narrative (steering-deck notes)
   narrativeAccomplishments String? @db.Text
@@ -835,10 +854,11 @@ model Project {
   // row so portfolio/telemetry surfaces can read them without re-running
   // the calc engine. The live engine (src/lib/calculations) remains the
   // source of truth; these are its last-published snapshot.
-  bac                Float   @default(0) // Budget at Completion
-  actualsCost        Float   @default(0)
-  unscheduledBacklog Float   @default(0) // USB — sold-but-unscheduled value
-  vac                Float   @default(0) // Variance at Completion (bac - EAC)
+  // Financial precision (v1.11.0) — $ EVM rollups, NUMERIC(14,2).
+  bac                Decimal @default(0) @db.Decimal(14, 2) // Budget at Completion
+  actualsCost        Decimal @default(0) @db.Decimal(14, 2)
+  unscheduledBacklog Decimal @default(0) @db.Decimal(14, 2) // USB — sold-but-unscheduled value
+  vac                Decimal @default(0) @db.Decimal(14, 2) // Variance at Completion (bac - EAC)
   isRetainer         Boolean @default(false)
   // Denormalized hierarchy flags — mirror hierarchyLevel/parentId, surfaced
   // as plain columns for the capacity views' simpler queries.
@@ -1093,7 +1113,9 @@ model FinancialActual {
   roleKey        String // DeliveryRole.id, or "_direct" for direct-mode projects
   roleId         String?
   hours          Float   @default(0)
-  cost           Float   @default(0)
+  // Financial precision (v1.11.0) — realized $ cost, NUMERIC(14,2). Hours
+  // stay Float (non-monetary). `_sum` of this column is now exact.
+  cost           Decimal @default(0) @db.Decimal(14, 2)
   forecastHours  Float?
   openRRHours    Float?
 
@@ -1287,12 +1309,14 @@ model CustomKpi {
   metricKey      String
   formulaType    KpiFormulaType @default(DIRECT)
   // "On track" boundary — see KpiFormulaType above for direction.
-  targetValue    Float
+  // Financial precision (v1.11.0) — a threshold that may be a $ amount, a
+  // percentage, or a count; NUMERIC(18,6) is generic and wide.
+  targetValue    Decimal        @db.Decimal(18, 6)
   // Beyond `targetValue` but at/within `warningValue` reads "at risk";
   // beyond `warningValue` reads "critical". Must sit further from
   // on-track than targetValue in the formulaType's direction — enforced
   // in src/lib/kpi-engine.ts's validateKpiDefinition, not by the DB.
-  warningValue   Float
+  warningValue   Decimal        @db.Decimal(18, 6)
   // RbacPersona values this card renders for (e.g. ["EXECUTIVE_BOARD"]) —
   // free-text array, same convention as GovernanceConfig.hiddenModules.
   targetPersonas String[]       @default([])

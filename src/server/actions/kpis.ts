@@ -147,8 +147,10 @@ function toDef(row: {
   dataSource: string;
   metricKey: string;
   formulaType: string;
-  targetValue: number;
-  warningValue: number;
+  // v1.11.0 — NUMERIC columns arrive as Prisma Decimal; the KPI engine
+  // (src/lib/kpi-engine.ts) compares in `number`.
+  targetValue: { toNumber(): number };
+  warningValue: { toNumber(): number };
   targetPersonas: string[];
 }): CustomKpiDef {
   return {
@@ -157,8 +159,8 @@ function toDef(row: {
     dataSource: row.dataSource as KpiDataSource,
     metricKey: row.metricKey as CustomKpiDef['metricKey'],
     formulaType: row.formulaType as KpiFormulaType,
-    targetValue: row.targetValue,
-    warningValue: row.warningValue,
+    targetValue: row.targetValue.toNumber(),
+    warningValue: row.warningValue.toNumber(),
     targetPersonas: row.targetPersonas.filter(isRbacPersona),
   };
 }

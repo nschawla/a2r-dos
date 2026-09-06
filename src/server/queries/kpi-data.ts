@@ -48,8 +48,9 @@ export async function getVisibleCustomKpis(organizationId: string): Promise<Cust
     dataSource: row.dataSource as KpiDataSource,
     metricKey: row.metricKey as CustomKpiDef['metricKey'],
     formulaType: row.formulaType as KpiFormulaType,
-    targetValue: row.targetValue,
-    warningValue: row.warningValue,
+    // v1.11.0 — thresholds are NUMERIC; the KPI engine works in `number`.
+    targetValue: row.targetValue.toNumber(),
+    warningValue: row.warningValue.toNumber(),
     targetPersonas: row.targetPersonas.filter(isRbacPersona),
   }));
 }

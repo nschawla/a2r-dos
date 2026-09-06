@@ -55,7 +55,7 @@ export default async function DealProjectPage({ params }: { params: Promise<{ pr
           <dt className="text-ink-muted">Governance profile</dt>
           <dd className="capitalize">{project.govProfile.toLowerCase()}</dd>
           <dt className="text-ink-muted">Contingency</dt>
-          <dd>{project.contingencyPct}%</dd>
+          <dd>{Number(project.contingencyPct)}%</dd>
           <dt className="text-ink-muted">Practice Director</dt>
           <dd>{project.practiceDirector?.name ?? 'Unassigned'}</dd>
           <dt className="text-ink-muted">Delivery Manager</dt>
@@ -73,13 +73,13 @@ export default async function DealProjectPage({ params }: { params: Promise<{ pr
         visibility={visibility}
         estimationMode={project.estimationMode}
         commercialModel={project.commercialModel}
-        contingencyPct={project.contingencyPct}
+        contingencyPct={Number(project.contingencyPct)}
         roles={maskedRoles}
         effortCells={project.effortCells.map((c) => ({ phaseKey: c.phaseKey, roleId: c.roleId, hours: c.hours }))}
         directIntake={{
           soldHours: project.directIntakeSoldHours,
-          targetRevenue: project.directIntakeTargetRevenue,
-          blendedMarginPct: visibility === 'restricted' ? 0 : project.directIntakeBlendedMarginPct,
+          targetRevenue: Number(project.directIntakeTargetRevenue),
+          blendedMarginPct: visibility === 'restricted' ? 0 : Number(project.directIntakeBlendedMarginPct),
         }}
       />
 

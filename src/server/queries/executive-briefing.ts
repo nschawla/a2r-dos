@@ -182,8 +182,8 @@ export async function getExecutiveBriefing(organizationId: string): Promise<Exec
     if (p.hierarchyLevel === 'PARENT') continue;
     activeEngagements += 1;
     if (p.locked) lockedEngagements += 1;
-    sumBac += p.bac;
-    sumActualsCost += p.actualsCost;
+    sumBac += p.bac.toNumber();
+    sumActualsCost += p.actualsCost.toNumber();
 
     if (totals.totalHours > 0) {
       const eac = computeEacSummary(toSizingInput(p), roles, toFinancialActuals(p.financials));

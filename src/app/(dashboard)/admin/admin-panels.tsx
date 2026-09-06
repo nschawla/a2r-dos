@@ -14,6 +14,14 @@ import { useBusyAction, PanelHead, Field, type RunOpts } from '@/components/ui/p
 
 // Re-exported so existing `./admin-panels` importers keep working.
 export { useBusyAction, PanelHead, Field };
+
+/**
+ * v1.11.0 — billRate / costRate are Postgres NUMERIC → Prisma `Decimal`,
+ * which does not survive serialization to a Client Component. The server
+ * page (src/app/(dashboard)/admin/page.tsx) converts them to `number`
+ * before handing rows to these panels.
+ */
+type RateRoleView = Omit<DeliveryRole, 'billRate' | 'costRate'> & { billRate: number; costRate: number };
 import {
   createPractice,
   deletePractice,
@@ -96,7 +104,7 @@ export function RolesPanel({
   canEdit,
   canViewCost = true,
 }: {
-  roles: DeliveryRole[];
+  roles: RateRoleView[];
   practices: Practice[];
   canEdit: boolean;
   canViewCost?: boolean;
@@ -205,7 +213,7 @@ function RoleRow({
   canViewCost,
   run,
 }: {
-  role: DeliveryRole;
+  role: RateRoleView;
   practiceName: string;
   canEdit: boolean;
   canViewCost: boolean;
@@ -280,7 +288,7 @@ function RoleRow({
 
 // ------------------------------------------------------------------- Resources
 
-type ResourceRow = Resource & { role: DeliveryRole | null; practice: Practice | null };
+type ResourceRow = Resource & { role: RateRoleView | null; practice: Practice | null };
 
 export function ResourcesPanel({
   resources,
@@ -289,7 +297,7 @@ export function ResourcesPanel({
   canEdit,
 }: {
   resources: ResourceRow[];
-  roles: DeliveryRole[];
+  roles: RateRoleView[];
   practices: Practice[];
   canEdit: boolean;
 }) {

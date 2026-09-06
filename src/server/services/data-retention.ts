@@ -8,13 +8,17 @@
  *
  *   • ImmutableAuditLedger — the hash-chained SOC 2 compliance ledger
  *     (append-only, tamper-evident; see src/lib/audit-ledger.ts).
+ *   • StaffGrant / StaffElevation / ImpersonationGrant — the operator-access
+ *     history (entitlements, JIT elevations, tenant impersonation). Retained
+ *     indefinitely for compliance; the ImmutableAuditLedger's
+ *     ADMIN_IMPERSONATION_ACCESS entries are the permanent tamper-evident
+ *     record. (v1.11.0 removed ImpersonationGrant from the sweep.)
  *   • TimesheetEntry — feeds financial actuals; retention there is
  *     contract-specific and out of scope for this sweep.
  *
  * Swept models:
  *   • ActivityLogEntry              — PS Control Tower "recent activity" feed
  *   • AuditLog                      — governance audit trail (long window)
- *   • ImpersonationGrant (ended or long-expired)
  *   • ApiKey             (revoked or long-expired)
  *
  * Run it from `scripts/run-retention.ts` (defaults to a dry run) or
@@ -30,8 +34,6 @@ export interface RetentionPolicy {
   activityLogDays: number;
   /** Governance audit trail — kept long for compliance/financial review. */
   auditLogDays: number;
-  /** Ended or long-expired impersonation grants. */
-  impersonationGrantDays: number;
   /** Revoked or long-expired API keys. */
   apiKeyDays: number;
 }
@@ -39,14 +41,12 @@ export interface RetentionPolicy {
 export const DEFAULT_RETENTION_POLICY: RetentionPolicy = {
   activityLogDays: 730, // 24 months
   auditLogDays: 2555, // ~7 years
-  impersonationGrantDays: 545, // 18 months
   apiKeyDays: 365, // 12 months
 };
 
 const ENV_KEYS: Record<keyof RetentionPolicy, string> = {
   activityLogDays: 'RETENTION_ACTIVITY_LOG_DAYS',
   auditLogDays: 'RETENTION_AUDIT_LOG_DAYS',
-  impersonationGrantDays: 'RETENTION_IMPERSONATION_GRANT_DAYS',
   apiKeyDays: 'RETENTION_API_KEY_DAYS',
 };
 
@@ -91,7 +91,6 @@ interface DeletableModel {
 export interface RetentionClient {
   activityLogEntry: DeletableModel;
   auditLog: DeletableModel;
-  impersonationGrant: DeletableModel;
   apiKey: DeletableModel;
 }
 
@@ -169,7 +168,6 @@ async function runRetentionSweepInner(options: RunRetentionOptions = {}): Promis
 
   const activityCutoff = cutoffFrom(policy.activityLogDays);
   const auditCutoff = cutoffFrom(policy.auditLogDays);
-  const grantCutoff = cutoffFrom(policy.impersonationGrantDays);
   const keyCutoff = cutoffFrom(policy.apiKeyDays);
 
   const targets: { label: string; model: DeletableModel; cutoff: Date; where: unknown }[] = [
@@ -184,17 +182,6 @@ async function runRetentionSweepInner(options: RunRetentionOptions = {}): Promis
       model: client.auditLog,
       cutoff: auditCutoff,
       where: { createdAt: { lt: auditCutoff } },
-    },
-    {
-      label: 'ImpersonationGrant',
-      model: client.impersonationGrant,
-      cutoff: grantCutoff,
-      where: {
-        OR: [
-          { endedAt: { lt: grantCutoff } },
-          { endedAt: null, expiresAt: { lt: grantCutoff } },
-        ],
-      },
     },
     {
       label: 'ApiKey',

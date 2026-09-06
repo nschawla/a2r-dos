@@ -1072,18 +1072,23 @@ async function main() {
         const isParent = p.hierarchyLevel === 'PARENT';
 
         // ---- EVM-ish rollups ----
+        // v1.11.0 — rate / revenue / cost columns are Prisma Decimal; the
+        // seed does plain arithmetic, so read them as `number` here. Writes
+        // below pass `number` back and Prisma coerces to NUMERIC.
+        const num = (d: { toNumber(): number } | number | null | undefined): number =>
+          d == null ? 0 : typeof d === 'number' ? d : d.toNumber();
         const bac =
           p.estimationMode === 'DIRECT'
-            ? p.directIntakeTargetRevenue
-            : Math.round(p.effortCells.reduce((s, c) => s + c.hours * (c.role?.billRate ?? 0), 0));
-        const actualsCost = Math.round(p.financials.reduce((s, f) => s + f.cost, 0));
+            ? num(p.directIntakeTargetRevenue)
+            : Math.round(p.effortCells.reduce((s, c) => s + c.hours * num(c.role?.billRate), 0));
+        const actualsCost = Math.round(p.financials.reduce((s, f) => s + num(f.cost), 0));
         const eacCost = Math.round(
           p.financials.reduce(
             (s, f) =>
               s +
-              f.cost +
-              (f.forecastHours ?? 0) * (f.role?.costRate ?? 0) +
-              (f.openRRHours ?? 0) * (f.role?.costRate ?? 0),
+              num(f.cost) +
+              (f.forecastHours ?? 0) * num(f.role?.costRate) +
+              (f.openRRHours ?? 0) * num(f.role?.costRate),
             0
           )
         );
@@ -1092,8 +1097,8 @@ async function main() {
           p.locked && typeof snapshot?.cost === 'number'
             ? Math.round(snapshot.cost)
             : p.estimationMode === 'DIRECT'
-              ? Math.round(p.directIntakeTargetRevenue * (1 - p.directIntakeBlendedMarginPct / 100))
-              : Math.round(p.effortCells.reduce((s, c) => s + c.hours * (c.role?.costRate ?? 0), 0));
+              ? Math.round(num(p.directIntakeTargetRevenue) * (1 - num(p.directIntakeBlendedMarginPct) / 100))
+              : Math.round(p.effortCells.reduce((s, c) => s + c.hours * num(c.role?.costRate), 0));
         const vac = Math.round((baselineCost || bac) - (eacCost || actualsCost));
         const unscheduledBacklog = p.locked ? 0 : Math.round(bac * 0.12);
 
