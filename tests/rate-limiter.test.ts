@@ -105,16 +105,16 @@ describe('rateLimitHeaders / rateLimitGuard / withRateLimitHeaders (P2)', () => 
     expect(h).not.toHaveProperty('Retry-After');
   });
 
-  it('rateLimitGuard: allowed for hits 1..limit with Remaining counting down, then blocked', () => {
+  it('rateLimitGuard: allowed for hits 1..limit with Remaining counting down, then blocked', async () => {
     const seen: string[] = [];
     for (let i = 0; i < RULE.limit; i++) {
-      const g = rateLimitGuard('k', RULE);
+      const g = await rateLimitGuard('k', RULE);
       expect(g.allowed).toBe(true);
       seen.push(g.headers['X-RateLimit-Remaining']!);
     }
     expect(seen).toEqual(['2', '1', '0']);
 
-    const blocked = rateLimitGuard('k', RULE);
+    const blocked = await rateLimitGuard('k', RULE);
     expect(blocked.allowed).toBe(false);
     expect(blocked.result.retryAfterSeconds).toBeGreaterThanOrEqual(1);
     expect(blocked.headers['X-RateLimit-Remaining']).toBe('0');

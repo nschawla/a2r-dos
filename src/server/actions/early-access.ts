@@ -28,7 +28,7 @@ import { withAction } from '@/lib/observability/action-wrapper';
  */
 import { headers } from 'next/headers';
 import { z } from 'zod';
-import { hit } from '@/lib/rate-limiter';
+import { hitDistributed } from '@/lib/rate-limiter-redis';
 import { captureException } from '@/lib/observability';
 
 export type SubmitEarlyAccessResult = { ok: true; ref: string } | { ok: false; error: string };
@@ -85,7 +85,7 @@ export const submitEarlyAccessLead = withAction('submitEarlyAccessLead', async (
   // 5 submissions / 10 min per IP — generous for a real person, a wall
   // for a script.
   const ip = await clientIp();
-  const rl = hit(`early-access:${ip}`, { limit: 5, windowMs: 10 * 60_000 });
+  const rl = await hitDistributed(`early-access:${ip}`, { limit: 5, windowMs: 10 * 60_000 });
   if (!rl.ok) {
     return {
       ok: false,

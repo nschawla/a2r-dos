@@ -123,7 +123,7 @@ export const stageImportBatch = withAction('stageImportBatch', async (dataType: 
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
 
-  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  const limited = await rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
   if (limited) return limited;
 
   if (rows.length === 0) {
@@ -180,7 +180,7 @@ export const listImportBatches = withAction('listImportBatches', async (): Promi
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
 
-  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  const limited = await rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
   if (limited) return limited;
 
   const batches = await db.dataImportBatch.findMany({
@@ -197,7 +197,7 @@ export const getImportBatch = withAction('getImportBatch', async (batchId: strin
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
 
-  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  const limited = await rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
   if (limited) return limited;
 
   const batch = await db.dataImportBatch.findFirst({
@@ -230,7 +230,7 @@ export const updateImportRow = withAction('updateImportRow', async (batchId: str
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
 
-  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  const limited = await rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
   if (limited) return limited;
 
   const batch = await db.dataImportBatch.findFirst({
@@ -279,7 +279,7 @@ export const commitImportBatch = withAction('commitImportBatch', async (batchId:
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
 
-  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  const limited = await rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
   if (limited) return limited;
 
   const batch = await db.dataImportBatch.findFirst({
@@ -448,7 +448,7 @@ export const discardImportBatch = withAction('discardImportBatch', async (batchI
   const auth = await authorizeAdminAction('admin:ingestion');
   if (!auth.ok) return { ok: false, error: auth.error };
 
-  const limited = rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  const limited = await rateLimitByUser('import:batch', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
   if (limited) return limited;
 
   const batch = await db.dataImportBatch.findFirst({

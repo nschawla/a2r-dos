@@ -28,7 +28,7 @@ export const GET = withRouteHandler('reports/portfolio-csv', async () => {
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 
-  const g = rateLimitGuard(`export:csv:${context.userId}`, RATE_LIMITS.BULK_EXPORT);
+  const g = await rateLimitGuard(`export:csv:${context.userId}`, RATE_LIMITS.BULK_EXPORT);
   if (!g.allowed) {
     return tooManyRequestsResponse(g.result, 'Too many portfolio exports. Please wait a few minutes.');
   }

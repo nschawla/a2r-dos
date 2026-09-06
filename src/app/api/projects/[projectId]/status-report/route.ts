@@ -47,7 +47,7 @@ export const GET = withRouteHandler<{ params: Promise<{ projectId: string }> }>(
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 
-  const g = rateLimitGuard(`docgen:status:${context.userId}`, RATE_LIMITS.DOC_GEN);
+  const g = await rateLimitGuard(`docgen:status:${context.userId}`, RATE_LIMITS.DOC_GEN);
   if (!g.allowed) return tooManyRequestsResponse(g.result, 'Too many report generations. Please slow down.');
 
   const { project, roles, policy, escalatedRaid, decisions } = await loadStatusReport(

@@ -28,7 +28,7 @@ export const GET = withRouteHandler<{ params: Promise<{ projectId: string }> }>(
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 
-  const g = rateLimitGuard(`docgen:cert:${context.userId}`, RATE_LIMITS.DOC_GEN);
+  const g = await rateLimitGuard(`docgen:cert:${context.userId}`, RATE_LIMITS.DOC_GEN);
   if (!g.allowed) return tooManyRequestsResponse(g.result, 'Too many certificate generations. Please slow down.');
 
   const { project, controlLabels } = await loadAuditCertificate(

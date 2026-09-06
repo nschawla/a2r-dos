@@ -36,6 +36,17 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.8.0',
+    date: '2026-09-06',
+    headline: 'Tenant-isolation & security hardening — composite FKs, hashed bearer tokens, distributed rate limiting',
+    changes: [
+      { type: 'security', text: 'The database now physically rejects a cross-tenant child row. Every project- and batch-scoped table carries a composite foreign key on (organization, parent) referencing a matching composite key on the parent, so a row whose tenant disagrees with its project’s / batch’s tenant cannot be created even if both application isolation layers were bypassed.' },
+      { type: 'security', text: 'Staff-elevation and tenant-impersonation bearer tokens are no longer stored in the clear. The cookie carries a 256-bit secret; the database keeps only its SHA-256 hash and looks sessions up by hash. A database read or a leaked backup no longer yields a usable token. Live elevation / impersonation sessions are invalidated on deploy (re-elevate once).' },
+      { type: 'security', text: 'Rate limiting can now enforce one atomic global window across every serverless instance via Upstash Redis (set UPSTASH_REDIS_REST_URL / _TOKEN). Unset, it keeps the existing in-process limiter; a transient Redis failure falls back to it automatically so a Redis blip never blocks sign-in.' },
+      { type: 'improvement', text: 'Database Row-Level Security groundwork ships complete but dormant: the per-request SET LOCAL Prisma bridge, the restricted-role and per-table-policy migrations, a direct-SQL enforcement smoke test, and a staged enforcement runbook. Nothing is enforced until a rehearsal database and maintenance window exist (Phase C).' },
+    ],
+  },
+  {
     version: '1.7.1',
     date: '2026-09-06',
     headline: 'Framework upgrade — Next.js 15 (LTS) and a clean lint sweep',

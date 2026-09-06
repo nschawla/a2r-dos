@@ -31,7 +31,7 @@ export const GET = withRouteHandler<{ params: Promise<{ template: string }> }>('
     return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
   }
 
-  const g = rateLimitGuard(`template:${session.user.id}`, RATE_LIMITS.TEMPLATE_DOWNLOAD);
+  const g = await rateLimitGuard(`template:${session.user.id}`, RATE_LIMITS.TEMPLATE_DOWNLOAD);
   if (!g.allowed) return tooManyRequestsResponse(g.result, 'Too many template downloads. Please wait a moment.');
 
   const template = getTemplate(templateSlug);

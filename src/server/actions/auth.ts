@@ -105,7 +105,7 @@ const newOrgSchema = z.object({ orgName: z.string().min(2, 'Organization name is
 export const createOrganizationForCurrentUser = withAction('createOrganizationForCurrentUser', async (input: unknown): Promise<ActionResult> => {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, error: 'Not signed in.' };
-  const limited = rateLimitByUser('org:create', session.user.id, RATE_LIMITS.REGISTER);
+  const limited = await rateLimitByUser('org:create', session.user.id, RATE_LIMITS.REGISTER);
   if (limited) return limited;
   // P0 #3 — a forced-rotation session may not create a tenant.
   if (await sessionRequiresPasswordChange()) return { ok: false, error: PASSWORD_CHANGE_REQUIRED };
@@ -174,7 +174,7 @@ export const changePasswordAction = withAction('changePasswordAction', async (in
   const userId = session.user.id;
 
   // Each call runs a bcrypt compare — cap the attempt rate per account.
-  const limited = rateLimitByUser('pw-change', userId, RATE_LIMITS.PASSWORD_CHANGE);
+  const limited = await rateLimitByUser('pw-change', userId, RATE_LIMITS.PASSWORD_CHANGE);
   if (limited) return limited;
 
   const policyError = validatePasswordStrength(newPassword);

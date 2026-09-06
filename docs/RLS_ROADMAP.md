@@ -1,7 +1,23 @@
 # Database-level Row Level Security — implementation roadmap
 
-_Status: **planned**. Prerequisites complete as of v1.7.0._
+_Status: **authored, dormant** as of v1.8.0 (Phase B). The code and SQL
+below are committed but inert; enforcement is Phase C._
 _Owner: platform / security. Audience: engineering + the security auditor._
+
+## What shipped in v1.8.0 (Phase B)
+
+| Artefact | Purpose | State |
+| --- | --- | --- |
+| `prisma/migrations/00000000000014_composite_fk_tenant_guard` | Composite `(organizationId, id)` FKs on all 11 project/batch child tables — the DB physically rejects a child row whose tenant ≠ its parent's. | **APPLIED** |
+| `src/lib/db/rls-transaction.ts` | The per-request `SET LOCAL app.current_org` Prisma extension. No-op unless `RLS_ENFORCE=1`. | committed, dormant |
+| `prisma/migrations/00000000000016_rls_restricted_role` | `CREATE ROLE a2r_app` (NOSUPERUSER NOBYPASSRLS) + grants + `app.current_org` GUC default. | **NOT applied** |
+| `prisma/migrations/00000000000017_rls_tenant_policies` | `tenant_isolation` policy on all 29 tenant tables, staged in 4 steps + a commented `FORCE` block. | **NOT applied** |
+| `scripts/rls-smoke.ts` (`npm run db:rls:smoke`) + `tests/security/rls-policies.test.ts` | Direct-SQL enforcement verification for the `a2r_app` role — bypasses the ORM. Skips cleanly when `RLS_APP_DATABASE_URL` is unset. | committed, skipped |
+| `docs/RLS_ENFORCEMENT_RUNBOOK.md` | The ordered Phase-C rollout (rehearsal DB → role → policies step-by-step → `RLS_ENFORCE=1` → `FORCE`). | — |
+
+Phase C is gated on a **rehearsal database** (there is none today — the app
+shares one Supabase project through the transaction pooler) and a
+maintenance window. Do not set `RLS_ENFORCE=1` against the shared database.
 
 ## 1. Where we are today (v1.7.0)
 

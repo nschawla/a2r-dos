@@ -36,6 +36,7 @@ import {
 } from '@/lib/ops/staff-elevation';
 import { grantStaffAccess } from '@/lib/ops/staff-grants';
 import { requireElevatedOps } from '@/lib/ops-auth';
+import { hashToken } from '@/lib/crypto/bearer-token';
 
 /**
  * P1 — Just-In-Time staff elevation. Live DB, self-cleaning.
@@ -98,6 +99,12 @@ describe('JIT staff elevation — service', () => {
 
     const resolved = await resolveActiveElevation(res.token);
     expect(resolved?.userId).toBe(op.id);
+
+    // P0-5 — the DB row stores only the hash, never the cookie's plaintext.
+    const row = await db.staffElevation.findFirst({ where: { userId: op.id, endedAt: null } });
+    expect(row?.tokenHash).toBe(hashToken(res.token));
+    expect(row?.tokenHash).not.toBe(res.token);
+    expect(await resolveActiveElevation(`${res.token}-tampered`)).toBeNull();
   });
 
   it('a second request supersedes the first (one live elevation per operator)', async () => {
@@ -113,20 +120,21 @@ describe('JIT staff elevation — service', () => {
     const rows = await db.staffElevation.findMany({ where: { userId: op.id } });
     expect(rows).toHaveLength(2);
     expect(rows.filter((r) => r.endedAt === null)).toHaveLength(1);
-    expect(rows.find((r) => r.token === a.token)?.endedReason).toBe('superseded');
+    expect(rows.find((r) => r.tokenHash === hashToken(a.token))?.endedReason).toBe('superseded');
   });
 
   it('resolveActiveElevation returns null for an expired or ended row', async () => {
     const op = await makeOperator('expiry');
-    const past = await db.staffElevation.create({
+    const pastToken = `past-${stamp}`;
+    await db.staffElevation.create({
       data: {
         userId: op.id,
-        token: `past-${stamp}`,
+        tokenHash: hashToken(pastToken),
         reason: 'already expired window',
         expiresAt: new Date(Date.now() - 60_000),
       },
     });
-    expect(await resolveActiveElevation(past.token)).toBeNull();
+    expect(await resolveActiveElevation(pastToken)).toBeNull();
     expect(await hasActiveElevation(op.id)).toBe(false);
 
     const ended = await requestElevation({ userId: op.id, reason: 'will be dropped early' });

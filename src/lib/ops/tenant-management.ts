@@ -9,9 +9,9 @@
  * (src/server/actions/ops.ts) own that; this module is the pure service
  * layer so it can be unit-tested and reused.
  */
-import { randomBytes } from 'node:crypto';
 import { db } from '@/lib/db';
 import { recordLedgerEvent, type LedgerDbClient } from '@/lib/audit-ledger';
+import { mintToken, hashToken } from '@/lib/crypto/bearer-token';
 import { TENANT_STATE, type TenantLifecycleState } from '@/lib/ops/tenant-lifecycle';
 
 export { TENANT_STATE, canTransition, type TenantLifecycleState, type TenantStateDescriptor } from '@/lib/ops/tenant-lifecycle';
@@ -99,12 +99,14 @@ export async function startImpersonation(
   if (!org) return { ok: false, error: 'Tenant not found.' };
   if (org.purgedAt) return { ok: false, error: 'Tenant has been purged — impersonation is not available.' };
 
-  const token = randomBytes(24).toString('base64url');
+  // P0-5 — plaintext `token` is returned for the cookie and never stored;
+  // only `tokenHash` (SHA-256) is persisted.
+  const { token, tokenHash } = mintToken();
   const expiresAt = new Date(Date.now() + IMPERSONATION_TTL_MINUTES * 60_000);
 
   const grant = await client.impersonationGrant.create({
     data: {
-      token,
+      tokenHash,
       actorId: input.actor.userId,
       organizationId: org.id,
       reason: input.reason.slice(0, 500),
@@ -149,13 +151,14 @@ export async function startImpersonation(
 export async function resolveImpersonation(token: string): Promise<ImpersonationSession | null> {
   if (!token) return null;
   const grant = await db.impersonationGrant.findUnique({
-    where: { token },
+    where: { tokenHash: hashToken(token) },
     include: { organization: { select: { id: true, name: true, slug: true, purgedAt: true } } },
   });
   if (!grant || grant.endedAt || grant.expiresAt.getTime() < Date.now() || grant.organization.purgedAt) return null;
   return {
     grantId: grant.id,
-    token: grant.token,
+    // echo back the caller's plaintext cookie value — the DB only holds its hash
+    token,
     organizationId: grant.organizationId,
     organizationSlug: grant.organization.slug,
     organizationName: grant.organization.name,
@@ -169,7 +172,7 @@ export async function resolveImpersonation(token: string): Promise<Impersonation
 export async function endImpersonation(token: string): Promise<void> {
   if (!token) return;
   await db.impersonationGrant.updateMany({
-    where: { token, endedAt: null },
+    where: { tokenHash: hashToken(token), endedAt: null },
     data: { endedAt: new Date() },
   });
 }

@@ -12,8 +12,10 @@
  * Trade-off: state is per-process. On a single instance that's the whole
  * picture; behind N load-balanced instances each enforces ~limit/N of the
  * true rate, which is still a hard cap on a single attacker hitting one
- * instance. Swap `hit()` for a Redis/Upstash-backed check when precise
- * global limits are needed — the call sites don't change.
+ * instance. P0-6: when `UPSTASH_REDIS_REST_URL` / `_TOKEN` are set,
+ * `rateLimitGuard` / `hitDistributed` (src/lib/rate-limiter-redis.ts)
+ * enforce ONE atomic global window across every instance instead; unset →
+ * the in-process `hit()` below, unchanged.
  *
  *   import { hit, tooManyRequestsResponse, clientIpFrom } from '@/lib/rate-limiter';
  *   const rl = hit(`auth:login:${ip}`, { limit: 10, windowMs: 60_000 });
@@ -128,18 +130,20 @@ export function rateLimitHeaders(result: RateLimitResult): Record<string, string
 }
 
 /**
- * One `hit()` plus its headers, ready for both branches:
+ * One rate-limit check plus its headers, ready for both branches. Uses the
+ * shared Upstash window when configured (P0-6), else the in-process `hit()`.
  *
- *   const g = rateLimitGuard(`export:csv:${userId}`, RATE_LIMITS.BULK_EXPORT);
+ *   const g = await rateLimitGuard(`export:csv:${userId}`, RATE_LIMITS.BULK_EXPORT);
  *   if (!g.allowed) return tooManyRequestsResponse(g.result, '…');
  *   const res = new NextResponse(body, { status: 200 });
  *   return withRateLimitHeaders(res, g.result);
  */
-export function rateLimitGuard(
+export async function rateLimitGuard(
   key: string,
   rule: RateLimitRule,
-): { allowed: boolean; result: RateLimitResult; headers: Record<string, string> } {
-  const result = hit(key, rule);
+): Promise<{ allowed: boolean; result: RateLimitResult; headers: Record<string, string> }> {
+  const { hitDistributed } = await import('@/lib/rate-limiter-redis');
+  const result = await hitDistributed(key, rule);
   return { allowed: result.ok, result, headers: rateLimitHeaders(result) };
 }
 

@@ -76,7 +76,7 @@ export const POST = withRouteHandler('parse-document', async (request: Request) 
   }
 
   // ── Per-user rate limit — LLM calls cost real money. ──
-  const g = rateLimitGuard(`parse-document:${context.userId}`, RATE_LIMITS.DOC_PARSE);
+  const g = await rateLimitGuard(`parse-document:${context.userId}`, RATE_LIMITS.DOC_PARSE);
   if (!g.allowed) {
     return tooManyRequestsResponse(
       g.result,

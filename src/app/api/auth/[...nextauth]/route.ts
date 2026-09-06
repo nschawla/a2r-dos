@@ -25,7 +25,7 @@ export async function POST(request: Request, ctx: RouteContext) {
   if (!isCredentialsCallback) return handler(request, ctx);
 
   const ip = clientIpFrom(request);
-  const g = rateLimitGuard(`auth:login:${ip}`, RATE_LIMITS.LOGIN);
+  const g = await rateLimitGuard(`auth:login:${ip}`, RATE_LIMITS.LOGIN);
   if (!g.allowed) {
     captureMessage('Login rate limit exceeded', {
       scope: 'auth/login',

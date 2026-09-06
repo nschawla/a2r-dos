@@ -16,7 +16,8 @@
  */
 import { NextResponse } from 'next/server';
 import { validateApiKey, type ValidatedApiKey } from '@/lib/ops/api-keys';
-import { hit, tooManyRequestsResponse, type RateLimitRule } from '@/lib/rate-limiter';
+import { tooManyRequestsResponse, type RateLimitRule } from '@/lib/rate-limiter';
+import { hitDistributed } from '@/lib/rate-limiter-redis';
 import { captureException, captureMessage } from '@/lib/observability';
 import { runUnscoped, setOrgScope } from '@/lib/db/org-scope';
 
@@ -60,7 +61,7 @@ export function withApiAuth(handler: ApiRouteHandler, options: WithApiAuthOption
       return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
-    const rl = hit(`api:v1:${result.key.apiKeyId}`, rule);
+    const rl = await hitDistributed(`api:v1:${result.key.apiKeyId}`, rule);
     if (!rl.ok) {
       captureMessage('API ingestion rate limit exceeded', {
         scope: 'api/v1',

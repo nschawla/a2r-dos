@@ -134,9 +134,11 @@ model StaffGrant {
 model StaffElevation {
   id              String    @id @default(cuid())
   userId          String
-  // Opaque bearer token, dropped into the httpOnly `a2r_ops_elevation`
-  // cookie (mirrors the Impersonation Gateway's a2r_impersonation).
-  token           String    @unique
+  // P0-5 — SHA-256 of the opaque bearer token. The plaintext secret is
+  // dropped into the httpOnly `a2r_ops_elevation` cookie and never stored;
+  // `resolveActiveElevation` looks the row up by `hashToken(cookieValue)`.
+  // (mirrors the Impersonation Gateway's a2r_impersonation, and ApiKey.hashedKey.)
+  tokenHash       String    @unique
   reason          String
   createdAt       DateTime  @default(now())
   expiresAt       DateTime
@@ -338,7 +340,9 @@ model Organization {
 // tenant's Immutable Audit Ledger.
 model ImpersonationGrant {
   id             String    @id @default(cuid())
-  token          String    @unique
+  // P0-5 — SHA-256 of the opaque bearer token carried in the httpOnly
+  // `a2r_impersonation` cookie; the plaintext is never stored.
+  tokenHash      String    @unique
   actorId        String // the A2R staff User id
   organizationId String
   reason         String
@@ -663,7 +667,7 @@ model WeeklyAssignmentSlot {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   resource     Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
 
   @@unique([resourceId, projectId, weekDate])
   @@index([organizationId])
@@ -714,7 +718,7 @@ model TimesheetEntry {
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   resource     Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, workDate])
@@ -877,6 +881,11 @@ model Project {
   weeklySlots      WeeklyAssignmentSlot[]
   timesheetEntries TimesheetEntry[]
 
+  // P0-3 — composite-FK target. Lets every project-scoped child model carry
+  // a FOREIGN KEY (organizationId, projectId) → projects(organizationId, id),
+  // so the database physically rejects a child row whose tenant disagrees
+  // with its project's tenant. (id is already unique; this names the pair.)
+  @@unique([organizationId, id])
   @@index([organizationId])
   @@index([parentId])
   @@index([practiceId])
@@ -900,7 +909,7 @@ model ProjectContributor {
   resourceId String
   createdAt  DateTime @default(now())
 
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   resource     Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
@@ -930,7 +939,7 @@ model ScopeItem {
   custom     Boolean         @default(false)
   sortOrder  Int             @default(0)
 
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
@@ -948,7 +957,7 @@ model EffortCell {
   roleId    String
   hours     Float  @default(0)
 
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   role         DeliveryRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
@@ -985,7 +994,7 @@ model AuditEntry {
   notes      String?     @db.Text
   updatedAt  DateTime    @updatedAt
 
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, controlKey])
@@ -1057,7 +1066,7 @@ model RaidEntry {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   owner        Resource?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
@@ -1088,7 +1097,7 @@ model FinancialActual {
   forecastHours  Float?
   openRRHours    Float?
 
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project       @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   role         DeliveryRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
@@ -1122,7 +1131,7 @@ model SchedulePhase {
   pctComplete   Float          @default(0)
   status        ScheduleStatus @default(NOTSTARTED)
 
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, phaseKey])
@@ -1199,6 +1208,8 @@ model DataImportBatch {
   uploadedBy   User?           @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
   rows         DataImportRow[]
 
+  // P0-3 — composite-FK target for DataImportRow (organizationId, batchId).
+  @@unique([organizationId, id])
   @@index([organizationId, createdAt])
   @@map("data_import_batches")
 }
@@ -1226,7 +1237,7 @@ model DataImportRow {
 
   updatedAt DateTime @updatedAt
 
-  batch        DataImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batch        DataImportBatch @relation(fields: [organizationId, batchId], references: [organizationId, id], onDelete: Cascade)
   organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([batchId])
@@ -1447,7 +1458,7 @@ model SteerCoDecision {
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
 
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   owner        Resource?    @relation(fields: [decisionOwnerId], references: [id], onDelete: SetNull)
 

@@ -22,9 +22,9 @@
  * Server-only (reads the Prisma client). Mirrors the shape of the
  * Impersonation Gateway in src/lib/ops/tenant-management.ts.
  */
-import { randomBytes } from 'node:crypto';
 import { db } from '@/lib/db';
 import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
+import { mintToken, hashToken } from '@/lib/crypto/bearer-token';
 
 export const ELEVATION_COOKIE = 'a2r_ops_elevation';
 export const DEFAULT_TTL_MINUTES = 30;
@@ -79,7 +79,9 @@ export async function requestElevation(input: {
   const ttlMinutes = clampTtlMinutes(input.ttlMinutes);
   const now = Date.now();
   const expiresAt = new Date(now + ttlMinutes * 60_000);
-  const token = randomBytes(24).toString('base64url');
+  // P0-5 — the plaintext `token` is returned for the cookie and never
+  // stored; only its SHA-256 (`tokenHash`) is persisted.
+  const { token, tokenHash } = mintToken();
 
   // One live elevation per operator — supersede any prior one.
   await db.staffElevation.updateMany({
@@ -90,7 +92,7 @@ export async function requestElevation(input: {
   await db.staffElevation.create({
     data: {
       userId: input.userId,
-      token,
+      tokenHash,
       reason: reason.slice(0, 500),
       expiresAt,
       requestedFromIp: input.ip ?? null,
@@ -103,7 +105,7 @@ export async function requestElevation(input: {
 /** Resolve the cookie token to a still-live elevation row, or null. */
 export async function resolveActiveElevation(token: string | undefined | null) {
   if (!token) return null;
-  const row = await db.staffElevation.findUnique({ where: { token } });
+  const row = await db.staffElevation.findUnique({ where: { tokenHash: hashToken(token) } });
   if (!row || row.endedAt || row.expiresAt.getTime() <= Date.now()) return null;
   return row;
 }
@@ -125,7 +127,7 @@ export async function endElevation(
 ): Promise<void> {
   if (!token) return;
   await db.staffElevation.updateMany({
-    where: { token, endedAt: null },
+    where: { tokenHash: hashToken(token), endedAt: null },
     data: { endedAt: new Date(), endedReason: reason },
   });
 }

@@ -17,7 +17,8 @@ import { timingSafeEqual } from 'node:crypto';
 import { getOpsContextOrNull } from '@/lib/ops-auth';
 import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { runRetentionSweep } from '@/server/services/data-retention';
-import { hit, tooManyRequestsResponse, clientIpFrom } from '@/lib/rate-limiter';
+import { tooManyRequestsResponse, clientIpFrom } from '@/lib/rate-limiter';
+import { hitDistributed } from '@/lib/rate-limiter-redis';
 import { captureException, captureMessage } from '@/lib/observability';
 
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,7 @@ async function authorize(
 }
 
 export async function GET(request: Request) {
-  const rl = hit(`internal:retention:${clientIpFrom(request)}`, { limit: 12, windowMs: 60_000 });
+  const rl = await hitDistributed(`internal:retention:${clientIpFrom(request)}`, { limit: 12, windowMs: 60_000 });
   if (!rl.ok) return tooManyRequestsResponse(rl);
 
   const blocked = await passwordRotationGate();
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const rl = hit(`internal:retention:${clientIpFrom(request)}`, { limit: 6, windowMs: 60_000 });
+  const rl = await hitDistributed(`internal:retention:${clientIpFrom(request)}`, { limit: 6, windowMs: 60_000 });
   if (!rl.ok) return tooManyRequestsResponse(rl);
 
   const blocked = await passwordRotationGate();

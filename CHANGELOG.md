@@ -10,6 +10,74 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.8.0] — 2026-09-06
+
+_Tenant-isolation & security hardening — Phase B of the enterprise
+production-readiness track (P0-3, P0-5, P0-6; P0-2 groundwork)._
+
+### Added
+
+- **Composite tenant foreign keys (P0-3).** Migration
+  `00000000000014_composite_fk_tenant_guard` adds a composite
+  `UNIQUE ("organizationId", "id")` to `projects` / `data_import_batches`
+  and replaces the single-column parent FK on all 11 project- / batch-scoped
+  child tables (`scope_items`, `effort_cells`, `audit_entries`,
+  `raid_entries`, `financial_actuals`, `schedule_phases`,
+  `steerco_decisions`, `project_contributors`, `weekly_assignment_slots`,
+  `timesheet_entries`, `data_import_rows`) with a **composite** FK
+  `("organizationId", <parentId>)` → `parent("organizationId", "id")`.
+  Postgres now rejects any child row whose tenant disagrees with its
+  parent's. Schema models this as a composite `@relation`; a pre-flight
+  block aborts the migration if any existing row would violate it (none do).
+- **Distributed rate limiting (P0-6).** `src/lib/rate-limiter-redis.ts` —
+  when `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are set, every
+  boundary that goes through `rateLimitGuard` / `rateLimitByUser` /
+  `rateLimitByIp` enforces **one atomic sliding window** in Redis (single
+  server-side Lua script) consistent across all instances. Unset → the
+  in-process limiter, unchanged. A per-call Redis failure falls back to the
+  in-process limiter. Added `@upstash/redis`.
+- **RLS groundwork (P0-2), dormant.** `src/lib/db/rls-transaction.ts` (the
+  `SET LOCAL app.current_org` bridge, no-op unless `RLS_ENFORCE=1`),
+  migrations `16_rls_restricted_role` + `17_rls_tenant_policies` (**not
+  applied**), `scripts/rls-smoke.ts` (`npm run db:rls:smoke`) +
+  `tests/security/rls-policies.test.ts` (direct-SQL enforcement checks,
+  skipped without `RLS_APP_DATABASE_URL`), and
+  `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
+
+### Changed
+
+- **Bearer tokens are hashed at rest (P0-5).** `staff_elevations.token` and
+  `impersonation_grants.token` become `tokenHash` (migration
+  `00000000000015_hashed_bearer_tokens`). The cookie carries a 256-bit
+  secret via the new `src/lib/crypto/bearer-token.ts`
+  (`mintToken` / `hashToken`, constant-time compare); the DB stores only
+  `sha256(secret)` and resolves sessions by hash — mirrors the existing
+  `ApiKey.hashedKey`. **No backfill:** in-flight elevation / impersonation
+  cookies stop resolving on deploy (windows are ≤ 60 min; operators
+  re-elevate once).
+- `rateLimitGuard` / `rateLimitByUser` are now `async` (they may do a
+  Redis round trip); ~20 call sites updated.
+
+### Security
+
+- Cross-tenant child-row creation is now blocked by a database constraint,
+  not only by the app tier + ORM extension — true defence in depth for the
+  formerly join-scoped models.
+- A database read or leaked backup no longer yields a usable elevation /
+  impersonation bearer token.
+- Rate limits can be enforced globally rather than per-instance.
+
+### Verification
+
+- `npx tsc --noEmit` → 0 errors. `npm run lint` → **0 / 0**.
+- Migration rehearsal (`BEGIN; \i 14; \i 15; ROLLBACK;`) → clean against
+  live data; pre-flight consistency counts all 0. Migrations 14 + 15
+  **applied**; `prisma migrate diff` → no drift.
+- `npx vitest run` → **539 passed, 3 skipped** (dormant RLS suite) across
+  45 files. `npx playwright test` → **60 passed** (Suites A–P).
+- `npm run build` → clean on Next 15.5.25.
+  `npm run db:rls:smoke` → runs, reports dormant, exits 0.
+
 ## [1.7.1] — 2026-09-06
 
 _Framework upgrade — Next.js 15 (LTS) and a clean lint sweep._

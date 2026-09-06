@@ -12,6 +12,7 @@ import {
   applyOrgToCreateData,
   OrgScopeError,
 } from '@/lib/db/org-scope';
+import { extendWithRlsTransaction } from '@/lib/db/rls-transaction';
 
 /**
  * CMP-4 (GA-readiness audit) — DB channel security check.
@@ -167,7 +168,11 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 const base = globalForPrisma.prismaBase ?? createBaseClient();
-const extended: ExtendedClient = globalForPrisma.prisma ?? extendWithOrgScope(base);
+// P0-2 — the DB-level RLS `SET LOCAL` bridge composes AFTER org-scope. It
+// is a no-op passthrough unless RLS_ENFORCE=1 (dormant everywhere today —
+// see src/lib/db/rls-transaction.ts + docs/RLS_ENFORCEMENT_RUNBOOK.md).
+const extended: ExtendedClient =
+  globalForPrisma.prisma ?? extendWithRlsTransaction(extendWithOrgScope(base) as unknown as PrismaClient) as unknown as ExtendedClient;
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prismaBase = base;

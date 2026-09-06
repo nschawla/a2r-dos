@@ -10,7 +10,7 @@
  * Server-only (`next/headers`).
  */
 import { headers } from 'next/headers';
-import { hit } from '@/lib/rate-limiter';
+import { hitDistributed } from '@/lib/rate-limiter-redis';
 import type { RateLimitRule } from '@/lib/rate-limiter';
 
 export const RATE_LIMITED = 'RATE_LIMITED';
@@ -37,16 +37,16 @@ export async function rateLimitByIp(
   scope: string,
   rule: RateLimitRule,
 ): Promise<{ ok: false; error: string } | null> {
-  const rl = hit(`${scope}:${await clientIp()}`, rule);
+  const rl = await hitDistributed(`${scope}:${await clientIp()}`, rule);
   return rl.ok ? null : { ok: false, error: message(rl.retryAfterSeconds) };
 }
 
 /** Per-authenticated-user limit (password change, batch import, snapshots). */
-export function rateLimitByUser(
+export async function rateLimitByUser(
   scope: string,
   userId: string,
   rule: RateLimitRule,
-): { ok: false; error: string } | null {
-  const rl = hit(`${scope}:${userId}`, rule);
+): Promise<{ ok: false; error: string } | null> {
+  const rl = await hitDistributed(`${scope}:${userId}`, rule);
   return rl.ok ? null : { ok: false, error: message(rl.retryAfterSeconds) };
 }

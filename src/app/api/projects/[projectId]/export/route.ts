@@ -22,7 +22,7 @@ export const GET = withRouteHandler<{ params: Promise<{ projectId: string }> }>(
     const context = await getOrgContextOrNull();
     if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 
-    const g = rateLimitGuard(`export:project:${context.userId}`, RATE_LIMITS.BULK_EXPORT);
+    const g = await rateLimitGuard(`export:project:${context.userId}`, RATE_LIMITS.BULK_EXPORT);
     if (!g.allowed) {
       return tooManyRequestsResponse(g.result, 'Too many project exports. Please wait a few minutes.');
     }

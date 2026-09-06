@@ -45,7 +45,7 @@ export const exportWorkspaceSnapshot = withAction('exportWorkspaceSnapshot', asy
   if (!auth.ok) return { ok: false, error: auth.error };
   const { organizationId, userId } = auth.context;
 
-  const limited = rateLimitByUser('workspace:export', userId, RATE_LIMITS.WORKSPACE_SNAPSHOT);
+  const limited = await rateLimitByUser('workspace:export', userId, RATE_LIMITS.WORKSPACE_SNAPSHOT);
   if (limited) return limited;
 
   const [org, practices, deliveryRoles, resources, orgPolicy, controlLabels, projects] = await Promise.all([
@@ -126,7 +126,7 @@ export const restoreWorkspaceSnapshot = withAction('restoreWorkspaceSnapshot', a
   if (!auth.ok) return { ok: false, error: auth.error };
   const { organizationId, userId } = auth.context;
 
-  const limited = rateLimitByUser('workspace:restore', userId, RATE_LIMITS.WORKSPACE_SNAPSHOT);
+  const limited = await rateLimitByUser('workspace:restore', userId, RATE_LIMITS.WORKSPACE_SNAPSHOT);
   if (limited) return limited;
 
   const validated = validateWorkspaceSnapshot(input);

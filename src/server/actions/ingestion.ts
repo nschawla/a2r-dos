@@ -103,7 +103,7 @@ export const commitCsvImport = withAction('commitCsvImport', async (projectId: s
   const auth = await authorizeProjectEdit(projectId);
   if (!auth.ok) return { ok: false, error: auth.error };
 
-  const limited = rateLimitByUser('import:csv', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
+  const limited = await rateLimitByUser('import:csv', auth.context.userId, RATE_LIMITS.BATCH_INGEST);
   if (limited) return limited;
 
   const parsed = await parseForKind(kind, csvText, auth.context.organizationId, projectId);
