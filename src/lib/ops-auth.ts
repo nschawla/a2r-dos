@@ -20,6 +20,7 @@ import { getServerSession, type Session } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
+import { PasswordChangeRequiredError } from '@/lib/auth/password-rotation';
 import { setAdminScope } from '@/lib/db/org-scope';
 
 export interface OpsContext {
@@ -48,6 +49,8 @@ function toOpsContext(session: Session): OpsContext {
 export async function getOpsContextOrNull(): Promise<OpsContext | null> {
   const session = await getServerSession(authOptions);
   if (!session?.user) return null;
+  // P0 #3 — a forced-rotation operator session is strictly restricted.
+  if (session.user.mustChangePassword) throw new PasswordChangeRequiredError();
   if (!(await hasActiveStaffGrant(session.user.id))) return null;
   return toOpsContext(session);
 }
@@ -58,6 +61,9 @@ export async function getOpsContextOrNull(): Promise<OpsContext | null> {
 export async function requireOpsContext(): Promise<OpsContext> {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect('/login');
+  // P0 #3 — middleware redirects an /ops page navigation to
+  // /change-password; this is the backstop for a direct action/layout call.
+  if (session.user.mustChangePassword) throw new PasswordChangeRequiredError();
   if (!(await hasActiveStaffGrant(session.user.id))) redirect('/portfolio');
   return toOpsContext(session);
 }

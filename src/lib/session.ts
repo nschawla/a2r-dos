@@ -17,6 +17,7 @@ import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
 import { IMPERSONATION_COOKIE, resolveImpersonation } from '@/lib/ops/tenant-management';
 import { getGovernanceConfig } from '@/lib/governance/service';
 import { registerLazyScopeResolver, runUnscoped, setOrgScope } from '@/lib/db/org-scope';
+import { PasswordChangeRequiredError } from '@/lib/auth/password-rotation';
 import type { ResolvedGovernanceConfig } from '@/lib/governance/config';
 import type { SessionMembership } from '@/types/next-auth';
 
@@ -210,10 +211,20 @@ export async function requireOrgContext(): Promise<OrgContext> {
   const result = await resolveOrgContext();
   if (!result.ok) {
     if (result.reason === 'unauthenticated') redirect('/login');
-    // No membership: A2R staff belong in the ops console (they commonly
-    // hold no client Membership at all); everyone else onboards a tenant.
+    // No membership: a forced-rotation session must still not be routed
+    // anywhere useful — fail closed the same way every other guard does.
     const session = await getServerSession(authOptions);
+    if (session?.user?.mustChangePassword) throw new PasswordChangeRequiredError();
+    // A2R staff belong in the ops console (they commonly hold no client
+    // Membership at all); everyone else onboards a tenant.
     redirect(session?.user?.isA2rStaff ? '/ops' : '/onboarding');
+  }
+  // P0 #3 — a session mid password-rotation is strictly restricted: it may
+  // only reach /change-password (which does not call this guard) and
+  // sign-out. Everything else is rejected here, server-side, rather than
+  // relying on the middleware redirect a direct action/route call skips.
+  if (result.context.session.user.mustChangePassword) {
+    throw new PasswordChangeRequiredError();
   }
   // Pin every db call in the rest of this request to this tenant.
   setOrgScope(result.context.organizationId);
@@ -224,10 +235,18 @@ export async function requireOrgContext(): Promise<OrgContext> {
  * Same resolution as requireOrgContext, but returns null instead of
  * redirecting — use this from route handlers (src/app/api/**\/route.ts),
  * where you want to return a 401/404 JSON response rather than a redirect.
+ *
+ * A forced-rotation session is NOT "not authenticated" — it is forbidden,
+ * so this throws `PasswordChangeRequiredError` (route handlers call
+ * `passwordRotationGate()` first for a clean 403; the throw is the
+ * backstop).
  */
 export async function getOrgContextOrNull(): Promise<OrgContext | null> {
   const result = await resolveOrgContext();
   if (!result.ok) return null;
+  if (result.context.session.user.mustChangePassword) {
+    throw new PasswordChangeRequiredError();
+  }
   setOrgScope(result.context.organizationId);
   return result.context;
 }

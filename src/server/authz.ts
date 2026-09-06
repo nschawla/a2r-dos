@@ -12,8 +12,30 @@
 import { db } from '@/lib/db';
 import { requireOrgContext, type OrgContext } from '@/lib/session';
 import { canEditProject, hasPermission, type PermissionAction } from '@/lib/auth/rbac';
+import {
+  isPasswordChangeRequiredError,
+  PASSWORD_CHANGE_REQUIRED,
+} from '@/lib/auth/password-rotation';
 
 export type ProjectEditAuth = { ok: true; context: OrgContext } | { ok: false; error: string };
+
+/**
+ * P0 #3 — resolve the org context, but turn a forced-password-rotation
+ * session (requireOrgContext throws) into this file's standard
+ * `{ ok: false }` tuple so every mutation action rejects cleanly with
+ * `PASSWORD_CHANGE_REQUIRED` instead of an unhandled 500. Any other throw
+ * (the `redirect()` signal for unauthenticated / no-membership) propagates.
+ */
+async function resolveContextOrRotationError(): Promise<
+  { ok: true; context: OrgContext } | { ok: false; error: string }
+> {
+  try {
+    return { ok: true, context: await requireOrgContext() };
+  } catch (err) {
+    if (isPasswordChangeRequiredError(err)) return { ok: false, error: PASSWORD_CHANGE_REQUIRED };
+    throw err;
+  }
+}
 
 /**
  * Global write guard. Returns an error string when the active session must
@@ -42,7 +64,9 @@ export function writeBlockReason(context: OrgContext): string | null {
  * this to probe which project IDs exist in another scope.
  */
 export async function authorizeProjectEdit(projectId: string): Promise<ProjectEditAuth> {
-  const context = await requireOrgContext();
+  const resolved = await resolveContextOrRotationError();
+  if (!resolved.ok) return resolved;
+  const { context } = resolved;
 
   const blocked = writeBlockReason(context);
   if (blocked) return { ok: false, error: blocked };
@@ -73,7 +97,9 @@ export async function authorizeProjectEdit(projectId: string): Promise<ProjectEd
  * src/server/actions/ingestion.ts).
  */
 export async function authorizeAdminAction(action: PermissionAction): Promise<ProjectEditAuth> {
-  const context = await requireOrgContext();
+  const resolved = await resolveContextOrRotationError();
+  if (!resolved.ok) return resolved;
+  const { context } = resolved;
   const blocked = writeBlockReason(context);
   if (blocked) return { ok: false, error: blocked };
   if (!hasPermission(context.deliveryRole, action)) {

@@ -15,11 +15,15 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { getTemplate, renderTemplateCsv } from '@/server/services/templates';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(_request: Request, { params }: { params: { template: string } }) {
+  const blocked = await passwordRotationGate();
+  if (blocked) return blocked;
+
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });

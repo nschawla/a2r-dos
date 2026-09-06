@@ -37,14 +37,34 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const token = req.nextauth.token;
 
+    // P0 #3 — how a restricted request is turned away depends on the caller:
+    //   • a Route Handler / API path (`/api/*`) is programmatic → JSON status
+    //   • a Server Action POST (carries the `Next-Action` header) → pass
+    //     through, so the server-side guards
+    //     (src/lib/auth/password-rotation.ts) reject it with
+    //     PASSWORD_CHANGE_REQUIRED rather than a 307 the action client would
+    //     just follow
+    //   • a plain page navigation → 307 to the relevant screen
+    const isApi = pathname.startsWith('/api/');
+    const isServerAction = req.method === 'POST' && req.headers.has('next-action');
+
+    // A token the jwt callback revoked (its `iat` predates the account's
+    // last password change; another device's session after a rotation).
+    if ((token as { revoked?: boolean } | null)?.revoked) {
+      if (isServerAction) return NextResponse.next();
+      return isApi
+        ? NextResponse.json({ error: 'SESSION_REVOKED' }, { status: 401 })
+        : NextResponse.redirect(new URL('/login', req.url));
+    }
+
     // Forced password change (temp password issued by someone else) takes
-    // precedence over everything else — an operator-provisioned admin
-    // can't reach the workspace or the Ops Console until they set their
-    // own. `mustChangePassword` rides on the JWT and is refreshed from the
-    // DB every request by the jwt callback, so changePasswordAction
-    // clearing it is visible on the next navigation.
+    // precedence over everything else. `mustChangePassword` rides on the JWT
+    // and is refreshed from the DB every request by the jwt callback.
     if (token?.mustChangePassword === true && pathname !== '/change-password') {
-      return NextResponse.redirect(new URL('/change-password', req.url));
+      if (isServerAction) return NextResponse.next();
+      return isApi
+        ? NextResponse.json({ error: 'PASSWORD_CHANGE_REQUIRED' }, { status: 403 })
+        : NextResponse.redirect(new URL('/change-password', req.url));
     }
 
     if (pathname.startsWith('/ops')) {

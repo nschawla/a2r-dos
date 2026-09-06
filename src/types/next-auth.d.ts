@@ -47,5 +47,9 @@ declare module 'next-auth/jwt' {
     isA2rStaff?: boolean;
     mustChangePassword?: boolean;
     memberships?: SessionMembership[];
+    /** P0 #3 — set by the jwt callback when the token's `iat` predates the
+     * account's `passwordChangedAt`. The session callback then returns a
+     * user-less session, so the request is treated as signed-out. */
+    revoked?: boolean;
   }
 }

@@ -15,6 +15,7 @@
 import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
 import { getOpsContextOrNull } from '@/lib/ops-auth';
+import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { runRetentionSweep } from '@/server/services/data-retention';
 import { hit, tooManyRequestsResponse, clientIpFrom } from '@/lib/rate-limiter';
 import { captureException, captureMessage } from '@/lib/observability';
@@ -43,6 +44,9 @@ export async function GET(request: Request) {
   const rl = hit(`internal:retention:${clientIpFrom(request)}`, { limit: 12, windowMs: 60_000 });
   if (!rl.ok) return tooManyRequestsResponse(rl);
 
+  const blocked = await passwordRotationGate();
+  if (blocked) return blocked;
+
   const auth = await authorize(request);
   if (!auth.ok) return NextResponse.json({ error: 'Not authorized.' }, { status: 401 });
 
@@ -53,6 +57,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const rl = hit(`internal:retention:${clientIpFrom(request)}`, { limit: 6, windowMs: 60_000 });
   if (!rl.ok) return tooManyRequestsResponse(rl);
+
+  const blocked = await passwordRotationGate();
+  if (blocked) return blocked;
 
   const auth = await authorize(request);
   if (!auth.ok) return NextResponse.json({ error: 'Not authorized.' }, { status: 401 });

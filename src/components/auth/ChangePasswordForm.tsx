@@ -5,10 +5,10 @@
  * operator-provisioned admin, redirected here by src/middleware.ts) and a
  * voluntary change by any signed-in user.
  *
- * On success it signs the user out and returns them to /login: the JWT
- * still carries the stale `mustChangePassword` flag until its next
- * refresh, and a clean re-login is the simplest correct fix (see
- * changePasswordAction's doc comment).
+ * On success (P0 #3) the server has already revoked every other session and
+ * minted a fresh one for this device, so we just hard-navigate into the
+ * app. If the server couldn't mint (`sessionRefreshed: false`), we fall
+ * back to signing out and back in.
  */
 import { useMemo, useState, type FormEvent } from 'react';
 import { signOut } from 'next-auth/react';
@@ -22,6 +22,7 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [refreshed, setRefreshed] = useState(false);
 
   const strengthHint = useMemo(() => (next ? validatePasswordStrength(next) : null), [next]);
   const mismatch = confirm.length > 0 && confirm !== next;
@@ -43,8 +44,16 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
         return;
       }
       setDone(true);
-      // Brief confirmation, then a clean re-login with the new password.
-      setTimeout(() => void signOut({ callbackUrl: '/login' }), 1200);
+      setRefreshed(result.sessionRefreshed);
+      setTimeout(() => {
+        if (result.sessionRefreshed) {
+          // Fresh session already set server-side — go straight into the app.
+          window.location.assign('/launch');
+        } else {
+          // Couldn't mint — sign out and back in with the new password.
+          void signOut({ callbackUrl: '/login' });
+        }
+      }, 1200);
     } catch {
       setError('Couldn’t reach the server. Check your connection and try again.');
     } finally {
@@ -56,7 +65,11 @@ export function ChangePasswordForm({ forced }: { forced: boolean }) {
     return (
       <div className="flex flex-col gap-2 text-center">
         <h2 className="text-[15px] font-bold">Password updated</h2>
-        <p className="text-sm text-ink-muted">Signing you out — please sign in again with your new password.</p>
+        <p className="text-sm text-ink-muted">
+          {refreshed
+            ? 'All other sessions have been signed out. Taking you into the workspace…'
+            : 'All sessions have been signed out — please sign in again with your new password.'}
+        </p>
       </div>
     );
   }

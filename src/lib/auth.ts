@@ -6,7 +6,7 @@
  * restrictions this file falls under.
  */
 
-import type { AuthOptions } from 'next-auth';
+import type { AuthOptions, Session } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
@@ -14,6 +14,7 @@ import { db } from '@/lib/db';
 import { runUnscoped } from '@/lib/db/org-scope';
 import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
 import { isSsoEnforcedForEmail } from '@/lib/identity/service';
+import { tokenIsRevokedByPasswordChange } from '@/lib/auth/token-revocation';
 
 /**
  * NextAuth configuration for the A2R Delivery OS SaaS foundation.
@@ -112,7 +113,7 @@ export const authOptions: AuthOptions = {
             Promise.all([
               db.user.findUnique({
                 where: { id: token.userId as string },
-                select: { mustChangePassword: true },
+                select: { mustChangePassword: true, passwordChangedAt: true },
               }),
               db.membership.findMany({
                 where: { userId: token.userId as string },
@@ -125,6 +126,15 @@ export const authOptions: AuthOptions = {
               hasActiveStaffGrant(token.userId as string),
             ])
           );
+
+          // P0 #3 — session revocation. Any token issued before the account's
+          // last password change belongs to a session that must die (e.g. a
+          // temp-password session on another device, still live after the
+          // user set their own password).
+          if (tokenIsRevokedByPasswordChange(token.iat, account?.passwordChangedAt ?? null)) {
+            return { revoked: true };
+          }
+
           token.isA2rStaff = isStaff;
           token.mustChangePassword = account?.mustChangePassword === true;
           token.memberships = memberships.map((m) => ({
@@ -145,6 +155,12 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
+      // P0 #3 — a token the jwt callback revoked (password changed on
+      // another device, or a malformed token) yields a session with NO
+      // user, so every server guard treats the request as signed-out.
+      if ((token as { revoked?: boolean }).revoked || !token.userId) {
+        return { ...session, user: undefined as unknown as Session['user'] };
+      }
       if (session.user) {
         session.user.id = token.userId as string;
         session.user.isA2rStaff = token.isA2rStaff === true;

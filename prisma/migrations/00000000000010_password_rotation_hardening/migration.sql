@@ -1,0 +1,32 @@
+-- A2R Delivery OS — P0 #3: deep server-side enforcement of forced password
+-- rotation.
+--
+-- BEFORE
+-- ──────────────────────────────────────────────────────────────────────
+--   `users.mustChangePassword` was enforced only by the 307 redirect in
+--   src/middleware.ts — a browser-navigation guard. A script holding a
+--   valid temporary-password session could call Server Actions / Route
+--   Handlers directly and bypass it. And a password change did not revoke
+--   the temp-password sessions already established on other devices.
+--
+-- AFTER
+-- ──────────────────────────────────────────────────────────────────────
+--   1. Every server-action / route-handler auth path
+--      (src/lib/auth/password-rotation.ts) now rejects a
+--      `mustChangePassword` session with 403 PASSWORD_CHANGE_REQUIRED —
+--      no redirect, no work performed. The password-change submission and
+--      NextAuth sign-out are the only exemptions.
+--   2. `passwordChangedAt` (this column): the NextAuth jwt callback revokes
+--      any session token whose `iat` predates it, so changing the password
+--      logs out every other device. changePasswordAction sets it, clears
+--      `mustChangePassword`, deletes adapter Session rows, and mints one
+--      fresh session for the current device — all atomically.
+--
+-- Additive, nullable, no default — existing sessions keep working (a NULL
+-- `passwordChangedAt` never revokes anything). Hand-derived (see
+-- 00000000000000_init). Apply with:
+--   npx prisma db execute --file prisma/migrations/00000000000010_password_rotation_hardening/migration.sql --schema prisma/schema.prisma
+--   npx prisma generate
+-- ──────────────────────────────────────────────────────────────────────
+
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "passwordChangedAt" TIMESTAMP(3);

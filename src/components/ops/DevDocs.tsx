@@ -39,8 +39,8 @@ const SUBSYSTEMS: Subsystem[] = [
   },
   {
     area: 'Forced password change',
-    entryPoints: ['src/lib/auth/password-policy.ts', 'src/app/(auth)/change-password/', 'src/server/actions/auth.ts (changePasswordAction)'],
-    note: 'User.mustChangePassword (set by provisionTenantAction) → src/middleware.ts redirects every route to /change-password until the user sets a policy-compliant password (≥12, upper+lower+digit) and it is cleared. /change-password also serves voluntary changes.',
+    entryPoints: ['src/lib/auth/password-rotation.ts', 'src/lib/auth/password-policy.ts', 'src/app/(auth)/change-password/', 'src/server/actions/auth.ts (changePasswordAction)'],
+    note: 'User.mustChangePassword (set by provisionTenantAction). Enforced deeply server-side (P0 #3): every Server Action / Route Handler auth path rejects the session with 403 PASSWORD_CHANGE_REQUIRED — middleware only adds the page redirect. changePasswordAction is atomic: clears the flag, stamps User.passwordChangedAt (the jwt callback then revokes every token issued before that instant → all other devices logged out), deletes adapter Sessions, and mints one fresh session. Policy: ≥12, upper+lower+digit.',
   },
   {
     area: 'Multi-tenancy & scoping',

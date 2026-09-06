@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getOrgContextOrNull } from '@/lib/session';
+import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { getScopedProjectsForUser } from '@/lib/db/scoped-portfolio';
 import { computeTotalsFor } from '@/lib/calculations/sizing';
 import { computeEacSummary } from '@/lib/calculations/financials';
@@ -24,6 +25,8 @@ import { buildPortfolioCsvRows, serializePortfolioCsv } from '@/lib/reports/port
  * Control Tower's own project table.
  */
 export async function GET() {
+  const blocked = await passwordRotationGate();
+  if (blocked) return blocked;
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 

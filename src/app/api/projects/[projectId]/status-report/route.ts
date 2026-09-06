@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getOrgContextOrNull } from '@/lib/session';
+import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { computeTotalsFor, type SizingTotals } from '@/lib/calculations/sizing';
 import { computeEacSummary, computeContractorExposure } from '@/lib/calculations/financials';
 import { computeScheduleSummary } from '@/lib/calculations/schedule';
@@ -37,6 +38,8 @@ const RAID_TYPE_LABEL: Record<string, string> = { RISK: 'Risk', ASSUMPTION: 'Ass
  * the app's own pages show.
  */
 export async function GET(_request: Request, { params }: { params: { projectId: string } }) {
+  const blocked = await passwordRotationGate();
+  if (blocked) return blocked;
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 

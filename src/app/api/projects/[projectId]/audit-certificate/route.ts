@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getOrgContextOrNull } from '@/lib/session';
+import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { CONTROL_DEFS, getControlDef } from '@/lib/constants';
 import { computeAuditProgress, computeProjectHealth } from '@/lib/calculations/audit';
 import { toAuditEntries, methodologyLower } from '@/server/queries/calc-adapters';
@@ -18,6 +19,8 @@ import { AuditCertificateView, type AuditCertificateControlRow } from '@/compone
  * has touched yet is a real, reportable compliance gap, not an absent row.
  */
 export async function GET(_request: Request, { params }: { params: { projectId: string } }) {
+  const blocked = await passwordRotationGate();
+  if (blocked) return blocked;
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 

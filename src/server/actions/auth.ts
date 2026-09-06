@@ -8,6 +8,11 @@ import { db } from '@/lib/db';
 import { runUnscoped } from '@/lib/db/org-scope';
 import { seedOrganizationDefaults } from '@/lib/tenant/defaults';
 import { validatePasswordStrength } from '@/lib/auth/password-policy';
+import {
+  PASSWORD_CHANGE_REQUIRED,
+  sessionRequiresPasswordChange,
+} from '@/lib/auth/password-rotation';
+import { establishFreshSession } from '@/lib/auth/session-mint';
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -46,6 +51,10 @@ const registerSchema = z.object({
  * `defaultState()`.
  */
 export async function registerOrganization(input: unknown): Promise<ActionResult> {
+  // Public signup, but a signed-in forced-rotation session must not be able
+  // to spin up a brand-new account/tenant to sidestep the restriction.
+  if (await sessionRequiresPasswordChange()) return { ok: false, error: PASSWORD_CHANGE_REQUIRED };
+
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -89,6 +98,8 @@ const newOrgSchema = z.object({ orgName: z.string().min(2, 'Organization name is
 export async function createOrganizationForCurrentUser(input: unknown): Promise<ActionResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, error: 'Not signed in.' };
+  // P0 #3 — a forced-rotation session may not create a tenant.
+  if (await sessionRequiresPasswordChange()) return { ok: false, error: PASSWORD_CHANGE_REQUIRED };
 
   const parsed = newOrgSchema.safeParse(input);
   if (!parsed.success) {
@@ -120,18 +131,29 @@ const changePasswordSchema = z.object({
   newPassword: z.string().min(1, 'Enter a new password.').max(200),
 });
 
+export type ChangePasswordResult =
+  | { ok: true; sessionRefreshed: boolean }
+  | { ok: false; error: string };
+
 /**
- * Sets a new password for the signed-in user and clears
- * `mustChangePassword`. Verifies the current password first (defence
- * against a hijacked but still-forced session), enforces the shared
- * strength policy, and refuses a no-op re-use of the current password.
+ * Sets a new password for the signed-in user. This is the ONE action a
+ * forced-rotation session is allowed to call (see
+ * src/lib/auth/password-rotation.ts), so it deliberately does not gate on
+ * `mustChangePassword`.
  *
- * The JWT still carries the stale `mustChangePassword: true` until its
- * next refresh, so the client signs the user out on success — a clean
- * re-login with the new password is the simplest way to get a correct
- * token, and "password changed, sign in again" is expected UX.
+ * It verifies the current password first (defence against a hijacked but
+ * still-forced session), enforces the shared strength policy, and refuses a
+ * no-op re-use. On success, atomically:
+ *   - writes the new hash + clears `mustChangePassword`
+ *   - stamps `passwordChangedAt` → the jwt callback now revokes EVERY
+ *     session token issued before this instant (all other devices)
+ *   - deletes any NextAuth adapter Session rows for the user
+ * then mints one fresh session for the current device so the user stays
+ * signed in with a clean, fully-authenticated token. If minting isn't
+ * possible (no NEXTAUTH_SECRET), `sessionRefreshed` is false and the client
+ * falls back to sign-out + re-login.
  */
-export async function changePasswordAction(input: unknown): Promise<ActionResult> {
+export async function changePasswordAction(input: unknown): Promise<ChangePasswordResult> {
   const parsed = changePasswordSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
@@ -140,13 +162,14 @@ export async function changePasswordAction(input: unknown): Promise<ActionResult
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return { ok: false, error: 'You are not signed in.' };
+  const userId = session.user.id;
 
   const policyError = validatePasswordStrength(newPassword);
   if (policyError) return { ok: false, error: policyError };
 
   const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { passwordHash: true },
+    where: { id: userId },
+    select: { passwordHash: true, email: true, name: true },
   });
   if (!user?.passwordHash) {
     return { ok: false, error: 'This account signs in through your identity provider and has no password to change.' };
@@ -159,10 +182,24 @@ export async function changePasswordAction(input: unknown): Promise<ActionResult
   if (sameAsOld) return { ok: false, error: 'Choose a password different from your current one.' };
 
   const passwordHash = await bcrypt.hash(newPassword, 10);
-  await db.user.update({
-    where: { id: session.user.id },
-    data: { passwordHash, mustChangePassword: false },
+  const changedAt = new Date();
+
+  await db.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: userId },
+      data: { passwordHash, mustChangePassword: false, passwordChangedAt: changedAt },
+    });
+    // Revoke every adapter-backed session for this user. (Empty today under
+    // the JWT strategy for credential logins; future-proofs an OAuth
+    // addition and satisfies "invalidate all sessions".)
+    await tx.session.deleteMany({ where: { userId } });
   });
 
-  return { ok: true };
+  const sessionRefreshed = await establishFreshSession({
+    userId,
+    email: user.email,
+    name: user.name,
+  });
+
+  return { ok: true, sessionRefreshed };
 }

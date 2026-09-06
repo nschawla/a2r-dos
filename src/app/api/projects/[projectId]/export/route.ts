@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getOrgContextOrNull } from '@/lib/session';
+import { passwordRotationGate } from '@/lib/auth/password-rotation';
 
 /**
  * "Export JSON Package" — a full, org-scoped snapshot of one project
@@ -11,6 +12,8 @@ import { getOrgContextOrNull } from '@/lib/session';
  * status codes instead.
  */
 export async function GET(_request: Request, { params }: { params: { projectId: string } }) {
+  const blocked = await passwordRotationGate();
+  if (blocked) return blocked;
   const context = await getOrgContextOrNull();
   if (!context) return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
 

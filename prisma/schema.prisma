@@ -43,7 +43,15 @@ model User {
   // src/middleware.ts forces such a user to /change-password on their next
   // sign-in until they set their own; changePasswordAction clears it. A
   // self-registered user (who chose their own password) is never flagged.
+  // P0 #3: enforcement is not middleware-only — every server-action /
+  // route-handler auth path rejects a `mustChangePassword` session with
+  // PASSWORD_CHANGE_REQUIRED (see src/lib/auth/password-rotation.ts).
   mustChangePassword Boolean @default(false)
+
+  // Set every time the password changes. The NextAuth jwt callback revokes
+  // any session token issued before this instant, so a password change
+  // logs out every other device (P0 #3, requirement 3).
+  passwordChangedAt DateTime?
 
   createdAt DateTime @updatedAt @default(now())
   updatedAt DateTime @updatedAt

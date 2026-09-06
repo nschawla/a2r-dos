@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ACTIVE_ORG_COOKIE } from '@/lib/session';
+import { PASSWORD_CHANGE_REQUIRED, sessionRequiresPasswordChange } from '@/lib/auth/password-rotation';
 import type { ActionResult } from './auth';
 
 /**
@@ -16,6 +17,8 @@ import type { ActionResult } from './auth';
 export async function switchActiveOrganization(organizationId: string): Promise<ActionResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, error: 'Not signed in.' };
+  // P0 #3 — a forced-rotation session may not change any state.
+  if (await sessionRequiresPasswordChange()) return { ok: false, error: PASSWORD_CHANGE_REQUIRED };
 
   const membership = (session.memberships ?? []).find((m) => m.organizationId === organizationId);
   if (!membership) return { ok: false, error: "You don't have access to that organization." };

@@ -37,13 +37,31 @@ interface SafeActionOptions {
 
 export type SafeActionOutcome<T> = { ok: true; data: T } | { ok: false; error: unknown };
 
+function looksLikePasswordRotation(data: unknown): boolean {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'error' in data &&
+    (data as { error?: unknown }).error === 'PASSWORD_CHANGE_REQUIRED'
+  );
+}
+
 export function useSafeAction() {
   const { toast } = useToast();
 
   return useCallback(
     async function run<T>(action: () => Promise<T>, opts: SafeActionOptions = {}): Promise<SafeActionOutcome<T>> {
       try {
-        return { ok: true, data: await action() };
+        const data = await action();
+        // P0 #3 — any action that rejected because the session must rotate
+        // its password: bounce straight to the change-password screen
+        // instead of surfacing the raw code inline.
+        if (looksLikePasswordRotation(data)) {
+          toast({ variant: 'error', title: 'Set a new password to continue.' });
+          window.location.assign('/change-password');
+          return { ok: false, error: new Error('PASSWORD_CHANGE_REQUIRED') };
+        }
+        return { ok: true, data };
       } catch (error) {
         captureException(error, { scope: 'server-action', ...opts.context });
         toast({

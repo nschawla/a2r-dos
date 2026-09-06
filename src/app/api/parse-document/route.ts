@@ -27,6 +27,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getOrgContextOrNull } from '@/lib/session';
+import { passwordRotationGate } from '@/lib/auth/password-rotation';
 import { getScopedProjectWhere } from '@/lib/scoping';
 import { hit, tooManyRequestsResponse } from '@/lib/rate-limiter';
 import { captureException } from '@/lib/observability';
@@ -67,6 +68,8 @@ const STATUS_BY_CODE: Record<ParseErrorCode, number> = {
 };
 
 export async function POST(request: Request) {
+  const blocked = await passwordRotationGate();
+  if (blocked) return blocked;
   const context = await getOrgContextOrNull();
   if (!context) {
     return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
