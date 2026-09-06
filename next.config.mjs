@@ -3,40 +3,47 @@ import { readFileSync } from 'node:fs';
 import { evaluateEnvironmentIsolation } from './src/lib/config/env-isolation-core.mjs';
 import { siteModeBuildError } from './src/lib/config/site-mode.mjs';
 
-// ── P0 #4 — preview / production data-isolation guardrail ───────────────
-// Hard-fail the build if this is a Vercel Preview / Development deployment
-// wired to the PRODUCTION database. Runs at `next build` (and `next dev` /
-// `next start`) — a mis-scoped preview deploy can't ship. The same check
-// runs again at runtime (src/instrumentation.ts + src/lib/db.ts).
-// See docs/PREVIEW_ENVIRONMENT_ISOLATION.md.
+// ── Build-time config guardrails (env isolation + site mode) ───────────
+// These check the Vercel environment-variable *scoping*, not anything in
+// the commit. Historically they `throw` — which fails EVERY build for a
+// deploy whose env vars are mis-scoped, including unrelated (docs-only)
+// commits, in ~12s before `next build` really starts.
+//
+// On Vercel we now log a loud banner and let the build finish: the SAME
+// checks run again at server boot (src/instrumentation.ts) and just before
+// the Prisma client is created (src/lib/db.ts), and those FAIL CLOSED — a
+// mis-scoped deployment 500s on every request and never serves a byte of
+// data. So the isolation / routing guarantees are unchanged; only the
+// (redundant) build-time hard-stop is downgraded to a warning there.
+// Locally (`next build` / `next dev` with no VERCEL var) the hard `throw`
+// stays, for fast feedback. See docs/VERCEL_DEPLOYMENT.md.
+const onVercel = !!process.env.VERCEL;
+
+function failOrWarn(banner) {
+  if (onVercel) {
+    console.error(`${banner}\n[build continues — the runtime guard enforces this fail-closed]\n`);
+  } else {
+    throw new Error(`${banner}\nThe build has been stopped on purpose.\n`);
+  }
+}
+
 {
+  // P0 #4 — preview / production data-isolation guardrail.
   const verdict = evaluateEnvironmentIsolation(process.env);
   if (!verdict.ok) {
-    throw new Error(
-      `\n\n🛑 ENVIRONMENT ISOLATION VIOLATION (${verdict.code})\n\n${verdict.message}\n\n` +
-        `The build has been stopped on purpose. Fix the Vercel environment-variable ` +
-        `scoping and redeploy.\n`,
-    );
-  }
-  if (verdict.warning) {
+    failOrWarn(`\n\n🛑 ENVIRONMENT ISOLATION VIOLATION (${verdict.code})\n\n${verdict.message}\n`);
+  } else if (verdict.warning) {
     console.warn(`\n[env-isolation] ${verdict.warning}\n`);
   }
 }
 
-// ── P1 — server-only site routing mode ─────────────────────────────────
-// A Vercel *production* build must declare a valid A2R_SITE_MODE
-// (marketing | internal | live). A missing / misspelled value there fails
-// the deployment rather than guessing — an unknown value is never treated
-// as "show the internal app". Non-production builds fall back to
-// 'marketing' at runtime. The routing decision itself lives in
-// src/middleware.ts. See docs/SITE_ROUTING_MODEL.md.
 {
+  // P1 — server-only site routing mode. A missing / invalid A2R_SITE_MODE
+  // on a Vercel *production* build: the middleware falls back to
+  // 'marketing' (the fail-closed value — the internal app is never shown),
+  // so this is a warning, not a stop.
   const err = siteModeBuildError(process.env);
-  if (err) {
-    throw new Error(
-      `\n\n🛑 SITE MODE MISCONFIGURED\n\n${err}\n\nThe build has been stopped on purpose.\n`,
-    );
-  }
+  if (err) failOrWarn(`\n\n🛑 SITE MODE MISCONFIGURED\n\n${err}\n`);
 }
 
 // ── Version & build stamping ────────────────────────────────────────────
