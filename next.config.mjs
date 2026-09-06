@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 import { readFileSync } from 'node:fs';
 import { evaluateEnvironmentIsolation } from './src/lib/config/env-isolation-core.mjs';
+import { siteModeBuildError } from './src/lib/config/site-mode.mjs';
 
 // ── P0 #4 — preview / production data-isolation guardrail ───────────────
 // Hard-fail the build if this is a Vercel Preview / Development deployment
@@ -19,6 +20,22 @@ import { evaluateEnvironmentIsolation } from './src/lib/config/env-isolation-cor
   }
   if (verdict.warning) {
     console.warn(`\n[env-isolation] ${verdict.warning}\n`);
+  }
+}
+
+// ── P1 — server-only site routing mode ─────────────────────────────────
+// A Vercel *production* build must declare a valid A2R_SITE_MODE
+// (marketing | internal | live). A missing / misspelled value there fails
+// the deployment rather than guessing — an unknown value is never treated
+// as "show the internal app". Non-production builds fall back to
+// 'marketing' at runtime. The routing decision itself lives in
+// src/middleware.ts. See docs/SITE_ROUTING_MODEL.md.
+{
+  const err = siteModeBuildError(process.env);
+  if (err) {
+    throw new Error(
+      `\n\n🛑 SITE MODE MISCONFIGURED\n\n${err}\n\nThe build has been stopped on purpose.\n`,
+    );
   }
 }
 
@@ -60,6 +77,18 @@ const securityHeaders = [
   { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
 ];
 
+// ── P1 — explicit cache posture ────────────────────────────────────────
+// src/middleware.ts already stamps `no-store` on every response it handles
+// (every authenticated route, /change-password, and the API routes it
+// matches) and a cacheable header on the marketing `/`. These rules cover
+// the auth-adjacent pages middleware does NOT match, plus the genuinely
+// public legal pages.
+const NO_STORE = { key: 'Cache-Control', value: 'no-store, must-revalidate' };
+const PUBLIC_CACHE = {
+  key: 'Cache-Control',
+  value: 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400',
+};
+
 const nextConfig = {
   reactStrictMode: true,
   // Lint is run as its own CI/pre-commit step (`npm run lint`), not gated on
@@ -87,6 +116,14 @@ const nextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
+      // Auth-adjacent pages that the middleware matcher excludes — must
+      // never be cached by a browser or a shared proxy.
+      { source: '/login', headers: [NO_STORE] },
+      { source: '/register', headers: [NO_STORE] },
+      { source: '/onboarding', headers: [NO_STORE] },
+      // Public legal pages — safe to cache at the edge.
+      { source: '/terms', headers: [PUBLIC_CACHE] },
+      { source: '/privacy', headers: [PUBLIC_CACHE] },
     ];
   },
 };

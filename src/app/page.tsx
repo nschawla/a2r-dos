@@ -1,30 +1,28 @@
 /**
  * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
- * The site root `/`. In the default ("coming-soon") mode it serves the
- * public dark early-access page. A deploy that wants the full app as its
- * front door instead — e.g. an internal preview deployment — sets
- * `NEXT_PUBLIC_COMING_SOON` to a falsy string (`0` / `false` / `off` /
- * `no`), and `/` then forwards every visitor to `/launch`.
+ * The site root `/` — the public early-access marketing page.
  *
- * Same codebase either way: coming-soon mode ON is production's front
- * door; OFF is the preview branch's. See `.env.example`.
+ * P1 — this component holds NO routing logic. src/middleware.ts owns the
+ * `/` decision, reading the server-only `A2R_SITE_MODE` env var (never
+ * shipped to the browser, never baked into the build). It only renders
+ * this page when the mode is `marketing`; for `internal` / `live`, or any
+ * signed-in visitor, middleware has already redirected. That keeps this a
+ * pure, static, CDN-cacheable asset (middleware stamps the cache header).
  *
  * Top-level (uses only src/app/layout.tsx — html/body/providers, no app
  * chrome) rather than the (public) group, because it commits to its own
  * dark theme and self-contained header; /terms and /privacy keep the
- * light (public) shell. The middleware auth gate already excludes the
- * bare root (the `|$` in its matcher).
- *
- * A signed-in visitor is always sent straight into the app via /launch.
+ * light (public) shell.
  */
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { SneakPeekModal } from '@/components/marketing/SneakPeekModal';
 import { EarlyAccessForm } from '@/components/marketing/EarlyAccessForm';
+
+// No dynamic APIs, no per-request logic — statically generated and served
+// from the edge cache. src/middleware.ts is what varies by visitor.
+export const dynamic = 'force-static';
 
 export const metadata = {
   title: 'A2R Delivery OS™ — Coming Soon',
@@ -32,28 +30,13 @@ export const metadata = {
     'A2R Delivery OS is the delivery operating system for professional-services organizations. Request early access.',
 };
 
-/** Coming-soon mode is ON by default (the product is pre-launch, and a
- * missing env var must not accidentally expose the app's front door).
- * A deploy opts OUT with NEXT_PUBLIC_COMING_SOON = 0 / false / off / no. */
-function comingSoonEnabled(): boolean {
-  const v = (process.env.NEXT_PUBLIC_COMING_SOON ?? '').trim().toLowerCase();
-  return !['0', 'false', 'off', 'no'].includes(v);
-}
-
 const VALUE_PROPS = [
   ['Real-time engagement visibility', 'Margin, schedule, risk and utilization across the portfolio — in one view.'],
   ['AI-automated status reporting', 'Paste a status email; get a structured report and RAID rows back.'],
   ['One governed workspace', 'Baselining, financials, resourcing, RAID and a tamper-evident audit trail.'],
 ] as const;
 
-export default async function ComingSoonPage() {
-  const session = await getServerSession(authOptions);
-  if (session?.user) redirect('/launch');
-
-  // Preview mode: no coming-soon wall — send anonymous visitors straight
-  // to the app's sign-in / landing dispatcher.
-  if (!comingSoonEnabled()) redirect('/launch');
-
+export default function MarketingLandingPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#080B14] text-white [color-scheme:dark]">
       {/* ── Header ─────────────────────────────────────────────────────── */}

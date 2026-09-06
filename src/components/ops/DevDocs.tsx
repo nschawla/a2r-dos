@@ -122,9 +122,9 @@ const SUBSYSTEMS: Subsystem[] = [
     note: '11-beat hands-free cinematic tour with spotlight highlights and 150–180 wpm captions. docs/AUTO_DEMO_SCRIPT.md is the synced production/voiceover reference.',
   },
   {
-    area: 'Public "Coming Soon" page',
-    entryPoints: ['src/app/page.tsx', 'src/components/marketing/', 'src/server/actions/early-access.ts'],
-    note: 'Dark early-access landing at /. NEXT_PUBLIC_COMING_SOON gates it — ON by default; a falsy value (preview deploys) makes / forward to /launch instead. Sneak Peek modal (React portal, past the backdrop-blur header). submitEarlyAccessLead is public + unauthenticated — Zod + honeypot + per-IP rate limit, structured-log-only (no persistence yet, same pattern as the support-ticket action).',
+    area: 'Site root routing + public "Coming Soon" page',
+    entryPoints: ['src/middleware.ts', 'src/lib/config/site-mode.mjs', 'src/app/page.tsx', 'src/components/marketing/', 'src/server/actions/early-access.ts'],
+    note: 'P1 — the `/` decision lives in middleware, reading the SERVER-ONLY A2R_SITE_MODE (marketing | internal | live; strict enum, fail-closed to marketing, never "show the app"). Vercel production build fails on a missing/invalid value. src/app/page.tsx is now a pure static marketing asset with zero routing logic. Sneak Peek modal (React portal). submitEarlyAccessLead is public + unauthenticated — Zod + honeypot + per-IP rate limit, structured-log-only. See docs/SITE_ROUTING_MODEL.md.',
   },
 ];
 
@@ -239,12 +239,12 @@ const ENV_VARS: EnvVar[] = [
     rotation: 'n/a.',
   },
   {
-    name: 'NEXT_PUBLIC_COMING_SOON',
-    required: 'optional',
+    name: 'A2R_SITE_MODE',
+    required: 'required',
     purpose:
-      'Gates the site root (src/app/page.tsx). ON by default → `/` is the public early-access page. Set to 0 / false / off / no on a deploy that should present the full app instead (preview deployments) → `/` forwards to /launch.',
-    source: 'Set per Vercel environment. Production leaves it unset (or =1); the preview branch sets it =0.',
-    rotation: 'n/a.',
+      'Server-only strict enum — marketing | internal | live — read per request by src/middleware.ts to route the site root. Fail-closed: missing/misspelled/unknown → marketing, never "show the app". A Vercel production build with no valid value fails (next.config.mjs). Replaced the browser-exposed NEXT_PUBLIC_COMING_SOON.',
+    source: 'Per Vercel environment: Production = "marketing" (pre-launch) or "live"; the internal preview branch = "internal". Local default in .env.example.',
+    rotation: 'n/a — flip the value + redeploy to change the front door.',
   },
   {
     name: 'PRODUCTION_SUPABASE_PROJECT_REF · PRODUCTION_DB_HOST · ALLOW_PROD_DB_OUTSIDE_PROD',
