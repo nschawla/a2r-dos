@@ -10,12 +10,23 @@
  */
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { getOpsContextOrNull } from '@/lib/ops-auth';
+import { requireElevatedOps } from '@/lib/ops-auth';
 import {
   grantStaffAccess,
   revokeStaffAccess,
   type StaffGrantResult,
 } from '@/lib/ops/staff-grants';
+
+/** Grant / revoke staff are themselves high-privilege ops operations —
+ * they need a live JIT elevation, not just a standing entitlement. */
+async function elevatedOps(): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+  const gate = await requireElevatedOps();
+  if (gate.ok) return { ok: true, userId: gate.ops.userId };
+  return {
+    ok: false,
+    error: gate.reason === 'ELEVATION_REQUIRED' ? 'ELEVATION_REQUIRED' : 'Not authorized.',
+  };
+}
 
 const grantSchema = z.object({
   email: z.string().email('Enter a valid email address.'),
@@ -25,8 +36,8 @@ const grantSchema = z.object({
 const revokeSchema = z.object({ email: z.string().email() });
 
 export async function grantStaffAction(input: unknown): Promise<StaffGrantResult> {
-  const ops = await getOpsContextOrNull();
-  if (!ops) return { ok: false, error: 'Not authorized.' };
+  const gate = await elevatedOps();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   const parsed = grantSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
@@ -34,22 +45,22 @@ export async function grantStaffAction(input: unknown): Promise<StaffGrantResult
   const result = await grantStaffAccess({
     email: parsed.data.email,
     reason: parsed.data.reason,
-    grantedByUserId: ops.userId,
+    grantedByUserId: gate.userId,
   });
   if (result.ok) revalidatePath('/ops/staff');
   return result;
 }
 
 export async function revokeStaffAction(input: unknown): Promise<StaffGrantResult> {
-  const ops = await getOpsContextOrNull();
-  if (!ops) return { ok: false, error: 'Not authorized.' };
+  const gate = await elevatedOps();
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   const parsed = revokeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid input.' };
 
   const result = await revokeStaffAccess({
     email: parsed.data.email,
-    revokedByUserId: ops.userId,
+    revokedByUserId: gate.userId,
   });
   if (result.ok) revalidatePath('/ops/staff');
   return result;

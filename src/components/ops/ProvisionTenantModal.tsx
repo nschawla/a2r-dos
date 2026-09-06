@@ -69,6 +69,7 @@ export function ProvisionTenantModal() {
           className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 px-4"
           role="dialog"
           aria-modal="true"
+          aria-label="Provision new tenant"
           onClick={close}
         >
           <div className="card w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>

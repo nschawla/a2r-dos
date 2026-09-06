@@ -13,7 +13,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
-import { getOpsContextOrNull } from '@/lib/ops-auth';
+import { requireElevatedOps } from '@/lib/ops-auth';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
 import { encryptSecret, secretFingerprint } from '@/lib/identity/crypto';
 import { parseSamlMetadata, parseEmailDomainList } from '@/lib/identity/metadata';
@@ -23,14 +23,27 @@ import type { ActionResult } from './auth';
 const DELIVERY_ROLES = ['ADMIN', 'VP_EXECUTIVE', 'PRACTICE_DIRECTOR', 'DELIVERY_MANAGER', 'PROJECT_MANAGER'] as const;
 const MEMBERSHIP_ROLES = ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'] as const;
 
-/** Gate every action on an A2R operator session and confirm the target
- * tenant exists. Returns the operator's user id (the ledger actor). */
-async function authorizeSsoAction(organizationId: string): Promise<{ actorId: string }> {
-  const ops = await getOpsContextOrNull();
-  if (!ops) throw new Error('A2R operator access is required to manage identity federation.');
+/**
+ * Gate every identity-federation action: an A2R operator session, a live
+ * P1 JIT elevation (identity federation is a mutating, high-privilege /ops
+ * operation — see src/lib/ops/staff-elevation.ts), and an existing target
+ * tenant. Returns the operator's user id (the ledger actor) or a
+ * result-shaped error the caller returns verbatim (`'ELEVATION_REQUIRED'`
+ * is surfaced so the ops UI can open the elevation modal).
+ */
+async function authorizeSsoAction(
+  organizationId: string,
+): Promise<{ ok: true; actorId: string } | { ok: false; error: string }> {
+  const gate = await requireElevatedOps();
+  if (!gate.ok) {
+    return {
+      ok: false,
+      error: gate.reason === 'ELEVATION_REQUIRED' ? 'ELEVATION_REQUIRED' : 'Not authorized.',
+    };
+  }
   const org = await db.organization.findUnique({ where: { id: organizationId }, select: { id: true } });
-  if (!org) throw new Error('Unknown tenant.');
-  return { actorId: ops.userId };
+  if (!org) return { ok: false, error: 'Unknown tenant.' };
+  return { ok: true, actorId: gate.ops.userId };
 }
 
 async function logSsoChange(organizationId: string, actorId: string, op: string, detail?: Record<string, unknown>) {
@@ -74,7 +87,9 @@ export async function upsertIdentityProvider(input: unknown): Promise<ActionResu
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const d = parsed.data;
   const { organizationId } = d;
-  const { actorId: userId } = await authorizeSsoAction(organizationId);
+  const auth = await authorizeSsoAction(organizationId);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const userId = auth.actorId;
 
   const emailDomains = parseEmailDomainList(d.emailDomains);
   const clean = (s?: string) => {
@@ -133,7 +148,9 @@ export async function verifyIdpMetadata(input: unknown): Promise<VerifyResult> {
   const parsed = verifySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const { organizationId } = parsed.data;
-  const { actorId: userId } = await authorizeSsoAction(organizationId);
+  const auth = await authorizeSsoAction(organizationId);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const userId = auth.actorId;
 
   const idp = await db.identityProvider.findUnique({ where: { organizationId } });
   if (!idp) return { ok: false, error: 'Save the provider configuration first.' };
@@ -209,7 +226,9 @@ export async function setIdpEnabled(input: unknown): Promise<ActionResult> {
   const parsed = withOrg({ enabled: z.boolean() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid input' };
   const { organizationId } = parsed.data;
-  const { actorId: userId } = await authorizeSsoAction(organizationId);
+  const auth = await authorizeSsoAction(organizationId);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const userId = auth.actorId;
 
   const idp = await db.identityProvider.findUnique({ where: { organizationId } });
   if (!idp) return { ok: false, error: 'No identity provider configured.' };
@@ -229,7 +248,9 @@ export async function setIdpEnforced(input: unknown): Promise<ActionResult> {
   const parsed = withOrg({ enforced: z.boolean() }).safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid input' };
   const { organizationId } = parsed.data;
-  const { actorId: userId } = await authorizeSsoAction(organizationId);
+  const auth = await authorizeSsoAction(organizationId);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const userId = auth.actorId;
 
   const idp = await db.identityProvider.findUnique({ where: { organizationId } });
   if (!idp) return { ok: false, error: 'No identity provider configured.' };
@@ -248,7 +269,9 @@ export async function setIdpEnforced(input: unknown): Promise<ActionResult> {
 }
 
 export async function deleteIdentityProvider(organizationId: string): Promise<ActionResult> {
-  const { actorId: userId } = await authorizeSsoAction(organizationId);
+  const auth = await authorizeSsoAction(organizationId);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const userId = auth.actorId;
   const idp = await db.identityProvider.findUnique({ where: { organizationId }, select: { id: true } });
   if (!idp) return { ok: true };
   await db.identityProvider.delete({ where: { organizationId } });
@@ -271,7 +294,9 @@ export async function upsertGroupMapping(input: unknown): Promise<ActionResult> 
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
   const m = parsed.data;
   const { organizationId } = m;
-  const { actorId: userId } = await authorizeSsoAction(organizationId);
+  const auth = await authorizeSsoAction(organizationId);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const userId = auth.actorId;
 
   const idp = await db.identityProvider.findUnique({ where: { organizationId }, select: { id: true } });
   if (!idp) return { ok: false, error: 'Save the provider configuration first.' };
@@ -308,7 +333,9 @@ export async function upsertGroupMapping(input: unknown): Promise<ActionResult> 
 }
 
 export async function deleteGroupMapping(organizationId: string, id: string): Promise<ActionResult> {
-  const { actorId: userId } = await authorizeSsoAction(organizationId);
+  const auth = await authorizeSsoAction(organizationId);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const userId = auth.actorId;
   const row = await db.ssoGroupMapping.findFirst({ where: { id, organizationId }, select: { claimValue: true } });
   await db.ssoGroupMapping.deleteMany({ where: { id, organizationId } });
   if (row) await logSsoChange(organizationId, userId, 'delete-group-mapping', { claim: row.claimValue });

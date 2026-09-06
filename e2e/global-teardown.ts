@@ -5,10 +5,11 @@ import { PrismaClient } from '@prisma/client';
 /**
  * Removes tenants the E2E suite provisions so it stays re-runnable and
  * doesn't leave junk orgs in the shared database — "Enterprise Sanity Inc"
- * (Suite D) and "Purge Target Inc" (Suite I's purge test, which only
- * soft-deletes) plus their throwaway admin accounts.
+ * (Suite D), "Purge Target Inc" (Suite I's purge test, which only
+ * soft-deletes) and "JIT Elevation Test Inc" (Suite P) plus their
+ * throwaway admin accounts.
  */
-const TEST_TENANT_NAMES = ['Enterprise Sanity Inc', 'Purge Target Inc'];
+const TEST_TENANT_NAMES = ['Enterprise Sanity Inc', 'Purge Target Inc', 'JIT Elevation Test Inc'];
 function loadDatabaseUrl(): void {
   if (process.env.DATABASE_URL) return;
   try {

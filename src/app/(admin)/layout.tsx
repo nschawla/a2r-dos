@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireOpsContext } from '@/lib/ops-auth';
+import { maxTtlMinutes } from '@/lib/ops/staff-elevation';
 import { OpsNav } from '@/components/ops/OpsNav';
+import { OpsElevationBar } from '@/components/ops/OpsElevationBar';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { OpsVersionPanel } from '@/components/ops/OpsVersionPanel';
 import { RbacPersonaSwitcher } from '@/components/ops/RbacPersonaSwitcher';
@@ -19,6 +21,7 @@ export const metadata: Metadata = {
  */
 export default async function OpsLayout({ children }: { children: React.ReactNode }) {
   const ops = await requireOpsContext();
+  const elevationMax = maxTtlMinutes();
 
   return (
     <div className="flex min-h-screen">
@@ -63,6 +66,14 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
             <span className="text-xs text-ink-faint">Signed in as {ops.name}</span>
           </div>
         </header>
+        <OpsElevationBar
+          elevation={
+            ops.elevation
+              ? { reason: ops.elevation.reason, expiresAt: ops.elevation.expiresAt }
+              : null
+          }
+          maxMinutes={elevationMax}
+        />
         <main className="flex-1 w-full">
           <Container>{children}</Container>
         </main>

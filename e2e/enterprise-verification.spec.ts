@@ -55,6 +55,22 @@ async function signInAs(p: Page, email: string, password: string) {
   await p.reload();
 }
 
+/** P1 JIT elevation — a standing operator grant only reaches the /ops read
+ * views; every mutating ops action needs a live elevation. Idempotent:
+ * skips if the elevation bar is already green. */
+async function elevateOps(p: Page, reason = 'E2E automated run — ops verification walkthrough') {
+  await p.goto('/ops/telemetry');
+  const bar = p.locator('[data-elevation]');
+  await bar.waitFor();
+  if ((await bar.getAttribute('data-elevation')) === 'active') return;
+  await bar.getByRole('button', { name: 'Elevate' }).click();
+  const dialog = p.getByRole('dialog', { name: /Request privilege elevation/ });
+  await dialog.locator('textarea').fill(reason);
+  await dialog.getByRole('button', { name: '60 min' }).click();
+  await dialog.getByRole('button', { name: 'Elevate', exact: true }).click();
+  await expect(bar).toHaveAttribute('data-elevation', 'active', { timeout: 15_000 });
+}
+
 /** Opens the workspace switcher and moves the active tenant. Waits for the
  * switch Server Action to actually land (the dropdown only closes on ok). */
 async function switchTenant(p: Page, tenantName: string) {
@@ -287,6 +303,7 @@ test.describe('Suite D — A2R Ops Console', () => {
   const NEW_ADMIN_EMAIL = `founder+${RUN_ID}@enterprise-sanity.test`;
 
   test('D1 · /ops/telemetry renders platform metrics', async () => {
+    // read views are reachable on a standing grant, unelevated
     await page.goto('/ops/telemetry');
     await expect(page.getByRole('heading', { name: 'Platform Telemetry', level: 1 })).toBeVisible();
     for (const m of ['Total Tenants', 'Total Active Engagements', 'Global Margin Average', 'At-Risk RAID Items']) {
@@ -308,6 +325,7 @@ test.describe('Suite D — A2R Ops Console', () => {
   });
 
   test('D3 · provision "Enterprise Sanity Inc" and see it in the tenant list', async () => {
+    await elevateOps(page); // provisioning is a mutating op — needs JIT elevation
     await page.goto('/ops/tenants');
     await page.getByRole('button', { name: 'Provision New Tenant' }).click();
 
@@ -535,6 +553,7 @@ test.describe('Suite I — Tenant & Data Sovereignty', () => {
 
   test.beforeAll(async () => {
     await signInAs(page, MASTER_EMAIL, MASTER_PASSWORD);
+    await elevateOps(page); // Suite I is all mutating ops — impersonate / export / provision / purge
   });
 
   test('I1 · every tenant row exposes the actions menu (Suspend / Impersonate / Export / Purge)', async () => {

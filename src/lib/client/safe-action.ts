@@ -46,6 +46,20 @@ function looksLikePasswordRotation(data: unknown): boolean {
   );
 }
 
+/** P1 JIT elevation — an ops action refused because the operator holds
+ * only a standing entitlement with no live elevation. */
+function looksLikeElevationRequired(data: unknown): boolean {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'error' in data &&
+    (data as { error?: unknown }).error === 'ELEVATION_REQUIRED'
+  );
+}
+
+/** Event the OpsElevationBar listens for to open its elevation modal. */
+export const OPS_ELEVATE_EVENT = 'a2r:ops-elevate';
+
 export function useSafeAction() {
   const { toast } = useToast();
 
@@ -60,6 +74,20 @@ export function useSafeAction() {
           toast({ variant: 'error', title: 'Set a new password to continue.' });
           window.location.assign('/change-password');
           return { ok: false, error: new Error('PASSWORD_CHANGE_REQUIRED') };
+        }
+        // P1 — a privileged ops action refused for want of a JIT elevation:
+        // nudge the operator to the elevation bar instead of surfacing the
+        // raw code inline.
+        if (looksLikeElevationRequired(data)) {
+          toast({
+            variant: 'error',
+            title: 'Elevate to make this change',
+            description: 'Request a Just-In-Time elevation at the top of the Ops Console, then retry.',
+          });
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent(OPS_ELEVATE_EVENT));
+          }
+          return { ok: false, error: new Error('ELEVATION_REQUIRED') };
         }
         return { ok: true, data };
       } catch (error) {

@@ -82,6 +82,10 @@ model User {
   // granted to this account (see StaffGrant). Staff status = at least one
   // row here with revokedAt = null.
   staffGrants       StaffGrant[]
+  // P1 JIT elevation — every temporary privilege elevation this operator
+  // has requested (see StaffElevation). A standing StaffGrant is only
+  // eligibility; a mutating /ops action needs a live row here.
+  staffElevations   StaffElevation[]
 
   @@map("users")
 }
@@ -114,6 +118,37 @@ model StaffGrant {
 
   @@index([userId, revokedAt])
   @@map("staff_grants")
+}
+
+// A2R Operator Control Plane — Just-In-Time privilege elevation (P1, 2026-09).
+//
+// A live StaffGrant is only *eligibility* to reach the /ops read views. Every
+// state-changing /ops operation (provision / suspend / impersonate / export /
+// purge / API keys / identity federation / grant+revoke staff) requires a
+// live row here: not ended, not past expiresAt, and whose userId matches the
+// authenticated operator session. Requested with a reason, auto-expires after
+// a strict TTL (default 30 min, hard cap OPS_ELEVATION_MAX_MINUTES, ≤ 60).
+// These rows ARE the audit trail — like StaffGrant, there is no separate
+// ledger (elevation is a platform event, not tenant-scoped).
+// Service: src/lib/ops/staff-elevation.ts. Guard: src/lib/ops-auth.ts.
+model StaffElevation {
+  id              String    @id @default(cuid())
+  userId          String
+  // Opaque bearer token, dropped into the httpOnly `a2r_ops_elevation`
+  // cookie (mirrors the Impersonation Gateway's a2r_impersonation).
+  token           String    @unique
+  reason          String
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime
+  // Set on an explicit early "Drop elevation" or a future expiry sweep.
+  endedAt         DateTime?
+  endedReason     String? // 'operator' | 'superseded' | 'expired-sweep'
+  requestedFromIp String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("staff_elevations")
 }
 
 // Standard Auth.js (NextAuth) Prisma adapter models — kept so OAuth providers

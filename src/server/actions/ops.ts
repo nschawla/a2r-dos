@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
-import { getOpsContextOrNull, type OpsContext } from '@/lib/ops-auth';
+import { getOpsContextOrNull, requireElevatedOps, type OpsContext } from '@/lib/ops-auth';
 import { seedOrganizationDefaults } from '@/lib/tenant/defaults';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
 import {
@@ -21,6 +21,23 @@ import { issueApiKey, revokeApiKey, type IssuedApiKey } from '@/lib/ops/api-keys
 
 function actorOf(ops: OpsContext) {
   return { userId: ops.userId, email: ops.email, name: ops.name };
+}
+
+/**
+ * P1 — the gate for every mutating ops action: a standing operator
+ * entitlement AND a live Just-In-Time elevation (src/lib/ops/staff-elevation.ts).
+ * Returns `'ELEVATION_REQUIRED'` verbatim so the ops UI can open the
+ * elevation modal instead of showing a raw error toast.
+ */
+async function elevatedOps(): Promise<
+  { ok: true; ops: OpsContext } | { ok: false; error: string }
+> {
+  const gate = await requireElevatedOps();
+  if (gate.ok) return { ok: true, ops: gate.ops };
+  return {
+    ok: false,
+    error: gate.reason === 'ELEVATION_REQUIRED' ? 'ELEVATION_REQUIRED' : 'Not authorized.',
+  };
 }
 
 export type OpsResult = { ok: true } | { ok: false; error: string };
@@ -79,8 +96,9 @@ export interface ProvisionedTenant {
  * All in one transaction; nothing is half-created on failure.
  */
 export async function provisionTenant(input: unknown): Promise<OpsDataResult<ProvisionedTenant>> {
-  const ops = await getOpsContextOrNull();
-  if (!ops) return { ok: false, error: 'Not authorized.' };
+  const gate = await elevatedOps();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ops = gate.ops;
 
   const parsed = provisionSchema.safeParse(input);
   if (!parsed.success) {
@@ -144,8 +162,9 @@ const statusSchema = z.object({
  * — both enforced in src/app/(dashboard)/layout.tsx + src/server/authz.ts.
  */
 export async function setTenantStatus(input: unknown): Promise<OpsResult> {
-  const ops = await getOpsContextOrNull();
-  if (!ops) return { ok: false, error: 'Not authorized.' };
+  const gate = await elevatedOps();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ops = gate.ops;
 
   const parsed = statusSchema.safeParse(input);
   if (!parsed.success) {
@@ -184,8 +203,9 @@ export interface ImpersonationStarted {
  * inside the tenant workspace (read-only) until they exit or it expires.
  */
 export async function impersonateTenant(input: unknown): Promise<OpsDataResult<ImpersonationStarted>> {
-  const ops = await getOpsContextOrNull();
-  if (!ops) return { ok: false, error: 'Not authorized.' };
+  const gate = await elevatedOps();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ops = gate.ops;
 
   const parsed = impersonateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -254,8 +274,9 @@ export interface TenantExportResult {
  * TENANT_DATA_EXPORT ledger entry.
  */
 export async function exportTenantData(input: unknown): Promise<OpsDataResult<TenantExportResult>> {
-  const ops = await getOpsContextOrNull();
-  if (!ops) return { ok: false, error: 'Not authorized.' };
+  const gate = await elevatedOps();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ops = gate.ops;
 
   const parsed = tenantConfirmSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -302,8 +323,9 @@ export interface TenantPurgeResult {
  * Requires the operator to type the tenant name to confirm.
  */
 export async function purgeTenant(input: unknown): Promise<OpsDataResult<TenantPurgeResult>> {
-  const ops = await getOpsContextOrNull();
-  if (!ops) return { ok: false, error: 'Not authorized.' };
+  const gate = await elevatedOps();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ops = gate.ops;
 
   const parsed = tenantConfirmSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -333,8 +355,9 @@ const issueKeySchema = z.object({
 
 /** Mint a tenant-scoped API key (returns the plaintext exactly once). */
 export async function issueTenantApiKey(input: unknown): Promise<OpsDataResult<IssuedApiKey>> {
-  const ops = await getOpsContextOrNull();
-  if (!ops) return { ok: false, error: 'Not authorized.' };
+  const gate = await elevatedOps();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ops = gate.ops;
 
   const parsed = issueKeySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
@@ -354,8 +377,9 @@ export async function issueTenantApiKey(input: unknown): Promise<OpsDataResult<I
 }
 
 export async function revokeTenantApiKey(input: unknown): Promise<OpsResult> {
-  const ops = await getOpsContextOrNull();
-  if (!ops) return { ok: false, error: 'Not authorized.' };
+  const gate = await elevatedOps();
+  if (!gate.ok) return { ok: false, error: gate.error };
+  const ops = gate.ops;
 
   const parsed = z.object({ apiKeyId: z.string().min(1), organizationId: z.string().min(1) }).safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };

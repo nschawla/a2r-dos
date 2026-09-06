@@ -85,6 +85,21 @@ async function expectNoErrorOverlay(p: Page) {
   await expect(p.locator('nextjs-portal')).toHaveCount(0);
 }
 
+/** P1 JIT elevation — identity federation is a mutating /ops operation and
+ * needs a live elevation on top of the standing operator grant. */
+async function elevateOps(p: Page, reason = 'E2E automated run — SSO federation config') {
+  await p.goto('/ops/telemetry');
+  const bar = p.locator('[data-elevation]');
+  await bar.waitFor();
+  if ((await bar.getAttribute('data-elevation')) === 'active') return;
+  await bar.getByRole('button', { name: 'Elevate' }).click();
+  const dialog = p.getByRole('dialog', { name: /Request privilege elevation/ });
+  await dialog.locator('textarea').fill(reason);
+  await dialog.getByRole('button', { name: '60 min' }).click();
+  await dialog.getByRole('button', { name: 'Elevate', exact: true }).click();
+  await expect(bar).toHaveAttribute('data-elevation', 'active', { timeout: 15_000 });
+}
+
 // ── J1 · role-based landing resolution ───────────────────────────────
 
 test.describe('Suite J1 — role-based landing resolution', () => {
@@ -194,6 +209,7 @@ test.describe('Suite J4 — financial data masking for delivery roles', () => {
 test.describe('Suite J5 — Ops Console SSO configuration', () => {
   test('an operator configures an SSO connection for a tenant, then removes it', async () => {
     await signIn(page, 'ops@a2rventures.com');
+    await elevateOps(page);
     await page.goto('/ops/identity');
     await expect(page.getByRole('heading', { name: 'Identity Federation' })).toBeVisible();
 
