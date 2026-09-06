@@ -8,6 +8,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { getOpsContextOrNull, requireElevatedOps, type OpsContext } from '@/lib/ops-auth';
 import { seedOrganizationDefaults } from '@/lib/tenant/defaults';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
@@ -118,7 +119,7 @@ export const provisionTenant = withAction('provisionTenant', async (input: unkno
   const tempPassword = generateTempPassword();
   const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-  const organizationId = await db.$transaction(async (tx) => {
+  const organizationId = await withTenantTx(async (tx) => {
     const org = await tx.organization.create({
       data: { name: orgName, slug, contractTier, status: 'ACTIVE' },
     });

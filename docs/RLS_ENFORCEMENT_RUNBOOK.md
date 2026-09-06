@@ -1,92 +1,73 @@
-# RLS Enforcement Runbook (Phase C)
+# RLS Enforcement Runbook
 
-_Companion to `docs/RLS_ROADMAP.md`. This is the ordered, reversible
-procedure for turning DB-level Row-Level Security **on**. Everything it
-needs was authored in v1.8.0 (Phase B) and is currently dormant._
+_Companion to `docs/RLS_ROADMAP.md`. Turning DB-level Row-Level Security on._
 
-> **Precondition that does not exist yet:** a **rehearsal database** — a
-> throwaway Postgres with a representative data shape (seed + a scrubbed
-> prod snapshot). The app currently shares one Supabase project through
-> the transaction pooler with no staging tier. Steps 2–7 MUST be walked
-> end-to-end on the rehearsal DB, including the load test in step 5, before
-> any of it touches production.
+## Status
 
-## 0. Inventory
+- **Staging** (`urdlkmlhjhvoxsphvwte`) — **DONE** (v1.9.0). `RLS_ENFORCE=1`,
+  migrations 16 + 17 applied, `npm run db:rls:smoke` green, full suite green.
+- **Production** — not started. Steps below, "Production" section.
 
-- 29 tenant tables, each with its own `organizationId` (migrations 12 + 14).
-- `src/lib/db/rls-transaction.ts` — wraps every tenant-model op in a tx that
-  runs `set_config('app.current_org', <org>, true)`. Gated on `RLS_ENFORCE=1`.
-- `src/lib/db/org-scope.ts` — the existing app-tier scope cell this bridge
-  reuses; `admin` scope → empty GUC.
+## Design (as shipped)
 
-## 1. Audit the multi-statement flows
-
-`grep -rn '\$transaction' src/` — ~18 interactive callbacks. The RLS bridge
-**cannot** open a nested tx, so each of these must set the GUC itself. Add a
-`withTenantTx(orgId, fn)` helper (opens the tx, sets the GUC, runs `fn`) and
-convert every `db.$transaction(fn)` in a tenant-scoped path to it. The
-cross-tenant ops paths (`requireOpsContext`) stay on `postgres` / a bypass
-role. Land this as its own PR and soak it with `RLS_ENFORCE` still unset
-(no behaviour change — the helper just sets a GUC nobody reads yet).
-
-## 2. Rehearsal DB — role + GUC
-
-```
-npx prisma db execute --url "$REHEARSAL_DIRECT_URL" \
-  --file prisma/migrations/00000000000016_rls_restricted_role/migration.sql
-ALTER ROLE "a2r_app" WITH PASSWORD '<generated>';
-```
-
-Point `RLS_APP_DATABASE_URL` at the `a2r_app` string. `npm run db:rls:smoke`
-should now report **"missing policy"** for every table (role exists, no
-policies yet) — that is the expected pre-policy state.
-
-## 3. Policies — step by step
-
-Apply migration 17 one `-- STEP n` block at a time (edit the file or split
-it). After each block:
-
-```
-RLS_APP_DATABASE_URL=… npm run db:rls:smoke     # the covered tables flip to OK
-RLS_APP_DATABASE_URL=… npx vitest run tests/security/rls-policies.test.ts
-```
-
-Order: STEP 1 (config tables) → soak → STEP 2 (project hierarchy) → soak →
-STEP 3 (ingestion + audit). Watch the ledger append path especially
-(`src/lib/audit-ledger.ts` reads the previous row — same tenant, so the
-policy allows it, but verify).
-
-## 4. Turn the bridge on (preview only)
-
-Set `RLS_ENFORCE=1` **and** `DATABASE_URL` → the `a2r_app` pooler string on
-a **preview** deployment. Run the full E2E suite (`npx playwright test`).
-Every tenant query is now a transaction; every cross-tenant ops action must
-still work via the `postgres` `DIRECT_URL` path.
-
-## 5. Load test
-
-Measure p95 on `/portfolio` and `/reports` before/after — every read is now
-a round-trip-heavier transaction. Budget: < 15% p95 regression. If worse,
-revisit batching in the hot query functions before going further.
-
-## 6. Production
-
-1. Apply migrations 16 + 17 (all steps) via `DIRECT_URL`.
-2. Set `a2r_app` password; create the Supavisor credential.
-3. Flip `DATABASE_URL` → `a2r_app` and `RLS_ENFORCE=1` in one deploy.
-4. Soak 48h. `npm run db:rls:smoke` from a cron.
-5. Uncomment + apply the `FORCE ROW LEVEL SECURITY` block in migration 17.
-   Now even a stray `postgres` connection is policy-bound. Keep one
-   BYPASSRLS maintenance role for break-glass, documented separately.
-
-## 7. Rollback (any point)
+The app keeps its single `postgres` connection pool. When `RLS_ENFORCE=1`,
+every tenant-scoped transaction runs two `SET LOCAL` statements first:
 
 ```sql
--- per table, or all:
-ALTER TABLE public.<t> NO FORCE ROW LEVEL SECURITY;
-DROP POLICY tenant_isolation ON public.<t>;
+SELECT set_config('role', 'a2r_app', true);          -- NOBYPASSRLS from here
+SELECT set_config('app.current_org', '<org-id>', true);
 ```
 
-Then `RLS_ENFORCE` unset + `DATABASE_URL` back to `postgres`. RLS stays
-*enabled* (migration 07) so the anon/PostgREST lockdown is intact; the app
-is back to app-tier-only isolation, exactly as v1.8.0 shipped.
+- `src/lib/db/with-tenant-tx.ts` — `withTenantTx(fn)` / `withTenantTxFor(org, fn)`.
+  Every former `db.$transaction(fn)` that touches a tenant model was
+  converted to `withTenantTx`.
+- `src/lib/db/rls-transaction.ts` — the extension that wraps a **bare**
+  `db.model.op()` (no surrounding tx) in its own per-op transaction, and
+  skips that when already inside a `withTenantTx` (`isGucSet()`).
+- Cross-tenant / pre-session flows (`admin` scope or none — ops console,
+  tenant provisioning, SSO JIT, the retention sweep) resolve to "no role
+  switch" and run as `postgres` (BYPASSRLS).
+- Migration 17 policies: `tenant_isolation` on the 28 org-owned tables
+  (`organizationId = current_setting('app.current_org', true)`, fail-closed
+  on NULL), `rls_app_plumbing` (`USING (true)`) on `users` / `accounts` /
+  `sessions` / `verification_tokens` / `memberships` / `organizations` /
+  `staff_grants` / `staff_elevations` / `impersonation_grants` (a user spans
+  tenants — these stay protected by the app's JWT + membership checks).
+
+## Applying to a fresh database (what was done on staging)
+
+```bash
+# 1. schema + the anon/PostgREST lockdown + seed
+DATABASE_URL=<pg> DIRECT_URL=<pg-5432> npx prisma db push --skip-generate
+npx prisma db execute --url "<pg-5432>" --file prisma/migrations/00000000000007_rls_lockdown/migration.sql
+npm run db:seed
+
+# 2. restricted role + policies (via the session pooler / DIRECT_URL —
+#    the transaction pooler times out on multi-statement DDL)
+npx prisma db execute --url "<pg-5432>" --file prisma/migrations/00000000000016_rls_restricted_role/migration.sql
+npx prisma db execute --url "<pg-5432>" --stdin <<< "ALTER ROLE \"a2r_app\" WITH PASSWORD '<generated>';"
+npx prisma db execute --url "<pg-5432>" --file prisma/migrations/00000000000017_rls_tenant_policies/migration.sql
+
+# 3. flip the app on
+#    .env:  RLS_ENFORCE=1   (+ SESSION_LOOKUP_TIMEOUT_MS=8000 for a remote/high-latency DB)
+npm run db:rls:smoke        # → "OK — all 28 tenant tables enforce isolation for a2r_app"
+npx vitest run && npx playwright test && npm run build
+```
+
+## Production
+
+1. Apply 16 + 17 via prod `DIRECT_URL`. Inert while the app acts as
+   `postgres`; the only new grant is `a2r_app` membership for `postgres`.
+2. Deploy `RLS_ENFORCE=1`. Keep the `postgres` `DATABASE_URL`. Same-region
+   latency → default `SESSION_LOOKUP_TIMEOUT_MS` is fine.
+3. Soak 48h; `npm run db:rls:smoke` on a cron.
+4. `FORCE ROW LEVEL SECURITY` (migration 17's commented block) — only after
+   provisioning a break-glass BYPASSRLS role and owner-side policies, since
+   FORCE subjects `postgres` (and thus the cross-tenant admin path) to RLS.
+
+## Rollback (any point)
+
+`.env`: unset `RLS_ENFORCE`. The app is back to app-tier-only isolation
+(exactly v1.8.0) with zero redeploy of policies. To also remove the DB
+objects: `DROP POLICY … ; REVOKE "a2r_app" FROM "postgres"; DROP ROLE "a2r_app";`
+RLS stays *enabled* (migration 07) so the anon/PostgREST lockdown is intact.

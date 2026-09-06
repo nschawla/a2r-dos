@@ -18,6 +18,7 @@
  * is protocol-agnostic and takes an already-verified identity.
  */
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { runUnscoped } from '@/lib/db/org-scope';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
 import { resolveFederatedRole, type GroupMappingRule } from '@/lib/identity/mapping';
@@ -108,7 +109,7 @@ async function applyFederatedLoginInner(
   let membershipCreated = false;
   let roleSynced = false;
 
-  const userId = await db.$transaction(async (tx) => {
+  const userId = await withTenantTx(async (tx) => {
     const user = existingUser
       ? await tx.user.update({
           where: { id: existingUser.id },

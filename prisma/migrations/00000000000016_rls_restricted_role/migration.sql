@@ -1,38 +1,42 @@
 -- A2R Delivery OS — P0-2 (Phase C): restricted runtime database role.
 --
--- ══ NOT APPLIED. DORMANT GROUNDWORK. ═══════════════════════════════════
--- Do NOT run this against the shared production database without the
--- rehearsal + rollout in docs/RLS_ENFORCEMENT_RUNBOOK.md.
+-- ══ Applied to STAGING (v1.9.0). NOT applied to production. ═════════════
+-- Production cutover is the tail of docs/RLS_ENFORCEMENT_RUNBOOK.md.
+-- After CREATE ROLE, set the password out-of-band (never commit it):
+--   ALTER ROLE "a2r_app" WITH PASSWORD '<generated>';
 -- ═════════════════════════════════════════════════════════════════════════
 --
 -- WHY
 -- ──────────────────────────────────────────────────────────────────────
--- Prisma currently connects as Supabase's `postgres` role, which has
--- BYPASSRLS and owns every table — so the RLS policies in migration 17 are
--- inert for the app's own connection. This migration creates a dedicated
--- login role with NO superuser and NO bypass, so that once `DATABASE_URL`
--- is repointed at it, the database itself enforces tenant isolation for
--- every query the app makes.
+-- Prisma connects as Supabase's `postgres` role, which has BYPASSRLS and
+-- owns every table — so the RLS policies in migration 17 are inert for the
+-- app's own connection. This migration creates a dedicated login role with
+-- NO superuser and NO bypass. The app does NOT reconnect as it — instead
+-- every tenant transaction runs `SET LOCAL ROLE "a2r_app"` (see
+-- src/lib/db/rls-transaction.ts), which needs `postgres` to be a member of
+-- `a2r_app` (the final GRANT below). This "SET ROLE in a tx" approach works
+-- through the standard connection pooler with no second pool and no
+-- Supavisor custom-role support.
 --
 -- AFTER APPLYING (manual, Phase C)
 -- ──────────────────────────────────────────────────────────────────────
---  1. In the Supabase dashboard → Database → Roles, set a password for
---     `a2r_app` (or `ALTER ROLE "a2r_app" WITH PASSWORD '…';` here).
---  2. Supavisor exposes custom roles at
---       postgresql://a2r_app.<ref>:<pwd>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require
---     Set that as `DATABASE_URL` on the target environment. Keep the
---     `postgres` string as `DIRECT_URL` for migrations + the ops/admin
---     scripts that legitimately need cross-tenant reach.
---  3. Deploy with `RLS_ENFORCE=1` (src/lib/db/rls-transaction.ts).
+--  1. `ALTER ROLE "a2r_app" WITH PASSWORD '<generated>';` (kept only so the
+--     role can also be connected to directly by scripts/rls-smoke.ts if
+--     ever wanted; the runtime never logs in as it).
+--  2. Deploy with `RLS_ENFORCE=1` (src/lib/db/rls-transaction.ts).
+--     `DATABASE_URL` stays the `postgres` pooler string.
 --
--- To roll back: `DROP OWNED BY "a2r_app"; DROP ROLE "a2r_app";` and restore
--- the `postgres` `DATABASE_URL`.
+-- To roll back: `RLS_ENFORCE` unset, then
+--   `REVOKE "a2r_app" FROM "postgres"; DROP OWNED BY "a2r_app"; DROP ROLE "a2r_app";`
 -- ──────────────────────────────────────────────────────────────────────
 
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'a2r_app') THEN
-    CREATE ROLE "a2r_app" LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB NOREPLICATION;
+    -- NOBYPASSRLS is the default; NOSUPERUSER/NOCREATEDB/NOCREATEROLE keep
+    -- it least-privilege. (Explicit NOREPLICATION / forcing BYPASSRLS needs
+    -- superuser on managed Postgres, so they are omitted.)
+    CREATE ROLE "a2r_app" WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
   END IF;
 END $$;
 
@@ -49,11 +53,13 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO "a2r_app";
 
--- The GUC the policies read. A database-level default of '' means a
--- connection that never calls `set_config('app.current_org', …)` sees
--- NO tenant rows (fail-closed) rather than erroring.
-ALTER DATABASE postgres SET "app.current_org" = '';
+-- The GUC the policies read is `app.current_org`. No database-level default
+-- is set (managed Postgres blocks `ALTER DATABASE … SET` for a custom
+-- parameter): the policies use `current_setting('app.current_org', true)`,
+-- which returns NULL when unset, so `"organizationId" = NULL` → no rows
+-- (fail-closed) without any server configuration.
 
--- `_prisma_migrations` is not used by this project (hand-derived SQL), but
--- if it is ever introduced, keep it off the restricted role:
--- REVOKE ALL ON TABLE "_prisma_migrations" FROM "a2r_app";
+-- The runtime does `SET LOCAL ROLE "a2r_app"` as `postgres`, which requires
+-- membership. (WITH ADMIN OPTION is rejected — postgres created the role and
+-- is already its implicit administrator.)
+GRANT "a2r_app" TO "postgres";

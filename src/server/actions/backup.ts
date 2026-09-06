@@ -28,6 +28,7 @@ import { RATE_LIMITS } from '@/lib/rate-limits';
  */
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { authorizeAdminAction } from '@/server/authz';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
@@ -138,7 +139,7 @@ export const restoreWorkspaceSnapshot = withAction('restoreWorkspaceSnapshot', a
     return { ok: false, error: `This snapshot has ${issues.length} internal reference problem(s) and cannot be restored.`, issues: issues.map((i) => i.message) };
   }
 
-  await db.$transaction(async (tx) => {
+  await withTenantTx(async (tx) => {
     // 1. Practices — id-preserving upsert, no self-reference.
     for (const p of snapshot.practices) {
       await tx.practice.upsert({

@@ -27,6 +27,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { withApiAuth } from '@/lib/api-auth';
 import { mondayOf } from '@/lib/capacity-engine';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
@@ -128,7 +129,7 @@ export const POST = withApiAuth(async (request, { tenantId, apiKey }) => {
 
   const totalHours = entries.reduce((s, e) => s + e.hours, 0);
 
-  await db.$transaction(async (tx) => {
+  await withTenantTx(async (tx) => {
     await tx.timesheetEntry.createMany({
       data: entries.map((e) => ({
         organizationId: tenantId,

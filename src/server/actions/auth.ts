@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { runUnscoped } from '@/lib/db/org-scope';
 import { seedOrganizationDefaults } from '@/lib/tenant/defaults';
 import { validatePasswordStrength } from '@/lib/auth/password-policy';
@@ -81,7 +82,7 @@ export const registerOrganization = withAction('registerOrganization', async (in
   // there is no scope to pin to. The seed writes all set organizationId
   // explicitly — run the transaction with the cross-tenant marker.
   await runUnscoped('tenant-provisioning', async () => {
-    await db.$transaction(async (tx) => {
+    await withTenantTx(async (tx) => {
       const user = await tx.user.create({ data: { email: normalizedEmail, name, passwordHash } });
       const org = await tx.organization.create({ data: { name: orgName, slug } });
       await tx.membership.create({ data: { userId: user.id, organizationId: org.id, role: 'OWNER' } });
@@ -118,7 +119,7 @@ export const createOrganizationForCurrentUser = withAction('createOrganizationFo
   const slug = await uniqueSlug(orgName);
 
   await runUnscoped('tenant-provisioning', async () => {
-    await db.$transaction(async (tx) => {
+    await withTenantTx(async (tx) => {
       const org = await tx.organization.create({ data: { name: orgName, slug } });
       await tx.membership.create({ data: { userId: session.user.id, organizationId: org.id, role: 'OWNER' } });
       await seedOrganizationDefaults(tx, org.id);
@@ -206,7 +207,7 @@ export const changePasswordAction = withAction('changePasswordAction', async (in
   //      deriveSessionState() resolves each of them to REVOKED on its next
   //      request.
   //   4. delete any NextAuth adapter Session rows.
-  const { sessionVersion: newSessionVersion } = await db.$transaction(async (tx) => {
+  const { sessionVersion: newSessionVersion } = await withTenantTx(async (tx) => {
     const updated = await tx.user.update({
       where: { id: userId },
       data: {

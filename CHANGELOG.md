@@ -10,6 +10,69 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.9.0] — 2026-09-06
+
+_Enterprise environment separation & live database security — Phase C of the
+enterprise production-readiness track (P0-2 enforcement)._
+
+### Added
+
+- **Dedicated staging database.** A separate Supabase project
+  (`urdlkmlhjhvoxsphvwte`, `us-east-2`) provisioned from `prisma db push` +
+  `prisma/seed.ts`, so schema and security migrations are rehearsed off the
+  shared production project. `.env` on staging carries `RLS_ENFORCE=1` and
+  `SESSION_LOOKUP_TIMEOUT_MS=8000` (remote pooler + RLS round-trip headroom).
+- **`src/lib/db/with-tenant-tx.ts`** — `withTenantTx(fn)` /
+  `withTenantTxFor(orgId, fn)`. Every former `db.$transaction(fn)` that
+  touches a tenant model (~20 call sites in `src/server/actions/**`,
+  `src/server/services/**`, the ingest route, `src/lib/audit-ledger.ts`) now
+  routes through it.
+
+### Changed
+
+- **RLS is enforced on staging.** With `RLS_ENFORCE=1`, every tenant-scoped
+  transaction runs `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org`
+  (`src/lib/db/rls-transaction.ts` + `with-tenant-tx.ts`); `a2r_app` is
+  `NOBYPASSRLS`, so the migration-17 policies apply. A bare `db.model.op()`
+  in a tenant request is wrapped per-op by the extension. Cross-tenant /
+  pre-session flows (ops console, provisioning, SSO JIT, retention sweep)
+  run as `postgres` (BYPASSRLS). **`RLS_ENFORCE` is unset on production**, so
+  the wrapper and extension are byte-for-byte no-ops there.
+- **Migration `00000000000016`** — `CREATE ROLE a2r_app` (NOSUPERUSER,
+  NOBYPASSRLS, NOCREATEDB, NOCREATEROLE) + `SELECT/INSERT/UPDATE/DELETE` on
+  all tables + default privileges + `GRANT a2r_app TO postgres` (so
+  `postgres` can `SET ROLE` to it in-band — the pooler does not accept a
+  custom-role login). **Applied to staging only.**
+- **Migration `00000000000017`** — `tenant_isolation` (`organizationId =
+  current_setting('app.current_org', true)`) on the 28 org-owned tables and
+  `rls_app_plumbing` (`USING (true)`) on the 9 identity / tenant-routing
+  tables, all `TO "a2r_app"`. `FORCE ROW LEVEL SECURITY` left commented.
+  **Applied to staging only.**
+- `withTenantTx` raises the interactive-transaction ceiling to 8s maxWait /
+  20s timeout (the two extra `SET LOCAL` round trips + heavy flows like
+  tenant provisioning's `seedOrganizationDefaults`).
+- `scripts/rls-smoke.ts` + `tests/security/rls-policies.test.ts` reworked to
+  the `SET LOCAL ROLE` model over the ordinary `DATABASE_URL` connection
+  (no separate `RLS_APP_DATABASE_URL`); both auto-detect the `a2r_app` role
+  and run on staging / skip on production.
+
+### Security
+
+- The database itself now rejects a cross-tenant read or write on staging —
+  `npm run db:rls:smoke` proves all 28 tenant tables enforce isolation for
+  `a2r_app` (scoped counts match ground truth; empty GUC → 0 rows;
+  cross-tenant INSERT → `42501`; cross-tenant UPDATE → 0 rows).
+- Application queries no longer depend on the BYPASSRLS `postgres` role once
+  enforcement is on — they run as the least-privilege `a2r_app`.
+
+### Verification
+
+- Against **staging with `RLS_ENFORCE=1`** and the `a2r_app` role:
+  `npx tsc --noEmit` → 0 · `npm run lint` → 0/0 ·
+  `npx vitest run` → **542 passed** (45 files, 0 skipped — the RLS suite now
+  runs) · `npx playwright test` → **60 passed** (Suites A–P) ·
+  `npm run build` → clean · `npm run db:rls:smoke` → OK (28 tables).
+
 ## [1.8.0] — 2026-09-06
 
 _Tenant-isolation & security hardening — Phase B of the enterprise

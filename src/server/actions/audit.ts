@@ -5,6 +5,7 @@ import { withAction } from '@/lib/observability/action-wrapper';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { authorizeProjectEdit } from '@/server/authz';
 import { logAuditEvent } from '@/lib/audit/logger';
 
@@ -52,7 +53,7 @@ export const updateAuditEntry = withAction('updateAuditEntry', async (input: unk
   });
   const previousStatus = previous?.status ?? 'NO';
 
-  const entry = await db.$transaction(async (tx) => {
+  const entry = await withTenantTx(async (tx) => {
     const row = await tx.auditEntry.upsert({
       where: { projectId_controlKey: { projectId, controlKey } },
       update: { status, owner: owner || null, repoLink: repoLink || null, notes: notes || null },

@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { requireOrgContext } from '@/lib/session';
 import { DEFAULT_SCOPE, PHASES, CONTROL_DEFS } from '@/lib/constants';
 import { computeTotalsFor } from '@/lib/calculations/sizing';
@@ -50,7 +51,7 @@ export const createProject = withAction('createProject', async (input: unknown):
   }
   const { name, client, commercialModel, methodology } = parsed.data;
 
-  await db.$transaction(async (tx) => {
+  await withTenantTx(async (tx) => {
     const project = await tx.project.create({
       data: {
         organizationId,
@@ -131,7 +132,7 @@ export const toggleProjectLock = withAction('toggleProjectLock', async (projectI
     const totals = computeTotalsFor(toSizingInput(project), toRateRoles(roles));
     const lockedAt = new Date();
 
-    await db.$transaction(async (tx) => {
+    await withTenantTx(async (tx) => {
       await tx.project.update({
         where: { id: projectId },
         data: { locked: true, lockedAt, baselineSnapshot: totals as unknown as Prisma.InputJsonValue },
@@ -162,7 +163,7 @@ export const toggleProjectLock = withAction('toggleProjectLock', async (projectI
       });
     });
   } else {
-    await db.$transaction(async (tx) => {
+    await withTenantTx(async (tx) => {
       await tx.project.update({
         where: { id: projectId },
         data: { locked: false, lockedAt: null, baselineSnapshot: Prisma.DbNull },

@@ -15,6 +15,7 @@
  * Both write to the tenant's Immutable Audit Ledger before they finish.
  */
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { canonicalJson, sha256, recordLedgerEvent, type LedgerDbClient } from '@/lib/audit-ledger';
 import type { LifecycleActor } from '@/lib/ops/tenant-management';
 
@@ -208,7 +209,7 @@ export async function executePurgeProtocol(input: {
 
   const executedAt = new Date();
 
-  await db.$transaction(async (tx) => {
+  await withTenantTx(async (tx) => {
     await tx.organization.update({
       where: { id: org.id },
       data: { purgedAt: executedAt, status: 'SUSPENDED' },

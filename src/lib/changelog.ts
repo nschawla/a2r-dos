@@ -36,6 +36,17 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.9.0',
+    date: '2026-09-06',
+    headline: 'Database-level tenant isolation enforced on staging (RLS) + a dedicated staging database',
+    changes: [
+      { type: 'security', text: 'Row-Level Security is now enforced end-to-end on a dedicated staging database. Every tenant-scoped transaction switches to a non-privileged database role and sets the active organization, so the database itself — not just the application — rejects any cross-tenant read or write. Verified with direct SQL across all 28 tenant tables and the full automated suite.' },
+      { type: 'improvement', text: 'Introduced a dedicated staging Supabase project so risky schema and security migrations are rehearsed off the shared production database. Migrations 16 (restricted role) and 17 (per-table policies) are applied there; production remains on the application-tier isolation shipped in 1.7–1.8 pending its own cutover.' },
+      { type: 'improvement', text: 'Every multi-statement database transaction that touches tenant data now goes through a single `withTenantTx` wrapper (~20 call sites), which carries the tenant identity into the database session for RLS and is a no-op when enforcement is off — so production behaviour is unchanged.' },
+      { type: 'security', text: 'A least-privilege runtime database role (no superuser, no RLS bypass) is now the identity every tenant query runs under when enforcement is on, replacing reliance on the all-powerful `postgres` role for application queries.' },
+    ],
+  },
+  {
     version: '1.8.0',
     date: '2026-09-06',
     headline: 'Tenant-isolation & security hardening — composite FKs, hashed bearer tokens, distributed rate limiting',

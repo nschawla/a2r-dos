@@ -5,6 +5,7 @@ import { withAction } from '@/lib/observability/action-wrapper';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { authorizeProjectEdit } from '@/server/authz';
 import { logAuditEvent } from '@/lib/audit/logger';
 import type { ActionResult } from './auth';
@@ -58,7 +59,7 @@ export const updateFinancialActual = withAction('updateFinancialActual', async (
     select: { hours: true, cost: true, forecastHours: true, openRRHours: true },
   });
 
-  await db.$transaction(async (tx) => {
+  await withTenantTx(async (tx) => {
     await tx.financialActual.upsert({
       where: { projectId_roleKey: { projectId, roleKey } },
       update: { ...nextRow, roleId },

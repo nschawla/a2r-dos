@@ -17,6 +17,7 @@
 import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { withTenantTxFor } from '@/lib/db/with-tenant-tx';
 
 export type LedgerDbClient = typeof db | Prisma.TransactionClient;
 
@@ -201,7 +202,7 @@ export async function recordLedgerEvent(
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       return ownsTransaction
-        ? await (client as typeof db).$transaction(appendOnce)
+        ? await withTenantTxFor(input.organizationId, appendOnce)
         : await appendOnce(client as Prisma.TransactionClient);
     } catch (err) {
       const chainCollision =

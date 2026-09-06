@@ -29,6 +29,7 @@ import { RATE_LIMITS } from '@/lib/rate-limits';
  */
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { authorizeProjectEdit } from '@/server/authz';
 import { logAuditEvent } from '@/lib/audit/logger';
 import {
@@ -117,7 +118,7 @@ export const commitCsvImport = withAction('commitCsvImport', async (projectId: s
     return { ok: false, error: 'No valid rows to import — fix the errors shown in the preview and try again.' };
   }
 
-  await db.$transaction(async (tx) => {
+  await withTenantTx(async (tx) => {
     if (kind === 'effort') {
       for (const row of validRows as EffortMatrixCsvRow[]) {
         await tx.effortCell.upsert({

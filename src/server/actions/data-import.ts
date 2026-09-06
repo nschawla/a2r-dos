@@ -37,6 +37,7 @@ import { RATE_LIMITS } from '@/lib/rate-limits';
 import { revalidatePath } from 'next/cache';
 import type { Prisma, BatchImportDataType, BatchImportStatus, BatchImportRowStatus, ScheduleStatus } from '@prisma/client';
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { authorizeAdminAction } from '@/server/authz';
 import { logAuditEvent } from '@/lib/audit/logger';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
@@ -305,14 +306,14 @@ export const commitImportBatch = withAction('commitImportBatch', async (batchId:
     // Persist the fresh re-check so the quarantine grid reflects reality
     // even though nothing commits — a stale-looking "0 errors" row that
     // silently re-broke would be worse than surfacing it here.
-    await db.$transaction(
-      stillErrored.map((r) =>
-        db.dataImportRow.update({
+    await withTenantTx(async (tx) => {
+      for (const r of stillErrored) {
+        await tx.dataImportRow.update({
           where: { id: r.row.id },
           data: { status: 'ERROR', errors: r.result.errors as unknown as Prisma.InputJsonValue },
-        })
-      )
-    );
+        });
+      }
+    });
     const errorRows = stillErrored.length;
     await db.dataImportBatch.update({ where: { id: batchId }, data: { errorRows, validRows: batch.totalRows - errorRows } });
     return {
@@ -323,7 +324,7 @@ export const commitImportBatch = withAction('commitImportBatch', async (batchId:
 
   const committedRows = revalidated.length;
 
-  await db.$transaction(async (tx) => {
+  await withTenantTx(async (tx) => {
     for (const { result } of revalidated) {
       if (batch.dataType === 'WEEKLY_ACTUALS') {
         const data = result.data as WeeklyActualsBatchRow;

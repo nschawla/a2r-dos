@@ -5,6 +5,7 @@ import { withAction } from '@/lib/observability/action-wrapper';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
+import { withTenantTx } from '@/lib/db/with-tenant-tx';
 import { requireOrgContext } from '@/lib/session';
 import { authorizeProjectEdit } from '@/server/authz';
 import { logAuditEvent } from '@/lib/audit/logger';
@@ -42,7 +43,7 @@ export const createRaidEntry = withAction('createRaidEntry', async (input: unkno
 
   const project = await db.project.findFirst({ where: { id: projectId }, select: { name: true } });
 
-  await db.$transaction(async (tx) => {
+  await withTenantTx(async (tx) => {
     await tx.raidEntry.create({
       data: {
         organizationId: auth.context.organizationId,
@@ -184,7 +185,7 @@ export const toggleRaidEscalation = withAction('toggleRaidEscalation', async (in
     return { ok: true };
   }
 
-  await db.$transaction(async (tx) => {
+  await withTenantTx(async (tx) => {
     await tx.raidEntry.update({ where: { id }, data: { escalate } });
     await logAuditEvent(tx, {
       organizationId: auth.context.organizationId,

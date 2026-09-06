@@ -1,23 +1,45 @@
 # Database-level Row Level Security — implementation roadmap
 
-_Status: **authored, dormant** as of v1.8.0 (Phase B). The code and SQL
-below are committed but inert; enforcement is Phase C._
+_Status: **ENFORCED on staging** as of v1.9.0 (Phase C). Production stays
+app-tier-only until its own cutover (§ "Production cutover" below)._
 _Owner: platform / security. Audience: engineering + the security auditor._
 
-## What shipped in v1.8.0 (Phase B)
+## Where we are (v1.9.0, Phase C)
 
-| Artefact | Purpose | State |
-| --- | --- | --- |
-| `prisma/migrations/00000000000014_composite_fk_tenant_guard` | Composite `(organizationId, id)` FKs on all 11 project/batch child tables — the DB physically rejects a child row whose tenant ≠ its parent's. | **APPLIED** |
-| `src/lib/db/rls-transaction.ts` | The per-request `SET LOCAL app.current_org` Prisma extension. No-op unless `RLS_ENFORCE=1`. | committed, dormant |
-| `prisma/migrations/00000000000016_rls_restricted_role` | `CREATE ROLE a2r_app` (NOSUPERUSER NOBYPASSRLS) + grants + `app.current_org` GUC default. | **NOT applied** |
-| `prisma/migrations/00000000000017_rls_tenant_policies` | `tenant_isolation` policy on all 29 tenant tables, staged in 4 steps + a commented `FORCE` block. | **NOT applied** |
-| `scripts/rls-smoke.ts` (`npm run db:rls:smoke`) + `tests/security/rls-policies.test.ts` | Direct-SQL enforcement verification for the `a2r_app` role — bypasses the ORM. Skips cleanly when `RLS_APP_DATABASE_URL` is unset. | committed, skipped |
-| `docs/RLS_ENFORCEMENT_RUNBOOK.md` | The ordered Phase-C rollout (rehearsal DB → role → policies step-by-step → `RLS_ENFORCE=1` → `FORCE`). | — |
+A dedicated **staging Supabase project** (`urdlkmlhjhvoxsphvwte`) now runs
+with full DB-level RLS. `npm run db:rls:smoke` there confirms all 28 tenant
+tables reject cross-tenant reads / writes for the restricted role, and the
+complete suite (tsc / vitest 542 / playwright 60 / build) is green against
+it with `RLS_ENFORCE=1`.
 
-Phase C is gated on a **rehearsal database** (there is none today — the app
-shares one Supabase project through the transaction pooler) and a
-maintenance window. Do not set `RLS_ENFORCE=1` against the shared database.
+| Artefact | Purpose | Staging | Production |
+| --- | --- | --- | --- |
+| `00000000000014` composite FK guard | DB rejects a child row whose tenant ≠ parent's. | **APPLIED** | **APPLIED** (v1.8.0) |
+| `src/lib/db/rls-transaction.ts` + `src/lib/db/with-tenant-tx.ts` | Every `db.$transaction` that touches tenant data → `withTenantTx`, which runs `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org` when `RLS_ENFORCE=1`. Bare `db.model.op()` in a tenant request is wrapped per-op by the extension. Cross-tenant / pre-session flows run as `postgres` (BYPASSRLS). | **`RLS_ENFORCE=1`** | no-op (flag unset) |
+| `00000000000016` restricted role | `CREATE ROLE a2r_app` (NOBYPASSRLS) + grants + `GRANT a2r_app TO postgres` (for `SET ROLE`). | **APPLIED** | NOT applied |
+| `00000000000017` tenant policies | `tenant_isolation` (`organizationId = current_setting('app.current_org')`) on 28 tenant tables + `rls_app_plumbing` (`USING (true)`) on the 9 identity/routing tables, all `TO "a2r_app"`. `FORCE` block still commented. | **APPLIED** | NOT applied |
+| `scripts/rls-smoke.ts` / `tests/security/rls-policies.test.ts` | Direct-SQL enforcement checks. Auto-detect the `a2r_app` role; run on staging, skip on prod. | runs, **OK** | skips |
+
+### The `SET ROLE`-in-a-transaction design (why not a second connection)
+
+Supabase's Supavisor pooler authenticates by the `postgres.<ref>` username
+and does not accept a `a2r_app.<ref>` custom-role login (it hangs). So the
+app keeps ONE `postgres` pool and every tenant transaction switches role
+in-band: `SELECT set_config('role','a2r_app',true)` + `set_config(
+'app.current_org',<org>,true)`. `a2r_app` is NOBYPASSRLS, so from that point
+the policies apply; `SET LOCAL` reverts on COMMIT. No second pool, no
+Supavisor feature dependency.
+
+## Production cutover
+
+1. Apply migrations 16 + 17 to production via `DIRECT_URL` (inert while the
+   app still connects/acts as `postgres` — `GRANT a2r_app TO postgres` is
+   the only new capability).
+2. Deploy with `RLS_ENFORCE=1`. Same-region Vercel↔Supabase latency means
+   the default `SESSION_LOOKUP_TIMEOUT_MS` is fine.
+3. Soak; `npm run db:rls:smoke` from a cron.
+4. Uncomment + apply the `FORCE ROW LEVEL SECURITY` block in migration 17
+   (needs a break-glass BYPASSRLS role + owner-side policies first).
 
 ## 1. Where we are today (v1.7.0)
 
