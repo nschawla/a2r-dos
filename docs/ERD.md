@@ -1,7 +1,9 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.9.0** (Role-Based Scoped Filtering, the Custom KPI
+it, current as of **v1.10.0** (no schema change since v1.9.0 — v1.10.0 is
+payload-validation, session-lifecycle and production-polish hardening;
+Role-Based Scoped Filtering, the Custom KPI
 Definition Engine, the complete 4-pillar Batch Import Engine, forced
 first-sign-in password change, and the v1.7.0 security-architecture batch:
 `User.sessionVersion` (migration `00000000000011`), **composite tenant

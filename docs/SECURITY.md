@@ -1,6 +1,6 @@
 # A2R Delivery OS — Security & Trust Overview
 
-_Last reviewed: 2026-09-06 · Applies to v1.9.0 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-06 · Applies to v1.10.0 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of A2R Delivery OS™. It is written for the security and
@@ -183,6 +183,19 @@ Staff status is unrelated to any tenant membership role.
   write, so **every other device is logged out** on its next request — an
   atomic "sign out everywhere". No stale token survives a password event.
   See `docs/SESSION_STATE_MACHINE.md`.
+- **Explicit global sign-out (new in v1.10.0).** "Sign out of all sessions"
+  in the user menu (`signOutEverywhereAction`) bumps `sessionVersion` the
+  same way, without a password change — one click revokes every session on
+  every device and every serverless instance (the check is DB-backed, not
+  an in-memory cache). The ordinary "Sign out" stays local to the device.
+- **Cookie flags (hardened in v1.10.0).** The app's own cookies
+  (`a2r_active_org`, `a2r_lens`, `a2r_ops_elevation`, `a2r_impersonation`)
+  are `httpOnly` + `secure` (production) + `sameSite: 'strict'`. The
+  NextAuth session and CSRF cookies are pinned in `authOptions.cookies`
+  (`httpOnly`, `secure`-aware); the session cookie is deliberately
+  `sameSite: 'lax'` — `Strict` would drop it on a top-level navigation into
+  the app from an external link, and `Lax` still blocks the cross-site
+  POST that CSRF exploits.
 - **Forced-rotation enforcement is server-deep (new in v1.7.0).** A session
   flagged `mustChangePassword` is rejected with `403 PASSWORD_CHANGE_REQUIRED`
   in **every** server-action and route-handler auth path — not only the
@@ -325,8 +338,9 @@ strict, auditable constraints:
   `ADMIN_IMPERSONATION_ACCESS` event to *the customer's* Immutable Compliance
   Ledger — including operator identity and reason — before the session cookie
   is set.
-- **Cookie hygiene.** The grant token is a 24-byte CSPRNG value carried in an
-  `httpOnly`, `sameSite=lax`, path-scoped cookie that expires with the grant.
+- **Cookie hygiene.** The grant token is a 32-byte CSPRNG value (SHA-256
+  hashed at rest, v1.8.0) carried in an `httpOnly`, `secure` (production),
+  `sameSite: 'strict'`, path-scoped cookie that expires with the grant.
 - **Cannot target a purged tenant.** Resolution fails closed if the grant is
   ended, expired, or the organization is soft-deleted.
 - Customers see a persistent banner in their workspace for the entire session.
@@ -476,7 +490,23 @@ Compliance Ledger or timesheet records**.
 
 - **Input validation.** Every server action and API route validates its input
   with Zod (`safeParse`) and returns typed, non-throwing result objects for
-  expected failures.
+  expected failures. **As of v1.10.0 every request-input schema is
+  `z.strictObject` (`.strict()`)** — an unexpected property is a validation
+  failure, not a silently-dropped field. This closes the mass-assignment
+  surface, most importantly the Workspace Restore snapshot, which writes
+  attacker-influenceable JSON into ~10 models. (The CSV row schemas in
+  `src/lib/ingestion/**` are deliberately non-strict — a spreadsheet may
+  carry extra columns — but already whitelist the fields they read.)
+- **Serverless connection pooling (v1.10.0).** `src/lib/db.ts`'s
+  `assertServerlessPooling()` emits a loud production warning (Vercel only)
+  when `DATABASE_URL` is not a pooler host carrying `connection_limit`, so a
+  mistuned deploy that could exhaust Postgres connections shows up in logs
+  immediately (same posture as the TLS check).
+- **Error sanitization.** `withAction` / `withRouteHandler` / `withApiAuth`
+  turn any unhandled throw into one structured, secret-redacted log line and
+  a generic client message — never a stack or a driver/Prisma error.
+  `tests/security/error-sanitization.test.ts` fails the build if any handler
+  is unwrapped or would interpolate a caught error into a response body.
 - **CSRF / CORS.** Server Actions carry Next.js's built-in Origin/Host check;
   NextAuth issues its own CSRF token for auth routes; requests are same-origin
   by default. The Data Ingestion API is **server-to-server only** — it emits no
@@ -536,7 +566,7 @@ Compliance Ledger or timesheet records**.
 
 ## 10. Testing & verification
 
-- **542** unit tests (Vitest, 45 files) covering the calculation engine, data
+- **596** unit tests (Vitest, 48 files) covering the calculation engine, data
   masking (incl. the org governance override), API-key crypto, the bearer-token
   hash primitives, the in-process **and** distributed (Upstash) rate limiter
   and its named-rule table, direct-SQL RLS enforcement for the `a2r_app`
@@ -584,8 +614,10 @@ Compliance Ledger or timesheet records**.
 | Least-privilege runtime database role (no superuser / no RLS bypass) | **Enforced on staging** (§1) — v1.9.0, `a2r_app` |
 | Bearer tokens hashed at rest (elevation / impersonation / API keys) | **Implemented** (§1) — v1.8.0 |
 | Distributed rate limiting (atomic across instances) | **Implemented** (§9) — v1.8.0, opt-in via Upstash |
+| Mass-assignment protection (strict request schemas) | **Implemented** (§9) — v1.10.0 |
+| Explicit global sign-out + hardened cookie flags | **Implemented** (§2) — v1.10.0 |
 | Just-In-Time privileged access (no standing operator sessions) | **Implemented** (§1) — v1.7.0 |
-| Server-side session revocation / all-device logout | **Implemented** (§2) — v1.7.0 |
+| Server-side session revocation / all-device logout | **Implemented** (§2) — v1.7.0, explicit "all sessions" v1.10.0 |
 | Structured error capture + advanced rate limiting | **Implemented** (§3, §9) — v1.7.0 |
 | Encryption in transit (app + DB) | **Implemented** (§3) |
 | Encryption at rest (DB volumes) | **Provided by managed-DB provider** (§3) |

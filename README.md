@@ -1714,6 +1714,55 @@ passed** (Suites A–P); `npm run build` → clean; `npm run db:rls:smoke` →
 *"OK — all 28 tenant tables enforce isolation for a2r_app"*. Re-verified
 green against production (RLS off) after the refactor.
 
+## Phase 7 — Payload strictness, session lifecycle & production polish (v1.10.0)
+
+The final enterprise-security hardening cycle — P1 mass-assignment + session
+hygiene, P2 production polish.
+
+### FRD — functional summary
+
+- **Strict request schemas (P1).** Every request-input `z.object` in
+  `src/app/api/**`, `src/server/actions/**`, `src/lib/backup/workspace-io.ts`
+  and `src/lib/ai-parser.ts` is now `z.strictObject(...)` — an unexpected
+  property is a validation failure, not a silently-dropped field. Closes the
+  mass-assignment surface, above all the Workspace Restore snapshot (writes
+  attacker-influenceable JSON into ~10 models). The `src/lib/ingestion/**`
+  CSV row schemas stay non-strict by design (a spreadsheet may carry extra
+  columns) but already whitelist the fields they read.
+- **Explicit global sign-out (P1).** `signOutEverywhereAction` bumps
+  `users.sessionVersion` (same mechanism as a password change) — one menu
+  click revokes every session on every device and serverless instance via
+  the DB-backed jwt-callback check. The normal "Sign out" stays device-local.
+- **Cookie flags (P1).** `a2r_active_org` / `a2r_lens` / `a2r_ops_elevation`
+  / `a2r_impersonation` → `sameSite: 'strict'` + `secure` (prod) + `httpOnly`.
+  `authOptions.cookies` pins the NextAuth session / CSRF / callback flags
+  (session stays `sameSite: 'lax'` deliberately — no external-deep-link
+  friction, still CSRF-safe).
+- **Serverless pooling (P2).** `src/lib/db.ts`'s `assertServerlessPooling()`
+  warns in production on Vercel when `DATABASE_URL` is not a pooler host
+  carrying `connection_limit`; `.env.example` prescribes the settings.
+- **Error sanitization (P2).** `src/app/api/internal/retention/route.ts` now
+  runs through `withRouteHandler`; `tests/security/error-sanitization.test.ts`
+  fails the build if any handler is unwrapped or would put a raw error in a
+  response body. `ImmutableAuditLedger` audited — 16 hash-chained,
+  append-only `actionType`s, no `update`/`delete` path; no change needed.
+
+### RTM — requirements traceability (Phase 7)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| SEC-P1-a | `z.strictObject` at every validated entry point | `src/app/api/**`, `src/server/actions/**`, `src/lib/backup/workspace-io.ts`, `src/lib/ai-parser.ts` | vitest + e2e action coverage (596 / 60) |
+| SEC-P1-b | Explicit "Sign out of all sessions" | `src/server/actions/auth.ts`, `src/components/layout/Header.tsx` | `tests/security/sign-out-everywhere.test.ts` · e2e Suite N |
+| SEC-P1-c | App cookies Strict/Secure/HttpOnly; NextAuth flags pinned | `src/server/actions/{organizations,workspace-lens,ops-elevation,ops}.ts`, `src/lib/auth.ts` | `tests/security/cookie-flags.test.ts` |
+| SEC-P2-a | Serverless pool warning + docs | `src/lib/db.ts`, `.env.example` | (config assertion) |
+| SEC-P2-b | Every API route error-bounded; no raw error to client | `src/app/api/internal/retention/route.ts`, `src/lib/observability/route-wrapper.ts` | `tests/security/error-sanitization.test.ts` |
+
+**Verification:** against **production** (`.env`, RLS off) **and staging**
+(`RLS_ENFORCE=1`, `a2r_app`): `npx tsc --noEmit` → 0; `npm run lint` → 0/0;
+`npx vitest run` → **596 passed** (48 files); `npx playwright test` → **60
+passed** (Suites A–P); `npm run build` → clean; staging
+`npm run db:rls:smoke` → OK (28 tables).
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to

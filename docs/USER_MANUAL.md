@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — User Manual & Operator's Guide
 
-_Applies to v1.9.0 · Last updated 2026-09-06_
+_Applies to v1.10.0 · Last updated 2026-09-06_
 
 A2R Delivery OS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
@@ -145,6 +145,12 @@ want to do; the top suggestion runs on **Enter**.
 
 Keys: **↑ / ↓** move the selection, **Enter** runs it, **Esc** clears the
 box then closes suggestions.
+
+> **Signing out.** The user menu (top-right) has two options: **Sign out**
+> ends the session on this device only, and **Sign out of all sessions**
+> ends every session on every device — use it if you think a device was
+> lost or a session was left open somewhere. Changing your password does
+> this automatically.
 
 ### Active Stream — live operational & governance state
 

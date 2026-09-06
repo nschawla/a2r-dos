@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — UAT Test Runbook
 
-_Applies to v1.9.x · Last updated 2026-09-06_
+_Applies to v1.10.x · Last updated 2026-09-06_
 
 This runbook is the human-executable half of the QA framework. It gives a
 tester **explicit login data, exact steps, expected visual outcomes, and a
@@ -65,7 +65,7 @@ All demo passwords are **`password12345`** unless noted.
 ## 2. Automated coverage (run before manual UAT)
 
 ```bash
-npm test            # Vitest — 542 unit + integration tests across 45 files, ~10s
+npm test            # Vitest — 596 unit + integration tests across 48 files, ~10s
 npx tsc --noEmit    # strict typecheck, 0 errors
 npm run build       # next build — must compile cleanly
 npm run test:e2e    # Playwright — full Suites A–P against a running dev server
@@ -91,6 +91,10 @@ npm run test:e2e    # Playwright — full Suites A–P against a running dev ser
 | DB-level RLS (v1.9.0) — direct-SQL tenant isolation for the `a2r_app` role | `tests/security/rls-policies.test.ts` · `npm run db:rls:smoke` — auto-detect the `a2r_app` role: **enforce + verify on staging**, no-op on production |
 | JIT staff elevation — reason-logged, auto-expiring, session-bound | `tests/staff-elevation.test.ts` · e2e Suite **P** · manual UAT-3.10 |
 | Advanced rate limiting + structured error boundary | `tests/rate-limiter.test.ts` · `tests/rate-limiter-redis.test.ts` (distributed window + fallback) · `tests/security/rate-limit-endpoints.test.ts` · `tests/observability.test.ts` |
+| Strict request schemas / mass-assignment (v1.10.0) — every API + action `z.object` is `z.strictObject` | `.strict()` failures exercised across the vitest + e2e action coverage; boundary noted in `docs/SECURITY.md` §9 |
+| Explicit global sign-out (v1.10.0) — `sessionVersion` bump revokes all devices | `tests/security/sign-out-everywhere.test.ts` · manual UAT-3.12 |
+| Cookie flags (v1.10.0) — app cookies `sameSite:'strict'` + `secure` + `httpOnly`; NextAuth flags pinned | `tests/security/cookie-flags.test.ts` |
+| Error sanitization (v1.10.0) — every API route wrapped; no raw error in a response body | `tests/security/error-sanitization.test.ts` |
 
 A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 
@@ -261,6 +265,19 @@ stores bearer tokens only as hashes, and (on staging) rejects cross-tenant
 reads/writes for the `a2r_app` role — with no change to any legitimate user
 or operator flow.
 
+### UAT-3.12 · session lifecycle & payload strictness (v1.10.0)
+
+| Step | Action | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | Sign in as `pm@a2rventures-demo.test` in two browsers. In browser A: user menu → **Sign out of all sessions**. | Browser A → login page. Browser B → next navigation lands on the login page too (session REVOKED). | |
+| 2 | In browser A: user menu → **Sign out** (plain). Repeat the two-browser test. | Only browser A is signed out; browser B stays signed in. | |
+| 3 | DevTools → Application → Cookies after signing in and switching a workspace / lens. | `a2r_active_org` / `a2r_lens` show `HttpOnly`, `SameSite=Strict` (and `Secure` on an https deployment). | |
+| 4 | Every enterprise + module flow in §3–§5 (batch import, workspace restore, RAID/audit/financials edits, provisioning). | All succeed unchanged — strict schemas reject only *unexpected* fields, which no legitimate client sends. | |
+
+**Checkpoint:** "all sessions" logout is global and immediate; normal
+logout is device-local; app cookies are Strict/Secure/HttpOnly; no
+legitimate payload is rejected by the strict schemas.
+
 ---
 
 ## 4. Module runbooks
@@ -334,7 +351,7 @@ Sign in as `ops@a2rventures.com` (or `navinder@…`).
 | 7 | **Ingestion & Templates** | CSV template downloads + schema reference | |
 | 8 | **Staff Access** | Grants table + the **Just-In-Time elevations** audit table (who, why, expiry, active/ended) | |
 | 9 | Impersonate a tenant (elevate first; Tenants → actions → Impersonate, give a reason) | Opens a **read-only** tenant session with a persistent banner; the reason is written to that tenant's Compliance Ledger before the session starts | |
-| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.9.x`; click → Release Notes modal (top entry: v1.9.0) | |
+| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.10.x`; click → Release Notes modal (top entry: v1.10.0) | |
 
 ### UAT-4.6 · Admin & Org Setup (`/admin`)
 
@@ -412,7 +429,7 @@ Sign in as `admin@a2rventures-demo.test`.
 | 9 | No stray `DataImportBatch` rows or test `WeeklyAssignmentSlot`/`SchedulePhase` writes left in the demo tenant from batch-import testing | |
 | 10 | No stray test `CustomKpi` rows left in the demo tenant from Custom KPI Builder testing | |
 | 11 | No stray `staff_elevations` rows or throwaway tenants (`JIT Elevation Test Inc`, `Enterprise Sanity Inc`, `Purge Target Inc`) left from Ops testing | |
-| 12 | Release Notes modal top entry = **v1.9.0**; Ops sidebar build stamp = `v1.9.x` | |
+| 12 | Release Notes modal top entry = **v1.10.0**; Ops sidebar build stamp = `v1.10.x` | |
 
 ---
 
