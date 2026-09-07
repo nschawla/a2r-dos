@@ -1,7 +1,10 @@
 /**
- * Build the print-ready PDFs from the two HTML sources in this directory:
- *   docs/pdf/exec-summary.html      -> a2r-executive-summary.pdf   (repo root)
- *   docs/pdf/security-briefing.html -> a2r-security-briefing.pdf   (repo root)
+ * Build a2r-security-briefing.pdf (repo root) from
+ * docs/pdf/security-briefing.html.
+ *
+ * The executive summary uses a separate WeasyPrint pipeline for finer
+ * pagination control (one section per page, running page-number footers) —
+ * see docs/pdf/build_exec_summary.py.
  *
  * Fonts (Spectral / IBM Plex Sans / IBM Plex Mono) are fetched once from
  * Google Fonts and embedded as base64 `@font-face` blocks, so the rendered
@@ -46,10 +49,7 @@ async function buildFontCss() {
   return embedded;
 }
 
-const JOBS = [
-  { html: 'exec-summary.html', pdf: 'a2r-executive-summary.pdf' },
-  { html: 'security-briefing.html', pdf: 'a2r-security-briefing.pdf' },
-];
+const JOBS = [{ html: 'security-briefing.html', pdf: 'a2r-security-briefing.pdf' }];
 
 const fontCss = await buildFontCss();
 const browser = await chromium.launch();
