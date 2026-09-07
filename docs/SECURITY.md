@@ -1,6 +1,6 @@
 # A2R Delivery OS — Security & Trust Overview
 
-_Last reviewed: 2026-09-06 · Applies to v1.12.0 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-07 · Applies to v1.13.0 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of A2R Delivery OS™. It is written for the security and
@@ -43,19 +43,29 @@ layer:
   **`rls_deny_app`** policy (v1.12.0) — the restricted role has *no* access
   to `sessions`, `staff_grants`, `staff_elevations`, `impersonation_grants`,
   `users`, … at all; they are reached only through the privileged
-  administrative path. `npm run db:rls:smoke` (8-check matrix:
-  SELECT/INSERT/UPDATE/DELETE/UPSERT, cross-tenant FK, ingestion path)
-  proves all 28 tenant tables reject cross-tenant access. **Production has
-  migrations 16 + 17 + 20 applied and verified but still connects as
-  `postgres`**, so RLS is inert there until `RLS_ENFORCE=1` is set — a
-  single environment-variable change completes the cutover
-  (`docs/RLS_ENFORCEMENT_RUNBOOK.md`).
-- **Break-glass (v1.12.0).** A time-boxed, auto-expiring control
-  (`_rls_control` + `src/lib/db/rls-break-glass.ts`) disables DB-level RLS
-  within ~10 s during an incident — no redeploy — while keeping the
-  application-tier layers below fully in force, and pages the on-call on
-  every affected request. Operable from the Ops Console or an incident
-  shell; the window cannot exceed 60 minutes.
+  administrative path. `npm run db:rls:smoke` (10-check matrix:
+  SELECT/INSERT/UPDATE/DELETE/UPSERT, cross-tenant FK, ingestion path,
+  ledger-immutability) proves all 28 tenant tables reject cross-tenant
+  access. **Production has migrations 16 + 17 + 20 + 21 + 22 applied and
+  verified but still connects as `postgres`**, so RLS is inert there until
+  `RLS_ENFORCE=1` is set — a single environment-variable change completes
+  the cutover (`docs/RLS_ENFORCEMENT_RUNBOOK.md`).
+- **Complete composite tenant foreign keys (v1.13.0).** Every relationship
+  between two tenant-owned records — assignments, timesheets, contributors,
+  effort/financial roles, RAID/SteerCo owners, project leads, practice
+  links, SSO group mappings, project audit links — carries a composite FK
+  `(organizationId, <col>)` → `<parent>(organizationId, id)` (migrations 14
+  + 22). The database rejects a row that references a parent in a different
+  organization, independent of RLS.
+- **Emergency rollback, not a fast break-glass (v1.13.0).** The v1.12.0
+  `_rls_control` flag — which dropped every tenant transaction on every
+  instance to the `postgres` owner role and was toggleable from a console
+  action — was **removed** after review. Normal tenant traffic is now
+  unconditionally the least-privilege `a2r_app` role whenever
+  `RLS_ENFORCE=1`. If DB-level RLS misbehaves, the only lever is unsetting
+  `RLS_ENFORCE` on Vercel + a redeploy (~2 min; the Vercel dashboard is
+  behind its own auth and is not the app's web surface). The app then
+  reverts to the v1.8.0 app-tier-only posture with no policy change.
 - **Queries are `organizationId`-scoped at three application-tier layers**
   (defence in depth, and the sole enforcement on production today):
   1. *Verified context.* Every page, route, and action resolves the caller's
@@ -91,15 +101,17 @@ production** as of v1.12.0. `docs/RLS_ROADMAP.md` /
 
 - `src/lib/db/with-tenant-tx.ts` — `withTenantTx` / `withTenantTxFor` replace
   `db.$transaction` at every call site that touches tenant data (~20). Under
-  `RLS_ENFORCE=1` they run the two `SET LOCAL` statements first; unset (or
-  while break-glass is engaged) they are a plain transaction.
+  `RLS_ENFORCE=1` they run the two `SET LOCAL` statements first; unset, they
+  are a plain transaction. There is no break-glass short-circuit (removed
+  v1.13.0) — tenant traffic is unconditionally `a2r_app` when enforced.
 - `src/lib/db/rls-transaction.ts` — wraps a bare `db.model.op()` in a tenant
   request in its own per-op transaction with the same `SET LOCAL`s.
 - Migrations `16` (the `a2r_app` role + `GRANT a2r_app TO postgres` so the
   owner can `SET ROLE` in-band), `17` (`tenant_isolation` on the 28
-  org-owned tables), and `20` (the 9 identity/routing tables →
-  `rls_deny_app`; `a2r_app` → `NOLOGIN`; the `_rls_control` break-glass
-  table). **Applied to staging and production** (inert on production).
+  org-owned tables), `20` (the 9 identity/routing tables → `rls_deny_app`;
+  `a2r_app` → `NOLOGIN`), `21` (`immutable_audit_ledger` engine-immutable —
+  see §4; drops the removed `_rls_control` table), `22` (composite-FK
+  closure). **Applied to staging and production** (inert on production).
 - `signOutEverywhereAction` / `changePasswordAction` run under `runUnscoped`
   (they key by explicit `userId`) so the tenant runtime never touches an
   identity table as `a2r_app`.
@@ -108,7 +120,9 @@ production** as of v1.12.0. `docs/RLS_ROADMAP.md` /
   checks + a schema-drift guard.
 
 Remaining production cutover — set `RLS_ENFORCE=1` on Vercel, soak 48 h,
-then `FORCE ROW LEVEL SECURITY` — is `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
+then `FORCE ROW LEVEL SECURITY` — is `docs/RLS_ENFORCEMENT_RUNBOOK.md`. The
+rollback lever is unsetting `RLS_ENFORCE` + a redeploy (there is no fast
+break-glass).
 
 ### Database-level access control (Row Level Security)
 
@@ -326,6 +340,17 @@ support a SOC 2 audit trail.
 - **Single writer, no mutation path.** `recordLedgerEvent` is the only code that
   writes the ledger; no update or delete path for these rows exists anywhere in
   the application.
+- **Immutable at the database engine (v1.13.0, migration 21).** Beyond
+  convention: the restricted runtime role `a2r_app` holds `SELECT` + `INSERT`
+  only — `UPDATE` and `DELETE` are `REVOKE`d — and a `BEFORE UPDATE OR
+  DELETE` row trigger plus a `BEFORE TRUNCATE` statement trigger reject the
+  operation for **every** role. The sole bypass is a deliberate,
+  transaction-local `SET LOCAL "a2r.ledger_admin" = 'on'`, reserved for
+  lawful GDPR/CCPA data-subject erasure performed by an operator over
+  `DIRECT_URL`; `a2r_app` can never use it (a `current_user` guard plus the
+  revoked grant). `scripts/rls-smoke.ts` checks 9–10 and
+  `tests/security/ledger-immutability.test.ts` prove the rejection directly
+  in SQL.
 - **Fork-safe under concurrency (REL-3).** Appends take a per-tenant Postgres
   advisory lock and a `@@unique` constraint pins each chain link, so parallel
   writers cannot branch the chain. A live-database test asserts the chain stays
@@ -607,7 +632,7 @@ retention window and never edits a row**, and it **never touches**:
   masking (incl. the org governance override), API-key crypto, the bearer-token
   hash primitives, the in-process **and** distributed (Upstash) rate limiter
   and its named-rule table, direct-SQL RLS enforcement for the `a2r_app`
-  role, the RLS break-glass control plane, the tenant-model inventory
+  role, engine-level ledger immutability, the tenant-model inventory
   schema-drift guard, the centralized error boundary
   (`withAction` / `withRouteHandler` / `redactContext`), tenant lifecycle,
   retention policy logic, the session state machine (every transition +
@@ -627,8 +652,10 @@ retention window and never edits a row**, and it **never touches**:
   parallel-append pressure (REL-3), the rate-limit endpoints (served to the
   limit then `429` with headers), the password-rotation / all-device
   logout flow, the DB-level RLS enforcement checks (`rls-policies.test.ts` +
-  the 8-check `rls-smoke` matrix, auto-skipped where the `a2r_app` role is
-  absent), and the break-glass control (`rls-break-glass.test.ts`).
+  the 10-check `rls-smoke` matrix, auto-skipped where the `a2r_app` role is
+  absent), and engine-level ledger immutability
+  (`ledger-immutability.test.ts` — `UPDATE`/`DELETE` rejected for `a2r_app`
+  and, without the maintenance opt-in, for the owner).
 - **60** end-to-end tests (Playwright, Suites A–P) covering authentication,
   multi-tenant scoping, governance workflows, the capacity cockpit, the
   compliance ledger, data masking, role-based landing/perspective switching,
@@ -647,12 +674,12 @@ retention window and never edits a row**, and it **never touches**:
 
 | Item | Status |
 | --- | --- |
-| Tamper-evident audit logging | **Implemented** (§4) |
-| Logical multi-tenant isolation | **Implemented** (§1) — three app-tier layers + composite FK tenant guard at the database (v1.8.0, migration 14) |
-| DB-level Row Level Security for the application's own queries | **Enforced on staging** (§1) — v1.9.0; **staged on production** — v1.12.0, migrations 16/17/20 applied + verified, awaiting the `RLS_ENFORCE=1` flip (`docs/RLS_ENFORCEMENT_RUNBOOK.md`) |
+| Tamper-evident audit logging | **Implemented** (§4) — hash chain + **engine-level immutability** (v1.13.0, migration 21) |
+| Logical multi-tenant isolation | **Implemented** (§1) — three app-tier layers + **complete composite tenant FKs** (v1.8.0 migration 14, v1.13.0 migration 22) |
+| DB-level Row Level Security for the application's own queries | **Enforced on staging** (§1) — v1.9.0; **staged on production** — migrations 16/17/20/21/22 applied + verified, awaiting the `RLS_ENFORCE=1` flip (`docs/RLS_ENFORCEMENT_RUNBOOK.md`) |
 | Least-privilege runtime database role (no superuser / no RLS bypass) | **Enforced on staging** (§1) — v1.9.0, `a2r_app` (`NOLOGIN` since v1.12.0) |
 | Identity/routing tables unreachable by the tenant runtime | **Implemented** (§1) — v1.12.0, migration 20 `rls_deny_app` |
-| Incident break-glass for DB-level RLS (time-boxed, auto-expiring, alerting) | **Implemented** (§1) — v1.12.0, `_rls_control` |
+| RLS rollback lever | **Deliberate, not instant** (§1) — v1.13.0: unset `RLS_ENFORCE` + redeploy. The fast global break-glass was removed after review. |
 | Bearer tokens hashed at rest (elevation / impersonation / API keys) | **Implemented** (§1) — v1.8.0 |
 | Distributed rate limiting (atomic across instances) | **Implemented** (§9) — v1.8.0, opt-in via Upstash |
 | Mass-assignment protection (strict request schemas) | **Implemented** (§9) — v1.10.0 |

@@ -1,8 +1,25 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.12.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
+it, current as of **v1.13.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
 full model → tenant-binding → RLS-policy map.
+**v1.13.0 (WP1)** — no new models. (a) **Composite-FK closure** (migration
+22): every remaining intra-tenant FK becomes composite
+`(organizationId, <col>)` → `<parent>(organizationId, id)` —
+`Resource → DeliveryRole/Practice/Resource(manager)/RoleUtilizationPolicy`,
+`Project → Resource ×3/Practice/Project(parent)`,
+`WeeklyAssignmentSlot/TimesheetEntry/ProjectContributor → Resource`,
+`EffortCell/FinancialActual → DeliveryRole`,
+`RaidEntry/SteerCoDecision → Resource(owner)`,
+`SsoGroupMapping → IdentityProvider/Practice`,
+`ActivityLogEntry/AuditLog → Project`. `Practice`, `DeliveryRole`,
+`Resource`, `RoleUtilizationPolicy`, `IdentityProvider` gain
+`@@unique([organizationId, id])`. Nullable ones are `onDelete: NoAction` in
+Prisma / `ON DELETE SET NULL ("<col>")` at the DB. FKs to `users` stay
+single-column. (b) **`immutable_audit_ledger` engine-immutable** (migration
+21): `a2r_app` loses `UPDATE`/`DELETE`; `BEFORE UPDATE/DELETE/TRUNCATE`
+triggers reject every role (opt-in `SET LOCAL "a2r.ledger_admin" = 'on'`).
+Drops the removed `_rls_control` table.
 **v1.12.0 (production RLS cutover prep, Phase 2)** — no Prisma-model change.
 Migration `00000000000020` (applied to staging **and production**, inert on
 production until `RLS_ENFORCE=1`): (a) a new control-plane table

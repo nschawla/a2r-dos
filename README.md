@@ -1870,6 +1870,61 @@ rehearsed on staging (engage → tenant isolation held at the app tier →
 disengage → smoke green). Migrations 16 + 17 + 20 rehearsed
 (`BEGIN … ROLLBACK`) then applied to production; migration 20 also to staging.
 
+## Phase 10 — WP1: engine-level ledger immutability, composite-FK closure, break-glass removal (v1.13.0)
+
+ChatGPT Round-4 audit blockers.
+
+### FRD — functional summary
+
+- **Ledger immutability at the SQL level (migration 21, prod + staging).**
+  `a2r_app` keeps `SELECT` + `INSERT` on `immutable_audit_ledger` and
+  **loses `UPDATE` + `DELETE`** (`REVOKE`). A `BEFORE UPDATE OR DELETE` row
+  trigger and a `BEFORE TRUNCATE` statement trigger reject the operation for
+  **every** role; the only bypass is a deliberate, transaction-local
+  `SET LOCAL "a2r.ledger_admin" = 'on'` (lawful GDPR/CCPA erasure + the
+  tamper-detection test), which `a2r_app` can never use. `rls-smoke` grows
+  to 10 checks; `tests/security/ledger-immutability.test.ts` is new.
+- **Complete composite tenant foreign keys (migration 22, prod + staging).**
+  Every remaining intra-tenant single-column FK becomes composite
+  `(organizationId, <col>)` → `<parent>(organizationId, id)` — `Resource →
+  DeliveryRole/Practice/Resource(manager)/RoleUtilizationPolicy`, `Project →
+  Resource ×3/Practice/Project(parent)`,
+  `WeeklyAssignmentSlot/TimesheetEntry/ProjectContributor → Resource`,
+  `EffortCell/FinancialActual → DeliveryRole`, `RaidEntry/SteerCoDecision →
+  Resource(owner)`, `SsoGroupMapping → IdentityProvider/Practice`,
+  `ActivityLogEntry/AuditLog → Project`. Five parents gain
+  `@@unique([organizationId, id])`. NOT NULL children keep `ON DELETE
+  CASCADE`; nullable children use the PG15+ `ON DELETE SET NULL ("<col>")`
+  form so parent-delete behaviour is unchanged. A migration pre-flight
+  `RAISE`s rather than null a pre-existing cross-tenant row (count: 0).
+- **The fast global break-glass is removed.** The v1.12.0 `_rls_control`
+  flag dropped every tenant transaction on every instance to the `postgres`
+  owner role and was toggleable from an Ops Console action. `withTenantTx`
+  now runs the enforced path unconditionally under `RLS_ENFORCE=1`. The sole
+  rollback lever is unsetting `RLS_ENFORCE` on Vercel + a redeploy.
+
+### RTM — requirements traceability (Phase 10)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| WP1-LEDGER-1 | `a2r_app` has no `UPDATE`/`DELETE` on the ledger | migration 21 (`REVOKE`) | `tests/security/ledger-immutability.test.ts`, `rls-smoke` 9–10 |
+| WP1-LEDGER-2 | Engine rejects ledger mutation/truncation for every role | migration 21 (triggers) | `tests/security/ledger-immutability.test.ts` (owner-without-opt-in), `tests/security/ledger-concurrency.test.ts` |
+| WP1-LEDGER-3 | Deliberate maintenance opt-in for lawful erasure | migration 21 (`current_setting` guard), `tests/helpers/ledger.ts` | `tests/security/ledger-immutability.test.ts` (owner-with-opt-in) |
+| WP1-FK-1 | Every intra-tenant FK is composite; DB rejects cross-tenant parent | `prisma/schema.prisma`, migration 22 | `tests/security/tenant-isolation.test.ts`, `rls-smoke` 7 |
+| WP1-FK-2 | Parent-delete behaviour unchanged (`SET NULL ("<col>")`) | migration 22 | full vitest + playwright suites |
+| WP1-BG-1 | No fast global break-glass; tenant traffic always `a2r_app` under RLS | `src/lib/db/with-tenant-tx.ts` (branch removed), deletions | `tests/security/rls-policies.test.ts`, `rls-smoke` |
+
+**Verification:** against **production** (`.env`, RLS off) **and staging**
+(`RLS_ENFORCE=1`, `a2r_app`): `npx tsc --noEmit` → 0; `npm run lint` → 0/0;
+`npx prisma validate` → clean; `npx vitest run` → **612 passed** (52 files)
+on both; `npm run build` → clean; `npx playwright test` → **60 passed** on
+production (staging is clean single-worker; the remote-pooler session-lookup
+timeout flakes under full parallelism — a pre-existing condition unrelated
+to WP1, confirmed green on production with identical code);
+`npm run db:rls:smoke` → OK (10 checks) on staging **and production**.
+Migrations 21 + 22 rehearsed (`BEGIN … ROLLBACK`) then applied to both
+databases.
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to
