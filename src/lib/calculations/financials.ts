@@ -11,6 +11,7 @@
  * prototype's `financialRows` + `computeEacSummary`.
  */
 import { numOr } from './_internal';
+import { d, money, rate, roundMoney, sumMoney } from './money';
 import { computeTotalsFor, type SizingTotals } from './sizing';
 import type { EmploymentType, FinancialActualInput, RateRole, SizingProjectInput } from './types';
 
@@ -75,26 +76,33 @@ export function computeEacSummary(
   const totals = computeTotalsFor(project, roles);
   const actualByKey = new Map(actuals.map((a) => [a.roleKey, a]));
 
-  let rows: EacRow[];
+  // Per row, `eacCost` is accumulated exactly (decimal.js) and rounded to
+  // cents; `actualCostD` is kept as a Decimal for the exact-sum totals below.
+  type RowWithDecimals = EacRow & { _actualCostD: import('./money').Decimal; _eacCostD: import('./money').Decimal };
+  let rows: RowWithDecimals[];
   if (project.estimationMode === 'direct') {
-    const blendedCostRate = totals.totalHours > 0 ? totals.cost / totals.totalHours : 0;
+    const blendedCostRateD = totals.totalHours > 0 ? d(totals.cost).div(totals.totalHours) : d(0);
     const a = actualByKey.get('_direct');
     const actualHours = numOr(a?.hours, 0);
-    const actualCost = numOr(a?.cost, 0);
+    const actualCostD = d(a?.cost);
     const forecastHours = numOr(a?.forecastHours, totals.totalHours);
     const openRRHours = numOr(a?.openRRHours, 0);
-    const eacCost = actualCost + forecastHours * blendedCostRate + openRRHours * blendedCostRate;
+    const eacCostD = roundMoney(
+      actualCostD.plus(d(forecastHours).times(blendedCostRateD)).plus(d(openRRHours).times(blendedCostRateD)),
+    );
     rows = [
       {
         id: '_direct',
         label: 'All Roles (Blended)',
-        costRate: blendedCostRate,
+        costRate: rate(blendedCostRateD),
         baselineHours: totals.totalHours,
         actualHours,
-        actualCost,
+        actualCost: money(actualCostD),
         forecastHours,
         openRRHours,
-        eacCost,
+        eacCost: eacCostD.toNumber(),
+        _actualCostD: actualCostD,
+        _eacCostD: eacCostD,
       },
     ];
   } else {
@@ -102,44 +110,51 @@ export function computeEacSummary(
       const a = actualByKey.get(r.id);
       const baseline = totals.roleTotals[r.id] ?? 0;
       const actualHours = numOr(a?.hours, 0);
-      const actualCost = numOr(a?.cost, 0);
+      const actualCostD = d(a?.cost);
       const forecastHours = numOr(a?.forecastHours, baseline);
       const openRRHours = numOr(a?.openRRHours, 0);
-      const eacCost = actualCost + forecastHours * r.costRate + openRRHours * r.costRate;
+      const costRateD = d(r.costRate);
+      const eacCostD = roundMoney(
+        actualCostD.plus(d(forecastHours).times(costRateD)).plus(d(openRRHours).times(costRateD)),
+      );
       return {
         id: r.id,
         label: r.name,
-        costRate: r.costRate,
+        costRate: rate(costRateD),
         baselineHours: baseline,
         actualHours,
-        actualCost,
+        actualCost: money(actualCostD),
         forecastHours,
         openRRHours,
-        eacCost,
+        eacCost: eacCostD.toNumber(),
         employmentType: r.employmentType ?? 'fte',
+        _actualCostD: actualCostD,
+        _eacCostD: eacCostD,
       };
     });
   }
 
   let totalActualHours = 0;
-  let totalActualCost = 0;
   let totalForecastHours = 0;
   let totalOpenRRHours = 0;
-  let totalEacCost = 0;
   for (const r of rows) {
     totalActualHours += r.actualHours;
-    totalActualCost += r.actualCost;
     totalForecastHours += r.forecastHours;
     totalOpenRRHours += r.openRRHours;
-    totalEacCost += r.eacCost;
   }
+  const totalActualCostD = sumMoney(rows.map((r) => r._actualCostD));
+  const totalEacCostD = sumMoney(rows.map((r) => r._eacCostD));
+  const totalActualCost = money(totalActualCostD);
+  const totalEacCost = money(totalEacCostD);
 
-  const eacMarginPct = totals.revenue > 0 ? ((totals.revenue - totalEacCost) / totals.revenue) * 100 : 0;
+  const revD = d(totals.revenue);
+  const eacMarginPct = revD.gt(0) ? revD.minus(totalEacCostD).div(revD).times(100).toNumber() : 0;
   const drift = totals.marginPct - eacMarginPct;
 
   return {
     totals,
-    rows,
+    // drop the internal Decimal carriers — the public shape is EacRow
+    rows: rows.map(({ _actualCostD, _eacCostD, ...r }) => r),
     totalActualHours,
     totalActualCost,
     totalForecastHours,
@@ -175,19 +190,23 @@ export interface ContractorExposure {
 export function computeContractorExposure(eac: EacSummary): ContractorExposure {
   const applicable = eac.rows.length > 0 && eac.rows[0]?.id !== '_direct';
 
-  let contractorEacCost = 0;
+  let contractorEacCostD = d(0);
   let contractorHours = 0;
   if (applicable) {
     for (const r of eac.rows) {
       if (r.employmentType === 'contractor') {
-        contractorEacCost += r.eacCost;
+        contractorEacCostD = contractorEacCostD.plus(d(r.eacCost));
         contractorHours += r.actualHours + r.forecastHours + r.openRRHours;
       }
     }
   }
+  const contractorEacCost = money(contractorEacCostD);
 
   const totalHours = eac.totalActualHours + eac.totalForecastHours + eac.totalOpenRRHours;
-  const contractorPct = applicable && eac.totalEacCost > 0 ? (contractorEacCost / eac.totalEacCost) * 100 : 0;
+  const contractorPct =
+    applicable && eac.totalEacCost > 0
+      ? contractorEacCostD.div(eac.totalEacCost).times(100).toNumber()
+      : 0;
 
   return { applicable, contractorEacCost, totalEacCost: eac.totalEacCost, contractorPct, contractorHours, totalHours };
 }

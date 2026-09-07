@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.14.0',
+    date: '2026-09-07',
+    headline: 'Exact-decimal financials end-to-end, step-up elevation, test-rig isolation',
+    changes: [
+      { type: 'improvement', text: 'The calculation engine now performs every monetary and rate operation in exact decimal arithmetic — revenue, cost, contingency, EAC, and portfolio totals are accumulated without floating-point drift and rounded once, at a defined accounting boundary (money to the cent, half-up). A new precision test suite proves large portfolios and multi-row EAC totals are exact.' },
+      { type: 'security', text: 'Obtaining a Just-In-Time operator elevation now requires re-entering your password (step-up authentication), and the elevation is bound to your session: a password change or a global sign-out invalidates every elevation immediately. Repeated elevation attempts are rate-limited.' },
+      { type: 'security', text: 'The automated test suites can no longer run against the production database. Vitest and Playwright refuse to start unless pointed at a staging or local database; production verification is now a dedicated read-only check that issues no writes.' },
+    ],
+  },
+  {
     version: '1.13.0',
     date: '2026-09-06',
     headline: 'Engine-level ledger immutability, complete composite tenant keys, break-glass removed',

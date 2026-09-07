@@ -121,8 +121,10 @@ export function maskNumber(value: number | null | undefined, canView: boolean): 
 export interface MaskableRateRole {
   id: string;
   name: string;
-  billRate: number;
-  costRate: number;
+  // WP2 — the calc engine passes rates as exact decimal strings; masking
+  // only zeroes or passes them through, so it accepts either form.
+  billRate: number | string;
+  costRate: number | string;
   employmentType?: 'fte' | 'contractor';
 }
 
@@ -147,7 +149,7 @@ export function maskRateRolesForViewer<T extends MaskableRateRole>(
 }
 
 /** Zero the per-line `cost` on financial-actual rows for a restricted viewer. */
-export function maskFinancialActualsForViewer<T extends { cost: number }>(
+export function maskFinancialActualsForViewer<T extends { cost: number | string }>(
   rows: T[],
   role: DeliveryRole,
   opts?: FinancialMaskOptions

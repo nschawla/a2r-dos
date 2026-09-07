@@ -64,7 +64,11 @@ async function signInAs(p: Page, email: string, password: string) {
 /** P1 JIT elevation — a standing operator grant only reaches the /ops read
  * views; every mutating ops action needs a live elevation. Idempotent:
  * skips if the elevation bar is already green. */
-async function elevateOps(p: Page, reason = 'E2E automated run — ops verification walkthrough') {
+async function elevateOps(
+  p: Page,
+  reason = 'E2E automated run — ops verification walkthrough',
+  password = MASTER_PASSWORD,
+) {
   await p.goto('/ops/telemetry');
   const bar = p.locator('[data-elevation]');
   await bar.waitFor();
@@ -72,6 +76,7 @@ async function elevateOps(p: Page, reason = 'E2E automated run — ops verificat
   await bar.getByRole('button', { name: 'Elevate' }).click();
   const dialog = p.getByRole('dialog', { name: /Request privilege elevation/ });
   await dialog.locator('textarea').fill(reason);
+  await dialog.locator('input[type="password"]').fill(password); // WP2 step-up
   await dialog.getByRole('button', { name: '60 min' }).click();
   await dialog.getByRole('button', { name: 'Elevate', exact: true }).click();
   await expect(bar).toHaveAttribute('data-elevation', 'active', { timeout: 15_000 });

@@ -5,8 +5,16 @@
  * unit-tested (and reused, e.g. from a worker or CLI) in total isolation.
  * Adapt Prisma rows to these shapes at the call site (server action /
  * route handler), not inside the engine.
+ *
+ * WP2 — money / rate *inputs* accept `number | string | Decimal`
+ * (`DecimalInput`). `calc-adapters.ts` passes the exact decimal string
+ * straight from the `NUMERIC` column; test fixtures keep passing `number`
+ * literals. The engine normalises everything through `money.ts`'s `d()`.
+ * Computed *outputs* stay `number` (see the engine modules).
  */
+import type { DecimalInput } from './money';
 
+export type { DecimalInput };
 export type EstimationMode = 'matrix' | 'direct';
 export type CommercialModel = 'ff' | 'tm';
 export type ScopeComplexity = 'low' | 'medium' | 'high';
@@ -25,8 +33,8 @@ export type EmploymentType = 'fte' | 'contractor';
 export interface RateRole {
   id: string;
   name: string;
-  billRate: number;
-  costRate: number;
+  billRate: DecimalInput;
+  costRate: DecimalInput;
   employmentType?: EmploymentType;
 }
 
@@ -40,15 +48,15 @@ export interface EffortCellInput {
 /** Module 1's Direct Baseline Intake fields, used when estimationMode = 'direct'. */
 export interface DirectIntakeInput {
   soldHours: number;
-  targetRevenue: number;
-  blendedMarginPct: number;
+  targetRevenue: DecimalInput;
+  blendedMarginPct: DecimalInput;
 }
 
 /** Everything sizing.ts needs from a project. */
 export interface SizingProjectInput {
   estimationMode: EstimationMode;
   commercialModel: CommercialModel;
-  contingencyPct: number;
+  contingencyPct: DecimalInput;
   effortCells: EffortCellInput[];
   directIntake?: DirectIntakeInput | null;
 }
@@ -83,7 +91,7 @@ export interface FinancialActualInput {
   /** DeliveryRole id in matrix mode, or '_direct' for a direct-mode project's single blended row. */
   roleKey: string;
   hours: number;
-  cost: number;
+  cost: DecimalInput;
   /** Omit/null to default to the role's (or project's, in direct mode) baseline sold hours. */
   forecastHours?: number | null;
   openRRHours?: number | null;

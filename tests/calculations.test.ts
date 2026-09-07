@@ -217,7 +217,7 @@ describe('computeMarginModeler', () => {
 
 describe('seniorityWeightsForPhase', () => {
   // 3 roles sorted desc by bill rate, as suggestMatrixForProject always sorts them first.
-  const sorted = [...roles].sort((a, b) => b.billRate - a.billRate);
+  const sorted = [...roles].sort((a, b) => Number(b.billRate) - Number(a.billRate));
 
   it('skews senior (front-loaded) for initiate/design', () => {
     const weights = seniorityWeightsForPhase('design', sorted);
@@ -433,7 +433,7 @@ describe('computeEacSummary — matrix mode', () => {
     // baseline hours at its own cost rate, so EAC cost == baseline cost.
     expect(noActualsYet.totalEacCost).toBeCloseTo(matrixProject.effortCells.reduce((sum, c) => {
       const role = roles.find((r) => r.id === c.roleId)!;
-      return sum + c.hours * role.costRate;
+      return sum + c.hours * Number(role.costRate);
     }, 0), 6);
     expect(noActualsYet.status).toBe('on-baseline');
     expect(noActualsYet.drift).toBeCloseTo(0, 6);

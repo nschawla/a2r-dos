@@ -149,8 +149,16 @@ model StaffElevation {
   expiresAt       DateTime
   // Set on an explicit early "Drop elevation" or a future expiry sweep.
   endedAt         DateTime?
-  endedReason     String? // 'operator' | 'superseded' | 'expired-sweep'
+  endedReason     String? // 'operator' | 'superseded' | 'expired-sweep' | 'session-rotated'
   requestedFromIp String?
+  // WP2 — step-up auth + session binding. `sessionVersion` is the
+  // `users.sessionVersion` epoch this elevation was minted under; the guard
+  // (`src/lib/ops-auth.ts`) rejects an elevation whose epoch no longer
+  // matches the live session, so a password change / sign-out-everywhere
+  // kills it instantly. `reauthAt` is when the operator last proved a factor
+  // for this elevation (= a fresh bcrypt password verification).
+  sessionVersion  Int       @default(0)
+  reauthAt        DateTime?
 
   // onDelete: Restrict — the JIT-elevation audit trail must outlive a raw
   // `User` DELETE (see StaffGrant.user). These rows ARE the elevation

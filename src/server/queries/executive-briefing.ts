@@ -11,6 +11,7 @@ import { db } from '@/lib/db';
 import { computeTotalsFor } from '@/lib/calculations/sizing';
 import { computeEacSummary } from '@/lib/calculations/financials';
 import { computeProjectHealth } from '@/lib/calculations/audit';
+import { d, money } from '@/lib/calculations/money';
 import { toRateRoles, toSizingInput, toFinancialActuals, toAuditEntries } from '@/server/queries/calc-adapters';
 import { mondayOf } from '@/lib/capacity-engine';
 import { getPortfolioCapacity, type PortfolioCapacity } from '@/server/queries/capacity';
@@ -160,13 +161,13 @@ export async function getExecutiveBriefing(organizationId: string): Promise<Exec
 
   const roles = toRateRoles(roleRows);
 
-  // ---- Section 1 macro rollups ----
-  let totalTcv = 0;
-  let sumRevenue = 0;
-  let sumBaselineCost = 0;
-  let sumEacCost = 0;
-  let sumBac = 0;
-  let sumActualsCost = 0;
+  // ---- Section 1 macro rollups (WP2 — exact-decimal accumulation) ----
+  let totalTcvD = d(0);
+  let sumRevenueD = d(0);
+  let sumBaselineCostD = d(0);
+  let sumEacCostD = d(0);
+  let sumBacD = d(0);
+  let sumActualsCostD = d(0);
   let activeEngagements = 0;
   let lockedEngagements = 0;
 
@@ -177,19 +178,19 @@ export async function getExecutiveBriefing(organizationId: string): Promise<Exec
 
   for (const p of projects) {
     const totals = computeTotalsFor(toSizingInput(p), roles);
-    totalTcv += totals.contractValue;
+    totalTcvD = totalTcvD.plus(d(totals.contractValue));
 
     if (p.hierarchyLevel === 'PARENT') continue;
     activeEngagements += 1;
     if (p.locked) lockedEngagements += 1;
-    sumBac += p.bac.toNumber();
-    sumActualsCost += p.actualsCost.toNumber();
+    sumBacD = sumBacD.plus(d(p.bac.toString()));
+    sumActualsCostD = sumActualsCostD.plus(d(p.actualsCost.toString()));
 
     if (totals.totalHours > 0) {
       const eac = computeEacSummary(toSizingInput(p), roles, toFinancialActuals(p.financials));
-      sumRevenue += totals.revenue;
-      sumBaselineCost += totals.cost;
-      sumEacCost += eac.totalEacCost;
+      sumRevenueD = sumRevenueD.plus(d(totals.revenue));
+      sumBaselineCostD = sumBaselineCostD.plus(d(totals.cost));
+      sumEacCostD = sumEacCostD.plus(d(eac.totalEacCost));
     }
 
     const audit = toAuditEntries(p.auditEntries);
@@ -220,14 +221,18 @@ export async function getExecutiveBriefing(organizationId: string): Promise<Exec
     complianceCount += 1;
   }
 
-  const baselineMarginPct = sumRevenue > 0 ? ((sumRevenue - sumBaselineCost) / sumRevenue) * 100 : 0;
-  const blendedEacMarginPct = sumRevenue > 0 ? ((sumRevenue - sumEacCost) / sumRevenue) * 100 : 0;
+  const baselineMarginPct = sumRevenueD.gt(0)
+    ? sumRevenueD.minus(sumBaselineCostD).div(sumRevenueD).times(100).toNumber()
+    : 0;
+  const blendedEacMarginPct = sumRevenueD.gt(0)
+    ? sumRevenueD.minus(sumEacCostD).div(sumRevenueD).times(100).toNumber()
+    : 0;
 
   const macro: MacroRollup = {
-    totalTcv,
-    aggregateBac: sumBac,
-    aggregateActualsCost: sumActualsCost,
-    aggregateEacCost: sumEacCost,
+    totalTcv: money(totalTcvD),
+    aggregateBac: money(sumBacD),
+    aggregateActualsCost: money(sumActualsCostD),
+    aggregateEacCost: money(sumEacCostD),
     blendedEacMarginPct,
     baselineMarginPct,
     marginDriftPts: baselineMarginPct - blendedEacMarginPct,

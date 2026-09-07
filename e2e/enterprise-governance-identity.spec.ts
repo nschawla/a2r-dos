@@ -91,7 +91,11 @@ async function expectNoErrorOverlay(p: Page) {
 
 /** P1 JIT elevation — identity federation is a mutating /ops operation and
  * needs a live elevation on top of the standing operator grant. */
-async function elevateOps(p: Page, reason = 'E2E automated run — SSO federation config') {
+async function elevateOps(
+  p: Page,
+  reason = 'E2E automated run — SSO federation config',
+  password = DEMO_PW,
+) {
   await p.goto('/ops/telemetry');
   const bar = p.locator('[data-elevation]');
   await bar.waitFor();
@@ -99,6 +103,7 @@ async function elevateOps(p: Page, reason = 'E2E automated run — SSO federatio
   await bar.getByRole('button', { name: 'Elevate' }).click();
   const dialog = p.getByRole('dialog', { name: /Request privilege elevation/ });
   await dialog.locator('textarea').fill(reason);
+  await dialog.locator('input[type="password"]').fill(password); // WP2 step-up
   await dialog.getByRole('button', { name: '60 min' }).click();
   await dialog.getByRole('button', { name: 'Elevate', exact: true }).click();
   await expect(bar).toHaveAttribute('data-elevation', 'active', { timeout: 15_000 });

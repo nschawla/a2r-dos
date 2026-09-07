@@ -38,6 +38,10 @@ declare module 'next-auth' {
       mustChangePassword: boolean;
     };
     memberships: SessionMembership[];
+    /** WP2 — the `users.sessionVersion` epoch this session is pinned to.
+     * JIT elevations are bound to it (src/lib/ops-auth.ts): an elevation
+     * minted under a superseded epoch is dead. */
+    sessionVersion?: number;
   }
 }
 

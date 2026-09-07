@@ -247,7 +247,7 @@ function buildDrafts(
     const a = byKey.get('_direct');
     drafts['_direct'] = {
       hours: a?.hours ?? 0,
-      cost: a?.cost ?? 0,
+      cost: Number(a?.cost ?? 0),
       forecastHours: a?.forecastHours ?? totalHours,
       openRRHours: a?.openRRHours ?? 0,
     };
@@ -259,7 +259,7 @@ function buildDrafts(
       const baseline = roleTotals[r.id] ?? 0;
       drafts[r.id] = {
         hours: a?.hours ?? 0,
-        cost: a?.cost ?? 0,
+        cost: Number(a?.cost ?? 0),
         forecastHours: a?.forecastHours ?? baseline,
         openRRHours: a?.openRRHours ?? 0,
       };

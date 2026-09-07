@@ -22,6 +22,7 @@
  * Server-only (reads the Prisma client). Mirrors the shape of the
  * Impersonation Gateway in src/lib/ops/tenant-management.ts.
  */
+import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
 import { mintToken, hashToken } from '@/lib/crypto/bearer-token';
@@ -56,15 +57,22 @@ export interface ElevationView {
 
 export type RequestElevationResult =
   | { ok: true; token: string; expiresAt: Date; ttlMinutes: number }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: 'BAD_PASSWORD' | 'NO_PASSWORD' };
 
 /**
- * Mint a JIT elevation for `userId`. Requires a live standing `staff_grants`
- * entitlement. Supersedes any existing live elevation for that operator.
+ * Mint a JIT elevation for `userId`. Requires:
+ *   - a live standing `staff_grants` entitlement;
+ *   - **a fresh password verification** (WP2 — step-up / "fresh
+ *     authentication" for a credentials session);
+ *   - the caller's current `sessionVersion`, stored on the row so the guard
+ *     can reject it the instant the session is rotated/revoked.
+ * Supersedes any existing live elevation for that operator.
  */
 export async function requestElevation(input: {
   userId: string;
   reason: string;
+  password: string;
+  sessionVersion: number;
   ttlMinutes?: number;
   ip?: string | null;
 }): Promise<RequestElevationResult> {
@@ -74,6 +82,23 @@ export async function requestElevation(input: {
   }
   if (!(await hasActiveStaffGrant(input.userId))) {
     return { ok: false, error: 'You do not hold a standing operator entitlement.' };
+  }
+
+  // WP2 — step-up authentication. The operator must re-prove a factor to
+  // escalate, even mid-session. `passwordHash` is null for SSO-only accounts.
+  const user = await db.user.findUnique({
+    where: { id: input.userId },
+    select: { passwordHash: true },
+  });
+  if (!user?.passwordHash) {
+    return {
+      ok: false,
+      code: 'NO_PASSWORD',
+      error: 'Set a console password (Account → change password) before you can elevate.',
+    };
+  }
+  if (!input.password || !(await bcrypt.compare(input.password, user.passwordHash))) {
+    return { ok: false, code: 'BAD_PASSWORD', error: 'Password incorrect — re-enter it to elevate.' };
   }
 
   const ttlMinutes = clampTtlMinutes(input.ttlMinutes);
@@ -96,17 +121,28 @@ export async function requestElevation(input: {
       reason: reason.slice(0, 500),
       expiresAt,
       requestedFromIp: input.ip ?? null,
+      sessionVersion: input.sessionVersion,
+      reauthAt: new Date(now),
     },
   });
 
   return { ok: true, token, expiresAt, ttlMinutes };
 }
 
-/** Resolve the cookie token to a still-live elevation row, or null. */
-export async function resolveActiveElevation(token: string | undefined | null) {
+/**
+ * Resolve the cookie token to a still-live elevation row, or null. When
+ * `expectedSessionVersion` is supplied (the guard always does), an elevation
+ * minted under a superseded session epoch resolves to null — WP2 session
+ * binding.
+ */
+export async function resolveActiveElevation(
+  token: string | undefined | null,
+  expectedSessionVersion?: number,
+) {
   if (!token) return null;
   const row = await db.staffElevation.findUnique({ where: { tokenHash: hashToken(token) } });
   if (!row || row.endedAt || row.expiresAt.getTime() <= Date.now()) return null;
+  if (expectedSessionVersion !== undefined && row.sessionVersion !== expectedSessionVersion) return null;
   return row;
 }
 

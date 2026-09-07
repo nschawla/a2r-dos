@@ -37,19 +37,28 @@ const EMPLOYMENT_TYPE_MAP: Record<PrismaEmploymentType, RateRole['employmentType
 };
 
 /**
- * Financial precision (v1.11.0) — the monetary / rate / margin columns are
- * Postgres NUMERIC, so Prisma hands them back as `Decimal`. This adapter is
- * the ONE documented boundary between the Prisma row shape and the plain-
- * `number` shapes `src/lib/calculations/**` works in, so it is also the one
- * place the `Decimal → number` conversion happens. `Number(Decimal)` is
- * exact for any value that fits a double, which every stored figure does
- * (14,2 / 12,4 / 7,4). See migration 00000000000018.
+ * Financial precision — the monetary / rate / margin columns are Postgres
+ * NUMERIC, so Prisma hands them back as `Decimal`. This adapter is the ONE
+ * documented boundary between the Prisma row shape and the calc-engine input
+ * shapes.
+ *
+ * WP2: money / rate values cross as their **exact decimal string**
+ * (`decStr`), not `.toNumber()` — the engine (`src/lib/calculations/money.ts`)
+ * does all `$`/rate arithmetic in `decimal.js` and rounds once at the
+ * accounting boundary. `dec()` (→ `number`) is kept only for the handful of
+ * non-monetary Decimal columns a caller genuinely wants as a number.
  */
-type Dec = { toNumber(): number };
+type Dec = { toNumber(): number; toString(): string };
 function dec(v: Dec): number;
 function dec(v: Dec | null): number | null;
 function dec(v: Dec | null): number | null {
   return v == null ? null : v.toNumber();
+}
+/** Exact decimal string for a NUMERIC column, straight into the engine. */
+function decStr(v: Dec): string;
+function decStr(v: Dec | null): string | null;
+function decStr(v: Dec | null): string | null {
+  return v == null ? null : v.toString();
 }
 
 export function toRateRoles(
@@ -58,8 +67,8 @@ export function toRateRoles(
   return roles.map((r) => ({
     id: r.id,
     name: r.name,
-    billRate: dec(r.billRate),
-    costRate: dec(r.costRate),
+    billRate: decStr(r.billRate),
+    costRate: decStr(r.costRate),
     employmentType: EMPLOYMENT_TYPE_MAP[r.employmentType],
   }));
 }
@@ -88,12 +97,12 @@ export function toSizingInput(project: SizingProjectRow): SizingProjectInput {
   return {
     estimationMode: ESTIMATION_MODE_MAP[project.estimationMode],
     commercialModel: COMMERCIAL_MODEL_MAP[project.commercialModel],
-    contingencyPct: dec(project.contingencyPct),
+    contingencyPct: decStr(project.contingencyPct),
     effortCells: project.effortCells.map((c) => ({ phaseKey: c.phaseKey, roleId: c.roleId, hours: c.hours })),
     directIntake: {
       soldHours: project.directIntakeSoldHours,
-      targetRevenue: dec(project.directIntakeTargetRevenue),
-      blendedMarginPct: dec(project.directIntakeBlendedMarginPct),
+      targetRevenue: decStr(project.directIntakeTargetRevenue),
+      blendedMarginPct: decStr(project.directIntakeBlendedMarginPct),
     },
   };
 }
@@ -104,7 +113,7 @@ export function toFinancialActuals(
   return rows.map((r) => ({
     roleKey: r.roleKey,
     hours: r.hours,
-    cost: dec(r.cost),
+    cost: decStr(r.cost),
     forecastHours: r.forecastHours,
     openRRHours: r.openRRHours,
   }));

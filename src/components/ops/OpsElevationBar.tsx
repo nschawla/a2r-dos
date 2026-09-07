@@ -48,6 +48,7 @@ export function OpsElevationBar({
 
   const [modalOpen, setModalOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const [password, setPassword] = useState('');
   const [ttl, setTtl] = useState<number>(30);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -84,6 +85,7 @@ export function OpsElevationBar({
   const openModal = useCallback(() => {
     setFormError(null);
     setReason('');
+    setPassword('');
     setTtl(choices.includes(30) ? 30 : choices[0] ?? 15);
     setModalOpen(true);
   }, [choices]);
@@ -101,7 +103,7 @@ export function OpsElevationBar({
     setFormError(null);
     startTransition(async () => {
       const outcome = await runAction(
-        () => requestOpsElevationAction({ reason, ttlMinutes: ttl }),
+        () => requestOpsElevationAction({ reason, password, ttlMinutes: ttl }),
         { errorTitle: 'Couldn’t start elevation' },
       );
       if (!outcome.ok) return;
@@ -110,6 +112,7 @@ export function OpsElevationBar({
         return;
       }
       toast({ variant: 'success', title: `Elevated for ${ttl} minutes.` });
+      setPassword('');
       setModalOpen(false);
       expiredRef.current = false;
       router.refresh();
@@ -213,6 +216,21 @@ export function OpsElevationBar({
                 />
               </label>
 
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="text-ink-muted">
+                  Confirm your password <span className="text-ink-faint">(step-up — required to escalate)</span>
+                </span>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  className="input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••"
+                  maxLength={200}
+                />
+              </label>
+
               <div className="flex flex-col gap-1 text-xs">
                 <span className="text-ink-muted">Window</span>
                 <div className="flex gap-2">
@@ -249,7 +267,7 @@ export function OpsElevationBar({
                 </button>
                 <button
                   type="button"
-                  disabled={pending || reason.trim().length < 10}
+                  disabled={pending || reason.trim().length < 10 || password.length < 1}
                   onClick={submit}
                   className={clsx('btn-primary !w-auto px-5 text-xs', pending && 'opacity-60')}
                 >

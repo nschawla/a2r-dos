@@ -1,7 +1,8 @@
 # Just-In-Time (JIT) staff elevation
 
 _Status: shipped in v1.7.0 (P1). Builds on P0 #2 (explicit staff grants) and the
-Impersonation Gateway._
+Impersonation Gateway. **v1.14.0 (WP2)** adds step-up authentication +
+`sessionVersion` binding — see §6._
 _Audience: engineering + security audit._
 
 ## 1. Purpose
@@ -35,16 +36,27 @@ elevation is a platform event, not tenant-scoped).
 | `createdAt` / `expiresAt` | strict TTL — default 30 min, hard cap `OPS_ELEVATION_MAX_MINUTES` (clamped `[5, 240]`, default 60) |
 | `endedAt` / `endedReason` | `'operator'` (explicit drop), `'superseded'` (a newer request), `'expired-sweep'` (reserved for a future cron) |
 | `requestedFromIp` | `x-forwarded-for`, best-effort |
+| `sessionVersion` (v1.14.0) | the `users.sessionVersion` epoch the elevation was minted under. The guard rejects a row whose epoch ≠ the live session — so a password change / `signOutEverywhereAction` (both bump the epoch) invalidates every elevation for that operator **immediately**, on every instance, independently of the session-state machine. |
+| `reauthAt` (v1.14.0) | when the operator last proved a factor for this elevation (= `createdAt`; a column so a future "re-verify within N min" policy has a read point). |
 
 **One live elevation per operator** — a new request ends the previous one
 (`endedReason: 'superseded'`).
+
+**Step-up authentication (v1.14.0).** `requestElevation` requires a fresh
+`bcrypt.compare` against `users.passwordHash` before it will mint a row —
+"fresh authentication" for a credentials session, every time, even
+mid-session. `requestOpsElevationAction` rate-limits the attempt per account
+(`RATE_LIMITS.PASSWORD_CHANGE` tier) so the step-up is not a password oracle.
+SSO-only operators (`passwordHash === null`) get a `NO_PASSWORD` error asking
+them to set a console password first. TOTP / WebAuthn as a true second factor
+is a tracked follow-up.
 
 ## 4. Enforcement
 
 | Layer | File | What it does |
 | --- | --- | --- |
-| Guard | `src/lib/ops-auth.ts` | `requireElevatedOps()` → `{ ok, ops } \| { ok:false, reason: 'NOT_AUTHORIZED' \| 'ELEVATION_REQUIRED' }`. Resolves the cookie via `resolveActiveElevation`, and requires `row.userId === session.user.id`. `getOpsContextOrNull` / `requireOpsContext` are unchanged — read views need only a standing grant, and `OpsContext.elevation` may be `null`. |
-| Service | `src/lib/ops/staff-elevation.ts` | `requestElevation` (needs `hasActiveStaffGrant`, clamps TTL, supersedes), `resolveActiveElevation`, `endElevation`, `hasActiveElevation`, `listElevationHistory`. |
+| Guard | `src/lib/ops-auth.ts` | `requireElevatedOps()` → `{ ok, ops } \| { ok:false, reason: 'NOT_AUTHORIZED' \| 'ELEVATION_REQUIRED' }`. Resolves the cookie via `resolveActiveElevation(token, session.sessionVersion)`, and requires `row.userId === session.user.id`. `getOpsContextOrNull` / `requireOpsContext` are unchanged. |
+| Service | `src/lib/ops/staff-elevation.ts` | `requestElevation` (needs `hasActiveStaffGrant` + **a fresh `bcrypt` password check** + the caller's `sessionVersion`, clamps TTL, supersedes), `resolveActiveElevation` (+ optional `expectedSessionVersion`), `endElevation`, `hasActiveElevation`, `listElevationHistory`. |
 | Actions | `src/server/actions/ops-elevation.ts` | `requestOpsElevationAction` (standing grant only), `endOpsElevationAction` (de-escalation — signed-in is enough). |
 | Mutating ops actions | `ops.ts`, `identity.ts`, `staff-access.ts` | each opens with `requireElevatedOps()` and returns `'ELEVATION_REQUIRED'` verbatim. Covered: provision / suspend / impersonate-start / export / purge / issue+revoke API key, **all 7 identity-federation writes** (via the shared `authorizeSsoAction`), grant+revoke staff. **Not** gated: `endImpersonationAction`, `listTenantApiKeys` (read). |
 | UI | `src/components/ops/OpsElevationBar.tsx` | strip under the Ops Console header — amber "read-only" + **Elevate** modal (reason + 15/30/60 min), or green "Elevated · expires in mm:ss" + **Drop elevation**. Also opens its modal on the `a2r:ops-elevate` window event that `useSafeAction` dispatches when any action returns `ELEVATION_REQUIRED`. Hydration-safe: the countdown renders `··:··` until mounted. |
@@ -66,9 +78,10 @@ same pattern as the Impersonation Gateway.
 ## 6. Verification
 
 - `tests/staff-elevation.test.ts` — the service (grant required, thin reason
-  rejected, TTL clamp, supersede, expiry, idempotent end) and the
+  rejected, **wrong password rejected**, **SSO-only → NO_PASSWORD**, TTL
+  clamp, supersede, expiry, **superseded `sessionVersion` → null**) and the
   `requireElevatedOps` gate (signed-out / no-cookie / live-cookie /
-  wrong-user).
+  wrong-user / **session-epoch bump → `ELEVATION_REQUIRED`**).
 - `e2e/staff-elevation.spec.ts` (Suite P) — read views unelevated; a
   privileged action blocked + no side effect; elevate → the action
   succeeds + shows on the audit trail; drop → blocked again.

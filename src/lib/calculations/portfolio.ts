@@ -18,6 +18,7 @@
  */
 import { computeAuditProgress, computeProjectHealth } from './audit';
 import { computeEacSummary } from './financials';
+import { d, money } from './money';
 import { computeTotalsFor } from './sizing';
 import type { AuditEntryInput, HealthCode, HierarchyLevel, RateRole, SizingProjectInput } from './types';
 import type { FinancialActualInput } from './types';
@@ -50,7 +51,7 @@ export interface PortfolioSummary {
  * contract value still rolls into totalValue for completeness.
  */
 export function computePortfolioSummary(projects: PortfolioProjectInput[], roles: RateRole[]): PortfolioSummary {
-  let totalValue = 0;
+  let totalValueD = d(0);
   let marginSum = 0;
   let marginCount = 0;
   let complianceSum = 0;
@@ -59,7 +60,7 @@ export function computePortfolioSummary(projects: PortfolioProjectInput[], roles
 
   for (const p of projects) {
     const totals = computeTotalsFor(p.sizing, roles);
-    totalValue += totals.contractValue;
+    totalValueD = totalValueD.plus(d(totals.contractValue));
     if (totals.totalHours > 0) {
       marginSum += totals.marginPct;
       marginCount++;
@@ -72,7 +73,7 @@ export function computePortfolioSummary(projects: PortfolioProjectInput[], roles
   }
 
   return {
-    totalValue,
+    totalValue: money(totalValueD),
     avgMarginPct: marginCount > 0 ? marginSum / marginCount : 0,
     hasMargin: marginCount > 0,
     avgCompliancePct: complianceCount > 0 ? complianceSum / complianceCount : 0,
@@ -117,32 +118,34 @@ export function computeProgramRollup(
   childProjects: ProgramChildInput[],
   roles: RateRole[]
 ): ProgramRollup {
-  let totalContractValue = 0;
-  let totalRevenue = 0;
-  let totalEacCost = 0;
+  let totalContractValueD = d(0);
+  let totalRevenueD = d(0);
+  let totalEacCostD = d(0);
   let totalOpenRRHours = 0;
   let worstHealth: HealthCode = 'G';
 
   for (const c of childProjects) {
     const totals = computeTotalsFor(c.sizing, roles);
     const eac = computeEacSummary(c.sizing, roles, c.financialActuals);
-    totalContractValue += totals.contractValue;
-    totalRevenue += totals.revenue;
-    totalEacCost += eac.totalEacCost;
+    totalContractValueD = totalContractValueD.plus(d(totals.contractValue));
+    totalRevenueD = totalRevenueD.plus(d(totals.revenue));
+    totalEacCostD = totalEacCostD.plus(d(eac.totalEacCost));
     totalOpenRRHours += eac.totalOpenRRHours;
 
     const health = computeProjectHealth({ locked: c.locked, auditEntries: c.auditEntries });
     if (HEALTH_RANK[health.code] > HEALTH_RANK[worstHealth]) worstHealth = health.code;
   }
 
-  const blendedEacMarginPct = totalRevenue > 0 ? ((totalRevenue - totalEacCost) / totalRevenue) * 100 : 0;
+  const blendedEacMarginPct = totalRevenueD.gt(0)
+    ? totalRevenueD.minus(totalEacCostD).div(totalRevenueD).times(100).toNumber()
+    : 0;
 
   return {
     parentId: parentProject.id,
     childCount: childProjects.length,
-    totalContractValue,
-    totalRevenue,
-    totalEacCost,
+    totalContractValue: money(totalContractValueD),
+    totalRevenue: money(totalRevenueD),
+    totalEacCost: money(totalEacCostD),
     blendedEacMarginPct,
     totalOpenRRHours,
     health: childProjects.length ? worstHealth : 'NA',

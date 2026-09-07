@@ -114,6 +114,8 @@ test.describe('Suite P — JIT staff elevation', () => {
     await bar.getByRole('button', { name: 'Elevate' }).click();
     const modal = page.getByRole('dialog', { name: /Request privilege elevation/ });
     await modal.locator('textarea').fill(ELEVATION_REASON);
+    // WP2 — step-up: the operator re-confirms their password to escalate.
+    await modal.locator('input[type="password"]').fill(OPS_PW);
     await modal.getByRole('button', { name: '15 min' }).click();
     await modal.getByRole('button', { name: 'Elevate', exact: true }).click();
 

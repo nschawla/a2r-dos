@@ -17,6 +17,8 @@ import { revalidatePath } from 'next/cache';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getOpsContextOrNull } from '@/lib/ops-auth';
+import { rateLimitByUser } from '@/lib/rate-limit-action';
+import { RATE_LIMITS } from '@/lib/rate-limits';
 import {
   ELEVATION_COOKIE,
   requestElevation,
@@ -31,15 +33,23 @@ export type ElevationActionResult =
 
 const requestSchema = z.strictObject({
   reason: z.string().min(10, 'A reason of at least 10 characters is required.').max(500),
+  // WP2 — step-up: the operator re-enters their password to escalate.
+  password: z.string().min(1, 'Re-enter your password to elevate.').max(200),
   ttlMinutes: z.coerce.number().int().positive().optional(),
 });
 
 export const requestOpsElevationAction = withAction('requestOpsElevationAction', async (input: unknown): Promise<ElevationActionResult> => {
+  const session = await getServerSession(authOptions);
   const ops = await getOpsContextOrNull();
-  if (!ops) return { ok: false, error: 'Not authorized.' };
+  if (!ops || !session?.user) return { ok: false, error: 'Not authorized.' };
 
   const parsed = requestSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
+
+  // Each attempt runs a bcrypt compare — cap the rate per account so the
+  // step-up cannot be used as a password oracle.
+  const limited = await rateLimitByUser('ops-elevate', ops.userId, RATE_LIMITS.PASSWORD_CHANGE);
+  if (limited) return { ok: false, error: 'Too many elevation attempts. Wait a minute and try again.' };
 
   const fwd = (await headers()).get('x-forwarded-for');
   const ip = fwd ? fwd.split(',')[0]?.trim() ?? null : null;
@@ -47,10 +57,12 @@ export const requestOpsElevationAction = withAction('requestOpsElevationAction',
   const result = await requestElevation({
     userId: ops.userId,
     reason: parsed.data.reason,
+    password: parsed.data.password,
+    sessionVersion: session.sessionVersion ?? 0,
     ttlMinutes: parsed.data.ttlMinutes ?? DEFAULT_TTL_MINUTES,
     ip,
   });
-  if (!result.ok) return result;
+  if (!result.ok) return { ok: false, error: result.error };
 
   (await cookies()).set(ELEVATION_COOKIE, result.token, {
     httpOnly: true,

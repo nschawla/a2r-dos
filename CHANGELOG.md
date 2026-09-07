@@ -10,6 +10,52 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.14.0] — 2026-09-07
+
+_Work Package 2 — ChatGPT final audit blockers: exact-decimal financial
+arithmetic, JIT-elevation step-up + session binding, test-rig prod isolation._
+
+### Changed
+
+- **Exact-decimal financial arithmetic through the calc engine.** `decimal.js`
+  is now a direct dependency; `src/lib/calculations/money.ts` gives the engine
+  `d()` / `roundMoney()` / `money()` / `sumMoney()`. `sizing.ts`,
+  `financials.ts` and `portfolio.ts` accumulate every `$` amount and rate in
+  exact decimal — no IEEE-754 drift when summing hundreds of `hours × rate`
+  products or many `eacCost` rows — and round **once** at the accounting
+  boundary: **`$` amounts → HALF_UP, 2 dp**; rates full-precision;
+  percentages / ratios / hours computed from the exact decimals in a single
+  operation (no accumulation) and left as `number`. The engine's public
+  output contract is unchanged (fields stay `number`), so consumers and
+  RSC→Client serialization are untouched. `calc-adapters.ts` passes the exact
+  `NUMERIC` string across the boundary; `executive-briefing.ts` — the one
+  query that re-aggregates engine money output — switches to decimal
+  accumulation. New `tests/calculations-precision.test.ts` proves the drift
+  is gone (400-cell matrix, 150-project portfolio, 60-row EAC).
+- **JIT staff elevation — step-up auth + session binding** (migration
+  `00000000000023`, applied production & staging). `requestElevation` now
+  requires a **fresh password verification** (`bcrypt.compare`) before it
+  will mint a `staff_elevations` row — "fresh authentication" for a
+  credentials session — and the attempt is rate-limited per account. The row
+  records the `users.sessionVersion` epoch it was minted under and a
+  `reauthAt` timestamp; `src/lib/ops-auth.ts` rejects an elevation whose
+  epoch no longer matches the live session, so a password change or
+  `signOutEverywhereAction` kills every elevation for that operator
+  immediately, on every instance. SSO-only operators (no `passwordHash`) are
+  told to set a console password. The `OpsElevationBar` modal gains a
+  password field.
+- **Test-rig production isolation.** `tests/setup.ts` and a new
+  `e2e/global-setup.ts` resolve the test DB from `TEST_DATABASE_URL` →
+  `.env.test` → `.env` and **refuse to run** if it is the production
+  database (`A2R_ALLOW_PROD_TESTS=1` is a documented single-machine
+  break-glass). The Vitest DB-integration suites and the Playwright suite
+  (which provision + purge tenants) now run only against staging or a local
+  Postgres. `npm run db:rls:smoke` inherits the same guard. Production
+  acceptance is the new **`npm run db:rls:verify`** (`scripts/rls-prod-verify.ts`)
+  — pure `pg_catalog` / `information_schema` SELECTs, **zero DML**.
+
+---
+
 ## [1.13.0] — 2026-09-06
 
 _Work Package 1 — ChatGPT Round-4 audit blockers: engine-level ledger

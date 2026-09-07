@@ -66,9 +66,10 @@ async function toOpsContext(session: Session): Promise<OpsContext> {
 
   const userId = session.user.id;
   const token = (await cookies()).get(ELEVATION_COOKIE)?.value;
-  const row = await resolveActiveElevation(token);
-  // Bind to the authenticated session: a stolen / stale cookie whose row
-  // belongs to a different account confers nothing.
+  // WP2 — bind to BOTH the user id AND the session epoch: an elevation minted
+  // under a superseded `sessionVersion` (password change, sign-out-everywhere)
+  // resolves to null, so it dies the instant the session rotates/revokes.
+  const row = await resolveActiveElevation(token, session.sessionVersion);
   const elevation = row && row.userId === userId ? toElevationView(row) : null;
 
   return {

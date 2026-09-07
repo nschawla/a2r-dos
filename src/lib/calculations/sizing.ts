@@ -15,6 +15,7 @@
  */
 import { PHASES, WORKSTREAM_PHASE_HOURS, COMPLEXITY_MULT } from '../constants';
 import { numOr } from './_internal';
+import { d, money, rate, roundMoney } from './money';
 import type { EffortMatrix, RateRole, ScopeItemInput, SizingProjectInput } from './types';
 
 export interface SizingTotals {
@@ -53,34 +54,53 @@ export function computeTotalsFor(project: SizingProjectInput, roles: RateRole[])
   if (project.estimationMode === 'direct') {
     const di = project.directIntake ?? { soldHours: 0, targetRevenue: 0, blendedMarginPct: 0 };
     const totalHours = numOr(di.soldHours, 0);
-    const revenue = numOr(di.targetRevenue, 0);
-    const marginPct = numOr(di.blendedMarginPct, 0);
-    const cost = revenue * (1 - marginPct / 100);
-    const blended = totalHours > 0 ? revenue / totalHours : 0;
-    const contingencyAmt = project.commercialModel === 'ff' ? revenue * (numOr(project.contingencyPct, 0) / 100) : 0;
-    const contractValue = revenue + contingencyAmt;
-    return { totalHours, revenue, cost, blended, contingencyAmt, contractValue, marginPct, phaseTotals, roleTotals };
+    const revenueD = d(di.targetRevenue);
+    const marginPctD = d(di.blendedMarginPct);
+    // cost back-solved from the stated blended margin: revenue × (1 − m/100)
+    const costD = revenueD.times(d(1).minus(marginPctD.div(100)));
+    const contingencyD =
+      project.commercialModel === 'ff' ? revenueD.times(d(project.contingencyPct).div(100)) : d(0);
+    return {
+      totalHours,
+      revenue: money(revenueD),
+      cost: money(costD),
+      blended: totalHours > 0 ? rate(revenueD.div(totalHours)) : 0,
+      contingencyAmt: money(contingencyD),
+      contractValue: money(roundMoney(revenueD).plus(roundMoney(contingencyD))),
+      marginPct: marginPctD.toNumber(),
+      phaseTotals,
+      roleTotals,
+    };
   }
 
   const roleById = new Map(roles.map((r) => [r.id, r]));
   let totalHours = 0;
-  let revenue = 0;
-  let cost = 0;
+  let revenueD = d(0);
+  let costD = d(0);
   for (const cell of project.effortCells) {
     const role = roleById.get(cell.roleId);
     if (!role) continue;
     const hrs = numOr(cell.hours, 0);
     totalHours += hrs;
-    revenue += hrs * role.billRate;
-    cost += hrs * role.costRate;
+    revenueD = revenueD.plus(d(hrs).times(d(role.billRate)));
+    costD = costD.plus(d(hrs).times(d(role.costRate)));
     phaseTotals[cell.phaseKey] = (phaseTotals[cell.phaseKey] ?? 0) + hrs;
     roleTotals[cell.roleId] = (roleTotals[cell.roleId] ?? 0) + hrs;
   }
-  const blended = totalHours > 0 ? revenue / totalHours : 0;
-  const contingencyAmt = project.commercialModel === 'ff' ? revenue * (numOr(project.contingencyPct, 0) / 100) : 0;
-  const contractValue = revenue + contingencyAmt;
-  const marginPct = revenue > 0 ? ((revenue - cost) / revenue) * 100 : 0;
-  return { totalHours, revenue, cost, blended, contingencyAmt, contractValue, marginPct, phaseTotals, roleTotals };
+  const contingencyD =
+    project.commercialModel === 'ff' ? revenueD.times(d(project.contingencyPct).div(100)) : d(0);
+  return {
+    totalHours,
+    revenue: money(revenueD),
+    cost: money(costD),
+    blended: totalHours > 0 ? rate(revenueD.div(totalHours)) : 0,
+    contingencyAmt: money(contingencyD),
+    contractValue: money(roundMoney(revenueD).plus(roundMoney(contingencyD))),
+    // % from the exact-decimal revenue/cost — one division, no accumulation.
+    marginPct: revenueD.gt(0) ? revenueD.minus(costD).div(revenueD).times(100).toNumber() : 0,
+    phaseTotals,
+    roleTotals,
+  };
 }
 
 export interface MarginModelerResult {
@@ -103,14 +123,26 @@ export interface MarginModelerResult {
  * cost recovery and is mathematically undefined here, same as the prototype).
  */
 export function computeMarginModeler(totals: SizingTotals, targetMarginPct: number): MarginModelerResult {
-  const cost = totals.cost;
-  const hasBasis = totals.totalHours > 0 && cost > 0;
+  // `requiredRevenue` / `requiredBlendedRate` / `diff` are what-if modelling
+  // figures, not booked amounts — computed exactly (decimal.js) but returned
+  // full-precision, like a rate. Only positions that represent real money
+  // (revenue / cost / contractValue / EAC) round to cents.
+  const costD = d(totals.cost);
+  const revD = d(totals.revenue);
+  const hasBasis = totals.totalHours > 0 && costD.gt(0);
   const clampedTarget = Math.max(0, Math.min(99, targetMarginPct));
-  const requiredRevenue = hasBasis ? cost / (1 - clampedTarget / 100) : 0;
-  const requiredBlendedRate = hasBasis && totals.totalHours > 0 ? requiredRevenue / totals.totalHours : 0;
-  const diff = totals.revenue - requiredRevenue;
-  const diffPct = totals.revenue > 0 ? (diff / totals.revenue) * 100 : 0;
-  return { hasBasis, requiredRevenue, requiredBlendedRate, diff, diffPct };
+  const requiredRevenueD = hasBasis ? costD.div(d(1).minus(d(clampedTarget).div(100))) : d(0);
+  const requiredRevenue = requiredRevenueD.toNumber();
+  const requiredBlendedRate =
+    hasBasis && totals.totalHours > 0 ? requiredRevenueD.div(totals.totalHours).toNumber() : 0;
+  const diffD = revD.minus(requiredRevenueD);
+  return {
+    hasBasis,
+    requiredRevenue,
+    requiredBlendedRate,
+    diff: diffD.toNumber(),
+    diffPct: revD.gt(0) ? diffD.div(revD).times(100).toNumber() : 0,
+  };
 }
 
 /**
@@ -146,7 +178,7 @@ export function seniorityWeightsForPhase(phaseKey: string, rolesSortedByBillRate
  * from the phase total. That's expected, not a bug.
  */
 export function suggestMatrixForProject(scope: ScopeItemInput[], roles: RateRole[]): EffortMatrix {
-  const rolesSorted = [...roles].sort((a, b) => b.billRate - a.billRate);
+  const rolesSorted = [...roles].sort((a, b) => d(b.billRate).minus(d(a.billRate)).toNumber());
 
   // Built as a Map first (not the plain-object EffortMatrix) so every
   // per-phase row lookup below is a normal Map#get, not an indexed access

@@ -27,24 +27,37 @@
  *      (REVOKE + BEFORE trigger, migration 21) — SELECT/INSERT still work.
  *
  * Exit 0 = all enforced, OR the `a2r_app` role does not exist yet (dormant —
- * expected on production and any environment before migrations 16+17).
+ * expected before migrations 16+17).
  * Exit 1 = a leak or a missing policy.
+ *
+ * WP2 — this script WRITES throwaway rows (UPSERT / ingestion checks). It
+ * REFUSES to run against production; use `npm run db:rls:verify`
+ * (scripts/rls-prod-verify.ts — read-only) for prod acceptance.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient, Prisma } from '@prisma/client';
+import { assertNonProductionTestDb } from '../tests/helpers/db-target';
 
-function loadEnv(): void {
-  if (process.env.DATABASE_URL) return;
+function loadEnvFile(file: string): void {
   try {
-    const raw = readFileSync(join(process.cwd(), '.env'), 'utf8');
+    const raw = readFileSync(join(process.cwd(), file), 'utf8');
     for (const line of raw.split(/\r?\n/)) {
       const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
       if (m && m[1] && !process.env[m[1]]) process.env[m[1]] = m[2]!.replace(/^["']|["']$/g, '');
     }
   } catch {
-    /* none */
+    /* absent */
   }
+}
+
+function loadEnv(): void {
+  if (!process.env.DATABASE_URL) {
+    loadEnvFile('.env.test');
+    loadEnvFile('.env');
+  }
+  // WP2 — this script mutates; never let it hit production.
+  process.env.DATABASE_URL = assertNonProductionTestDb('vitest');
 }
 
 const TENANT_TABLES = [

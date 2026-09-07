@@ -246,6 +246,7 @@ export const authOptions: AuthOptions = {
         session.user.isA2rStaff = token.isA2rStaff === true;
         session.user.mustChangePassword = token.mustChangePassword === true;
         session.memberships = (token.memberships as typeof session.memberships) ?? [];
+        session.sessionVersion = token.sessionVersion as number | undefined;
       }
       return session;
     },
