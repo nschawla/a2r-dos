@@ -10,6 +10,57 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.15.0] — 2026-09-07
+
+_Post-v1.14.0 hardening batches (ChatGPT recommendations): rate-limiter
+fail-closed posture, and a mandatory second factor for operator elevation._
+
+### Security
+
+- **Distributed rate limiter fails closed in production.**
+  `src/lib/rate-limiter-redis.ts` `hitDistributed()`: when a shared Upstash
+  backend **is** configured (`UPSTASH_REDIS_REST_URL` / `_TOKEN`) and a
+  `client.eval` call throws, production now **denies** the request (`429` +
+  one `error`-level report) instead of silently degrading to the
+  per-instance limiter. A deployment with **no** Upstash backend keeps the
+  in-process limiter — a deliberate, accepted posture — and falls back
+  cleanly (one `info` breadcrumb). Non-production always falls back. Escape
+  hatch `RL_ALLOW_INPROCESS_FALLBACK=1` restores fail-open after a
+  configured-Redis failure for a sustained outage (non-production behaviour
+  in prod, reported once at `warning`).
+- **Mandatory operator second factor (TOTP) for JIT elevation** (migration
+  `00000000000024`, applied production & staging). On top of the password
+  step-up (v1.14.0), `requestElevation` now calls `verifySecondFactor`: a
+  6-digit RFC 6238 code from an authenticator app, or a single-use recovery
+  code, checked against the operator's `operator_mfa` row. The TOTP secret
+  is AES-256-GCM sealed at rest (`src/lib/crypto/secret-box.ts`); a
+  `lastStepCounter` high-water mark rejects a replayed code inside its
+  validity window; 10 SHA-256-hashed recovery codes are issued once at
+  enrollment. **Hard cut-over** — an operator with no activated factor
+  cannot elevate until they enroll at **`/ops/security`** (self-service:
+  standing grant + a fresh password check — you cannot MFA-gate the MFA
+  setup). Rotating an active factor needs a live elevation; **disabling**
+  one is CLI-only (`npm run ops:mfa:reset -- <email>`) so a phished password
+  cannot strip MFA. `OperatorMfa` is a platform table (`UNSCOPED_MODELS`);
+  `staff_elevations.secondFactorAt` records the proof. WebAuthn / passkeys
+  is the tracked AAL2 (phishing-resistant) upgrade at the same seam.
+
+### Added
+
+- **Ops Console → Operator Security** (`/ops/security`) — authenticator
+  enrollment ceremony: QR code + manual key, confirm a live code, then save
+  ten one-time recovery codes. `scripts/ops-mfa.ts` +
+  `npm run ops:mfa:status` / `ops:mfa:reset`.
+- `otplib` + `qrcode` dependencies; `src/lib/ops/operator-mfa.ts`,
+  `src/lib/crypto/secret-box.ts`. Tests: `tests/operator-mfa.test.ts`,
+  `tests/secret-box.test.ts`, `tests/rate-limiter-redis.test.ts` (+3),
+  `tests/staff-elevation.test.ts` (+3). `e2e/global-setup.ts` seeds an
+  activated factor for the suite's operators;
+  `OPS_MFA_ALLOW_REPLAY=1` (non-production, set by `playwright.config.ts`)
+  disables only the anti-replay check for the suite.
+
+---
+
 ## [1.14.0] — 2026-09-07
 
 _Work Package 2 — ChatGPT final audit blockers: exact-decimal financial

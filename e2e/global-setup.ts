@@ -1,6 +1,40 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { PrismaClient } from '@prisma/client';
 import { assertNonProductionTestDb } from '../tests/helpers/db-target';
+import { seal } from '../src/lib/crypto/secret-box';
+import { E2E_OPERATOR_MFA_SECRET } from './helpers/ops-mfa';
+
+/** Operators the Playwright suite elevates — each needs an activated
+ * `operator_mfa` row (Batch 2) so `elevateOps` can pass a live TOTP code. */
+const OPERATOR_EMAILS = ['ops@a2rventures.com', 'master.e2e@a2rventures.com'];
+
+async function seedOperatorMfa(): Promise<void> {
+  const db = new PrismaClient();
+  try {
+    for (const email of OPERATOR_EMAILS) {
+      const user = await db.user.findUnique({ where: { email }, select: { id: true } });
+      if (!user) continue;
+      await db.operatorMfa.upsert({
+        where: { userId: user.id },
+        create: {
+          userId: user.id,
+          secretCiphertext: seal(E2E_OPERATOR_MFA_SECRET),
+          activatedAt: new Date(),
+          recoveryCodeHashes: [],
+        },
+        update: {
+          secretCiphertext: seal(E2E_OPERATOR_MFA_SECRET),
+          pendingSecretCiphertext: null,
+          activatedAt: new Date(),
+          lastStepCounter: null,
+        },
+      });
+    }
+  } finally {
+    await db.$disconnect();
+  }
+}
 
 /**
  * WP2 — the Playwright suite provisions and purges tenants and creates /
@@ -38,6 +72,10 @@ export default async function globalSetup(): Promise<void> {
 
   // eslint-disable-next-line no-console
   console.log(`[e2e] target DB pinned to non-production (${url.replace(/:[^:@/]+@/, ':****@')})`);
+
+  await seedOperatorMfa();
+  // eslint-disable-next-line no-console
+  console.log('[e2e] operator MFA seeded for elevation flows');
 }
 
 function readVar(file: string, key: string): string | undefined {

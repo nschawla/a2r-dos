@@ -184,6 +184,18 @@ Plane (`/ops`). It has two levels as of v1.7.0:
   so a password change or a global sign-out invalidates every elevation for
   that operator instantly, on every serverless instance. SSO-only operators
   (no `passwordHash`) must set a console password before they can elevate.
+  **Mandatory second factor (Batch 2).** On top of the password, every
+  elevation requires a valid **TOTP code** (RFC 6238 authenticator app) or a
+  single-use recovery code, checked against the operator's `operator_mfa`
+  row (migration 24). The secret is AES-256-GCM sealed at rest
+  (`src/lib/crypto/secret-box.ts`); a `lastStepCounter` high-water mark
+  rejects a replayed code inside its validity window; 10 SHA-256-hashed
+  recovery codes are issued once at enrollment. Hard cut-over — an operator
+  with no activated factor cannot elevate until they enroll at
+  `/ops/security` (self-service: standing grant + password). Disabling a
+  factor is CLI-only (`npm run ops:mfa:reset`) — a phished password cannot
+  strip MFA. Phishing-resistant WebAuthn / passkeys is the tracked AAL2
+  upgrade at the same `verifySecondFactor` seam.
   **As of v1.8.0 the cookie token is stored hashed** — the `staff_elevations`
   / `impersonation_grants` rows keep only `sha256(secret)` (`tokenHash`), the
   256-bit plaintext lives solely in the httpOnly cookie, and lookup is by

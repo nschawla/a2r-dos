@@ -29,12 +29,15 @@ import {
 
 export type ElevationActionResult =
   | { ok: true; expiresAt: string; ttlMinutes: number }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: 'MFA_SETUP_REQUIRED' | 'BAD_MFA' | 'BAD_PASSWORD' | 'NO_PASSWORD' };
 
 const requestSchema = z.strictObject({
   reason: z.string().min(10, 'A reason of at least 10 characters is required.').max(500),
   // WP2 — step-up: the operator re-enters their password to escalate.
   password: z.string().min(1, 'Re-enter your password to elevate.').max(200),
+  // Batch 2 — mandatory second factor: a 6-digit TOTP code or an
+  // `XXXXX-XXXXX` recovery code.
+  totpCode: z.string().min(6, 'Enter the 6-digit code from your authenticator app.').max(20),
   ttlMinutes: z.coerce.number().int().positive().optional(),
 });
 
@@ -58,11 +61,12 @@ export const requestOpsElevationAction = withAction('requestOpsElevationAction',
     userId: ops.userId,
     reason: parsed.data.reason,
     password: parsed.data.password,
+    totpCode: parsed.data.totpCode,
     sessionVersion: session.sessionVersion ?? 0,
     ttlMinutes: parsed.data.ttlMinutes ?? DEFAULT_TTL_MINUTES,
     ip,
   });
-  if (!result.ok) return { ok: false, error: result.error };
+  if (!result.ok) return { ok: false, error: result.error, code: result.code };
 
   (await cookies()).set(ELEVATION_COOKIE, result.token, {
     httpOnly: true,

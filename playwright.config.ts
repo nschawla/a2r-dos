@@ -44,6 +44,13 @@ import { assertNonProductionTestDb } from './tests/helpers/db-target';
       return undefined;
     })();
   if (testDirect) process.env.DIRECT_URL = testDirect;
+
+  // Batch 2 — the suite legitimately elevates the same seeded operator from
+  // independent tests inside one 30 s TOTP window; disable ONLY the
+  // anti-replay high-water check for the dev server (the code is still
+  // verified). Ignored when NODE_ENV=production. global-setup seeds the
+  // operators' `operator_mfa` rows.
+  process.env.OPS_MFA_ALLOW_REPLAY = '1';
 }
 
 const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';

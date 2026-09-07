@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import { e2eOperatorTotp } from './helpers/ops-mfa';
 
 /**
  * Suite J — Enterprise Identity & Governance E2E.
@@ -104,6 +105,7 @@ async function elevateOps(
   const dialog = p.getByRole('dialog', { name: /Request privilege elevation/ });
   await dialog.locator('textarea').fill(reason);
   await dialog.locator('input[type="password"]').fill(password); // WP2 step-up
+  await dialog.locator('input[autocomplete="one-time-code"]').fill(e2eOperatorTotp()); // Batch 2 — 2FA
   await dialog.getByRole('button', { name: '60 min' }).click();
   await dialog.getByRole('button', { name: 'Elevate', exact: true }).click();
   await expect(bar).toHaveAttribute('data-elevation', 'active', { timeout: 15_000 });

@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import { e2eOperatorTotp } from './helpers/ops-mfa';
 
 /**
  * Suite P — Just-In-Time (JIT) staff elevation (P1).
@@ -116,6 +117,8 @@ test.describe('Suite P — JIT staff elevation', () => {
     await modal.locator('textarea').fill(ELEVATION_REASON);
     // WP2 — step-up: the operator re-confirms their password to escalate.
     await modal.locator('input[type="password"]').fill(OPS_PW);
+    // Batch 2 — second factor: a live TOTP code (seeded in global-setup).
+    await modal.locator('input[autocomplete="one-time-code"]').fill(e2eOperatorTotp());
     await modal.getByRole('button', { name: '15 min' }).click();
     await modal.getByRole('button', { name: 'Elevate', exact: true }).click();
 

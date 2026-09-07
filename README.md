@@ -1982,6 +1982,50 @@ zero DML). Migration 23 rehearsed (`BEGIN … ROLLBACK`) then applied to both
 databases. The prod-pointed test runs of earlier work packages are no longer
 possible — the guard aborts them.
 
+## Phase 12 — hardening batches: rate-limiter fail-closed, operator MFA step-up (v1.15.0)
+
+Post-v1.14.0, executing ChatGPT's remaining hardening recommendations as
+numbered batches.
+
+### FRD — functional summary
+
+- **Batch 1 — distributed rate limiter fails closed in production.**
+  `src/lib/rate-limiter-redis.ts` `hitDistributed()`: with a shared Upstash
+  backend configured, a failing `client.eval` in production now **denies**
+  the request (`429` + `error`-level report) rather than silently dropping
+  to the per-instance limiter. No backend configured ⇒ in-process limiter,
+  clean fallback everywhere (prod leaves one `info` breadcrumb).
+  Non-production always falls back. Escape hatch
+  `RL_ALLOW_INPROCESS_FALLBACK=1` (non-production behaviour in prod, for a
+  sustained outage).
+- **Batch 2 — mandatory operator second factor (TOTP)** (migration
+  `00000000000024`, prod + staging). `requestElevation` calls
+  `verifySecondFactor` after the password step-up: a 6-digit RFC 6238 code
+  or a single-use recovery code, against the operator's `operator_mfa` row.
+  Secret AES-256-GCM sealed (`src/lib/crypto/secret-box.ts`);
+  `lastStepCounter` anti-replay; 10 SHA-256-hashed recovery codes issued
+  once. **Hard cut-over** — no activated factor ⇒ `MFA_SETUP_REQUIRED`.
+  Enrollment is self-service at **`/ops/security`** (standing grant + fresh
+  password); rotation needs a live elevation; disabling is CLI-only
+  (`npm run ops:mfa:reset`). `otplib` + `qrcode` added.
+
+### RTM — requirements traceability (Phase 12)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| B1-RL-1 | Prod fails closed when a configured Upstash call fails | `src/lib/rate-limiter-redis.ts` | `tests/rate-limiter-redis.test.ts` (production failure policy) |
+| B1-RL-2 | No backend configured ⇒ clean in-process fallback, all envs | `src/lib/rate-limiter-redis.ts` | `tests/rate-limiter-redis.test.ts` |
+| B2-MFA-1 | Elevation requires a valid TOTP / recovery code | `src/lib/ops/staff-elevation.ts`, `src/lib/ops/operator-mfa.ts` | `tests/staff-elevation.test.ts`, `tests/operator-mfa.test.ts` |
+| B2-MFA-2 | TOTP secret encrypted at rest; anti-replay enforced | `src/lib/crypto/secret-box.ts`, `src/lib/ops/operator-mfa.ts` | `tests/secret-box.test.ts`, `tests/operator-mfa.test.ts` (replay) |
+| B2-MFA-3 | Self-service enrollment; CLI-only disable | `src/app/(admin)/ops/security/**`, `src/server/actions/ops-mfa.ts`, `scripts/ops-mfa.ts` | `e2e/staff-elevation.spec.ts` (Suite P), `e2e/global-setup.ts` |
+| B2-MFA-4 | Elevation records the second-factor proof | migration 24 (`staff_elevations.secondFactorAt`) | `tests/staff-elevation.test.ts` (happy path) |
+
+**Verification:** `npx tsc --noEmit` → 0; `npm run lint` → 0/0;
+`npx prisma validate` → clean; `npx vitest run` → **644 passed** (55 files)
+on **staging**; `npm run build` → clean; `npx playwright test` → **60 passed**
+on staging. Migration 24 rehearsed (`BEGIN … ROLLBACK`) then applied to
+production and staging (additive: one table + one nullable column).
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to

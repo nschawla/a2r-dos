@@ -13,7 +13,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   // Runtime queries. On serverless (Vercel) this MUST be a connection
   // pooler URL — Supabase's direct host (db.<ref>.supabase.co) is
   // IPv6-only and Vercel functions have no IPv6 egress, so a direct URL
@@ -60,19 +60,19 @@ model User {
   // NextAuth jwt callback and is REVOKED. See docs/SESSION_STATE_MACHINE.md.
   sessionVersion Int @default(0)
 
-  createdAt DateTime @updatedAt @default(now())
+  createdAt DateTime @default(now()) @updatedAt
   updatedAt DateTime @updatedAt
 
-  accounts    Account[]
-  sessions    Session[]
-  memberships Membership[]
-  activity    ActivityLogEntry[]
+  accounts          Account[]
+  sessions          Session[]
+  memberships       Membership[]
+  activity          ActivityLogEntry[]
   // A user can be the login for at most one Resource (roster entry) per
   // org — see Resource.userId. A consultant working across client
   // instances can still be a different Resource in each org.
-  resourceLinks Resource[]
+  resourceLinks     Resource[]
   // WP6 — every AuditLog row this user was the actor for.
-  auditLogs   AuditLog[]
+  auditLogs         AuditLog[]
   // WP7 — every batch this user has staged via the Self-Service Ingestion
   // Portal.
   dataImportBatches DataImportBatch[]
@@ -86,6 +86,8 @@ model User {
   // has requested (see StaffElevation). A standing StaffGrant is only
   // eligibility; a mutating /ops action needs a live row here.
   staffElevations   StaffElevation[]
+  // Batch 2 — this operator's mandatory second factor (TOTP) for elevation.
+  operatorMfa       OperatorMfa?
 
   @@map("users")
 }
@@ -159,6 +161,10 @@ model StaffElevation {
   // for this elevation (= a fresh bcrypt password verification).
   sessionVersion  Int       @default(0)
   reauthAt        DateTime?
+  // Batch 2 — when the operator proved a SECOND factor (TOTP / recovery
+  // code) for this elevation. Non-null on every elevation minted after the
+  // operator-MFA requirement shipped; the elevation audit view surfaces it.
+  secondFactorAt  DateTime?
 
   // onDelete: Restrict — the JIT-elevation audit trail must outlive a raw
   // `User` DELETE (see StaffGrant.user). These rows ARE the elevation
@@ -168,6 +174,48 @@ model StaffElevation {
 
   @@index([userId, expiresAt])
   @@map("staff_elevations")
+}
+
+// A2R Operator Control Plane — Batch 2: mandatory second factor (TOTP) for
+// JIT privilege elevation. One row per operator; a live `staff_grants`
+// entitlement + an **activated** row here + a fresh password re-check are
+// all required to elevate (src/lib/ops/staff-elevation.ts →
+// src/lib/ops/operator-mfa.ts). Not tenant data — a platform table, in
+// UNSCOPED_MODELS. See docs/JIT_STAFF_ELEVATION.md.
+model OperatorMfa {
+  id                      String    @id @default(cuid())
+  userId                  String    @unique
+  // The ACTIVE RFC 6238 (TOTP) shared secret, AES-256-GCM encrypted at rest
+  // (src/lib/crypto/secret-box.ts — a TOTP secret can't be hashed, it must
+  // be recoverable to verify). Null before the first successful activation.
+  secretCiphertext        String?
+  // A not-yet-confirmed secret from `beginEnrollment` / `rotateSecret`.
+  // `activateEnrollment` promotes it to `secretCiphertext` once the operator
+  // proves one live code. An abandoned enrollment just leaves it stale.
+  pendingSecretCiphertext String?
+  // Null until the operator confirms one valid code — until then the row is
+  // a pending enrollment and does NOT satisfy the elevation requirement.
+  activatedAt             DateTime?
+  createdAt               DateTime  @default(now())
+  lastUsedAt              DateTime?
+  // Anti-replay: the TOTP time-step counter of the last accepted code. A
+  // code whose counter is <= this is rejected even if otherwise in-window,
+  // so a shoulder-surfed / captured code cannot be reused inside its ~90s
+  // validity.
+  lastStepCounter         BigInt?
+  // 10 single-use recovery codes, SHA-256-hashed (shown once at
+  // enrollment). High-entropy random, so a fast digest — like the bearer
+  // tokens — is the right primitive, not a password KDF. A used code's hash
+  // is removed from the array.
+  recoveryCodeHashes      Json?
+
+  // onDelete: Cascade — this is credential material, not an audit record
+  // (unlike StaffGrant / StaffElevation). If the User row is ever hard
+  // deleted the secret goes with it; operators are normally anonymised in
+  // place, which leaves this row harmlessly orphaned-by-value.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("operator_mfa")
 }
 
 // Standard Auth.js (NextAuth) Prisma adapter models — kept so OAuth providers
@@ -310,41 +358,41 @@ model Organization {
   // Data Sovereignty & Offboarding — soft-delete marker set by the Purge
   // Protocol (rows are retained but the tenant is excluded from all
   // operator + client surfaces); and the last successful data-export time.
-  purgedAt        DateTime?
-  dataExportedAt  DateTime?
+  purgedAt       DateTime?
+  dataExportedAt DateTime?
 
-  memberships      Membership[]
-  policy           OrgPolicy?
-  governanceConfig GovernanceConfig?
-  identityProvider IdentityProvider?
-  controlLabels    ControlLabel[]
-  practices      Practice[]
-  deliveryRoles  DeliveryRole[]
-  resources      Resource[]
-  projects       Project[]
-  activity       ActivityLogEntry[]
-  auditLogs      AuditLog[]
-  weeklyAssignmentSlots WeeklyAssignmentSlot[]
-  holidays               OrganizationHoliday[]
+  memberships             Membership[]
+  policy                  OrgPolicy?
+  governanceConfig        GovernanceConfig?
+  identityProvider        IdentityProvider?
+  controlLabels           ControlLabel[]
+  practices               Practice[]
+  deliveryRoles           DeliveryRole[]
+  resources               Resource[]
+  projects                Project[]
+  activity                ActivityLogEntry[]
+  auditLogs               AuditLog[]
+  weeklyAssignmentSlots   WeeklyAssignmentSlot[]
+  holidays                OrganizationHoliday[]
   roleUtilizationPolicies RoleUtilizationPolicy[]
-  auditLedger            ImmutableAuditLedger[]
-  impersonationGrants    ImpersonationGrant[]
-  apiKeys                ApiKey[]
-  timesheetEntries       TimesheetEntry[]
-  dataImportBatches      DataImportBatch[]
-  customKpis             CustomKpi[]
+  auditLedger             ImmutableAuditLedger[]
+  impersonationGrants     ImpersonationGrant[]
+  apiKeys                 ApiKey[]
+  timesheetEntries        TimesheetEntry[]
+  dataImportBatches       DataImportBatch[]
+  customKpis              CustomKpi[]
 
   // P1 — composite tenant keys: project/batch-scoped models now carry their
   // own organizationId FK (migration 00000000000012).
-  projectContributors    ProjectContributor[]
-  scopeItems             ScopeItem[]
-  effortCells            EffortCell[]
-  auditEntries           AuditEntry[]
-  raidEntries            RaidEntry[]
-  financialActuals       FinancialActual[]
-  schedulePhases         SchedulePhase[]
-  steerCoDecisions       SteerCoDecision[]
-  dataImportRows         DataImportRow[]
+  projectContributors ProjectContributor[]
+  scopeItems          ScopeItem[]
+  effortCells         EffortCell[]
+  auditEntries        AuditEntry[]
+  raidEntries         RaidEntry[]
+  financialActuals    FinancialActual[]
+  schedulePhases      SchedulePhase[]
+  steerCoDecisions    SteerCoDecision[]
+  dataImportRows      DataImportRow[]
 
   @@map("organizations")
 }
@@ -423,19 +471,19 @@ enum GovernanceTemplate {
 }
 
 model GovernanceConfig {
-  id             String             @id @default(cuid())
-  organizationId String             @unique
-  template       GovernanceTemplate @default(STANDARD)
+  id                        String             @id @default(cuid())
+  organizationId            String             @unique
+  template                  GovernanceTemplate @default(STANDARD)
   // Module keys (src/lib/governance/config.ts GOVERNABLE_MODULES) hidden
   // from this tenant's navigation. Core modules are never hidden even if
   // they appear here.
-  hiddenModules  String[]           @default([])
+  hiddenModules             String[]           @default([])
   // Layer-2 financial masking: when true, blended margin, EAC and financial
   // variance are masked for every delivery role below VP_EXECUTIVE (i.e.
   // Practice Director / Delivery Manager / Project Manager), on top of the
   // standard role-based masking in src/lib/security/masking.ts.
-  maskFinancialsForDelivery Boolean  @default(false)
-  updatedAt      DateTime           @updatedAt
+  maskFinancialsForDelivery Boolean            @default(false)
+  updatedAt                 DateTime           @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -474,8 +522,8 @@ model IdentityProvider {
 
   // Config saved but not live until an admin has verified the metadata and
   // switched it on. `enforced` blocks password login for `emailDomains`.
-  enabled  Boolean  @default(false)
-  enforced Boolean  @default(false)
+  enabled      Boolean  @default(false)
+  enforced     Boolean  @default(false)
   // Lowercase bare domains this IdP is authoritative for, e.g. "contoso.com".
   emailDomains String[] @default([])
 
@@ -563,13 +611,13 @@ model Practice {
   name           String
   createdAt      DateTime @default(now())
 
-  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  deliveryRoles DeliveryRole[]
-  resources    Resource[]
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliveryRoles    DeliveryRole[]
+  resources        Resource[]
   // WP4: a project's home practice, for PRACTICE_DIRECTOR portfolio
   // scoping ("projects in their practice domain") independent of who's
   // formally assigned as PD on any given project — see Project.practiceId.
-  projects     Project[]
+  projects         Project[]
   ssoGroupMappings SsoGroupMapping[]
 
   // WP1 — composite-FK target: children reference (organizationId, id).
@@ -601,14 +649,14 @@ model DeliveryRole {
   organizationId String
   name           String
   // Financial precision (v1.11.0) — $/hr, NUMERIC(12,4) allows sub-cent rates.
-  billRate       Decimal @db.Decimal(12, 4)
-  costRate       Decimal @db.Decimal(12, 4)
+  billRate       Decimal                @db.Decimal(12, 4)
+  costRate       Decimal                @db.Decimal(12, 4)
   practiceId     String?
   // WP6 — see ResourceEmploymentType above.
   employmentType ResourceEmploymentType @default(FTE)
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  practice     Practice?    @relation(fields: [organizationId, practiceId], references: [organizationId, id], onDelete: NoAction)
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  practice     Practice?         @relation(fields: [organizationId, practiceId], references: [organizationId, id], onDelete: NoAction)
   resources    Resource[]
   effortCells  EffortCell[]
   financials   FinancialActual[]
@@ -644,16 +692,16 @@ model Resource {
   // a tenant can extend it. Distinct from the relational
   // `practice`/`practiceId` above, which is the RBAC-scoping Practice row —
   // this is the capacity-planning bucket.
-  psPractice    String  @default("TRANS-Delivery")
+  psPractice    String    @default("TRANS-Delivery")
   // Free-text manager name, distinct from the relational `manager`
   // reporting line above (which a DELIVERY_MANAGER's scoped query walks).
   managerName   String?
-  fte           Float   @default(1.0)
+  fte           Float     @default(1.0)
   // Per-person target utilisation override — the capacity engine prefers
   // rolePolicy.targetUtilPct when a policy is linked, and falls back to this.
-  targetUtilPct Float   @default(0.70)
-  isPS          Boolean @default(true)
-  projectCount  Int     @default(0) // concurrency tracker
+  targetUtilPct Float     @default(0.70)
+  isPS          Boolean   @default(true)
+  projectCount  Int       @default(0) // concurrency tracker
   // Capacity Cockpit — role utilisation policy + roster tenure. startDate/
   // endDate prorate the Available-Hours denominator (individual PTO does not).
   rolePolicyId  String?
@@ -668,19 +716,19 @@ model Resource {
   // reference column, never the row's own required `organizationId`. Prisma
   // Client does not emulate referential actions on Postgres, so this
   // divergence is inert at runtime (documented in docs/TENANT_MODEL_INVENTORY.md).
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  role         DeliveryRole? @relation(fields: [organizationId, roleId], references: [organizationId, id], onDelete: NoAction)
-  practice     Practice?     @relation(fields: [organizationId, practiceId], references: [organizationId, id], onDelete: NoAction)
-  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  manager      Resource?     @relation("ResourceManager", fields: [organizationId, managerId], references: [organizationId, id], onDelete: NoAction)
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         DeliveryRole?          @relation(fields: [organizationId, roleId], references: [organizationId, id], onDelete: NoAction)
+  practice     Practice?              @relation(fields: [organizationId, practiceId], references: [organizationId, id], onDelete: NoAction)
+  user         User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  manager      Resource?              @relation("ResourceManager", fields: [organizationId, managerId], references: [organizationId, id], onDelete: NoAction)
   rolePolicy   RoleUtilizationPolicy? @relation(fields: [organizationId, rolePolicyId], references: [organizationId, id], onDelete: NoAction)
 
-  directReports Resource[] @relation("ResourceManager")
-  projectsAsPD  Project[]   @relation("ProjectPD")
-  projectsAsDM  Project[]   @relation("ProjectDM")
-  projectsAsPM  Project[]   @relation("ProjectPM")
-  raidEntries   RaidEntry[]
-  contributions ProjectContributor[]
+  directReports    Resource[]             @relation("ResourceManager")
+  projectsAsPD     Project[]              @relation("ProjectPD")
+  projectsAsDM     Project[]              @relation("ProjectDM")
+  projectsAsPM     Project[]              @relation("ProjectPM")
+  raidEntries      RaidEntry[]
+  contributions    ProjectContributor[]
   // WP7 — SteerCo decisions this resource is the named owner of.
   steerCoDecisions SteerCoDecision[]
   // Capacity foundation — weekly forecast/actual assignment slots.
@@ -699,16 +747,16 @@ model Resource {
 // The time-series backing the Financial Realization burn curve (RTM C4)
 // and the future capacity/utilisation views.
 model WeeklyAssignmentSlot {
-  id             String   @id @default(cuid())
-  organizationId String
-  resourceId     String
-  projectId      String
-  weekDate       DateTime // the Monday of the ISO week
-  forecastedHours Float   @default(0)
-  actualHours     Float   @default(0)
-  role           String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String   @id @default(cuid())
+  organizationId  String
+  resourceId      String
+  projectId       String
+  weekDate        DateTime // the Monday of the ISO week
+  forecastedHours Float    @default(0)
+  actualHours     Float    @default(0)
+  role            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   resource     Resource     @relation(fields: [organizationId, resourceId], references: [organizationId, id], onDelete: Cascade)
@@ -836,7 +884,7 @@ enum HierarchyLevel {
 }
 
 model Project {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
   name           String
   client         String?
@@ -846,7 +894,7 @@ model Project {
   methodology     Methodology     @default(WATERFALL)
   govProfile      GovProfile      @default(STANDARD)
   estimationMode  EstimationMode  @default(MATRIX)
-  contingencyPct  Decimal        @default(12) @db.Decimal(7, 4)
+  contingencyPct  Decimal         @default(12) @db.Decimal(7, 4)
 
   practiceDirectorId String?
   deliveryManagerId  String?
@@ -856,21 +904,21 @@ model Project {
   // project in their practice, not only the ones they're personally
   // assigned to lead. Nullable/unset means this project only shows up for
   // its assigned PD (if any), not for the whole practice.
-  practiceId String?
+  practiceId         String?
 
   hierarchyLevel HierarchyLevel @default(STANDALONE)
   parentId       String?
   waveTag        String?
 
-  locked          Boolean   @default(false)
-  lockedAt        DateTime?
+  locked           Boolean   @default(false)
+  lockedAt         DateTime?
   baselineSnapshot Json?
 
   // Direct Baseline Intake (used when estimationMode = DIRECT)
-  directIntakeSoldHours         Float   @default(0)
+  directIntakeSoldHours        Float   @default(0)
   // Financial precision (v1.11.0) — $ amount NUMERIC(14,2), % NUMERIC(7,4).
-  directIntakeTargetRevenue     Decimal @default(0) @db.Decimal(14, 2)
-  directIntakeBlendedMarginPct  Decimal @default(0) @db.Decimal(7, 4)
+  directIntakeTargetRevenue    Decimal @default(0) @db.Decimal(14, 2)
+  directIntakeBlendedMarginPct Decimal @default(0) @db.Decimal(7, 4)
 
   // Status narrative (steering-deck notes)
   narrativeAccomplishments String? @db.Text
@@ -901,29 +949,29 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   // WP1 — every intra-tenant FK is composite `(organizationId, x)`.
-  practiceDirector Resource? @relation("ProjectPD", fields: [organizationId, practiceDirectorId], references: [organizationId, id], onDelete: NoAction)
-  deliveryManager  Resource? @relation("ProjectDM", fields: [organizationId, deliveryManagerId], references: [organizationId, id], onDelete: NoAction)
-  projectManager   Resource? @relation("ProjectPM", fields: [organizationId, projectManagerId], references: [organizationId, id], onDelete: NoAction)
-  practice         Practice? @relation(fields: [organizationId, practiceId], references: [organizationId, id], onDelete: NoAction)
+  practiceDirector Resource?    @relation("ProjectPD", fields: [organizationId, practiceDirectorId], references: [organizationId, id], onDelete: NoAction)
+  deliveryManager  Resource?    @relation("ProjectDM", fields: [organizationId, deliveryManagerId], references: [organizationId, id], onDelete: NoAction)
+  projectManager   Resource?    @relation("ProjectPM", fields: [organizationId, projectManagerId], references: [organizationId, id], onDelete: NoAction)
+  practice         Practice?    @relation(fields: [organizationId, practiceId], references: [organizationId, id], onDelete: NoAction)
 
   parent   Project?  @relation("ProjectHierarchy", fields: [organizationId, parentId], references: [organizationId, id], onDelete: NoAction)
   children Project[] @relation("ProjectHierarchy")
 
-  scopeItems     ScopeItem[]
-  effortCells    EffortCell[]
-  auditEntries   AuditEntry[]
-  raidEntries    RaidEntry[]
-  financials     FinancialActual[]
-  schedulePhases SchedulePhase[]
-  activity       ActivityLogEntry[]
+  scopeItems       ScopeItem[]
+  effortCells      EffortCell[]
+  auditEntries     AuditEntry[]
+  raidEntries      RaidEntry[]
+  financials       FinancialActual[]
+  schedulePhases   SchedulePhase[]
+  activity         ActivityLogEntry[]
   // WP4 — PROJECT_MANAGER portfolio scoping's "or explicit contributor"
   // clause: resources named on the project without being its PD/DM/PM of
   // record (e.g. a second PM covering for someone on leave).
-  contributors   ProjectContributor[]
+  contributors     ProjectContributor[]
   // WP6 — this project's slice of the tenant's immutable Audit Trail.
-  auditLogs      AuditLog[]
+  auditLogs        AuditLog[]
   // WP7 — this project's SteerCo Decision & Action Tracker rows.
   steerCoDecisions SteerCoDecision[]
   // Capacity foundation — weekly forecast/actual assignment slots.
@@ -946,8 +994,8 @@ model Project {
 // getScopedProjectsForUser's PROJECT_MANAGER branch in
 // src/lib/db/scoped-portfolio.ts.
 model ProjectContributor {
-  id         String   @id @default(cuid())
-  projectId  String
+  id             String   @id @default(cuid())
+  projectId      String
   // P1 — composite tenant key. Denormalized from Project.organizationId so
   // every row is tied to its tenant by its own FK (not just transitively
   // through `project`), giving the org-scope extension a direct scalar
@@ -955,8 +1003,8 @@ model ProjectContributor {
   // NOT NULL in migration 00000000000012; auto-injected on create by
   // src/lib/db/org-scope.ts.
   organizationId String
-  resourceId String
-  createdAt  DateTime @default(now())
+  resourceId     String
+  createdAt      DateTime @default(now())
 
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -976,17 +1024,17 @@ enum ScopeComplexity {
 
 // One row of the Universal Scope & Taxonomy Matrix.
 model ScopeItem {
-  id         String          @id @default(cuid())
-  projectId  String
+  id             String          @id @default(cuid())
+  projectId      String
   // P1 — composite tenant key (see ProjectContributor.organizationId).
   organizationId String
-  key        String // workstream key, e.g. "arch"; free-form for custom rows
-  name       String
-  included   Boolean         @default(true)
-  complexity ScopeComplexity @default(MEDIUM)
-  notes      String?         @db.Text
-  custom     Boolean         @default(false)
-  sortOrder  Int             @default(0)
+  key            String // workstream key, e.g. "arch"; free-form for custom rows
+  name           String
+  included       Boolean         @default(true)
+  complexity     ScopeComplexity @default(MEDIUM)
+  notes          String?         @db.Text
+  custom         Boolean         @default(false)
+  sortOrder      Int             @default(0)
 
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -998,13 +1046,13 @@ model ScopeItem {
 
 // One cell of the Phase-Effort Matrix: hours for (phase, role) on a project.
 model EffortCell {
-  id        String @id @default(cuid())
-  projectId String
+  id             String @id @default(cuid())
+  projectId      String
   // P1 — composite tenant key (see ProjectContributor.organizationId).
   organizationId String
-  phaseKey  String // initiate | design | build | test | deploy | sustain
-  roleId    String
-  hours     Float  @default(0)
+  phaseKey       String // initiate | design | build | test | deploy | sustain
+  roleId         String
+  hours          Float  @default(0)
 
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -1028,20 +1076,20 @@ enum AuditStatus {
 }
 
 model AuditEntry {
-  id         String      @id @default(cuid())
-  projectId  String
+  id             String      @id @default(cuid())
+  projectId      String
   // P1 — composite tenant key (see ProjectContributor.organizationId).
   organizationId String
-  controlKey String // CTRL_01..CTRL_10
-  status     AuditStatus @default(NO)
-  owner      String?
-  repoLink   String? // evidence URL
+  controlKey     String // CTRL_01..CTRL_10
+  status         AuditStatus @default(NO)
+  owner          String?
+  repoLink       String? // evidence URL
   // WP5 — free-text verification notes, distinct from the evidence link
   // itself (e.g. "confirmed with client counsel on 3/1, awaiting a signed
   // copy"). updatedAt (below) already doubles as the "verified at"
   // timestamp the WP5 spec asks for — it's touched on every save.
-  notes      String?     @db.Text
-  updatedAt  DateTime    @updatedAt
+  notes          String?     @db.Text
+  updatedAt      DateTime    @updatedAt
 
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -1088,32 +1136,32 @@ enum RaidStatus {
 }
 
 model RaidEntry {
-  id          String       @id @default(cuid())
-  projectId   String
+  id             String         @id @default(cuid())
+  projectId      String
   // P1 — composite tenant key (see ProjectContributor.organizationId).
   organizationId String
-  type        RaidType
+  type           RaidType
   // WP5 — short label the RAID Cockpit Board's Quick-Add drawer and table
   // display as the item's name, distinct from the longer free-text
   // description below it. Nullable/back-filled from description's first
   // line for rows created before WP5 (see the RaidBoard.tsx display
   // fallback) rather than a required migration default.
-  title       String?
-  description String       @db.Text
+  title          String?
+  description    String         @db.Text
   // WP5 — RAID-methodology fields the Quick-Add drawer asks for
   // separately from the free-text description: what happens if this
   // isn't addressed, and what the plan to address it is.
-  impact         String?      @db.Text
-  mitigationPlan String?      @db.Text
-  severity    RaidSeverity @default(MED)
+  impact         String?        @db.Text
+  mitigationPlan String?        @db.Text
+  severity       RaidSeverity   @default(MED)
   // RTM C3 — Risk Matrix heatmap Likelihood axis (Impact axis = severity).
-  likelihood  RaidLikelihood @default(POSSIBLE)
-  ownerId     String?
-  targetDate  DateTime?
-  status      RaidStatus   @default(OPEN)
-  escalate    Boolean      @default(false)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  likelihood     RaidLikelihood @default(POSSIBLE)
+  ownerId        String?
+  targetDate     DateTime?
+  status         RaidStatus     @default(OPEN)
+  escalate       Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -1170,17 +1218,17 @@ enum ScheduleStatus {
 }
 
 model SchedulePhase {
-  id            String         @id @default(cuid())
-  projectId     String
+  id             String         @id @default(cuid())
+  projectId      String
   // P1 — composite tenant key (see ProjectContributor.organizationId).
   organizationId String
-  phaseKey      String // initiate | design | build | test | deploy | sustain
-  plannedStart  DateTime?
-  plannedEnd    DateTime?
-  actualStart   DateTime?
-  actualEnd     DateTime?
-  pctComplete   Float          @default(0)
-  status        ScheduleStatus @default(NOTSTARTED)
+  phaseKey       String // initiate | design | build | test | deploy | sustain
+  plannedStart   DateTime?
+  plannedEnd     DateTime?
+  actualStart    DateTime?
+  actualEnd      DateTime?
+  pctComplete    Float          @default(0)
+  status         ScheduleStatus @default(NOTSTARTED)
 
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -1266,13 +1314,13 @@ model DataImportBatch {
 }
 
 model DataImportRow {
-  id       String @id @default(cuid())
-  batchId  String
+  id             String @id @default(cuid())
+  batchId        String
   // P1 — composite tenant key. Denormalized from DataImportBatch.organizationId
   // (see ProjectContributor.organizationId). Backfilled via `batch` in
   // migration 00000000000012; auto-injected on create by src/lib/db/org-scope.ts.
   organizationId String
-  rowIndex Int // 1-based, counting only data rows (no header)
+  rowIndex       Int // 1-based, counting only data rows (no header)
 
   // The row's cell values exactly as uploaded (or as last hand-corrected
   // in the quarantine grid) — column-header keyed, all strings, same

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterAll } from 'vitest';
 import bcrypt from 'bcryptjs';
+import { authenticator } from 'otplib';
 
 // React Server cache() shim (transitively loaded via @/lib/ops-auth → @/lib/auth).
 vi.mock('react', async (importOriginal) => {
@@ -36,8 +37,26 @@ import {
   ELEVATION_COOKIE,
 } from '@/lib/ops/staff-elevation';
 import { grantStaffAccess } from '@/lib/ops/staff-grants';
+import { beginEnrollment, activateEnrollment } from '@/lib/ops/operator-mfa';
 import { requireElevatedOps } from '@/lib/ops-auth';
 import { hashToken } from '@/lib/crypto/bearer-token';
+
+/** Enroll + activate a TOTP factor for `userId`; return the shared secret. */
+async function enrollMfa(userId: string): Promise<string> {
+  const { secret } = await beginEnrollment(userId, 'op@a2rventures.com');
+  const res = await activateEnrollment(userId, authenticator.generate(secret));
+  if (!res.ok) throw new Error(`mfa activation failed: ${res.reason}`);
+  return secret;
+}
+
+/** A valid TOTP code for `stepOffset` windows from now — lets a test do two
+ * sequential elevations (the anti-replay high-water mark rejects a reused
+ * code). Offset must stay within otplib's ±1 verification window. Uses an
+ * isolated clone so the shared singleton's options are untouched. */
+function codeAt(secret: string, stepOffset: number): string {
+  if (stepOffset === 0) return authenticator.generate(secret);
+  return authenticator.clone({ epoch: Date.now() + stepOffset * 30_000 }).generate(secret);
+}
 
 /**
  * P1 / WP2 — Just-In-Time staff elevation. Live DB, self-cleaning.
@@ -63,14 +82,23 @@ describe('JIT staff elevation — service', () => {
     createdUserIds.push(u.id);
     return { id: u.id, email };
   }
-  async function makeOperator(local: string, opts: { withPassword?: boolean } = {}) {
+  const mfaSecrets = new Map<string, string>();
+  async function makeOperator(local: string, opts: { withPassword?: boolean; withMfa?: boolean } = {}) {
     const u = await makeUser(local, opts);
     await grantStaffAccess({ email: u.email, grantedByUserId: u.id, reason: 'elevation test operator' });
+    if (opts.withMfa !== false) mfaSecrets.set(u.id, await enrollMfa(u.id));
     return u;
   }
-  /** requestElevation with the WP2 step-up args filled in. */
+  /** requestElevation with the WP2 password + Batch-2 TOTP step-up args
+   * filled in. Auto-advances the TOTP window per call per operator so
+   * back-to-back elevations don't trip the anti-replay guard. */
+  const elevateCalls = new Map<string, number>();
   function elevate(userId: string, reason: string, over: Partial<Parameters<typeof requestElevation>[0]> = {}) {
-    return requestElevation({ userId, reason, password: PASSWORD, sessionVersion: 0, ...over });
+    const secret = mfaSecrets.get(userId);
+    const n = elevateCalls.get(userId) ?? 0;
+    elevateCalls.set(userId, n + 1);
+    const totpCode = over.totpCode ?? (secret ? codeAt(secret, n) : '000000');
+    return requestElevation({ userId, reason, password: PASSWORD, totpCode, sessionVersion: 0, ...over });
   }
 
   afterAll(async () => {
@@ -78,6 +106,7 @@ describe('JIT staff elevation — service', () => {
     vi.restoreAllMocks();
     const ids = createdUserIds.splice(0);
     if (ids.length) {
+      await db.operatorMfa.deleteMany({ where: { userId: { in: ids } } });
       await db.staffElevation.deleteMany({ where: { userId: { in: ids } } });
       await db.staffGrant.deleteMany({ where: { userId: { in: ids } } });
       await db.user.deleteMany({ where: { id: { in: ids } } });
@@ -132,12 +161,40 @@ describe('JIT staff elevation — service', () => {
     expect(resolved?.userId).toBe(op.id);
     expect(resolved?.sessionVersion).toBe(7);
     expect(resolved?.reauthAt).not.toBeNull();
+    expect(resolved?.secondFactorAt).not.toBeNull(); // Batch 2 — 2FA proven
 
     // P0-5 — the DB row stores only the hash, never the cookie's plaintext.
     const row = await db.staffElevation.findFirst({ where: { userId: op.id, endedAt: null } });
     expect(row?.tokenHash).toBe(hashToken(res.token));
     expect(row?.tokenHash).not.toBe(res.token);
     expect(await resolveActiveElevation(`${res.token}-tampered`, 7)).toBeNull();
+  });
+
+  it('Batch 2 — refuses an operator with no second factor enrolled', async () => {
+    const op = await makeOperator('nomfa', { withMfa: false });
+    const res = await elevate(op.id, 'valid reason, correct password, no 2FA');
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.code).toBe('MFA_SETUP_REQUIRED');
+    expect(await hasActiveElevation(op.id)).toBe(false);
+  });
+
+  it('Batch 2 — refuses a wrong authenticator code', async () => {
+    const op = await makeOperator('badmfa');
+    const res = await elevate(op.id, 'valid reason, correct password, bad code', { totpCode: '000000' });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.code).toBe('BAD_MFA');
+    expect(await hasActiveElevation(op.id)).toBe(false);
+  });
+
+  it('Batch 2 — a used authenticator code cannot be replayed for a second elevation', async () => {
+    const op = await makeOperator('mfareplay');
+    const secret = mfaSecrets.get(op.id)!;
+    const code = authenticator.generate(secret);
+    const first = await elevate(op.id, 'first elevation with this code', { totpCode: code });
+    expect(first.ok).toBe(true);
+    const second = await elevate(op.id, 'replay of the same code', { totpCode: code });
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.code).toBe('BAD_MFA');
   });
 
   it('WP2 — an elevation minted under a superseded sessionVersion resolves to null', async () => {
@@ -195,11 +252,14 @@ describe('JIT staff elevation — requireElevatedOps gate', () => {
   const createdUserIds: string[] = [];
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+  const mfaSecrets = new Map<string, string>();
+
   afterAll(async () => {
     vi.restoreAllMocks();
     cookieJar.store.clear();
     const ids = createdUserIds.splice(0);
     if (ids.length) {
+      await db.operatorMfa.deleteMany({ where: { userId: { in: ids } } });
       await db.staffElevation.deleteMany({ where: { userId: { in: ids } } });
       await db.staffGrant.deleteMany({ where: { userId: { in: ids } } });
       await db.user.deleteMany({ where: { id: { in: ids } } });
@@ -213,6 +273,7 @@ describe('JIT staff elevation — requireElevatedOps gate', () => {
     });
     createdUserIds.push(u.id);
     await grantStaffAccess({ email, grantedByUserId: u.id, reason: 'gate test' });
+    mfaSecrets.set(u.id, await enrollMfa(u.id));
     return u;
   }
   function signIn(u: { id: string; email: string }, sessionVersion = 0) {
@@ -222,7 +283,13 @@ describe('JIT staff elevation — requireElevatedOps gate', () => {
     });
   }
   const elevate = (userId: string, reason: string, sessionVersion = 0) =>
-    requestElevation({ userId, reason, password: PASSWORD, sessionVersion });
+    requestElevation({
+      userId,
+      reason,
+      password: PASSWORD,
+      totpCode: authenticator.generate(mfaSecrets.get(userId)!),
+      sessionVersion,
+    });
 
   it('a signed-out session → NOT_AUTHORIZED', async () => {
     mockGetServerSession.mockResolvedValue(null);

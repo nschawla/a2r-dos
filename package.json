@@ -1,6 +1,6 @@
 {
   "name": "a2r-dos-app",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "private": true,
   "description": "A2R Delivery OS — SaaS foundation (Phase 3). Next.js App Router + Prisma + Postgres.",
   "scripts": {
@@ -21,6 +21,8 @@
     "staff:list": "tsx scripts/grant-staff.ts list",
     "staff:grant": "tsx scripts/grant-staff.ts grant",
     "staff:revoke": "tsx scripts/grant-staff.ts revoke",
+    "ops:mfa:status": "tsx scripts/ops-mfa.ts status",
+    "ops:mfa:reset": "tsx scripts/ops-mfa.ts reset",
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -43,6 +45,8 @@
     "decimal.js": "^10.6.0",
     "next": "^15.5.25",
     "next-auth": "^4.24.15",
+    "otplib": "^12.0.1",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "xlsx": "^0.18.5",
@@ -52,6 +56,7 @@
     "@playwright/test": "^1.62.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.16.11",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",

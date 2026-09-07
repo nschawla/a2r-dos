@@ -9,10 +9,11 @@ enforced for it at the **database** layer (on top of the three application
 tenant-crossing gaps** — no path by which one tenant's request can read or
 write another tenant's row.
 
-`prisma/schema.prisma` has **37 models**: **9 identity / routing** + **28
-tenant-owned**. `tests/security/tenant-model-inventory.test.ts` parses the
-schema and fails if a new model with an `organizationId` field is not
-classified here, or if the 9 / 28 / 37 counts drift.
+`prisma/schema.prisma` has **38 models**: **9 identity / routing** + **28
+tenant-owned** + **1 post-RLS platform** (`OperatorMfa` — see Group 1b).
+`tests/security/tenant-model-inventory.test.ts` parses the schema and fails
+if a new model with an `organizationId` field is not classified here, or if
+the 9 / 28 / 38 counts drift.
 
 ---
 
@@ -40,10 +41,22 @@ the `/ops` console via `setAdminScope`, tenant provisioning + SSO JIT via
 | `StaffElevation` | `staff_elevations` | `User` (**Restrict** — v1.11.0) | n/a | `rls_deny_app` |
 | `ImpersonationGrant` | `impersonation_grants` | `Organization` (**Restrict** — v1.11.0) | Restrict | `rls_deny_app` |
 
-Non-org control-plane table: **`_rls_control`** (migration 20, not a Prisma
-model) — one row, break-glass window. RLS enabled, no `a2r_app` policy ⇒
-deny-all; read only on the `postgres` connection by
-`src/lib/db/rls-break-glass.ts`.
+(The `_rls_control` break-glass table from migration 20 was **dropped** in
+migration 21 — the global break-glass was removed in v1.13.0; emergency
+rollback is `RLS_ENFORCE` unset + redeploy.)
+
+---
+
+## Group 1b — Post-RLS platform (1)
+
+Added after the RLS baseline (migrations 16/17), so not part of the
+migration-17 plumbing group. Not tenant data — no `organizationId`, in
+`UNSCOPED_MODELS`, and the `a2r_app` runtime role never reaches it (every
+operator path runs under `setAdminScope` / `postgres`).
+
+| Model | Table | Bound to | Purpose |
+| --- | --- | --- | --- |
+| `OperatorMfa` | `operator_mfa` | `User` (Cascade) | Batch 2 — the operator's TOTP second factor for JIT elevation (`secretCiphertext` AES-256-GCM sealed; `recoveryCodeHashes` SHA-256). Migration 24. |
 
 ---
 

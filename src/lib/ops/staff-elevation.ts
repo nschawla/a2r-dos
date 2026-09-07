@@ -25,6 +25,7 @@
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
+import { verifySecondFactor } from '@/lib/ops/operator-mfa';
 import { mintToken, hashToken } from '@/lib/crypto/bearer-token';
 
 export const ELEVATION_COOKIE = 'a2r_ops_elevation';
@@ -57,13 +58,19 @@ export interface ElevationView {
 
 export type RequestElevationResult =
   | { ok: true; token: string; expiresAt: Date; ttlMinutes: number }
-  | { ok: false; error: string; code?: 'BAD_PASSWORD' | 'NO_PASSWORD' };
+  | {
+      ok: false;
+      error: string;
+      code?: 'BAD_PASSWORD' | 'NO_PASSWORD' | 'MFA_SETUP_REQUIRED' | 'BAD_MFA';
+    };
 
 /**
  * Mint a JIT elevation for `userId`. Requires:
  *   - a live standing `staff_grants` entitlement;
  *   - **a fresh password verification** (WP2 — step-up / "fresh
  *     authentication" for a credentials session);
+ *   - **a valid second factor** (Batch 2 — an activated TOTP enrollment +
+ *     a 6-digit code, or a single-use recovery code);
  *   - the caller's current `sessionVersion`, stored on the row so the guard
  *     can reject it the instant the session is rotated/revoked.
  * Supersedes any existing live elevation for that operator.
@@ -72,6 +79,7 @@ export async function requestElevation(input: {
   userId: string;
   reason: string;
   password: string;
+  totpCode: string;
   sessionVersion: number;
   ttlMinutes?: number;
   ip?: string | null;
@@ -101,6 +109,24 @@ export async function requestElevation(input: {
     return { ok: false, code: 'BAD_PASSWORD', error: 'Password incorrect — re-enter it to elevate.' };
   }
 
+  // Batch 2 — mandatory second factor. Hard cut-over: an operator with no
+  // activated TOTP enrollment cannot elevate until they set one up at
+  // /ops/security (self-service — standing grant + password, no elevation).
+  const second = await verifySecondFactor(input.userId, input.totpCode);
+  if (!second.ok) {
+    if (second.reason === 'NO_MFA' || second.reason === 'NOT_ACTIVATED') {
+      return {
+        ok: false,
+        code: 'MFA_SETUP_REQUIRED',
+        error: 'Set up your authenticator app (Operator security) before you can elevate.',
+      };
+    }
+    if (second.reason === 'REPLAYED') {
+      return { ok: false, code: 'BAD_MFA', error: 'That code was already used — wait for your authenticator to show the next one.' };
+    }
+    return { ok: false, code: 'BAD_MFA', error: 'That code is not valid. Check your authenticator app (or use a recovery code).' };
+  }
+
   const ttlMinutes = clampTtlMinutes(input.ttlMinutes);
   const now = Date.now();
   const expiresAt = new Date(now + ttlMinutes * 60_000);
@@ -123,6 +149,7 @@ export async function requestElevation(input: {
       requestedFromIp: input.ip ?? null,
       sessionVersion: input.sessionVersion,
       reauthAt: new Date(now),
+      secondFactorAt: new Date(now),
     },
   });
 

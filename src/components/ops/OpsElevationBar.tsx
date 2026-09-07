@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { useSafeAction, OPS_ELEVATE_EVENT } from '@/lib/client/safe-action';
@@ -49,8 +50,12 @@ export function OpsElevationBar({
   const [modalOpen, setModalOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [password, setPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
   const [ttl, setTtl] = useState<number>(30);
   const [formError, setFormError] = useState<string | null>(null);
+  // set when the action returns MFA_SETUP_REQUIRED — swaps the error line
+  // for a link to the enrollment page.
+  const [needsMfaSetup, setNeedsMfaSetup] = useState(false);
 
   // `now` stays 0 until mounted so SSR and the first client render agree
   // (no hydration mismatch on the live countdown). See below.
@@ -84,8 +89,10 @@ export function OpsElevationBar({
 
   const openModal = useCallback(() => {
     setFormError(null);
+    setNeedsMfaSetup(false);
     setReason('');
     setPassword('');
+    setTotpCode('');
     setTtl(choices.includes(30) ? 30 : choices[0] ?? 15);
     setModalOpen(true);
   }, [choices]);
@@ -101,18 +108,21 @@ export function OpsElevationBar({
 
   function submit() {
     setFormError(null);
+    setNeedsMfaSetup(false);
     startTransition(async () => {
       const outcome = await runAction(
-        () => requestOpsElevationAction({ reason, password, ttlMinutes: ttl }),
+        () => requestOpsElevationAction({ reason, password, totpCode: totpCode.trim(), ttlMinutes: ttl }),
         { errorTitle: 'Couldn’t start elevation' },
       );
       if (!outcome.ok) return;
       if (!outcome.data.ok) {
         setFormError(outcome.data.error);
+        setNeedsMfaSetup(outcome.data.code === 'MFA_SETUP_REQUIRED');
         return;
       }
       toast({ variant: 'success', title: `Elevated for ${ttl} minutes.` });
       setPassword('');
+      setTotpCode('');
       setModalOpen(false);
       expiredRef.current = false;
       router.refresh();
@@ -231,6 +241,22 @@ export function OpsElevationBar({
                 />
               </label>
 
+              <label className="flex flex-col gap-1 text-xs">
+                <span className="text-ink-muted">
+                  Authenticator code <span className="text-ink-faint">(6 digits, or a recovery code)</span>
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  className="input tracking-[0.3em] font-mono"
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\s/g, ''))}
+                  placeholder="123456"
+                  maxLength={20}
+                />
+              </label>
+
               <div className="flex flex-col gap-1 text-xs">
                 <span className="text-ink-muted">Window</span>
                 <div className="flex gap-2">
@@ -255,7 +281,23 @@ export function OpsElevationBar({
                 </span>
               </div>
 
-              {formError && <p className="text-critical text-xs">{formError}</p>}
+              {formError && (
+                <p className="text-critical text-xs">
+                  {formError}
+                  {needsMfaSetup && (
+                    <>
+                      {' '}
+                      <Link
+                        href="/ops/security"
+                        className="underline font-semibold"
+                        onClick={() => setModalOpen(false)}
+                      >
+                        Set up your authenticator →
+                      </Link>
+                    </>
+                  )}
+                </p>
+              )}
 
               <div className="flex items-center justify-end gap-2 mt-1">
                 <button
@@ -267,7 +309,9 @@ export function OpsElevationBar({
                 </button>
                 <button
                   type="button"
-                  disabled={pending || reason.trim().length < 10 || password.length < 1}
+                  disabled={
+                    pending || reason.trim().length < 10 || password.length < 1 || totpCode.trim().length < 6
+                  }
                   onClick={submit}
                   className={clsx('btn-primary !w-auto px-5 text-xs', pending && 'opacity-60')}
                 >

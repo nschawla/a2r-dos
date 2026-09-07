@@ -32,6 +32,12 @@ const IDENTITY_MODELS = new Set([
   'ImpersonationGrant',
 ]);
 
+/** Platform-operator tables added AFTER the RLS baseline (migrations 16/17).
+ * Not tenant data (no organizationId, in UNSCOPED_MODELS) and not part of
+ * the migration-17 plumbing group — the app never reaches them under the
+ * `a2r_app` runtime role. */
+const POST_RLS_PLATFORM_MODELS = new Set(['OperatorMfa']);
+
 interface Model {
   name: string;
   body: string;
@@ -66,10 +72,14 @@ describe('tenant-model inventory', () => {
   const models = parseModels(schema);
   const tenantTables = smokeTenantTables();
 
-  it('the schema has 37 models: 9 identity + 28 tenant-owned', () => {
-    expect(models.length).toBe(37);
+  it('the schema has 38 models: 9 identity + 28 tenant-owned + 1 post-RLS platform', () => {
+    expect(models.length).toBe(38);
     const identity = models.filter((x) => IDENTITY_MODELS.has(x.name));
     expect(identity.length).toBe(9);
+    const platform = models.filter((x) => POST_RLS_PLATFORM_MODELS.has(x.name));
+    expect(platform.length).toBe(1);
+    // the post-RLS platform tables carry no organizationId
+    expect(platform.every((x) => !x.hasOrgId)).toBe(true);
   });
 
   it('every model with an organizationId is either identity/routing or a known tenant table', () => {

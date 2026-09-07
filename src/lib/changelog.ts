@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.15.0',
+    date: '2026-09-07',
+    headline: 'Rate limiter fails closed in production; mandatory operator MFA for elevation',
+    changes: [
+      { type: 'security', text: 'The distributed rate limiter now fails closed in production. If a shared Upstash backend is configured and a request to it fails, the request is denied rather than silently falling back to weaker per-instance limiting; the failure is reported at error level. A deployment that runs no shared backend still uses the in-process limiter, unchanged.' },
+      { type: 'security', text: 'Every Just-In-Time operator elevation now requires a second factor: a 6-digit code from an authenticator app (or a single-use recovery code) on top of your password. Operators enroll once at Ops → Operator Security; the TOTP secret is encrypted at rest, replayed codes are rejected, and disabling a factor is a direct-database operation only — a stolen password cannot strip it.' },
+      { type: 'improvement', text: 'New Operator Security page in the Ops Console for authenticator enrollment, with a QR code, manual key, and ten one-time recovery codes shown once. A command-line reset is available for a fully locked-out operator.' },
+    ],
+  },
+  {
     version: '1.14.0',
     date: '2026-09-07',
     headline: 'Exact-decimal financials end-to-end, step-up elevation, test-rig isolation',
