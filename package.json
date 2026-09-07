@@ -18,6 +18,7 @@
     "retention:sweep": "tsx scripts/run-retention.ts",
     "db:rls:smoke": "tsx scripts/rls-smoke.ts",
     "db:rls:verify": "tsx scripts/rls-prod-verify.ts",
+    "health:prod": "tsx scripts/health-prod.ts",
     "staff:list": "tsx scripts/grant-staff.ts list",
     "staff:grant": "tsx scripts/grant-staff.ts grant",
     "staff:revoke": "tsx scripts/grant-staff.ts revoke",
