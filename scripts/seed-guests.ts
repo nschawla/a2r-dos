@@ -3,7 +3,7 @@
  *
  *   npm run guests:seed [-- --org <slug>] [--yes-prod]
  *
- * Creates 5 read-only observer accounts as `MembershipRole.VIEWER` members
+ * Creates read-only observer accounts (roster: scripts/lib/family-guests.ts) as `MembershipRole.VIEWER` members
  * of a demo organization (default: `a2r-ventures-demo`), with
  * `deliveryRole = VIEWER` — the strict read-only tenant tier added in
  * v1.16.0 (portfolio + SteerCo view, zero edit, financials scrubbed).
@@ -22,6 +22,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { validatePasswordStrength } from '../src/lib/auth/password-policy';
 import { assertProdWriteAllowed } from './lib/cli-io';
+import { FAMILY_GUESTS as GUESTS, SHARED_PASSWORD } from './lib/family-guests';
 
 function loadEnv(): void {
   if (process.env.DATABASE_URL) return;
@@ -37,15 +38,6 @@ function loadEnv(): void {
 
 loadEnv();
 const db = new PrismaClient();
-
-const SHARED_PASSWORD = 'a2r-DOS-233444';
-const GUESTS = [
-  { name: 'Abha', email: 'abha@a2rventures.local' },
-  { name: 'Janvi', email: 'janvi@a2rventures.local' },
-  { name: 'Honey', email: 'honey@a2rventures.local' },
-  { name: 'Griffin', email: 'griffin@a2rventures.local' },
-  { name: 'Chan', email: 'chan@a2rventures.local' },
-];
 
 function argFlag(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -66,7 +58,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  await assertProdWriteAllowed(process.env.DATABASE_URL, `seed 5 guest viewer accounts into "${org.name}"`);
+  await assertProdWriteAllowed(process.env.DATABASE_URL, `seed ${GUESTS.length} guest viewer accounts into "${org.name}"`);
 
   const passwordHash = await bcrypt.hash(SHARED_PASSWORD, 10);
 
@@ -86,7 +78,7 @@ async function main(): Promise<void> {
     console.log(`  ✓ ${g.name.padEnd(8)} ${email.padEnd(30)} → VIEWER of ${org.name}`);
   }
 
-  console.log(`\n5 guest viewer accounts ready. Shared password: ${SHARED_PASSWORD}`);
+  console.log(`\n${GUESTS.length} guest viewer accounts ready. Shared password: ${SHARED_PASSWORD}`);
   console.log(`They land in "${org.name}" read-only (control tower · SteerCo · reports; no edit, financials scrubbed).`);
 }
 

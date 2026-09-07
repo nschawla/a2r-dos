@@ -1,15 +1,16 @@
 /**
- * A2R — set the access tier for the 5 family guest accounts.
+ * A2R — set the access tier for the family guest roster
+ * (scripts/lib/family-guests.ts).
  *
  *   npm run guests:access -- --tier full   [--yes-prod]
  *   npm run guests:access -- --tier viewer [--yes-prod]
  *
- * The guest accounts (see scripts/seed-guests.ts) are normally the strict
- * read-only `VIEWER` tier. Pre-launch, while the product is still being
- * built and the family is giving feedback, `--tier full` promotes them to
- * see everything:
+ * The guest accounts are normally the strict read-only `VIEWER` tier.
+ * Pre-launch, while the product is still being built and the family is
+ * giving feedback, `--tier full` promotes them to see everything:
  *
- *   full   → Membership OWNER / deliveryRole ADMIN in EVERY organization
+ *   full   → creates any missing roster account (shared password), then
+ *            Membership OWNER / deliveryRole ADMIN in EVERY organization
  *            + an active SUPER_ADMIN `staff_grants` entitlement (the /ops
  *            operator console, cross-tenant, read access to every surface).
  *            Mutating operator actions still require the operator to enroll
@@ -26,7 +27,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { validatePasswordStrength } from '../src/lib/auth/password-policy';
 import { assertProdWriteAllowed } from './lib/cli-io';
+import { FAMILY_GUESTS, FAMILY_GUEST_EMAILS as GUEST_EMAILS, SHARED_PASSWORD } from './lib/family-guests';
 
 function loadEnv(): void {
   if (process.env.DATABASE_URL) return;
@@ -44,13 +48,6 @@ loadEnv();
 const db = new PrismaClient();
 
 const PRIMARY_ORG_SLUG = 'a2r-ventures-demo';
-const GUEST_EMAILS = [
-  'abha@a2rventures.local',
-  'janvi@a2rventures.local',
-  'honey@a2rventures.local',
-  'griffin@a2rventures.local',
-  'chan@a2rventures.local',
-];
 
 function argFlag(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -64,12 +61,18 @@ async function promoteFull(): Promise<void> {
     process.exit(1);
   }
 
-  for (const email of GUEST_EMAILS) {
-    const user = await db.user.findUnique({ where: { email }, select: { id: true, name: true } });
-    if (!user) {
-      console.log(`  – ${email.padEnd(30)} no account — skipped (they must sign in once first)`);
-      continue;
-    }
+  const passwordHash = await bcrypt.hash(SHARED_PASSWORD, 10);
+
+  for (const { name, email } of FAMILY_GUESTS) {
+    // Create the account if this family member has never signed in — full
+    // access is a pre-launch convenience, not something they need to
+    // bootstrap themselves.
+    const user = await db.user.upsert({
+      where: { email },
+      create: { email, name, passwordHash, mustChangePassword: false },
+      update: { name },
+      select: { id: true, name: true },
+    });
 
     for (const org of orgs) {
       await db.membership.upsert({
@@ -128,7 +131,16 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  await assertProdWriteAllowed(process.env.DATABASE_URL, `set the 5 family guest accounts to "${tier}" access`);
+  const weak = validatePasswordStrength(SHARED_PASSWORD);
+  if (weak) {
+    console.error(`The shared guest password no longer meets the policy: ${weak}`);
+    process.exit(1);
+  }
+
+  await assertProdWriteAllowed(
+    process.env.DATABASE_URL,
+    `set ${FAMILY_GUESTS.length} family guest accounts to "${tier}" access`,
+  );
 
   if (tier === 'full') {
     console.log('Promoting the family guest accounts to full access (build-feedback mode):');
