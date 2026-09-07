@@ -1,8 +1,25 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.14.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
-full model → tenant-binding → RLS-policy map.
+it, current as of **v1.16.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
+full model → tenant-binding → RLS-policy map and `docs/ROLE_ACCESS_MATRIX.md`
+for the role axes.
+
+**v1.16.0** — (a) new `enum OperatorRole { SUPER_ADMIN PROVISIONING SUPPORT
+AUDITOR BILLING VIEWER }`; **`StaffGrant.role OperatorRole @default(SUPER_ADMIN)`**
+(migration `00000000000025`; every existing grant → `SUPER_ADMIN`). (b)
+`enum DeliveryAccessRole` gains **`VIEWER`** — a strict read-only tenant tier
+that `MembershipRole.VIEWER` resolves to. No new tables.
+
+**v1.15.1** — new model **`OperatorMfa`** was added in v1.15.0 (migration
+`00000000000024`, table `operator_mfa`) — one row per operator: the TOTP
+secret AES-256-GCM sealed (`secretCiphertext` / `pendingSecretCiphertext`,
+now under the dedicated `MFA_ENCRYPTION_KEY`, versioned `v2.<n>`),
+`activatedAt`, `lastStepCounter` (anti-replay), `recoveryCodeHashes`
+(SHA-256). `user` FK `onDelete: Cascade` (credential material, not audit).
+`StaffElevation.secondFactorAt` records the TOTP/recovery proof on each
+elevation. `OperatorMfa` is a platform table (`UNSCOPED_MODELS`); not swept.
+
 **v1.14.0 (WP2)** — `StaffElevation` gains **`sessionVersion Int @default(0)`**
 (the `users.sessionVersion` epoch the elevation was minted under — the guard
 rejects a stale epoch) and **`reauthAt DateTime?`** (last fresh password
@@ -257,8 +274,9 @@ DB-free authorization check and the Prisma query so the two can't drift.
 | Model | Purpose |
 |---|---|
 | `Account`, `Session`, `VerificationToken` | Auth.js/NextAuth adapter tables (OAuth plumbing; credentials login uses JWT sessions, not these). |
-| `StaffGrant` | Explicit, attributed, revocable A2R-operator entitlement (replaced the email-domain wildcard + `isA2rStaff` boolean in v1.6.0). A live row = *eligibility* to reach `/ops`. `user` FK is `onDelete: Restrict` (v1.11.0) — the entitlement history outlives a raw user delete. Never swept by data-retention. |
-| `StaffElevation` | v1.7.0 — the Just-In-Time, reason-logged, auto-expiring grant every *mutating* `/ops` action requires on top of a `StaffGrant`. Row stores `tokenHash` only (v1.8.0). `user` FK `onDelete: Restrict` (v1.11.0); never swept. **v1.14.0** — minting requires a fresh password verification; `sessionVersion` + `reauthAt` columns bind it to the session epoch (a stale epoch = dead elevation). |
+| `StaffGrant` | Explicit, attributed, revocable A2R-operator entitlement (replaced the email-domain wildcard + `isA2rStaff` boolean in v1.6.0). A live row = *eligibility* to reach `/ops`. **v1.16.0** — carries `role` (`OperatorRole`); the capability matrix in `src/lib/ops/operator-roles.ts` gates each `/ops` sub-route and action. A role change is a re-grant (revoke + new row), so history is preserved. `user` FK `onDelete: Restrict` (v1.11.0); never swept. |
+| `StaffElevation` | v1.7.0 — the Just-In-Time, reason-logged, auto-expiring grant every *mutating* `/ops` action requires on top of a `StaffGrant` (and, v1.16.0, on top of the role capability check). Row stores `tokenHash` only (v1.8.0). `user` FK `onDelete: Restrict` (v1.11.0); never swept. **v1.14.0** — minting requires a fresh password verification; `sessionVersion` + `reauthAt` bind it to the session epoch. **v1.15.0** — also requires a valid TOTP / recovery code (`secondFactorAt`). |
+| `OperatorMfa` | v1.15.0 (migration 24) — one row per operator: the RFC 6238 TOTP secret, AES-256-GCM sealed under a **dedicated versioned key** (`MFA_ENCRYPTION_KEY`, not `NEXTAUTH_SECRET`; v1.15.1). `lastStepCounter` = anti-replay high-water mark (advanced by a single conditional UPDATE); `recoveryCodeHashes` = 10 SHA-256 single-use codes (consumed under a row lock). `user` FK `onDelete: Cascade`. Platform table; never swept. |
 | `ImpersonationGrant` | The Impersonation Gateway's time-boxed, audited operator → tenant sessions. Row stores `tokenHash` only (v1.8.0). `organization` FK `onDelete: Restrict` (v1.11.0); removed from the data-retention sweep (v1.11.0) — the ledger's `ADMIN_IMPERSONATION_ACCESS` entry is the permanent record. |
 | `OrgPolicy` | Legacy per-tenant tolerances (slip/margin thresholds) predating `GovernanceConfig`. |
 | `ControlLabel` | Per-tenant display-label override for a `CTRL_01..10` key (the labels are editable; the keys are frozen — see `docs/` control-audit nomenclature notes). |

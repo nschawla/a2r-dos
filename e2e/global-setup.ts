@@ -9,6 +9,43 @@ import { E2E_OPERATOR_MFA_SECRET } from './helpers/ops-mfa';
  * `operator_mfa` row (Batch 2) so `elevateOps` can pass a live TOTP code. */
 const OPERATOR_EMAILS = ['ops@a2rventures.com', 'master.e2e@a2rventures.com'];
 
+/** v1.16.0 — the family guest (viewer) accounts, for Suite Q. */
+const GUEST_PASSWORD = 'a2r-DOS-233444';
+const GUESTS = [
+  { name: 'Abha', email: 'abha@a2rventures.local' },
+  { name: 'Janvi', email: 'janvi@a2rventures.local' },
+  { name: 'Honey', email: 'honey@a2rventures.local' },
+  { name: 'Griffin', email: 'griffin@a2rventures.local' },
+  { name: 'Chan', email: 'chan@a2rventures.local' },
+];
+
+async function seedGuestViewers(): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const bcrypt = (await import('bcryptjs')).default;
+  const db = new PrismaClient();
+  try {
+    const org = await db.organization.findUnique({ where: { slug: 'a2r-ventures-demo' }, select: { id: true } });
+    if (!org) return;
+    const passwordHash = await bcrypt.hash(GUEST_PASSWORD, 10);
+    for (const g of GUESTS) {
+      const email = g.email.toLowerCase();
+      const user = await db.user.upsert({
+        where: { email },
+        create: { email, name: g.name, passwordHash, mustChangePassword: false },
+        update: { name: g.name, passwordHash, mustChangePassword: false },
+        select: { id: true },
+      });
+      await db.membership.upsert({
+        where: { userId_organizationId: { userId: user.id, organizationId: org.id } },
+        create: { userId: user.id, organizationId: org.id, role: 'VIEWER', deliveryRole: 'VIEWER' },
+        update: { role: 'VIEWER', deliveryRole: 'VIEWER' },
+      });
+    }
+  } finally {
+    await db.$disconnect();
+  }
+}
+
 async function seedOperatorMfa(): Promise<void> {
   const db = new PrismaClient();
   try {
@@ -74,8 +111,9 @@ export default async function globalSetup(): Promise<void> {
   console.log(`[e2e] target DB pinned to non-production (${url.replace(/:[^:@/]+@/, ':****@')})`);
 
   await seedOperatorMfa();
+  await seedGuestViewers();
   // eslint-disable-next-line no-console
-  console.log('[e2e] operator MFA seeded for elevation flows');
+  console.log('[e2e] operator MFA + guest viewer accounts seeded');
 }
 
 function readVar(file: string, key: string): string | undefined {

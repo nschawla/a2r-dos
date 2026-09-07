@@ -2026,6 +2026,64 @@ on **staging**; `npm run build` → clean; `npx playwright test` → **60 passed
 on staging. Migration 24 rehearsed (`BEGIN … ROLLBACK`) then applied to
 production and staging (additive: one table + one nullable column).
 
+## Phase 13 — audit follow-ups + organizational roles (v1.15.1 – v1.16.0)
+
+Continued ChatGPT audit response, then a role model.
+
+### FRD — functional summary
+
+- **v1.15.1 — MFA key separation + atomic replay + CLI hardening.**
+  `src/lib/crypto/secret-box.ts`: AES-256-GCM key now from a dedicated
+  `MFA_ENCRYPTION_KEY` (required in prod; ≠ `NEXTAUTH_SECRET`), ciphertext
+  `v2.<keyVersion>.<iv>.<tag>.<ct>`, legacy `v1` still decrypts, rotation via
+  `MFA_ENCRYPTION_KEY_V<n>` + opportunistic re-seal on verify.
+  `verifySecondFactor`: TOTP anti-replay is one conditional `UPDATE`
+  (`lastStepCounter` advances only when strictly newer → the loser sees
+  `count 0` → `REPLAYED`); recovery codes consumed under
+  `SELECT … FOR UPDATE`. Operator CLIs (`scripts/lib/cli-io.ts`): no password
+  as an argument (masked prompt / `--password-stdin` / `--generate`);
+  `user:password:set` / `operator:create` default `mustChangePassword=true`
+  + bump `sessionVersion`; every mutating CLI refuses a prod write without
+  `--yes-prod` / `A2R_ALLOW_PROD_WRITE` / a typed confirmation.
+- **v1.15.2 — readiness-probe hardening.** `GET /api/health/ready` returns
+  **only** `{ status: "ready" | "unavailable" }` to unauthenticated callers
+  (no database dependency / `latencyMs` / error-type / timestamp);
+  `x-a2r-internal-token: <HEALTH_CHECK_TOKEN>` unlocks the diagnostic body.
+  `GET /api/health` is a constant `{ status: "ok" }`.
+- **v1.16.0 — A2R organizational roles.** `enum OperatorRole` on
+  `staff_grants.role` (migration `00000000000025`; existing grants →
+  `SUPER_ADMIN`): `SUPER_ADMIN` · `PROVISIONING` · `SUPPORT` · `AUDITOR` ·
+  `BILLING` · `VIEWER`. Capability matrix `src/lib/ops/operator-roles.ts`
+  (pure, Edge-safe) enforced in the middleware (`roleReachesOpsRoute` →
+  redirect), `requireOpsCapability` (page), and `requireElevatedOps(cap)`
+  (action → `ROLE_FORBIDDEN`). New `/ops/access` (Role & Access Management —
+  view + change a role as a re-grant), `/ops/billing`, `/ops/audit`.
+  `DeliveryAccessRole.VIEWER` — strict read-only tenant tier (`portfolio` +
+  `steerco` view, no edit, financials `restricted`) + `OBSERVER` RBAC
+  persona. Login screen: password show/hide eye toggle. Five family guest
+  Viewer accounts (`npm run guests:seed`), seeded on production.
+
+### RTM — requirements traceability (Phase 13)
+
+| # | Capability | Primary files | Coverage |
+| --- | --- | --- | --- |
+| P13-KEY-1 | MFA secret sealed under a dedicated, versioned key | `src/lib/crypto/secret-box.ts` | `tests/secret-box.test.ts` (versioned key · rotation · legacy v1) |
+| P13-RACE-1 | Atomic TOTP / recovery-code consumption | `src/lib/ops/operator-mfa.ts` `verifySecondFactor` | `tests/operator-mfa.test.ts` (concurrent races) |
+| P13-CLI-1 | No password as a CLI argument; prod-write confirmation | `scripts/lib/cli-io.ts` + 4 CLIs | `tests/cli-io.test.ts` (10) |
+| P13-HLTH-1 | Readiness probe leaks nothing to unauthenticated callers | `src/app/api/health/ready/route.ts` | `tests/security/health-endpoint.test.ts` (7) |
+| P13-ROLE-1 | 6 operator roles, capability matrix, 3-layer enforcement | `src/lib/ops/operator-roles.ts`, `src/middleware.ts`, `src/lib/ops-auth.ts` | `tests/operator-roles.test.ts` (13), `tests/operator-role-grants.test.ts` (7) |
+| P13-ROLE-2 | Role change is a re-grant (audit-preserving); not your own | `staff-grants.ts` `setOperatorRole`, `src/server/actions/ops-roles.ts` | `tests/operator-role-grants.test.ts` |
+| P13-ROLE-3 | Read-only tenant Viewer tier + guest accounts | `DeliveryAccessRole.VIEWER`, `rbac.ts` / `rbacMatrix.ts` / `masking.ts` / `scoping.ts`, `scripts/seed-guests.ts` | `tests/rbac-matrix.test.ts` (6 personas) · **e2e Suite Q** |
+| P13-UI-1 | Login password show/hide toggle (a11y) | `src/app/(auth)/login/page.tsx` | e2e Suites A / Q |
+
+**Verification:** `tsc` → 0 · `lint` → 0/0 · `prisma validate` → clean ·
+`vitest` → **689 passed** (59 files) on staging · `next build` → clean ·
+`playwright` → **65 passed** (Suites A–Q) on staging · `db:rls:verify`
+against production → OK (read-only) · `health:prod` → ready · database ok.
+Migrations 24–25 rehearsed (`BEGIN … ROLLBACK`) then applied to production
+and staging. Tags `v1.15.1` (`19bef0e`), `v1.15.2` (`67783b5`), `v1.16.0`
+(`e1a0c09`) each point at the exact commit deployed to production.
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to

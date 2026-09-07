@@ -41,13 +41,27 @@ All demo passwords are **`password12345`** unless noted.
 `admin@acme-health.test`, `sponsor@acme-health.test` (VP), `pd@acme-health.test`,
 `lead@acme-health.test` (DM), `pm@acme-health.test`.
 
-**A2R platform staff**
+**A2R platform staff** — every operator carries an `OperatorRole` (v1.16.0);
+the seed / migrated grants are all `SUPER_ADMIN`.
 
-| Email | Password | Notes |
+| Email | Password | Operator role | Notes |
+| --- | --- | --- | --- |
+| `ops@a2rventures.com` | `password12345` | SUPER_ADMIN | Staff, **no** client membership — lands on `/ops` |
+| `master.e2e@a2rventures.com` | `password12345` | SUPER_ADMIN | Master used by the E2E suite: staff **and** Owner/Admin in every tenant |
+| `navinder@a2rventures.com` | _(rotated)_ | SUPER_ADMIN | Personal master account. `Password123!` **only on a freshly-seeded local DB**. |
+
+To exercise a non-Super-Admin operator role: `npm run staff:grant -- <email>
+"<reason>" --role PROVISIONING|SUPPORT|AUDITOR|BILLING|VIEWER`, or change one
+at **Ops Console → Role & Access** (`/ops/access`, Super Admin + elevation).
+Capability reference: `docs/ROLE_ACCESS_MATRIX.md` § 1.2.
+
+**Family guest (Viewer) accounts** (v1.16.0) — `MembershipRole.VIEWER` +
+`deliveryRole = VIEWER` of A2R DOS Demo, seeded by `npm run guests:seed` /
+`e2e/global-setup.ts`. Shared password **`a2r-DOS-233444`**.
+
+| Email | Delivery role | Default landing |
 | --- | --- | --- |
-| `ops@a2rventures.com` | `password12345` | Staff, **no** client membership — lands on `/ops` |
-| `master.e2e@a2rventures.com` | `password12345` | Master used by the E2E suite: staff **and** Owner/Admin in every tenant (defaults to A2R DOS Demo) |
-| `navinder@a2rventures.com` | _(rotated)_ | Personal master account. `Password123!` **only on a freshly-seeded local DB** — in any live deployment this is rotated and re-seed no longer resets it. |
+| `abha@a2rventures.local` · `janvi@` · `honey@` · `griffin@` · `chan@` | VIEWER | SteerCo Briefing (`/steerco`) — "Executive Viewer" |
 
 ### 1.3 Reference figures (A2R DOS Demo, fresh seed)
 
@@ -108,6 +122,12 @@ npm run db:rls:verify # read-only production security-posture check
 | Explicit global sign-out (v1.10.0) — `sessionVersion` bump revokes all devices | `tests/security/sign-out-everywhere.test.ts` · manual UAT-3.12 |
 | Cookie flags (v1.10.0) — app cookies `sameSite:'strict'` + `secure` + `httpOnly`; NextAuth flags pinned | `tests/security/cookie-flags.test.ts` |
 | Error sanitization (v1.10.0) — every API route wrapped; no raw error in a response body | `tests/security/error-sanitization.test.ts` |
+| Operator MFA (v1.15.0) — mandatory TOTP second factor for elevation; enrollment ceremony; recovery codes | `tests/operator-mfa.test.ts` · `tests/secret-box.test.ts` · e2e Suite **P3** |
+| MFA key separation + atomic replay (v1.15.1) — dedicated `MFA_ENCRYPTION_KEY`, versioned, rotation; concurrent TOTP / recovery-code races | `tests/secret-box.test.ts` (rotation, legacy v1) · `tests/operator-mfa.test.ts` (concurrent races) |
+| Operator CLI hardening (v1.15.1) — no password as an argument; prod-write confirmation | `tests/cli-io.test.ts` (10) |
+| Readiness-probe hardening (v1.15.2) — public body is `{status}` only; token unlocks `{database,latencyMs}` | `tests/security/health-endpoint.test.ts` (7) · `npm run health:prod` |
+| **A2R organizational roles (v1.16.0)** — 6 `OperatorRole`s, capability matrix, 3-layer enforcement, role change = audit-preserving re-grant | `tests/operator-roles.test.ts` (13) · `tests/operator-role-grants.test.ts` (7) · manual UAT-3.15 |
+| **Viewer / Guest tier (v1.16.0)** — `DeliveryAccessRole.VIEWER` read-only; family guest accounts walled off from `/ops` + `/admin` | `tests/rbac-matrix.test.ts` (6 personas) · **e2e Suite Q** · manual UAT-3.15 |
 | Financial precision (v1.11.0) — money / rates / margins stored as exact `NUMERIC`; exact `_sum` | `tests/financial-precision.test.ts` (round-trip + no-float-drift SUM) |
 | Security-history retention (v1.11.0) — user / org delete cannot cascade-destroy staff grants, elevations, impersonation grants | `tests/security/security-history-cascade.test.ts` · `tests/data-retention.test.ts` (sweep never touches them) |
 
@@ -324,6 +344,26 @@ Operator / platform task. Requires DB access (`.env` pointed at the target).
 **Checkpoint:** production is verified ready for the RLS flip; the compliance
 ledger is immutable at the engine; every cross-tenant reference is rejected
 by a composite FK.
+
+### UAT-3.15 · Operator roles & guest viewers (v1.16.0)
+
+Operator / platform task. `docs/ROLE_ACCESS_MATRIX.md` is the reference.
+
+| Step | Action | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | Sign in as a Super Admin operator → **Ops Console → Role & Access** (`/ops/access`) | The operator roster with a role `<select>` per row (your own is disabled); below it, the full capability matrix (`●` / `–`). | |
+| 2 | Change another operator to **BILLING**, click **Apply** (elevate if prompted) | Toast "Role updated"; `staff_grants` now has a revoked old row + a fresh `BILLING` row (audit trail preserved). | |
+| 3 | Sign in as that operator | Sidebar shows **Telemetry · Platform Pulse · Tenants · Billing · Operator Security** only. `/ops/staff`, `/ops/access`, `/ops/identity` → 307 to `/ops/telemetry`. | |
+| 4 | As the BILLING operator, open `/ops/billing` | Tier counts (Trial / Standard / Enterprise), active seats, and a per-tenant table. No provision / suspend controls. | |
+| 5 | Change the operator to **AUDITOR**, sign in | `/ops/audit` shows the operator roster (with roles) + JIT-elevation history. Read-only; no mutation controls anywhere. | |
+| 6 | Restore the operator to **SUPER_ADMIN** | Full sidebar returns. | |
+| 7 | `npm run guests:seed` (staging) → sign in as `abha@a2rventures.local` / `a2r-DOS-233444` | Lands on **SteerCo Briefing** as "Executive Viewer". Control Tower, SteerCo, Reports visible read-only; **Margin Health = `•••• restricted to Partners`**. | |
+| 8 | As the guest, visit `/ops`, `/ops/telemetry`, `/admin` directly | Each redirects to `/portfolio` or `/steerco` — never renders. No edit buttons, no "Admin & Org Setup" nav, no baseline lock. | |
+| 9 | Sign-in screen — click the eye icon in the password field | Field toggles password ↔ plain text; `aria-pressed` flips; icon changes eye ↔ eye-off. | |
+
+**Checkpoint:** each operator role reaches exactly its remit and nothing
+more; a role change preserves the grant history; guest viewers observe the
+product read-only and cannot touch the operator console or tenant admin.
 
 ---
 
