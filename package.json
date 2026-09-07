@@ -23,6 +23,8 @@
     "staff:revoke": "tsx scripts/grant-staff.ts revoke",
     "ops:mfa:status": "tsx scripts/ops-mfa.ts status",
     "ops:mfa:reset": "tsx scripts/ops-mfa.ts reset",
+    "user:password:status": "tsx scripts/reset-password.ts status",
+    "user:password:set": "tsx scripts/reset-password.ts set",
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
