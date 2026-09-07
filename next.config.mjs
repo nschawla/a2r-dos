@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Deploy trigger: v1.14.0 (2026-09-07) — force a fresh Vercel production build.
+// Deploy trigger: 2026-09-07T14:20 — fresh build to pick up corrected DATABASE_URL / DIRECT_URL env vars.
 import { readFileSync } from 'node:fs';
 import { evaluateEnvironmentIsolation } from './src/lib/config/env-isolation-core.mjs';
 import { siteModeBuildError } from './src/lib/config/site-mode.mjs';
