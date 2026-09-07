@@ -86,5 +86,5 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | Req | Primary code | Coverage |
 | --- | --- | --- |
 | FR-CLI-1 | `scripts/*.ts`, `package.json` scripts | manual — exercised in this session's production operations |
-| FR-CLI-2 · FR-CLI-3 · FR-CLI-4 | `scripts/lib/cli-io.ts`, `scripts/reset-password.ts`, `scripts/create-operator.ts`, `scripts/grant-staff.ts`, `scripts/ops-mfa.ts`, `scripts/seed-guests.ts` | A `tests/cli-io.test.ts` (10 — prod-URL detection, `--yes-prod` gate, no-TTY refusal, generated-password strength) |
+| FR-CLI-2 · FR-CLI-3 · FR-CLI-4 | `scripts/lib/cli-io.ts`, `scripts/reset-password.ts`, `scripts/create-operator.ts`, `scripts/grant-staff.ts`, `scripts/ops-mfa.ts`, `scripts/seed-guests.ts`, `scripts/set-guest-access.ts` (+ `scripts/lib/family-guests.ts`) | A `tests/cli-io.test.ts` (10 — prod-URL detection, `--yes-prod` gate, no-TTY refusal, generated-password strength) |
 | FR-CLI-5 | `tests/helpers/db-target.ts`, `tests/setup.ts`, `e2e/global-setup.ts`, `playwright.config.ts` | A guard verified (prod URL → run aborts) · `db:rls:verify` (prod acceptance, zero DML) |

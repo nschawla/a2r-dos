@@ -55,13 +55,21 @@ To exercise a non-Super-Admin operator role: `npm run staff:grant -- <email>
 at **Ops Console → Role & Access** (`/ops/access`, Super Admin + elevation).
 Capability reference: `docs/ROLE_ACCESS_MATRIX.md` § 1.2.
 
-**Family guest (Viewer) accounts** (v1.16.0) — `MembershipRole.VIEWER` +
-`deliveryRole = VIEWER` of A2R DOS Demo, seeded by `npm run guests:seed` /
-`e2e/global-setup.ts`. Shared password **`a2r-DOS-233444`**.
+**Family guest accounts** (v1.16.0) — roster in `scripts/lib/family-guests.ts`
+(10 members), shared password **`a2r-DOS-233444`**. Designed tier is
+`MembershipRole.VIEWER` + `deliveryRole = VIEWER` of A2R DOS Demo
+(`npm run guests:seed` / `e2e/global-setup.ts`).
 
-| Email | Delivery role | Default landing |
+| Accounts (`<name>@a2rventures.local`) | Tier | Default landing |
 | --- | --- | --- |
-| `abha@a2rventures.local` · `janvi@` · `honey@` · `griffin@` · `chan@` | VIEWER | SteerCo Briefing (`/steerco`) — "Executive Viewer" |
+| abha, janvi, honey, griffin, chan, lucky, angad, mani, urvashi, ananya | **VIEWER** (launch) | SteerCo Briefing (`/steerco`) — "Executive Viewer", read-only, financials scrubbed |
+
+> **Pre-launch:** the roster is currently promoted with
+> `npm run guests:access -- --tier full --yes-prod` to `OWNER` / `ADMIN` in
+> every org + a `SUPER_ADMIN` operator grant, so the family can give build
+> feedback. `--tier viewer` reverts the whole roster before go-live. See
+> `docs/ROLE_ACCESS_MATRIX.md` § 3. Playwright Suite Q exercises the VIEWER
+> tier on staging using the first five names.
 
 ### 1.3 Reference figures (A2R DOS Demo, fresh seed)
 

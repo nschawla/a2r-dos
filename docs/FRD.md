@@ -106,7 +106,7 @@ internal operator control plane for the vendor (A2R). Next.js 15 App Router
 
 | # | Requirement |
 | --- | --- |
-| FR-CLI-1 | `staff:list` / `staff:grant --role` / `staff:revoke`, `operator:create --role`, `ops:mfa:status` / `ops:mfa:reset`, `user:password:status` / `user:password:set`, `guests:seed`, `health:prod`, `db:rls:verify` / `db:rls:smoke`. |
+| FR-CLI-1 | `staff:list` / `staff:grant --role` / `staff:revoke`, `operator:create --role`, `ops:mfa:status` / `ops:mfa:reset`, `user:password:status` / `user:password:set`, `guests:seed` / `guests:access --tier full\|viewer`, `health:prod`, `db:rls:verify` / `db:rls:smoke`. |
 | FR-CLI-2 | A password is **never** a command-line argument — masked interactive prompt, `--password-stdin`, or `--generate`. A positional password is rejected. |
 | FR-CLI-3 | `user:password:set` / `operator:create` default to `mustChangePassword = true` (`--no-force-change` to opt out) and always bump `sessionVersion`. |
 | FR-CLI-4 | Any mutating CLI run against the **production** database requires `--yes-prod` / `A2R_ALLOW_PROD_WRITE=1` or a typed project-ref confirmation; a non-interactive prod run is refused. |

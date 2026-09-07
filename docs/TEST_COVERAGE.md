@@ -85,8 +85,11 @@ Playwright run whose resolved DB URL is the production project ref
 | **Q** | **NEW v1.16.0** — Viewer / Guest: a family guest signs in as an Executive Viewer, read-only surfaces render, financials scrubbed, `/ops/*` and `/admin` walled off |
 
 `e2e/global-setup.ts` seeds the operators' `operator_mfa` rows (fixed TOTP
-secret for `elevateOps`) and the five guest viewer accounts before the
-`webServer` spawns.
+secret for `elevateOps`) and the first five family guest **VIEWER** accounts
+(`abha@` … `chan@`) before the `webServer` spawns — Suite Q asserts the
+strict read-only tier, so the e2e seed pins them at `VIEWER` regardless of
+the production roster's pre-launch access tier (see
+`docs/ROLE_ACCESS_MATRIX.md` § 3).
 
 ---
 

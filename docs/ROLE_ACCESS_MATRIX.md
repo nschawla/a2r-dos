@@ -142,26 +142,58 @@ tab pills, and (via middleware) the route:
 
 ---
 
-## 3. Guest (Viewer) accounts
+## 3. Family guest accounts
 
-Five family guest accounts, provisioned by `npm run guests:seed` as
-`MembershipRole.VIEWER` + `deliveryRole = VIEWER` members of the demo
-organization (`a2r-ventures-demo`):
+The roster lives in `scripts/lib/family-guests.ts` (10 members) and shares
+one password, `a2r-DOS-233444` (satisfies the strength policy; `mustChangePassword`
+is `false`):
 
-| Name | Email | Role | Password |
-| --- | --- | --- | --- |
-| Abha | `abha@a2rventures.local` | VIEWER | `a2r-DOS-233444` |
-| Janvi | `janvi@a2rventures.local` | VIEWER | (shared) |
-| Honey | `honey@a2rventures.local` | VIEWER | (shared) |
-| Griffin | `griffin@a2rventures.local` | VIEWER | (shared) |
-| Chan | `chan@a2rventures.local` | VIEWER | (shared) |
+| # | Name | Email |
+| --- | --- | --- |
+| 1 | Abha | `abha@a2rventures.local` |
+| 2 | Janvi | `janvi@a2rventures.local` |
+| 3 | Honey | `honey@a2rventures.local` |
+| 4 | Griffin | `griffin@a2rventures.local` |
+| 5 | Chan | `chan@a2rventures.local` |
+| 6 | Lucky | `lucky@a2rventures.local` |
+| 7 | Angad | `angad@a2rventures.local` |
+| 8 | Mani | `mani@a2rventures.local` |
+| 9 | Urvashi | `urvashi@a2rventures.local` |
+| 10 | Ananya | `ananya@a2rventures.local` |
 
-The shared password satisfies the strength policy (≥ 12 · upper · lower ·
-digit). `mustChangePassword` is `false`. On sign-in they land on the SteerCo
-Briefing as an "Executive Viewer"; portfolio, control tower, and reports are
-visible read-only with every financial figure scrubbed. They have **no**
-operator grant — `/ops/*` and `/admin` redirect away. Verified by Playwright
-**Suite Q**.
+### Designed (launch) tier — `VIEWER`
+
+`npm run guests:seed` provisions them as `MembershipRole.VIEWER` +
+`deliveryRole = VIEWER` of the demo organization. On sign-in they land on
+the SteerCo Briefing as an "Executive Viewer"; portfolio, control tower, and
+reports are visible read-only with every financial figure scrubbed. No
+operator grant — `/ops/*` and `/admin` redirect away. This is the tier
+Playwright **Suite Q** verifies (against staging, using the first five).
+
+### Current (pre-launch) tier — full access
+
+While the product is still being built, the roster is promoted so the
+family can give meaningful feedback:
+
+```
+npm run guests:access -- --tier full --yes-prod
+```
+
+sets every roster account to **`MembershipRole.OWNER` / `deliveryRole = ADMIN`
+in every organization** plus an active **`SUPER_ADMIN` `staff_grants`**
+entitlement (read access to the whole `/ops` operator console,
+cross-tenant). Mutating operator actions still require the operator to
+enroll a second factor and take a JIT elevation — the promotion does not
+bypass that.
+
+**Before go-live**, revert the whole roster:
+
+```
+npm run guests:access -- --tier viewer --yes-prod
+```
+
+restores `VIEWER` / `VIEWER` in the demo org, removes every other-org
+membership, and revokes every guest `staff_grants` row.
 
 ---
 

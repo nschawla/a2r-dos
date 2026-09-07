@@ -190,8 +190,9 @@ responsible for or should be able to speak to:
   tenant — not what you want) or by A2R provisioning the `User` +
   `Membership` directly. This is the single most-cited roadmap item.
   - **Guest / Viewer accounts** *can* be provisioned by A2R quickly via the
-    `guests:seed` tool — read-only `VIEWER` memberships against your org
-    under a shared password. Ask A2R support if you need stakeholder
+    `guests:seed` / `guests:access` tools (roster in
+    `scripts/lib/family-guests.ts`) — read-only `VIEWER` memberships against
+    an org under a shared password. Ask A2R support if you need stakeholder
     logins before the full invite flow ships.
 
 - Both gaps are tracked in the delivered app's own `README.md` under

@@ -2060,8 +2060,11 @@ Continued ChatGPT audit response, then a role model.
   view + change a role as a re-grant), `/ops/billing`, `/ops/audit`.
   `DeliveryAccessRole.VIEWER` — strict read-only tenant tier (`portfolio` +
   `steerco` view, no edit, financials `restricted`) + `OBSERVER` RBAC
-  persona. Login screen: password show/hide eye toggle. Five family guest
-  Viewer accounts (`npm run guests:seed`), seeded on production.
+  persona. Login screen: password show/hide eye toggle. Family guest Viewer
+  accounts — roster in `scripts/lib/family-guests.ts` (`npm run guests:seed`
+  creates them; `npm run guests:access -- --tier full|viewer` flips the whole
+  roster between pre-launch full access and the read-only launch posture),
+  seeded on production.
 
 ### RTM — requirements traceability (Phase 13)
 
@@ -2073,7 +2076,7 @@ Continued ChatGPT audit response, then a role model.
 | P13-HLTH-1 | Readiness probe leaks nothing to unauthenticated callers | `src/app/api/health/ready/route.ts` | `tests/security/health-endpoint.test.ts` (7) |
 | P13-ROLE-1 | 6 operator roles, capability matrix, 3-layer enforcement | `src/lib/ops/operator-roles.ts`, `src/middleware.ts`, `src/lib/ops-auth.ts` | `tests/operator-roles.test.ts` (13), `tests/operator-role-grants.test.ts` (7) |
 | P13-ROLE-2 | Role change is a re-grant (audit-preserving); not your own | `staff-grants.ts` `setOperatorRole`, `src/server/actions/ops-roles.ts` | `tests/operator-role-grants.test.ts` |
-| P13-ROLE-3 | Read-only tenant Viewer tier + guest accounts | `DeliveryAccessRole.VIEWER`, `rbac.ts` / `rbacMatrix.ts` / `masking.ts` / `scoping.ts`, `scripts/seed-guests.ts` | `tests/rbac-matrix.test.ts` (6 personas) · **e2e Suite Q** |
+| P13-ROLE-3 | Read-only tenant Viewer tier + guest accounts | `DeliveryAccessRole.VIEWER`, `rbac.ts` / `rbacMatrix.ts` / `masking.ts` / `scoping.ts`, `scripts/seed-guests.ts` + `scripts/lib/family-guests.ts` | `tests/rbac-matrix.test.ts` (6 personas) · **e2e Suite Q** |
 | P13-UI-1 | Login password show/hide toggle (a11y) | `src/app/(auth)/login/page.tsx` | e2e Suites A / Q |
 
 **Verification:** `tsc` → 0 · `lint` → 0/0 · `prisma validate` → clean ·
