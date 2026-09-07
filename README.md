@@ -1813,6 +1813,63 @@ passed** (Suites A–P); `npm run build` → clean; staging
 (`BEGIN … ROLLBACK`) then applied to both databases; `prisma migrate diff`
 → no drift.
 
+## Phase 9 — Production RLS cutover prep, identity-table lockdown & break-glass (v1.12.0)
+
+Phase 2 of the enterprise-readiness hardening plan. Closes the gap between
+"DB-level RLS enforced on staging" (Phase 6 / v1.9.0) and "safe to enforce on
+production".
+
+### FRD — functional summary
+
+- **Production RLS migrations applied (inert).** Migrations 16 + 17 + a new
+  **20** are applied to the production database via `DIRECT_URL` (rehearsed
+  `BEGIN … ROLLBACK` first). They do nothing while the app connects as
+  `postgres` — the only new capability is `SET ROLE a2r_app`.
+  `npm run db:rls:smoke` against production runs for real and passes all
+  8 checks. The remaining step is a single Vercel change: `RLS_ENFORCE=1` +
+  redeploy. Full procedure + verification matrix: `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
+- **Identity / routing tables denied to the tenant runtime (migration 20).**
+  The 9 identity tables (`users`, `accounts`, `sessions`,
+  `verification_tokens`, `memberships`, `organizations`, `staff_grants`,
+  `staff_elevations`, `impersonation_grants`) move from the permissive
+  `rls_app_plumbing` policy (`USING (true)`) to a hard `rls_deny_app`
+  (`USING (false) WITH CHECK (false)`) for `a2r_app`. `signOutEverywhereAction`
+  and `changePasswordAction` — the only tenant-runtime flows that touched
+  `users` / `sessions` — now run under `runUnscoped` (they key by explicit
+  `userId`, an account-level operation), so the tenant runtime never touches
+  an identity table as `a2r_app`. `a2r_app` is also set `NOLOGIN`.
+- **RLS break-glass.** `_rls_control` (a one-row control table) +
+  `src/lib/db/rls-break-glass.ts`: a time-boxed (≤ 60 min), auto-expiring,
+  alerting window that disables DB-level RLS within ~10 s during an incident —
+  no redeploy — while keeping application-tier scoping fully in force.
+  Operable via `scripts/rls-break-glass.ts` (over `DIRECT_URL`, no app
+  dependency) or the elevated ops actions. Rehearsed on staging.
+- **Tenant-model inventory.** `docs/TENANT_MODEL_INVENTORY.md` maps all 37
+  Prisma models to their tenant binding and DB-level enforcement (9 identity +
+  28 tenant-owned, 11 of the 28 also carrying a composite FK to a tenant
+  parent), with two residuals tracked for Phase 3.
+
+### RTM — requirements traceability (Phase 9)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| RLS-PROD-1 | Migrations 16/17/20 applied + verified on production (inert) | migrations 16/17/20, `docs/RLS_ENFORCEMENT_RUNBOOK.md` | `npm run db:rls:smoke` against production → OK |
+| RLS-PROD-2 | Direct-SQL verification matrix (SELECT/INSERT/UPDATE/DELETE/UPSERT, cross-tenant FK, ingest) | `scripts/rls-smoke.ts` (8 checks) | run on staging + production |
+| RLS-ID-1 | Identity/routing tables unreachable by `a2r_app` | migration 20 `rls_deny_app` | `tests/security/tenant-model-inventory.test.ts` |
+| RLS-ID-2 | Session-revocation flows run as `postgres`, not `a2r_app` | `src/server/actions/auth.ts` (`runUnscoped`) | `tests/security/sign-out-everywhere.test.ts`, `tests/password-rotation.test.ts` |
+| RLS-BG-1 | Break-glass: time-boxed, auto-expiring, alerting | `src/lib/db/rls-break-glass.ts`, `_rls_control` (migration 20) | `tests/security/rls-break-glass.test.ts` + staging rehearsal |
+| RLS-BG-2 | Break-glass operable without a redeploy | `scripts/rls-break-glass.ts`, `src/server/actions/ops.ts` | manual (UAT-3.14) |
+| RLS-INV-1 | Complete tenant-model inventory, zero crossing gaps, drift-guarded | `docs/TENANT_MODEL_INVENTORY.md` | `tests/security/tenant-model-inventory.test.ts` |
+
+**Verification:** against **production** (`.env`, RLS off) **and staging**
+(`RLS_ENFORCE=1`, `a2r_app`): `npx tsc --noEmit` → 0; `npm run lint` → 0/0;
+`npx vitest run` → **612 passed** (52 files) on both; `npx playwright test` →
+**60 passed** (Suites A–P) on staging; `npm run build` → clean;
+`npm run db:rls:smoke` → OK on staging **and production**. Break-glass
+rehearsed on staging (engage → tenant isolation held at the app tier →
+disengage → smoke green). Migrations 16 + 17 + 20 rehearsed
+(`BEGIN … ROLLBACK`) then applied to production; migration 20 also to staging.
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to

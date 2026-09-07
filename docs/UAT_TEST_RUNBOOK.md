@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — UAT Test Runbook
 
-_Applies to v1.11.x · Last updated 2026-09-06_
+_Applies to v1.12.x · Last updated 2026-09-06_
 
 This runbook is the human-executable half of the QA framework. It gives a
 tester **explicit login data, exact steps, expected visual outcomes, and a
@@ -65,7 +65,7 @@ All demo passwords are **`password12345`** unless noted.
 ## 2. Automated coverage (run before manual UAT)
 
 ```bash
-npm test            # Vitest — 602 unit + integration tests across 50 files, ~10s
+npm test            # Vitest — 612 unit + integration tests across 52 files, ~10s
 npx tsc --noEmit    # strict typecheck, 0 errors
 npm run build       # next build — must compile cleanly
 npm run test:e2e    # Playwright — full Suites A–P against a running dev server
@@ -88,7 +88,9 @@ npm run test:e2e    # Playwright — full Suites A–P against a running dev ser
 | Tenant isolation — ORM auto-scope + composite keys + DAL boundary | `tests/org-scope.test.ts` · `tests/security/tenant-isolation.test.ts` · `tests/dal.test.ts` · `tests/dal-boundary.test.ts` · e2e Suite **O** |
 | Composite FK tenant guard (v1.8.0) — DB rejects a child row whose tenant ≠ its parent's | `tests/security/tenant-isolation.test.ts` (composite-key models: cross-tenant create → refused) |
 | Hashed bearer tokens (v1.8.0) — elevation / impersonation cookie stored as `sha256` only | `tests/staff-elevation.test.ts` (row `tokenHash` ≠ cookie; tampered cookie → null) · e2e Suites **I**, **P** |
-| DB-level RLS (v1.9.0) — direct-SQL tenant isolation for the `a2r_app` role | `tests/security/rls-policies.test.ts` · `npm run db:rls:smoke` — auto-detect the `a2r_app` role: **enforce + verify on staging**, no-op on production |
+| DB-level RLS (v1.9.0 / v1.12.0) — direct-SQL tenant isolation for the `a2r_app` role | `tests/security/rls-policies.test.ts` · `npm run db:rls:smoke` (8-check matrix: SELECT/INSERT/UPDATE/DELETE/UPSERT, cross-tenant FK, ingest) — auto-detect the `a2r_app` role: **enforced on staging**, **verified inert on production** (migrations 16/17/20 applied) |
+| Identity-table lockdown (v1.12.0) — the tenant runtime cannot touch `sessions` / `staff_grants` / `staff_elevations` / `impersonation_grants` / … as `a2r_app` | migration `00000000000020` `rls_deny_app`; `tests/security/tenant-model-inventory.test.ts` (schema-drift guard) |
+| RLS break-glass (v1.12.0) — time-boxed, auto-expiring, alerting disable of DB-level RLS | `tests/security/rls-break-glass.test.ts` · `npm run db:rls:breakglass status` · manual UAT-3.14 |
 | JIT staff elevation — reason-logged, auto-expiring, session-bound | `tests/staff-elevation.test.ts` · e2e Suite **P** · manual UAT-3.10 |
 | Advanced rate limiting + structured error boundary | `tests/rate-limiter.test.ts` · `tests/rate-limiter-redis.test.ts` (distributed window + fallback) · `tests/security/rate-limit-endpoints.test.ts` · `tests/observability.test.ts` |
 | Strict request schemas / mass-assignment (v1.10.0) — every API + action `z.object` is `z.strictObject` | `.strict()` failures exercised across the vitest + e2e action coverage; boundary noted in `docs/SECURITY.md` §9 |
@@ -294,6 +296,23 @@ Mostly automated (§2); this confirms the assembled product.
 **Checkpoint:** money is exact end-to-end; the operator-access and audit
 history cannot be cascade-deleted or swept away.
 
+### UAT-3.14 · DB-level RLS state & break-glass (v1.12.0)
+
+Operator / platform task. Requires DB access (`.env` pointed at the target).
+
+| Step | Action | Expected | ✅/❌ |
+| --- | --- | --- | --- |
+| 1 | `npm run db:rls:smoke` against **production** | `OK — all 28 tenant tables enforce isolation for a2r_app` (the role now exists; runs for real). | |
+| 2 | `npm run db:rls:breakglass status` | `{"active": false, …}` | |
+| 3 | (staging, `RLS_ENFORCE=1`) `npm run db:rls:breakglass -- engage --minutes 5 --reason "UAT rehearsal"` | Prints the engaged banner + expiry; an `error`-level alert is emitted. | |
+| 4 | Load the app / run `npx vitest run tests/security/tenant-isolation.test.ts` while engaged | The app still serves tenant data correctly (running as `postgres`, app-tier scoping holds); cross-tenant tests still pass. | |
+| 5 | `npm run db:rls:breakglass -- disengage`, then `npm run db:rls:smoke` | Window closed; smoke green within ~10 s. | |
+| 6 | Confirm production Vercel env | `RLS_ENFORCE` is **unset** until the deliberate cutover (`docs/RLS_ENFORCEMENT_RUNBOOK.md`). | |
+
+**Checkpoint:** production is verified ready for the RLS flip; the
+break-glass engages, holds isolation at the app tier, alerts, and
+auto-expires.
+
 ---
 
 ## 4. Module runbooks
@@ -367,7 +386,7 @@ Sign in as `ops@a2rventures.com` (or `navinder@…`).
 | 7 | **Ingestion & Templates** | CSV template downloads + schema reference | |
 | 8 | **Staff Access** | Grants table + the **Just-In-Time elevations** audit table (who, why, expiry, active/ended) | |
 | 9 | Impersonate a tenant (elevate first; Tenants → actions → Impersonate, give a reason) | Opens a **read-only** tenant session with a persistent banner; the reason is written to that tenant's Compliance Ledger before the session starts | |
-| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.11.x`; click → Release Notes modal (top entry: v1.11.0) | |
+| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.12.x`; click → Release Notes modal (top entry: v1.12.0) | |
 
 ### UAT-4.6 · Admin & Org Setup (`/admin`)
 
@@ -445,7 +464,7 @@ Sign in as `admin@a2rventures-demo.test`.
 | 9 | No stray `DataImportBatch` rows or test `WeeklyAssignmentSlot`/`SchedulePhase` writes left in the demo tenant from batch-import testing | |
 | 10 | No stray test `CustomKpi` rows left in the demo tenant from Custom KPI Builder testing | |
 | 11 | No stray `staff_elevations` rows or throwaway tenants (`JIT Elevation Test Inc`, `Enterprise Sanity Inc`, `Purge Target Inc`) left from Ops testing | |
-| 12 | Release Notes modal top entry = **v1.11.0**; Ops sidebar build stamp = `v1.11.x` | |
+| 12 | Release Notes modal top entry = **v1.12.0**; Ops sidebar build stamp = `v1.12.x` | |
 
 ---
 

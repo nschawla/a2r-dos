@@ -1,7 +1,19 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.11.0**.
+it, current as of **v1.12.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
+full model → tenant-binding → RLS-policy map.
+**v1.12.0 (production RLS cutover prep, Phase 2)** — no Prisma-model change.
+Migration `00000000000020` (applied to staging **and production**, inert on
+production until `RLS_ENFORCE=1`): (a) a new control-plane table
+**`_rls_control`** (one row, not a Prisma model) — the break-glass window
+read by `src/lib/db/rls-break-glass.ts`; (b) the 9 identity/routing tables
+(`users`, `accounts`, `sessions`, `verification_tokens`, `memberships`,
+`organizations`, `staff_grants`, `staff_elevations`, `impersonation_grants`)
+move from the permissive `rls_app_plumbing` policy to a hard `rls_deny_app`
+(`USING (false) WITH CHECK (false)`) for `a2r_app`; (c) `a2r_app` → `NOLOGIN`.
+Migrations 16 + 17 (from v1.9.0, staging) are now also **applied to
+production** (inert).
 **v1.11.0 (data-model integrity, Phase 1)** — (a) **financial precision:**
 13 monetary / rate / margin / EAC / BAC columns move `Float` →
 `Decimal` (Postgres `NUMERIC`; migration `00000000000018`) —

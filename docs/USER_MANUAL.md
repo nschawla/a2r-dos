@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — User Manual & Operator's Guide
 
-_Applies to v1.11.0 · Last updated 2026-09-06_
+_Applies to v1.12.0 · Last updated 2026-09-06_
 
 A2R Delivery OS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
@@ -325,6 +325,21 @@ revoking staff — needs a **temporary elevation** first.
   progress ends — re-elevate once. This is deliberate: as of v1.8.0 the
   session token is stored hashed, so a deploy that rotates it invalidates
   in-flight cookies.
+
+### RLS break-glass (v1.12.0)
+
+For the rare incident where database-level tenant isolation (Row-Level
+Security) is itself misbehaving — cross-tenant errors, a policy regression —
+an elevated operator can **temporarily disable it** without a deploy:
+
+- `getRlsBreakGlassStatus` / `engageRlsBreakGlassAction` (with a reason and a
+  window ≤ 60 minutes) / `disengageRlsBreakGlassAction`, or the
+  `npm run db:rls:breakglass` CLI from an incident shell.
+- While engaged, queries fall back to application-tier tenant scoping (the
+  same posture as before RLS was switched on — **not** "no isolation"), and
+  every affected request raises an alert.
+- The window **auto-expires** on its own; there is nothing to clean up if you
+  forget to disengage. Full procedure: `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
 
 ### Platform Pulse (`/ops/pulse`)
 

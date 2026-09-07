@@ -484,9 +484,9 @@
         <span class="draft-pill">Confidential · Draft</span>
       </div>
       <h1>Executive Platform Summary</h1>
-      <p class="lede">The enterprise Delivery Operating System for professional services organizations — release v1.11.0, prepared for executive and board review.</p>
+      <p class="lede">The enterprise Delivery Operating System for professional services organizations — release v1.12.0, prepared for executive and board review.</p>
       <div class="meta-row">
-        <span><b>Release</b> v1.11.0</span>
+        <span><b>Release</b> v1.12.0</span>
         <span class="sep">/</span>
         <span><b>Prepared</b> September 6, 2026</span>
         <span class="sep">/</span>
@@ -511,6 +511,7 @@
           <p><strong>v1.9.0</strong> stands up a dedicated staging environment — a separate database, isolated from production — and switches database-level Row-Level Security fully on there. Every tenant query now runs under a least-privilege database role (no superuser, no ability to bypass the rules) scoped to a single organization, so the database itself rejects any cross-tenant read or write, verified directly in SQL across every tenant table. Production continues on the three application-tier isolation layers until its own controlled cutover; the new mechanism is inert there by design.</p>
           <p><strong>v1.10.0</strong> hardens the request surface. Every request payload is now validated against a strict schema that rejects unexpected fields, removing the mass-assignment risk on data-import and workspace-restore. Users get a one-click "sign out of all sessions" that immediately ends every session on every device. The app's own cookies move to the strictest same-site setting, the database connection is tuned to survive serverless traffic spikes, and an automated check ensures no backend error or stack trace can ever reach a client.</p>
           <p><strong>v1.11.0</strong> takes on data-model integrity. Every monetary value &mdash; rates, budgets, costs, margins, estimates at completion &mdash; is now stored as an exact decimal rather than a floating-point approximation, so amounts are exact to the cent and portfolio totals never drift. And the operator-access trail &mdash; who was granted internal access, every temporary elevation, every tenant impersonation &mdash; is protected by the database from any cascade or retention sweep, so deleting a user or offboarding a tenant can never erase the compliance record.</p>
+          <p><strong>v1.12.0</strong> prepares the production database for the final Row-Level Security cutover. The restricted database role and the per-tenant isolation policies are now applied to production and verified directly in SQL &mdash; they sit inert until a single configuration change activates them, so the switch-on is deliberate and low-risk. The identity tables that hold sessions, internal-access grants, and impersonation records are now sealed off from the application's tenant-facing role entirely. And a tested "break-glass" control can suspend database-level isolation within seconds during an incident &mdash; without a redeployment, with automatic expiry, and while the application's own isolation layers stay fully in force.</p>
         </div>
       </section>
 
@@ -589,8 +590,11 @@
           globally-consistent rate limiting, a dedicated staging environment with database-level Row-Level
           Security enforced under a least-privilege database role (v1.9.0), strict request-payload
           validation, one-click global sign-out, strict-same-site cookies, serverless connection-pool
-          tuning (v1.10.0) &mdash; and, new in v1.11.0, exact-decimal storage for every monetary value and
-          database-enforced protection of the operator-access audit trail from deletion.
+          tuning (v1.10.0), exact-decimal storage for every monetary value and database-enforced protection
+          of the operator-access audit trail from deletion (v1.11.0) &mdash; and, new in v1.12.0, the
+          production database staged and verified for the Row-Level Security cutover, the identity tables
+          sealed off from the tenant-facing database role, and a tested, auto-expiring break-glass control
+          for that isolation layer.
         </p>
       </section>
 
@@ -602,8 +606,8 @@
 
         <div class="stat-strip">
           <div class="stat-card ok">
-            <span class="stat-num">602 / 602</span>
-            <span class="stat-label">Unit tests passed (Vitest, 50 files)</span>
+            <span class="stat-num">612 / 612</span>
+            <span class="stat-label">Unit tests passed (Vitest, 52 files) — production &amp; staging</span>
           </div>
           <div class="stat-card ok">
             <span class="stat-num">60 / 60</span>
@@ -614,15 +618,16 @@
             <span class="stat-label">TypeScript errors (strict <code>tsc --noEmit</code>)</span>
           </div>
           <div class="stat-card">
-            <span class="stat-num">v1.11.0</span>
+            <span class="stat-num">v1.12.0</span>
             <span class="stat-label">Current verified release</span>
           </div>
         </div>
 
         <div class="verify-line">
           <b>$</b> npx tsc --noEmit &nbsp;→&nbsp; 0 errors&nbsp;&nbsp;·&nbsp;&nbsp;
-          <b>$</b> npx vitest run &nbsp;→&nbsp; 602 passed&nbsp;&nbsp;·&nbsp;&nbsp;
-          <b>$</b> npx playwright test &nbsp;→&nbsp; 60 passed
+          <b>$</b> npx vitest run &nbsp;→&nbsp; 612 passed&nbsp;&nbsp;·&nbsp;&nbsp;
+          <b>$</b> npx playwright test &nbsp;→&nbsp; 60 passed&nbsp;&nbsp;·&nbsp;&nbsp;
+          <b>$</b> npm run db:rls:smoke &nbsp;→&nbsp; OK (prod &amp; staging)
         </div>
       </section>
 
