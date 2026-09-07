@@ -18,8 +18,8 @@ const ROOT = join(process.cwd(), 'src');
 
 /** Routes exempt from the wrapper rule, with the reason. */
 const ROUTE_ALLOWLIST: Record<string, string> = {
-  'src/app/api/health/route.ts': 'liveness probe — no deps, no throw, constant body',
-  'src/app/api/health/ready/route.ts': 'own try/catch, returns only { database: "ok"|"error"|"timeout" }',
+  'src/app/api/health/route.ts': 'liveness probe — no deps, no throw, constant body { status: "ok" }',
+  'src/app/api/health/ready/route.ts': 'own try/catch; public body is only { status } — error detail is captured server-side, never returned',
   'src/app/api/auth/[...nextauth]/route.ts': 'NextAuth generates its own generic error responses',
 };
 

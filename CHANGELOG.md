@@ -10,6 +10,25 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.15.2] — 2026-09-07
+
+_Audit cleanup: public readiness-probe hardening._
+
+### Security
+
+- **`GET /api/health/ready` no longer leaks infrastructure detail.**
+  Unauthenticated callers now receive **only** `{ status: "ready" |
+  "unavailable" }` — the database dependency, the `latencyMs` figure, the
+  `error` vs `timeout` distinction, and the response `timestamp` are gone
+  from the public body. `GET /api/health` is a constant `{ status: "ok" }`.
+  A caller presenting `x-a2r-internal-token: <HEALTH_CHECK_TOKEN>` still
+  gets `{ database, latencyMs, checkedAt }` for deploy gates / detailed
+  monitoring; the failure is `captureException`-recorded server-side either
+  way. `scripts/health-prod.ts` sends the token from `.env` when present.
+  New guard: `tests/security/health-endpoint.test.ts`.
+
+---
+
 ## [1.15.1] — 2026-09-07
 
 _Follow-on hardening (ChatGPT audit): MFA key separation, atomic replay

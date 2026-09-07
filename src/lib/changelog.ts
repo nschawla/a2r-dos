@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.15.2',
+    date: '2026-09-07',
+    headline: 'Readiness probe no longer leaks infrastructure detail to the internet',
+    changes: [
+      { type: 'security', text: 'The public readiness endpoint (/api/health/ready) now returns only up/down to unauthenticated callers — the database dependency, query latency, and error type are no longer disclosed. A monitoring caller presenting a HEALTH_CHECK_TOKEN still gets the full diagnostic; every failure is recorded server-side regardless.' },
+    ],
+  },
+  {
     version: '1.15.1',
     date: '2026-09-07',
     headline: 'MFA key separation, atomic replay protection, and hardened operator CLIs',

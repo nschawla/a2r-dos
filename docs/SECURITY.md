@@ -629,9 +629,14 @@ retention window and never edits a row**, and it **never touches**:
   browser or the build artifact. An unknown / missing value in a production
   build fails the deployment; at runtime it falls back to the marketing
   page, never "show the internal app". See `docs/SITE_ROUTING_MODEL.md`.
-- **Health checks.** `GET /api/health` (liveness) and `GET /api/health/ready`
-  (readiness — a 2-second-bounded database probe) support external monitoring
-  and deploy gating.
+- **Health checks.** `GET /api/health` (liveness) returns a constant
+  `{ status: "ok" }`. `GET /api/health/ready` (readiness — a
+  2-second-bounded database probe) returns **only** `{ status: "ready" |
+  "unavailable" }` to unauthenticated callers — no database dependency,
+  latency figure, or error-type detail leaks to the internet (v1.15.1). A
+  caller presenting `x-a2r-internal-token: <HEALTH_CHECK_TOKEN>` also
+  receives `{ database, latencyMs }`; the failure is captured server-side
+  regardless.
 - **Public unauthenticated endpoints.** The only write path reachable
   without a session is the "Coming Soon" page's early-access form
   (`submitEarlyAccessLead`): Zod-validated, a hidden honeypot field drops

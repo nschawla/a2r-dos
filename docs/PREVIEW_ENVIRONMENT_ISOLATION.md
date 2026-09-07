@@ -129,8 +129,10 @@ usually impractical on Hobby/Pro — note it, don't depend on it.
    - **Build fails** with `🛑 ENVIRONMENT ISOLATION VIOLATION
      (PREVIEW_USING_PRODUCTION_DB)` → a var is still mis-scoped; fix step 4.
 2. Open the Preview URL → you should hit the Vercel Authentication gate.
-3. After signing in, `GET <preview>/api/health/ready` → `{"database":"ok"}`,
-   and the app shows **seed** data (demo tenants), not real clients.
+3. After signing in, `GET <preview>/api/health/ready` → `{"status":"ready"}`
+   (add `-H "x-a2r-internal-token: $HEALTH_CHECK_TOKEN"` for the
+   `{"database":"ok"}` detail), and the app shows **seed** data (demo
+   tenants), not real clients.
 
 ## Ongoing
 
