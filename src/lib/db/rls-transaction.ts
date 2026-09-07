@@ -112,11 +112,6 @@ export function extendWithRlsTransaction<T extends PrismaClient>(base: T): T {
           // an explicit organizationId on every write.
           if (!scope || scope.kind !== 'org') return query(args);
 
-          // Break-glass — run the bare op as `postgres` (no role switch),
-          // app-tier scoping still applies. Alert already emitted.
-          const { isBreakGlassActive } = await import('@/lib/db/rls-break-glass');
-          if (await isBreakGlassActive()) return query(args);
-
           // Bare `db.model.op()` in a tenant request — wrap this one op.
           // `base` is the pre-rls (org-scoped) client, so the inner `tx`
           // does not re-enter this extension.

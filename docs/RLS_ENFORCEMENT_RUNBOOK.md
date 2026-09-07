@@ -1,14 +1,15 @@
 # RLS Enforcement Runbook
 
 _Companion to `docs/RLS_ROADMAP.md` and `docs/TENANT_MODEL_INVENTORY.md`.
-Turning DB-level Row-Level Security on, and the break-glass to turn it off._
+Turning DB-level Row-Level Security on, and the emergency rollback._
 
 ## Status
 
 - **Staging** (`urdlkmlhjhvoxsphvwte`) — **ENFORCED** (v1.9.0). `RLS_ENFORCE=1`,
-  migrations 16 + 17 + 20 applied, `npm run db:rls:smoke` green, full suite green.
-- **Production** (`xoaabhqsbfetffyawayw`) — migrations 16 + 17 + 20 **APPLIED
-  (inert)** as of v1.12.0; the app still connects/acts as `postgres`. The
+  migrations 16 + 17 + 20 + 21 + 22 applied, `npm run db:rls:smoke` green
+  (10 checks), full suite green.
+- **Production** (`xoaabhqsbfetffyawayw`) — migrations 16 + 17 + 20 + 21 + 22
+  **APPLIED (inert)**; the app still connects/acts as `postgres`. The
   enforcement flip (`RLS_ENFORCE=1` on Vercel) is the remaining step —
   "Production cutover" below.
 
@@ -35,8 +36,14 @@ SELECT set_config('app.current_org', '<org-id>', true);
 - Migration 20: the 9 identity/routing tables carry **`rls_deny_app`**
   (`USING (false) WITH CHECK (false)`) for `a2r_app` — the tenant runtime
   cannot read or write `sessions` / `staff_grants` / `staff_elevations` /
-  `impersonation_grants` / `users` / … at all. Plus the `_rls_control`
-  break-glass table.
+  `impersonation_grants` / `users` / … at all.
+- Migration 21 (WP1): `immutable_audit_ledger` is engine-immutable —
+  `a2r_app` loses `UPDATE`/`DELETE`, and a `BEFORE UPDATE/DELETE/TRUNCATE`
+  trigger rejects every role unless a transaction sets
+  `SET LOCAL "a2r.ledger_admin" = 'on'`. Also drops the removed v1.12.0
+  `_rls_control` break-glass table.
+- Migration 22 (WP1): every intra-tenant FK is composite
+  `(organizationId, <col>)` — the DB rejects a cross-tenant reference.
 
 ## Applying to a fresh database (what was done on staging)
 
@@ -51,6 +58,8 @@ npm run db:seed
 npx prisma db execute --url "<pg-5432>" --file prisma/migrations/00000000000016_rls_restricted_role/migration.sql
 npx prisma db execute --url "<pg-5432>" --file prisma/migrations/00000000000017_rls_tenant_policies/migration.sql
 npx prisma db execute --url "<pg-5432>" --file prisma/migrations/00000000000020_rls_identity_lockdown_and_control/migration.sql
+npx prisma db execute --url "<pg-5432>" --file prisma/migrations/00000000000021_ledger_immutability/migration.sql
+npx prisma db execute --url "<pg-5432>" --file prisma/migrations/00000000000022_composite_fk_tenant_closure/migration.sql
 
 # 3. flip the app on
 #    .env:  RLS_ENFORCE=1   (+ SESSION_LOOKUP_TIMEOUT_MS=8000 for a remote/high-latency DB)
@@ -119,42 +128,38 @@ Migration 17's commented block. Only after a full soak **and** provisioning
 an owner-side break-glass BYPASSRLS role + owner-side policies — FORCE
 subjects `postgres` (and thus the cross-tenant admin path) to RLS.
 
-## Break-glass — disable enforcement fast
+## Emergency rollback — the only lever
 
-`_rls_control` (migration 20) holds a time-boxed window. While it is open,
-`withTenantTx` runs as `postgres` and DB-level RLS is inert; **app-tier
-tenant scoping (`src/lib/db/org-scope.ts`) still fully applies** — this is
-the exact posture of `RLS_ENFORCE` unset, not "no isolation". Every affected
-request emits an `error`-level observability event (throttled per process),
-so the on-call is paged. The window **auto-expires** (≤ 60 min, time-based —
-no cron, no redeploy); propagation is ≤ 10 s (the in-process cache TTL).
+There is **no fast global break-glass**. The v1.12.0 `_rls_control` flag was
+removed in WP1 (v1.13.0) after review: dropping the whole fleet to the
+`postgres` owner role on a DB-flag toggle concentrated too much risk, and it
+was web-toggleable. Normal tenant traffic is now **unconditionally
+`a2r_app`** whenever `RLS_ENFORCE=1` — the only code path that runs as
+`postgres` is the deliberately-designed `admin`-scope operator path (the
+`/ops` console, gated by a `StaffGrant` + a live JIT elevation).
 
-```bash
-# incident shell (no app dependency — writes over DIRECT_URL)
-npx tsx scripts/rls-break-glass.ts status
-npx tsx scripts/rls-break-glass.ts engage --minutes 30 --reason "SEV1: cross-tenant 500s on /projects"
-npx tsx scripts/rls-break-glass.ts disengage      # or just let it expire
-```
+If DB-level RLS misbehaves in production (a policy regression, cross-tenant
+5xx), the rollback is:
 
-Or from the Ops Console (needs a live JIT elevation):
-`engageRlsBreakGlassAction` / `disengageRlsBreakGlassAction` /
-`getRlsBreakGlassStatus`.
+1. **Unset `RLS_ENFORCE` on Vercel → Production → redeploy** (~2 min; done
+   through the Vercel dashboard, which is behind Vercel's own auth and is not
+   the application's web surface). The app is back to app-tier-only isolation
+   — exactly the v1.8.0 posture (`src/lib/db/org-scope.ts` throw-on-unresolved
+   + the DAL boundary + the composite FKs) — with **zero** policy change.
+2. The soak plan's 48 h window tolerates a ~2-min redeploy.
+3. A genuinely wedged single tenant is a DBA task over `DIRECT_URL` with
+   `SET LOCAL ROLE postgres` — not a product feature.
 
-**Rehearsal** (run on staging before relying on it): `engage --minutes 5` →
-confirm the app still serves tenant data and an `error` alert fired →
-`npx vitest run` still green → `disengage` → `npm run db:rls:smoke` green.
-
-## Rollback (any point)
-
-`.env` / Vercel: unset `RLS_ENFORCE`. The app is back to app-tier-only
-isolation (exactly v1.8.0) with zero policy redeploy. To also remove the DB
-objects:
+To also remove the DB objects:
 
 ```sql
--- restore permissive plumbing, then drop the role + control table
--- (full script in migration 20's header comment)
+DROP TRIGGER IF EXISTS trg_ledger_no_mutate   ON "immutable_audit_ledger";
+DROP TRIGGER IF EXISTS trg_ledger_no_truncate ON "immutable_audit_ledger";
+DROP FUNCTION IF EXISTS _a2r_reject_ledger_mutation();
+DROP FUNCTION IF EXISTS _a2r_reject_ledger_truncate();
+GRANT UPDATE, DELETE ON "immutable_audit_ledger" TO "a2r_app";
+-- restore permissive plumbing, then drop the role (full script in migration 20's header)
 REVOKE "a2r_app" FROM "postgres"; DROP OWNED BY "a2r_app"; DROP ROLE "a2r_app";
-DROP TABLE IF EXISTS "_rls_control";
 ```
 
 RLS stays *enabled* (migration 07) so the anon/PostgREST lockdown is intact.

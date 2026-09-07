@@ -502,6 +502,10 @@ model IdentityProvider {
   groupMappings SsoGroupMapping[]
   organization  Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  // WP1 — composite-FK target for SsoGroupMapping (organizationId is already
+  // @unique — 1:1 with the org — so this is redundant at the DB but Prisma
+  // requires the explicit tuple to back the composite relation).
+  @@unique([organizationId, id])
   @@map("identity_providers")
 }
 
@@ -520,7 +524,9 @@ model SsoGroupMapping {
   priority           Int                @default(100)
   createdAt          DateTime           @default(now())
 
-  identityProvider IdentityProvider @relation(fields: [identityProviderId], references: [id], onDelete: Cascade)
+  // WP1 — composite FKs: a mapping cannot point at another tenant's IdP or Practice.
+  identityProvider IdentityProvider @relation(fields: [organizationId, identityProviderId], references: [organizationId, id], onDelete: Cascade)
+  practice         Practice?        @relation(fields: [organizationId, practiceId], references: [organizationId, id], onDelete: NoAction)
 
   @@unique([identityProviderId, claimValue])
   @@index([organizationId])
@@ -556,7 +562,10 @@ model Practice {
   // scoping ("projects in their practice domain") independent of who's
   // formally assigned as PD on any given project — see Project.practiceId.
   projects     Project[]
+  ssoGroupMappings SsoGroupMapping[]
 
+  // WP1 — composite-FK target: children reference (organizationId, id).
+  @@unique([organizationId, id])
   @@index([organizationId])
   @@map("practices")
 }
@@ -591,11 +600,12 @@ model DeliveryRole {
   employmentType ResourceEmploymentType @default(FTE)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  practice     Practice?    @relation(fields: [practiceId], references: [id], onDelete: SetNull)
+  practice     Practice?    @relation(fields: [organizationId, practiceId], references: [organizationId, id], onDelete: NoAction)
   resources    Resource[]
   effortCells  EffortCell[]
   financials   FinancialActual[]
 
+  @@unique([organizationId, id])
   @@index([organizationId])
   @@map("delivery_roles")
 }
@@ -642,12 +652,20 @@ model Resource {
   startDate     DateTime  @default(now())
   endDate       DateTime?
 
+  // WP1 (v1.13.0) — every intra-tenant FK is composite `(organizationId, x)`
+  // → parent `(organizationId, id)`, so the DB rejects a cross-tenant
+  // reference. Nullable ones are `onDelete: NoAction` in Prisma because the
+  // DB owns the referential action: migration 22 writes them as the PG17
+  // column-list form `ON DELETE SET NULL (<col>)`, which nulls only the
+  // reference column, never the row's own required `organizationId`. Prisma
+  // Client does not emulate referential actions on Postgres, so this
+  // divergence is inert at runtime (documented in docs/TENANT_MODEL_INVENTORY.md).
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  role         DeliveryRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
-  practice     Practice?     @relation(fields: [practiceId], references: [id], onDelete: SetNull)
+  role         DeliveryRole? @relation(fields: [organizationId, roleId], references: [organizationId, id], onDelete: NoAction)
+  practice     Practice?     @relation(fields: [organizationId, practiceId], references: [organizationId, id], onDelete: NoAction)
   user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  manager      Resource?     @relation("ResourceManager", fields: [managerId], references: [id], onDelete: SetNull)
-  rolePolicy   RoleUtilizationPolicy? @relation(fields: [rolePolicyId], references: [id], onDelete: SetNull)
+  manager      Resource?     @relation("ResourceManager", fields: [organizationId, managerId], references: [organizationId, id], onDelete: NoAction)
+  rolePolicy   RoleUtilizationPolicy? @relation(fields: [organizationId, rolePolicyId], references: [organizationId, id], onDelete: NoAction)
 
   directReports Resource[] @relation("ResourceManager")
   projectsAsPD  Project[]   @relation("ProjectPD")
@@ -662,6 +680,7 @@ model Resource {
   timesheetEntries TimesheetEntry[]
 
   @@unique([organizationId, userId])
+  @@unique([organizationId, id])
   @@index([organizationId])
   @@index([managerId])
   @@map("resources")
@@ -684,7 +703,7 @@ model WeeklyAssignmentSlot {
   updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  resource     Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  resource     Resource     @relation(fields: [organizationId, resourceId], references: [organizationId, id], onDelete: Cascade)
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
 
   @@unique([resourceId, projectId, weekDate])
@@ -737,7 +756,7 @@ model TimesheetEntry {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
-  resource     Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  resource     Resource     @relation(fields: [organizationId, resourceId], references: [organizationId, id], onDelete: Cascade)
 
   @@index([organizationId, workDate])
   @@index([projectId, workDate])
@@ -778,6 +797,7 @@ model RoleUtilizationPolicy {
   resources    Resource[]
 
   @@unique([organizationId, roleName])
+  @@unique([organizationId, id])
   @@index([organizationId])
   @@map("role_utilization_policies")
 }
@@ -874,12 +894,13 @@ model Project {
   updatedAt DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  practiceDirector Resource? @relation("ProjectPD", fields: [practiceDirectorId], references: [id], onDelete: SetNull)
-  deliveryManager  Resource? @relation("ProjectDM", fields: [deliveryManagerId], references: [id], onDelete: SetNull)
-  projectManager   Resource? @relation("ProjectPM", fields: [projectManagerId], references: [id], onDelete: SetNull)
-  practice         Practice? @relation(fields: [practiceId], references: [id], onDelete: SetNull)
+  // WP1 — every intra-tenant FK is composite `(organizationId, x)`.
+  practiceDirector Resource? @relation("ProjectPD", fields: [organizationId, practiceDirectorId], references: [organizationId, id], onDelete: NoAction)
+  deliveryManager  Resource? @relation("ProjectDM", fields: [organizationId, deliveryManagerId], references: [organizationId, id], onDelete: NoAction)
+  projectManager   Resource? @relation("ProjectPM", fields: [organizationId, projectManagerId], references: [organizationId, id], onDelete: NoAction)
+  practice         Practice? @relation(fields: [organizationId, practiceId], references: [organizationId, id], onDelete: NoAction)
 
-  parent   Project?  @relation("ProjectHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  parent   Project?  @relation("ProjectHierarchy", fields: [organizationId, parentId], references: [organizationId, id], onDelete: NoAction)
   children Project[] @relation("ProjectHierarchy")
 
   scopeItems     ScopeItem[]
@@ -931,7 +952,7 @@ model ProjectContributor {
 
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  resource     Resource     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  resource     Resource     @relation(fields: [organizationId, resourceId], references: [organizationId, id], onDelete: Cascade)
 
   @@unique([projectId, resourceId])
   @@index([resourceId])
@@ -979,7 +1000,7 @@ model EffortCell {
 
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  role         DeliveryRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role         DeliveryRole @relation(fields: [organizationId, roleId], references: [organizationId, id], onDelete: Cascade)
 
   @@unique([projectId, phaseKey, roleId])
   @@index([projectId])
@@ -1088,7 +1109,7 @@ model RaidEntry {
 
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  owner        Resource?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  owner        Resource?    @relation(fields: [organizationId, ownerId], references: [organizationId, id], onDelete: NoAction)
 
   @@index([projectId])
   @@index([organizationId])
@@ -1121,7 +1142,7 @@ model FinancialActual {
 
   project      Project       @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  role         DeliveryRole? @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  role         DeliveryRole? @relation(fields: [organizationId, roleId], references: [organizationId, id], onDelete: NoAction)
 
   @@unique([projectId, roleKey])
   @@index([projectId])
@@ -1349,7 +1370,7 @@ model ActivityLogEntry {
   // Purge Protocol is a soft delete (Organization.purgedAt) and never
   // removes the org row, so this only blocks an accidental/raw DELETE.
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project      Project?     @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: NoAction)
   user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, createdAt])
@@ -1404,7 +1425,7 @@ model AuditLog {
   // Restrict, not Cascade — the immutable audit trail must outlive any
   // raw Organization DELETE (audit finding CMP-1). See ActivityLogEntry.
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project      Project?     @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: NoAction)
   user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, createdAt])
@@ -1484,7 +1505,7 @@ model SteerCoDecision {
 
   project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  owner        Resource?    @relation(fields: [decisionOwnerId], references: [id], onDelete: SetNull)
+  owner        Resource?    @relation(fields: [organizationId, decisionOwnerId], references: [organizationId, id], onDelete: NoAction)
 
   @@index([projectId])
   @@index([organizationId])

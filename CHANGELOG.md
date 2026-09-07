@@ -10,6 +10,55 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.13.0] — 2026-09-06
+
+_Work Package 1 — ChatGPT Round-4 audit blockers: engine-level ledger
+immutability, composite-FK closure, and break-glass removal._
+
+### Added
+
+- **Engine-level immutability for `immutable_audit_ledger`** (migration
+  `00000000000021`, applied production & staging). `a2r_app` keeps
+  `SELECT` + `INSERT` and **loses `UPDATE` + `DELETE`** (`REVOKE`); a
+  `BEFORE UPDATE OR DELETE` row trigger and a `BEFORE TRUNCATE` statement
+  trigger reject the operation for **every** role. The only bypass is a
+  deliberate, greppable, transaction-local `SET LOCAL "a2r.ledger_admin" =
+  'on'` — for lawful GDPR/CCPA data-subject erasure and the
+  tamper-detection test — and `a2r_app` can never use it (`current_user`
+  guard + no grant). `scripts/rls-smoke.ts` grows to **10 checks**;
+  `tests/security/ledger-immutability.test.ts` is new.
+- **Complete composite tenant foreign keys** (migration
+  `00000000000022`, applied production & staging). Every remaining
+  intra-tenant single-column FK — `Resource → DeliveryRole/Practice/Resource
+  (manager)/RoleUtilizationPolicy`, `Project → Resource ×3/Practice/Project
+  (parent)`, `WeeklyAssignmentSlot/TimesheetEntry/ProjectContributor →
+  Resource`, `EffortCell/FinancialActual → DeliveryRole`,
+  `RaidEntry/SteerCoDecision → Resource (owner)`, `SsoGroupMapping →
+  IdentityProvider/Practice`, `ActivityLogEntry/AuditLog → Project` — becomes
+  composite `(organizationId, <col>)` → `<parent>(organizationId, id)`. The
+  database now rejects any cross-tenant reference. NOT NULL children keep
+  `ON DELETE CASCADE`; nullable children use the PostgreSQL 15+ column-list
+  form `ON DELETE SET NULL ("<col>")`, so parent-delete behaviour is
+  unchanged. `Practice`, `DeliveryRole`, `Resource`, `RoleUtilizationPolicy`
+  and `IdentityProvider` gain `@@unique([organizationId, id])`. A pre-flight
+  in the migration `RAISE`s rather than silently null a pre-existing
+  cross-tenant row (count on apply: 0).
+
+### Changed
+
+- **The fast global break-glass is removed.** The v1.12.0 `_rls_control`
+  flag dropped *every* tenant transaction on *every* instance to the
+  `postgres` owner role (BYPASSRLS) and was toggleable from an Ops Console
+  action. Deleted: `src/lib/db/rls-break-glass.ts`,
+  `scripts/rls-break-glass.ts`, the `_rls_control` table (migration 21), the
+  three ops actions, the `db:rls:breakglass` script, and the test.
+  `withTenantTx` now runs the enforced path unconditionally under
+  `RLS_ENFORCE=1`. The sole rollback lever is unsetting `RLS_ENFORCE` on
+  Vercel + a redeploy (`docs/RLS_ENFORCEMENT_RUNBOOK.md` § "Emergency
+  rollback").
+
+---
+
 ## [1.12.0] — 2026-09-06
 
 _Production RLS cutover preparation — Phase 2 of the enterprise-readiness

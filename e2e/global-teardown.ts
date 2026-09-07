@@ -42,8 +42,13 @@ export default async function globalTeardown() {
       // (audit finding CMP-1 — a raw org delete must never wipe the SOC 2
       // ledger). The E2E suite's throwaway tenants have no compliance value,
       // so the teardown clears them explicitly before dropping the org;
-      // everything else still cascades.
-      await db.immutableAuditLedger.deleteMany({ where: { organizationId: org.id } });
+      // everything else still cascades. `immutable_audit_ledger` is also
+      // engine-immutable (WP1, migration 21) — the delete needs the
+      // deliberate transaction-local opt-in that only the owner role can set.
+      await db.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe(`SET LOCAL "a2r.ledger_admin" = 'on'`);
+        await tx.immutableAuditLedger.deleteMany({ where: { organizationId: org.id } });
+      });
       await db.auditLog.deleteMany({ where: { organizationId: org.id } });
       await db.activityLogEntry.deleteMany({ where: { organizationId: org.id } });
       await db.organization.delete({ where: { id: org.id } }); // cascades the remaining org-scoped rows

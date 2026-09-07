@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.13.0',
+    date: '2026-09-06',
+    headline: 'Engine-level ledger immutability, complete composite tenant keys, break-glass removed',
+    changes: [
+      { type: 'security', text: 'The Immutable Compliance Ledger is now immutable at the database engine, not just by convention: the application runtime role can no longer update or delete a ledger row, and a database trigger rejects any modification or truncation from any role except through a deliberate, audited maintenance opt-in reserved for lawful data-subject erasure.' },
+      { type: 'security', text: 'Every remaining relationship between two tenant-owned records now carries a composite foreign key, so the database itself rejects a row that references a parent belonging to a different organization — closing the last cross-tenant reference gaps (assignments, timesheets, RAID/SteerCo owners, project leads, practices, SSO group mappings, and more).' },
+      { type: 'improvement', text: 'The fast global break-glass was removed after review. It dropped the entire application fleet to an owner-level database role and was toggleable from a console action. Normal tenant traffic is now always constrained to the least-privilege role; the sole rollback lever is a deliberate configuration change and redeploy.' },
+    ],
+  },
+  {
     version: '1.12.0',
     date: '2026-09-06',
     headline: 'Production RLS cutover prep, identity-table lockdown, and break-glass',

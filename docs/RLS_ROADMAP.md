@@ -1,27 +1,29 @@
 # Database-level Row Level Security — implementation roadmap
 
 _Status: **ENFORCED on staging** (v1.9.0). Production has the migrations
-applied **inert** (v1.12.0); the `RLS_ENFORCE=1` flip is the last step
-(§ "Production cutover")._
+applied **inert** (v1.12.0–v1.13.0); the `RLS_ENFORCE=1` flip is the last
+step (§ "Production cutover")._
 _Owner: platform / security. Audience: engineering + the security auditor.
 See `docs/TENANT_MODEL_INVENTORY.md` for the full model map._
 
-## Where we are (v1.12.0, Phase 2)
+## Where we are (v1.13.0, WP1)
 
 A dedicated **staging Supabase project** (`urdlkmlhjhvoxsphvwte`) runs with
 full DB-level RLS. **Production** (`xoaabhqsbfetffyawayw`) has migrations 16 +
-17 + 20 applied but still connects/acts as `postgres`, so RLS is inert there
-until `RLS_ENFORCE=1` is set on Vercel.
+17 + 20 + 21 + 22 applied but still connects/acts as `postgres`, so RLS is
+inert there until `RLS_ENFORCE=1` is set on Vercel.
 
 | Artefact | Purpose | Staging | Production |
 | --- | --- | --- | --- |
-| `00000000000014` composite FK guard | DB rejects a child row whose tenant ≠ parent's. | **APPLIED** | **APPLIED** (v1.8.0) |
-| `src/lib/db/rls-transaction.ts` + `src/lib/db/with-tenant-tx.ts` | Every `db.$transaction` that touches tenant data → `withTenantTx`, which runs `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org` when `RLS_ENFORCE=1`. Bare `db.model.op()` wrapped per-op by the extension. Cross-tenant / pre-session flows run as `postgres`. Break-glass (`_rls_control`) short-circuits to `postgres`. | **`RLS_ENFORCE=1`** | no-op (flag unset) |
+| `00000000000014` composite FK guard (11 project/batch children) | DB rejects a child row whose tenant ≠ parent's. | **APPLIED** | **APPLIED** (v1.8.0) |
+| `00000000000022` composite FK closure (WP1) | Every remaining intra-tenant FK is composite `(organizationId, <col>)`. | **APPLIED** | **APPLIED (inert)** v1.13.0 |
+| `src/lib/db/rls-transaction.ts` + `src/lib/db/with-tenant-tx.ts` | Every `db.$transaction` that touches tenant data → `withTenantTx`, which runs `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org` when `RLS_ENFORCE=1`. Bare `db.model.op()` wrapped per-op by the extension. Cross-tenant / pre-session flows run as `postgres`. **No break-glass** — tenant traffic is unconditionally `a2r_app`. | **`RLS_ENFORCE=1`** | no-op (flag unset) |
 | `00000000000016` restricted role | `CREATE ROLE a2r_app` (NOBYPASSRLS) + grants + `GRANT a2r_app TO postgres` (for `SET ROLE`). | **APPLIED** | **APPLIED (inert)** v1.12.0 |
 | `00000000000017` tenant policies | `tenant_isolation` (`organizationId = current_setting('app.current_org')`) on the 28 tenant tables, `TO "a2r_app"`. `FORCE` block still commented. | **APPLIED** | **APPLIED (inert)** v1.12.0 |
-| `00000000000020` identity lockdown + break-glass | The 9 identity/routing tables → **`rls_deny_app`** (`USING (false)`) for `a2r_app` — the tenant runtime cannot touch `sessions` / `staff_grants` / `staff_elevations` / `impersonation_grants` / … at all. `a2r_app` → `NOLOGIN`. `_rls_control` break-glass table. | **APPLIED** | **APPLIED (inert)** v1.12.0 |
-| `scripts/rls-smoke.ts` (8-check matrix) / `tests/security/rls-policies.test.ts` | Direct-SQL enforcement checks. Auto-detect the `a2r_app` role. | runs, **OK** | **runs, OK** (role now exists) |
-| `src/lib/db/rls-break-glass.ts` / `scripts/rls-break-glass.ts` | Time-boxed, auto-expiring, alerting break-glass to disable enforcement in an incident. | shipped | shipped |
+| `00000000000020` identity lockdown | The 9 identity/routing tables → **`rls_deny_app`** (`USING (false)`) for `a2r_app`. `a2r_app` → `NOLOGIN`. | **APPLIED** | **APPLIED (inert)** v1.12.0 |
+| `00000000000021` ledger immutability (WP1) | `a2r_app` loses `UPDATE`/`DELETE` on `immutable_audit_ledger`; a `BEFORE UPDATE/DELETE/TRUNCATE` trigger rejects every role (opt-in `SET LOCAL "a2r.ledger_admin" = 'on'` for lawful erasure). Drops the removed `_rls_control` table. | **APPLIED** | **APPLIED (inert)** v1.13.0 |
+| `scripts/rls-smoke.ts` (10-check matrix) / `tests/security/{rls-policies,ledger-immutability}.test.ts` | Direct-SQL enforcement checks. Auto-detect the `a2r_app` role. | runs, **OK** | **runs, OK** (role now exists) |
+| Emergency rollback | Unset `RLS_ENFORCE` on Vercel + redeploy (~2 min). The **only** lever — no fast global break-glass (removed in WP1). | — | — |
 
 ### The `SET ROLE`-in-a-transaction design (why not a second connection)
 
@@ -35,14 +37,14 @@ Supavisor feature dependency.
 
 ## Production cutover
 
-Full procedure + the pre-cutover verification matrix + the break-glass
-rehearsal: **`docs/RLS_ENFORCEMENT_RUNBOOK.md`**. In brief:
+Full procedure + the pre-cutover verification matrix + the emergency
+rollback: **`docs/RLS_ENFORCEMENT_RUNBOOK.md`**. In brief:
 
-1. ✅ **Done (v1.12.0).** Migrations 16 + 17 + 20 applied to production via
-   `DIRECT_URL`, rehearsed with `BEGIN … ROLLBACK` first. Inert while the app
-   is `postgres`; `SET ROLE a2r_app` is the only new capability.
+1. ✅ **Done (v1.12.0–v1.13.0).** Migrations 16 + 17 + 20 + 21 + 22 applied to
+   production via `DIRECT_URL`, rehearsed with `BEGIN … ROLLBACK` first. Inert
+   while the app is `postgres`; `SET ROLE a2r_app` is the only new capability.
    `npm run db:rls:smoke` against production prints
-   `OK — all 28 tenant tables enforce isolation`.
+   `OK — all 28 tenant tables enforce isolation` (10 checks).
 2. **Remaining — operator action.** Set `RLS_ENFORCE=1` on Vercel Production
    and redeploy. Same-region latency → the default `SESSION_LOOKUP_TIMEOUT_MS`
    is fine.
@@ -50,10 +52,10 @@ rehearsal: **`docs/RLS_ENFORCEMENT_RUNBOOK.md`**. In brief:
 4. Uncomment + apply the `FORCE ROW LEVEL SECURITY` block in migration 17
    (needs an owner-side BYPASSRLS break-glass role + owner-side policies first).
 
-**Break-glass:** `_rls_control` (migration 20) + `src/lib/db/rls-break-glass.ts`
-— time-boxed, auto-expiring, alerting. `npx tsx scripts/rls-break-glass.ts
-engage --minutes 30 --reason "…"` disables enforcement in ≤ 10 s with no
-redeploy; app-tier scoping still applies. See the runbook.
+**Emergency rollback:** unset `RLS_ENFORCE` on Vercel → redeploy (~2 min).
+This is the only lever — the v1.12.0 fast global break-glass was removed in
+WP1 (it dropped the whole fleet to `postgres` and was web-toggleable). See
+the runbook.
 
 ## 1. Where we are today (v1.7.0)
 

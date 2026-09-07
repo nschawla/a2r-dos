@@ -22,7 +22,9 @@
  *   7. a cross-tenant FK — inserting a child row that points at a B-owned
  *      parent while scoped to A — is rejected (parent invisible under RLS);
  *   8. the ingestion path — scoped INSERT into weekly_assignment_slots +
- *      activity_log_entries — succeeds for A and is invisible to B.
+ *      activity_log_entries — succeeds for A and is invisible to B;
+ *   9-10. immutable_audit_ledger: UPDATE and DELETE as a2r_app are rejected
+ *      (REVOKE + BEFORE trigger, migration 21) — SELECT/INSERT still work.
  *
  * Exit 0 = all enforced, OR the `a2r_app` role does not exist yet (dormant —
  * expected on production and any environment before migrations 16+17).
@@ -216,6 +218,40 @@ async function main(): Promise<number> {
       }
     } finally {
       await db.$executeRawUnsafe(`DELETE FROM "activity_log_entries" WHERE "id" = $1`, logId);
+    }
+
+    // 9 + 10 — immutable_audit_ledger is append-only for a2r_app: it keeps
+    //   SELECT + INSERT (checks 1/8 above cover those) but UPDATE and DELETE
+    //   are rejected — at the privilege check (REVOKE, migration 21) and by
+    //   the BEFORE UPDATE/DELETE trigger. Needs a ledger row for tenant A;
+    //   skip cleanly if the seed has none.
+    const ledgerRow = await db.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT "id" FROM "immutable_audit_ledger" WHERE "organizationId" = $1 LIMIT 1`, a,
+    );
+    if (ledgerRow[0]) {
+      const lid = ledgerRow[0].id;
+      const ledgerRejected = (op: string, err: unknown): boolean => {
+        const m = String(err);
+        return /permission denied|append-only|row-level security|42501|restrict/i.test(m)
+          ? true
+          : (failures.push(`ledger ${op} as a2r_app failed with an unexpected error: ${m.split('\n')[0]}`), false);
+      };
+      try {
+        await scoped(db, a, (tx) =>
+          tx.$executeRawUnsafe(`UPDATE "immutable_audit_ledger" SET "actorId" = 'rls-smoke' WHERE "id" = $1`, lid),
+        );
+        failures.push('immutable_audit_ledger UPDATE as a2r_app SUCCEEDED — ledger is not engine-immutable');
+      } catch (err) {
+        ledgerRejected('UPDATE', err);
+      }
+      try {
+        await scoped(db, a, (tx) =>
+          tx.$executeRawUnsafe(`DELETE FROM "immutable_audit_ledger" WHERE "id" = $1`, lid),
+        );
+        failures.push('immutable_audit_ledger DELETE as a2r_app SUCCEEDED — ledger is not engine-immutable');
+      } catch (err) {
+        ledgerRejected('DELETE', err);
+      }
     }
   } finally {
     await db.$disconnect();

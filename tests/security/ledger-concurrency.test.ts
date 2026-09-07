@@ -1,6 +1,7 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import { db } from '@/lib/db';
 import { recordLedgerEvent, verifyLedgerIntegrity } from '@/lib/audit-ledger';
+import { withLedgerAdmin } from '../helpers/ledger';
 
 /**
  * REL-3 — the Immutable Compliance Ledger's SHA-256 hash chain must stay
@@ -9,15 +10,18 @@ import { recordLedgerEvent, verifyLedgerIntegrity } from '@/lib/audit-ledger';
  * `@@unique([organizationId, previousHash])` backstop, so concurrent
  * appends serialize instead of forking the chain.
  *
- * Live-DB. Self-cleaning: the ledger FK is `onDelete: Restrict`, so each
- * test org's chain is cleared before the org is dropped.
+ * Live-DB. Self-cleaning: the ledger FK is `onDelete: Restrict` AND the row
+ * is engine-immutable (migration 21), so each test org's chain is cleared
+ * via the deliberate ledger-admin opt-in before the org is dropped.
  */
 describe('Immutable Audit Ledger — concurrency (REL-3)', () => {
   const createdOrgIds: string[] = [];
 
   afterAll(async () => {
     for (const id of createdOrgIds) {
-      await db.immutableAuditLedger.deleteMany({ where: { organizationId: id } });
+      await withLedgerAdmin((tx) =>
+        tx.immutableAuditLedger.deleteMany({ where: { organizationId: id } }),
+      );
       await db.organization.delete({ where: { id } }).catch(() => {});
     }
   });
@@ -113,12 +117,15 @@ describe('Immutable Audit Ledger — concurrency (REL-3)', () => {
     });
     expect(second).not.toBeNull();
 
-    // Edit a field of the 2nd row directly — the "immutable" guarantee is
-    // by convention (no app write path), so a raw update is the tamper.
-    await db.immutableAuditLedger.update({
-      where: { id: second!.id },
-      data: { actorId: 'tampered-actor' },
-    });
+    // Edit a field of the 2nd row directly. The engine now rejects this for
+    // every role (migration 21); a *privileged* tamper via the deliberate
+    // ledger-admin opt-in is still caught by the hash chain.
+    await withLedgerAdmin((tx) =>
+      tx.immutableAuditLedger.update({
+        where: { id: second!.id },
+        data: { actorId: 'tampered-actor' },
+      }),
+    );
 
     const integrity = await verifyLedgerIntegrity(org.id);
     expect(integrity.ok).toBe(false);
