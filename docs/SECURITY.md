@@ -1,6 +1,6 @@
 # A2R Delivery OS — Security & Trust Overview
 
-_Last reviewed: 2026-09-07 · Applies to v1.13.0 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-07 · Applies to v1.14.0 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of A2R Delivery OS™. It is written for the security and
@@ -173,10 +173,17 @@ Plane (`/ops`). It has two levels as of v1.7.0:
   (provisioning, suspension, impersonation, data export, purge, API keys,
   identity federation, granting/revoking staff) additionally requires a live
   `staff_elevations` grant (migration `00000000000013`): requested with a
-  reason, bound to the operator's session (an httpOnly cookie + a `userId`
-  match), and auto-expiring after a strict TTL (30 min default, 60 max). There
+  reason, and auto-expiring after a strict TTL (30 min default, 60 max). There
   are **no standing privileged operator sessions**. Every elevation — who,
   why, how long — is on the in-console audit trail at `/ops/staff`.
+  **Step-up authentication + session binding (v1.14.0).** Obtaining an
+  elevation now requires re-entering the account password (`bcrypt.compare`,
+  rate-limited per account) — "fresh authentication" even mid-session. The
+  row records the `users.sessionVersion` epoch it was minted under; the guard
+  (`src/lib/ops-auth.ts`) rejects an elevation whose epoch ≠ the live session,
+  so a password change or a global sign-out invalidates every elevation for
+  that operator instantly, on every serverless instance. SSO-only operators
+  (no `passwordHash`) must set a console password before they can elevate.
   **As of v1.8.0 the cookie token is stored hashed** — the `staff_elevations`
   / `impersonation_grants` rows keep only `sha256(secret)` (`tokenHash`), the
   256-bit plaintext lives solely in the httpOnly cookie, and lookup is by
@@ -628,12 +635,27 @@ retention window and never edits a row**, and it **never touches**:
 
 ## 10. Testing & verification
 
-- **612** unit tests (Vitest, 52 files) covering the calculation engine, data
+> **Test databases (v1.14.0).** The DB-integration suites and the Playwright
+> suite **mutate** data — they refuse to run against production.
+> `tests/setup.ts` / `e2e/global-setup.ts` resolve the target from
+> `TEST_DATABASE_URL` → `.env.test` → `.env` and stop if it is the production
+> project (`A2R_ALLOW_PROD_TESTS=1` is a documented single-machine
+> break-glass). Production acceptance is **`npm run db:rls:verify`**
+> (`scripts/rls-prod-verify.ts`) — `pg_catalog` / `information_schema`
+> SELECTs only, **zero DML**: it re-asserts the `a2r_app` role attributes,
+> every `tenant_isolation` / `rls_deny_app` policy, the ledger triggers +
+> grant revocation, and that every intra-tenant FK is composite.
+
+- **625** unit tests (Vitest, 53 files) covering the calculation engine and
+  its **exact-decimal precision proofs** (`calculations-precision.test.ts` —
+  no float drift accumulating a 400-cell matrix / a 150-project portfolio / a
+  60-row EAC), data
   masking (incl. the org governance override), API-key crypto, the bearer-token
   hash primitives, the in-process **and** distributed (Upstash) rate limiter
   and its named-rule table, direct-SQL RLS enforcement for the `a2r_app`
   role, engine-level ledger immutability, the tenant-model inventory
-  schema-drift guard, the centralized error boundary
+  schema-drift guard, JIT staff-elevation step-up + session binding, the
+  centralized error boundary
   (`withAction` / `withRouteHandler` / `redactContext`), tenant lifecycle,
   retention policy logic, the session state machine (every transition +
   fail-closed path), JIT staff elevation, the command-center resolver, the
@@ -652,10 +674,11 @@ retention window and never edits a row**, and it **never touches**:
   parallel-append pressure (REL-3), the rate-limit endpoints (served to the
   limit then `429` with headers), the password-rotation / all-device
   logout flow, the DB-level RLS enforcement checks (`rls-policies.test.ts` +
-  the 10-check `rls-smoke` matrix, auto-skipped where the `a2r_app` role is
-  absent), and engine-level ledger immutability
-  (`ledger-immutability.test.ts` — `UPDATE`/`DELETE` rejected for `a2r_app`
-  and, without the maintenance opt-in, for the owner).
+  the 10-check `rls-smoke` matrix, staging/local only — v1.14.0), engine-level
+  ledger immutability (`ledger-immutability.test.ts` — `UPDATE`/`DELETE`
+  rejected for `a2r_app` and, without the maintenance opt-in, for the owner),
+  and the JIT elevation flow (wrong password → refused, session-epoch bump →
+  every elevation dead).
 - **60** end-to-end tests (Playwright, Suites A–P) covering authentication,
   multi-tenant scoping, governance workflows, the capacity cockpit, the
   compliance ledger, data masking, role-based landing/perspective switching,
@@ -684,7 +707,9 @@ retention window and never edits a row**, and it **never touches**:
 | Distributed rate limiting (atomic across instances) | **Implemented** (§9) — v1.8.0, opt-in via Upstash |
 | Mass-assignment protection (strict request schemas) | **Implemented** (§9) — v1.10.0 |
 | Explicit global sign-out + hardened cookie flags | **Implemented** (§2) — v1.10.0 |
-| Exact financial precision (money / rates as `NUMERIC`, not float) | **Implemented** — v1.11.0, migration 18 |
+| Exact financial precision (money / rates as `NUMERIC`, not float) | **Implemented** — v1.11.0 (columns, migration 18); v1.14.0 (**exact-decimal arithmetic through the calc engine**, defined rounding at accounting boundaries) |
+| Step-up authentication for privileged operator actions | **Implemented** (§1) — v1.14.0: password re-verification + `sessionVersion` binding on every JIT elevation |
+| Test suites isolated from production | **Implemented** (§10) — v1.14.0: DB-integration + Playwright refuse a prod URL; prod acceptance is read-only |
 | Security-history preserved on delete (FK `RESTRICT`) | **Implemented** (§7) — v1.11.0, migration 19 |
 | Just-In-Time privileged access (no standing operator sessions) | **Implemented** (§1) — v1.7.0 |
 | Server-side session revocation / all-device logout | **Implemented** (§2) — v1.7.0, explicit "all sessions" v1.10.0 |

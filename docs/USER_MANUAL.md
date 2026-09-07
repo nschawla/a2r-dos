@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — User Manual & Operator's Guide
 
-_Applies to v1.13.0 · Last updated 2026-09-07_
+_Applies to v1.14.0 · Last updated 2026-09-07_
 
 A2R Delivery OS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
@@ -314,17 +314,19 @@ revoking staff — needs a **temporary elevation** first.
 
 - The bar at the top of every `/ops` page shows your status. Amber
   "read-only" → click **Elevate**, type a reason (this goes on the audit
-  trail), pick a window (15 / 30 / 60 minutes), and submit.
+  trail), **re-enter your account password** (step-up — required every time,
+  even mid-session), pick a window (15 / 30 / 60 minutes), and submit.
 - The bar turns green with a live countdown. Run what you came to run.
 - It **auto-expires** — there's no standing elevated session. Click **Drop
   elevation** when you're done, or just let it lapse.
 - If you try a privileged action without elevating, the elevation prompt
   opens automatically; nothing is changed.
 - Every elevation — who, why, how long — is listed on **Staff Access**.
-- After a platform deploy, any elevation (or tenant impersonation) in
-  progress ends — re-elevate once. This is deliberate: as of v1.8.0 the
-  session token is stored hashed, so a deploy that rotates it invalidates
-  in-flight cookies.
+- **Changing your password or signing out of all sessions ends every
+  elevation immediately** (the elevation is pinned to your session). So does
+  a platform deploy. Re-elevate once after any of these.
+- Operators who sign in only through SSO must set a console password
+  (Account → change password) before they can elevate.
 
 ### If database-level RLS misbehaves (v1.13.0)
 

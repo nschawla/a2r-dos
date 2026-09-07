@@ -1,8 +1,13 @@
 # Entity Relationship Diagram — A2R Delivery OS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.13.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
+it, current as of **v1.14.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
 full model → tenant-binding → RLS-policy map.
+**v1.14.0 (WP2)** — `StaffElevation` gains **`sessionVersion Int @default(0)`**
+(the `users.sessionVersion` epoch the elevation was minted under — the guard
+rejects a stale epoch) and **`reauthAt DateTime?`** (last fresh password
+verification), migration `00000000000023`. No other schema change; the
+exact-decimal financial-arithmetic work (WP2) is engine-side only.
 **v1.13.0 (WP1)** — no new models. (a) **Composite-FK closure** (migration
 22): every remaining intra-tenant FK becomes composite
 `(organizationId, <col>)` → `<parent>(organizationId, id)` —
@@ -253,7 +258,7 @@ DB-free authorization check and the Prisma query so the two can't drift.
 |---|---|
 | `Account`, `Session`, `VerificationToken` | Auth.js/NextAuth adapter tables (OAuth plumbing; credentials login uses JWT sessions, not these). |
 | `StaffGrant` | Explicit, attributed, revocable A2R-operator entitlement (replaced the email-domain wildcard + `isA2rStaff` boolean in v1.6.0). A live row = *eligibility* to reach `/ops`. `user` FK is `onDelete: Restrict` (v1.11.0) — the entitlement history outlives a raw user delete. Never swept by data-retention. |
-| `StaffElevation` | v1.7.0 — the Just-In-Time, reason-logged, auto-expiring grant every *mutating* `/ops` action requires on top of a `StaffGrant`. Session-bound via the `a2r_ops_elevation` cookie; row stores `tokenHash` only (v1.8.0). `user` FK `onDelete: Restrict` (v1.11.0); never swept. |
+| `StaffElevation` | v1.7.0 — the Just-In-Time, reason-logged, auto-expiring grant every *mutating* `/ops` action requires on top of a `StaffGrant`. Row stores `tokenHash` only (v1.8.0). `user` FK `onDelete: Restrict` (v1.11.0); never swept. **v1.14.0** — minting requires a fresh password verification; `sessionVersion` + `reauthAt` columns bind it to the session epoch (a stale epoch = dead elevation). |
 | `ImpersonationGrant` | The Impersonation Gateway's time-boxed, audited operator → tenant sessions. Row stores `tokenHash` only (v1.8.0). `organization` FK `onDelete: Restrict` (v1.11.0); removed from the data-retention sweep (v1.11.0) — the ledger's `ADMIN_IMPERSONATION_ACCESS` entry is the permanent record. |
 | `OrgPolicy` | Legacy per-tenant tolerances (slip/margin thresholds) predating `GovernanceConfig`. |
 | `ControlLabel` | Per-tenant display-label override for a `CTRL_01..10` key (the labels are editable; the keys are frozen — see `docs/` control-audit nomenclature notes). |

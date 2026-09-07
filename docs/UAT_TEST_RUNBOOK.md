@@ -1,6 +1,6 @@
 # A2R Delivery OS™ — UAT Test Runbook
 
-_Applies to v1.13.x · Last updated 2026-09-07_
+_Applies to v1.14.x · Last updated 2026-09-07_
 
 This runbook is the human-executable half of the QA framework. It gives a
 tester **explicit login data, exact steps, expected visual outcomes, and a
@@ -64,11 +64,18 @@ All demo passwords are **`password12345`** unless noted.
 
 ## 2. Automated coverage (run before manual UAT)
 
+> **v1.14.0 — test database.** The Vitest DB-integration suites and the
+> Playwright suite **mutate** data and **refuse to run against production**.
+> Point `TEST_DATABASE_URL` (or `.env.test`) at the staging Supabase project
+> or a local Postgres before running them. Production is verified with
+> **`npm run db:rls:verify`** only (read-only, zero writes).
+
 ```bash
-npm test            # Vitest — 612 unit + integration tests across 52 files, ~10s
-npx tsc --noEmit    # strict typecheck, 0 errors
-npm run build       # next build — must compile cleanly
-npm run test:e2e    # Playwright — full Suites A–P against a running dev server
+npm test              # Vitest — 625 unit + integration tests across 53 files, ~10s (staging/local DB)
+npx tsc --noEmit      # strict typecheck, 0 errors
+npm run build         # next build — must compile cleanly
+npm run test:e2e      # Playwright — full Suites A–P (staging/local DB)
+npm run db:rls:verify # read-only production security-posture check
 ```
 
 | Flow | Automated by |
@@ -93,6 +100,9 @@ npm run test:e2e    # Playwright — full Suites A–P against a running dev ser
 | Engine-level ledger immutability (v1.13.0) — `a2r_app` cannot `UPDATE`/`DELETE` `immutable_audit_ledger`; a trigger rejects every role bar a deliberate opt-in | migration `00000000000021`; `tests/security/ledger-immutability.test.ts` · `rls-smoke` checks 9–10 · manual UAT-3.14 |
 | Composite-FK closure (v1.13.0) — every intra-tenant reference is a composite FK; the DB rejects a cross-tenant parent | migration `00000000000022`; `tests/security/tenant-isolation.test.ts` · `rls-smoke` check 7 |
 | JIT staff elevation — reason-logged, auto-expiring, session-bound | `tests/staff-elevation.test.ts` · e2e Suite **P** · manual UAT-3.10 |
+| JIT elevation step-up (v1.14.0) — password re-verification + `sessionVersion` binding | `tests/staff-elevation.test.ts` (wrong password → refused; epoch bump → dead) · e2e Suite **P3** (modal types a password) |
+| Exact-decimal financial arithmetic (v1.14.0) — no float drift in EAC / portfolio totals; defined accounting rounding | `tests/calculations-precision.test.ts` · `tests/calculations.test.ts` |
+| Test-rig prod isolation (v1.14.0) — suites refuse a production DB URL | `tests/helpers/db-target.ts` · `tests/setup.ts` · `e2e/global-setup.ts` |
 | Advanced rate limiting + structured error boundary | `tests/rate-limiter.test.ts` · `tests/rate-limiter-redis.test.ts` (distributed window + fallback) · `tests/security/rate-limit-endpoints.test.ts` · `tests/observability.test.ts` |
 | Strict request schemas / mass-assignment (v1.10.0) — every API + action `z.object` is `z.strictObject` | `.strict()` failures exercised across the vitest + e2e action coverage; boundary noted in `docs/SECURITY.md` §9 |
 | Explicit global sign-out (v1.10.0) — `sessionVersion` bump revokes all devices | `tests/security/sign-out-everywhere.test.ts` · manual UAT-3.12 |
@@ -246,7 +256,8 @@ As `ops@a2rventures.com`:
 | --- | --- | --- | --- |
 | 1 | Open `/ops/telemetry` | Page renders; the top bar reads **"Read-only — elevate to make changes"** (amber) | |
 | 2 | `/ops/tenants` → **Provision New Tenant** → fill → Provision | Blocked — an **elevation modal** appears; no tenant is created | |
-| 3 | Bar → **Elevate**, enter a reason (≥10 chars), pick 15 min, submit | Bar turns green with a live countdown | |
+| 3 | Bar → **Elevate**, enter a reason (≥10 chars), **re-enter your password**, pick 15 min, submit | Bar turns green with a live countdown. A wrong password is rejected in the modal. | |
+| 3a | (v1.14.0) While elevated, change your password (Account → change password), return to `/ops` | The elevation is gone — back to read-only; the session-epoch bump killed it. Re-elevate. | |
 | 4 | Retry the provision | Succeeds; the new tenant appears | |
 | 5 | `/ops/staff` → **Just-In-Time elevations** table | Your elevation is listed with reason, time, expiry, "Active" | |
 | 6 | Bar → **Drop elevation**, retry any mutating action | Blocked again — back to read-only | |
@@ -387,7 +398,7 @@ Sign in as `ops@a2rventures.com` (or `navinder@…`).
 | 7 | **Ingestion & Templates** | CSV template downloads + schema reference | |
 | 8 | **Staff Access** | Grants table + the **Just-In-Time elevations** audit table (who, why, expiry, active/ended) | |
 | 9 | Impersonate a tenant (elevate first; Tenants → actions → Impersonate, give a reason) | Opens a **read-only** tenant session with a persistent banner; the reason is written to that tenant's Compliance Ledger before the session starts | |
-| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.13.x`; click → Release Notes modal (top entry: v1.13.0) | |
+| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.14.x`; click → Release Notes modal (top entry: v1.14.0) | |
 
 ### UAT-4.6 · Admin & Org Setup (`/admin`)
 
@@ -465,7 +476,7 @@ Sign in as `admin@a2rventures-demo.test`.
 | 9 | No stray `DataImportBatch` rows or test `WeeklyAssignmentSlot`/`SchedulePhase` writes left in the demo tenant from batch-import testing | |
 | 10 | No stray test `CustomKpi` rows left in the demo tenant from Custom KPI Builder testing | |
 | 11 | No stray `staff_elevations` rows or throwaway tenants (`JIT Elevation Test Inc`, `Enterprise Sanity Inc`, `Purge Target Inc`) left from Ops testing | |
-| 12 | Release Notes modal top entry = **v1.13.0**; Ops sidebar build stamp = `v1.13.x` | |
+| 12 | Release Notes modal top entry = **v1.14.0**; Ops sidebar build stamp = `v1.14.x` | |
 
 ---
 

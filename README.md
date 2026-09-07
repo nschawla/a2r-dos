@@ -1925,6 +1925,63 @@ to WP1, confirmed green on production with identical code);
 Migrations 21 + 22 rehearsed (`BEGIN … ROLLBACK`) then applied to both
 databases.
 
+## Phase 11 — WP2: exact-decimal financial arithmetic, JIT elevation step-up, test-rig prod isolation (v1.14.0)
+
+ChatGPT's final audit round.
+
+### FRD — functional summary
+
+- **Exact-decimal financial arithmetic through the calc engine.** `decimal.js`
+  is a direct dependency; `src/lib/calculations/money.ts` provides `d()` /
+  `roundMoney()` / `money()` / `sumMoney()`. `sizing.ts`, `financials.ts` and
+  `portfolio.ts` accumulate every `$` amount and rate in exact decimal — no
+  IEEE-754 drift summing hundreds of `hours × rate` products or many
+  `eacCost` rows — and round **once** at the accounting boundary: `$` →
+  HALF_UP, 2 dp; rates full-precision; percentages / ratios / hours computed
+  from the exact decimals (single operation, no accumulation) and left as
+  `number`. Output types unchanged (`number`), so consumers + RSC→Client
+  serialization are untouched. `calc-adapters.ts` passes the exact `NUMERIC`
+  string across the boundary; `executive-briefing.ts` (the one re-aggregating
+  query) switches to decimal accumulation. New
+  `tests/calculations-precision.test.ts` proves it (400-cell matrix,
+  150-project portfolio, 60-row EAC).
+- **JIT elevation step-up + session binding** (migration `00000000000023`,
+  prod + staging). `requestElevation` requires a fresh `bcrypt.compare`
+  against the account password (rate-limited) before minting; the row stores
+  `sessionVersion` + `reauthAt`; `ops-auth.ts` rejects an elevation whose
+  epoch ≠ the live session, so a password change / global sign-out kills every
+  elevation immediately. SSO-only operators must set a console password. The
+  `OpsElevationBar` modal gains a password field.
+- **Test-rig production isolation.** `tests/setup.ts` + new
+  `e2e/global-setup.ts` resolve the DB from `TEST_DATABASE_URL` → `.env.test`
+  → `.env` and **refuse** a production URL (`A2R_ALLOW_PROD_TESTS=1` = a
+  documented single-machine break-glass). `db:rls:smoke` inherits the guard.
+  New **`npm run db:rls:verify`** (`scripts/rls-prod-verify.ts`) is the
+  production acceptance gate — `pg_catalog` / `information_schema` SELECTs,
+  **zero DML**.
+
+### RTM — requirements traceability (Phase 11)
+
+| # | Capability | Primary files | Automated coverage |
+| --- | --- | --- | --- |
+| WP2-DEC-1 | `$` / rate arithmetic is exact decimal end-to-end in the engine | `src/lib/calculations/{money,sizing,financials,portfolio}.ts` | `tests/calculations-precision.test.ts` |
+| WP2-DEC-2 | Defined rounding at accounting boundaries (money HALF_UP 2dp) | `src/lib/calculations/money.ts` | `tests/calculations-precision.test.ts` (roundMoney cases) |
+| WP2-DEC-3 | Re-aggregating consumers don't reintroduce drift | `src/server/queries/executive-briefing.ts` | full vitest suite |
+| WP2-ELEV-1 | Elevation requires fresh password verification | `src/lib/ops/staff-elevation.ts`, `src/server/actions/ops-elevation.ts` | `tests/staff-elevation.test.ts` (wrong-pw, SSO-only) |
+| WP2-ELEV-2 | Elevation bound to `sessionVersion`; dies on session change | migration 23, `src/lib/ops-auth.ts` | `tests/staff-elevation.test.ts` (epoch-bump cases) |
+| WP2-ELEV-3 | Elevation attempts rate-limited | `src/server/actions/ops-elevation.ts` (`rateLimitByUser`) | manual (UAT-3.10) |
+| WP2-TEST-1 | Vitest + Playwright refuse a production DB | `tests/helpers/db-target.ts`, `tests/setup.ts`, `e2e/global-setup.ts` | guard verified (prod URL → run aborts) |
+| WP2-TEST-2 | Production acceptance is read-only | `scripts/rls-prod-verify.ts` | run against production → OK, zero writes |
+
+**Verification:** `npx tsc --noEmit` → 0; `npm run lint` → 0/0;
+`npx prisma validate` → clean; `npx vitest run` → **625 passed** (53 files)
+on **staging** (`.env.test`); `npm run build` → clean;
+`npx playwright test` → **60 passed** on staging; `npm run db:rls:smoke` → OK
+on staging; `npm run db:rls:verify` against **production** → OK (read-only,
+zero DML). Migration 23 rehearsed (`BEGIN … ROLLBACK`) then applied to both
+databases. The prod-pointed test runs of earlier work packages are no longer
+possible — the guard aborts them.
+
 ## What's next (Phase 3b+)
 
 1. `npm install` once registry access exists, then `prisma migrate dev` to
