@@ -4,7 +4,8 @@ _Consolidated current-state, **v1.16.0**. Per-phase functional narratives
 live in `README.md` (Phases 1–13); this document is the flattened,
 deduplicated view of what the production system does today. Traceability to
 code and tests: `docs/RTM.md`. Security posture: `docs/SECURITY.md` +
-`docs/ROLE_ACCESS_MATRIX.md`._
+`docs/ROLE_ACCESS_MATRIX.md`. Forward plan (not yet shipped):
+`docs/ROADMAP.md`._
 
 ---
 
