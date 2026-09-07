@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A2R Delivery OS — Multi-Tenant Security Briefing</title>
+<style>
+/* FONT-FACES */
+
+:root {
+  --paper: #faf8f4;
+  --ink: #1b1e24;
+  --ink-soft: #464b54;
+  --faint: #82868d;
+  --rule: #e5dfd4;
+  --rule-strong: #cfc7b7;
+  --accent: #2f5c8f;
+  --accent-soft: #eef3f8;
+  --accent-deep: #21456c;
+  --ok: #2f7150;
+  --ok-soft: #e7f0ea;
+  --watch: #8a5a1f;
+  --watch-soft: #f4ead9;
+}
+
+* { box-sizing: border-box; }
+
+@page { size: A4; margin: 17mm 16mm 18mm; }
+@page:first { margin: 0; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10pt;
+  line-height: 1.56;
+}
+
+p { margin: 0 0 0.7em; }
+strong { font-weight: 600; }
+h1, h2, h3, h4 { font-family: 'Spectral', Georgia, serif; font-weight: 600; }
+code, .mono { font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 0.85em; }
+
+/* ---------- cover ---------- */
+.cover {
+  height: 297mm;
+  padding: 30mm 24mm 24mm;
+  background: linear-gradient(180deg, #e7edf4 0%, var(--paper) 48%);
+  display: flex;
+  flex-direction: column;
+  page-break-after: always;
+}
+.cover .kicker {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5pt;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  margin: 0;
+}
+.cover .rule { height: 2.5pt; background: var(--ink); width: 62mm; margin: 9mm 0 12mm; }
+.cover h1 {
+  font-size: 30pt;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin: 0 0 5mm;
+  max-width: 150mm;
+}
+.cover .tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  margin: 0 0 8mm;
+}
+.cover .sub {
+  font-family: 'Spectral', Georgia, serif;
+  font-size: 12.5pt;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 138mm;
+  margin: 0;
+}
+.cover .spacer { flex: 1; }
+.cover .meta {
+  border-top: 1px solid var(--rule-strong);
+  padding-top: 6mm;
+  display: flex;
+  gap: 12mm;
+  flex-wrap: wrap;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5pt;
+  color: var(--ink-soft);
+}
+.cover .meta div span {
+  display: block;
+  color: var(--faint);
+  font-size: 7.5pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 1.5mm;
+}
+.cover .confidential {
+  margin-top: 5mm;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7.5pt;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ---------- content ---------- */
+section { margin-bottom: 7mm; }
+section.break { page-break-before: always; }
+
+h2 {
+  font-size: 9pt;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 3mm;
+  padding-bottom: 1.8mm;
+  border-bottom: 1px solid var(--rule);
+}
+h2 .n { color: var(--faint); font-family: 'IBM Plex Mono', monospace; margin-right: 2mm; }
+h3 { font-size: 12pt; margin: 5mm 0 2mm; letter-spacing: -0.005em; }
+h4 { font-size: 10pt; margin: 4mm 0 1.5mm; }
+
+.lead {
+  font-family: 'Spectral', Georgia, serif;
+  font-size: 11.5pt;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+table { width: 100%; border-collapse: collapse; margin: 3mm 0; font-size: 9.2pt; }
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 7.4pt;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: 1.5px solid var(--rule-strong);
+  padding: 2mm 3mm 1.6mm;
+}
+td { border-bottom: 1px solid var(--rule); padding: 2mm 3mm; vertical-align: top; }
+tr { page-break-inside: avoid; }
+td.k { font-family: 'IBM Plex Mono', monospace; font-size: 8.2pt; white-space: nowrap; }
+.matrix td { text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 8.4pt; }
+.matrix td:first-child { text-align: left; font-family: 'IBM Plex Sans', sans-serif; font-size: 9pt; }
+.yes { color: var(--ok); font-weight: 700; }
+.no { color: var(--faint); }
+
+.callout {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  padding: 4mm 5mm;
+  margin: 4mm 0;
+  page-break-inside: avoid;
+}
+.callout.warn { background: var(--watch-soft); border-left-color: var(--watch); }
+.callout p:last-child { margin-bottom: 0; }
+.callout .label {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  font-size: 7.6pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  margin: 0 0 1.5mm;
+}
+.callout.warn .label { color: var(--watch); }
+
+/* layered isolation figure */
+.layers { margin: 4mm 0; page-break-inside: avoid; }
+.layers .layer {
+  display: flex;
+  gap: 4mm;
+  align-items: baseline;
+  padding: 3mm 4mm;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  margin-bottom: 2mm;
+}
+.layers .layer .idx {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+  font-size: 8pt;
+  color: var(--accent-deep);
+  flex: none;
+  width: 8mm;
+}
+.layers .layer .body { font-size: 9.2pt; }
+.layers .layer .body strong { display: block; font-size: 9.6pt; margin-bottom: 0.5mm; }
+
+.codeblock {
+  background: #f2ede3;
+  border: 1px solid var(--rule);
+  border-radius: 1.5mm;
+  padding: 3mm 4mm;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8pt;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  margin: 3mm 0;
+  page-break-inside: avoid;
+}
+
+.scorecard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--rule-strong);
+  border-radius: 2mm;
+  overflow: hidden;
+  margin: 4mm 0;
+}
+.scorecard div { padding: 3mm 3.5mm; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.scorecard .v { font-family: 'Spectral', Georgia, serif; font-weight: 600; font-size: 14pt; color: var(--ok); line-height: 1; }
+.scorecard .l { font-family: 'IBM Plex Mono', monospace; font-size: 7pt; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); margin-bottom: 1.5mm; }
+
+ul { margin: 2mm 0; padding-left: 5mm; }
+li { margin: 1.5mm 0; }
+
+.foot {
+  margin-top: 9mm;
+  padding-top: 4mm;
+  border-top: 1px solid var(--rule);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7.4pt;
+  line-height: 1.7;
+  color: var(--faint);
+}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <p class="kicker">A2R Ventures LLC · Security Briefing</p>
+  <div class="rule"></div>
+  <h1>The Multi-Tenant Security Manifesto</h1>
+  <p class="tag">A2R Delivery OS — cumulative security architecture</p>
+  <p class="sub">
+    Every tenant's data, every operator's action, and every privileged
+    credential is contained by a control that does not depend on the
+    application behaving correctly. This briefing documents the full
+    architecture and the seven-round hardening pedigree behind it.
+  </p>
+  <div class="spacer"></div>
+  <div class="meta">
+    <div><span>Release</span>v1.16.0</div>
+    <div><span>Commit</span>e1a0c09</div>
+    <div><span>Hardening rounds</span>7 (v1.10 → v1.16)</div>
+    <div><span>Date</span>2026-09-07</div>
+  </div>
+  <p class="confidential">Proprietary &amp; confidential — for executive, security, and audit review</p>
+</div>
+
+<section>
+  <h2><span class="n">01</span>Why this is best-in-class for multi-tenant SaaS</h2>
+  <p class="lead">
+    Most multi-tenant SaaS enforces tenant separation in one place — an
+    <code>WHERE organization_id = ?</code> the application is trusted to add
+    every time. One missed clause is a cross-tenant breach.
+  </p>
+  <p>
+    A2R Delivery OS does not rely on the application being correct. Tenant
+    isolation is enforced independently at <strong>four</strong> layers;
+    privileged credentials are cryptographically separated and independently
+    rotatable; every privileged operator action is least-privilege,
+    second-factor gated, time-boxed, and written to a ledger that is immutable
+    at the database engine. A defect in any single control is contained by the
+    others.
+  </p>
+  <div class="callout">
+    <p class="label">The design principle</p>
+    <p>
+      Defense in depth is not a slogan here — it is the file structure. Each
+      guarantee below is enforced by a mechanism that keeps working when the
+      layer above it fails.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">02</span>The threat we designed against</h2>
+  <p>
+    The adversary is not only an external attacker. It is also a well-meaning
+    code change that forgets a scope clause; a phished operator password; a
+    replayed one-time code; a support engineer with more access than the task
+    needs; and a subpoena-grade demand to prove what happened and when.
+  </p>
+  <table>
+    <thead><tr><th style="width:40%">Threat</th><th>Primary control</th></tr></thead>
+    <tbody>
+      <tr><td>Cross-tenant data access (bug or malice)</td><td>Four-layer isolation, incl. database RLS (§ 3)</td></tr>
+      <tr><td>Phished / stolen operator password</td><td>Mandatory TOTP step-up + JIT elevation (§ 6)</td></tr>
+      <tr><td>Replayed second factor → duplicate session</td><td>Atomic single-use consumption (§ 5)</td></tr>
+      <tr><td>Session-secret rotation bricking MFA</td><td>Versioned, decoupled MFA key (§ 4)</td></tr>
+      <tr><td>Over-broad operator access</td><td>Six least-privilege tiers, 3-layer enforcement (§ 6)</td></tr>
+      <tr><td>Tampering with the record of what happened</td><td>Engine-level ledger immutability (§ 7)</td></tr>
+      <tr><td>Fail-open on infrastructure error</td><td>Fail-closed session state machine (§ 8)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="break">
+  <h2><span class="n">03</span>Tenant isolation — four independent layers</h2>
+  <p>
+    Cross-tenant separation does not rest on any single control. A row created
+    under tenant A is invisible, immutable, and un-creatable from tenant B's
+    context at every layer below — verified by an end-to-end isolation suite.
+  </p>
+  <div class="layers">
+    <div class="layer">
+      <div class="idx">L1</div>
+      <div class="body">
+        <strong>Application — ORM auto-scope</strong>
+        A Prisma <code>$extends</code> extension rewrites every tenant query to
+        filter by <code>organizationId</code> and injects it on every create.
+        The scope is applied by the data layer, not by the caller.
+        <code>runUnscoped</code> is the single audited exception, reserved for
+        the cross-tenant operator path.
+      </div>
+    </div>
+    <div class="layer">
+      <div class="idx">L2</div>
+      <div class="body">
+        <strong>Referential — composite foreign keys</strong>
+        Every intra-tenant relationship is
+        <code>(organizationId, col) → parent(organizationId, id)</code>. The
+        database rejects a row that references another tenant's parent — a
+        cross-tenant reference is not an authorization failure, it is a
+        constraint violation.
+      </div>
+    </div>
+    <div class="layer">
+      <div class="idx">L3</div>
+      <div class="body">
+        <strong>Database — Row-Level Security (RLS)</strong>
+        Every tenant transaction runs
+        <code>SET LOCAL ROLE a2r_app</code> +
+        <code>SET LOCAL app.current_org = &lt;id&gt;</code>.
+        <code>tenant_isolation</code> policies on 28 tenant tables filter every
+        read and write to the current org; a hard <code>rls_deny_app</code>
+        policy on the 9 identity tables blocks the runtime role outright. The
+        role <code>a2r_app</code> is <code>NOLOGIN</code>, non-superuser, and
+        <code>rolbypassrls = false</code> — it cannot turn RLS off. A
+        connection that forgets to set the GUC sees <strong>zero rows</strong>,
+        not all rows.
+      </div>
+    </div>
+    <div class="layer">
+      <div class="idx">L4</div>
+      <div class="body">
+        <strong>Environment — deployment isolation</strong>
+        Build, server boot, and Prisma-client instantiation all hard-fail if a
+        non-production deployment's database URL resolves to the production
+        project. A preview build cannot accidentally point at production data.
+      </div>
+    </div>
+  </div>
+  <p>
+    RLS is enforced on staging and applied plus structurally verified on
+    production (read-only acceptance check, zero DML).
+    <code>FORCE ROW LEVEL SECURITY</code> is the post-soak hardening step.
+  </p>
+</section>
+
+<section class="break">
+  <h2><span class="n">04</span>Cryptographic separation &amp; key rotation</h2>
+  <p>
+    A2R-DOS holds three classes of secret material — bearer tokens, the
+    operator MFA secret, and SSO client secrets. Each has a storage rule that
+    assumes the database will one day be read by someone who should not have
+    it.
+  </p>
+
+  <h4>MFA secret — dedicated, versioned key, decoupled from the session secret</h4>
+  <p>
+    The operator MFA (TOTP) secret is sealed with <strong>AES-256-GCM</strong>
+    under <code>MFA_ENCRYPTION_KEY</code> — a dedicated key that is
+    <strong>fully decoupled from <code>NEXTAUTH_SECRET</code></strong>. The
+    application refuses to boot in production if the two are equal. Rotating
+    the session-signing secret therefore has zero effect on enrolled
+    authenticators.
+  </p>
+  <p>
+    Ciphertext is self-describing, so the decrypt path always knows which key
+    produced it:
+  </p>
+  <div class="codeblock">v2.&lt;keyVersion&gt;.&lt;iv&gt;.&lt;authTag&gt;.&lt;ciphertext&gt;      current format (scrypt KDF, AES-256-GCM)
+v1.&lt;iv&gt;.&lt;authTag&gt;.&lt;ciphertext&gt;                   legacy format — still decrypts</div>
+  <p>
+    <strong>Zero-downtime rotation:</strong> a new key is introduced as
+    <code>MFA_ENCRYPTION_KEY</code> with <code>MFA_ENCRYPTION_KEY_VERSION</code>
+    incremented; the prior key is retained decrypt-only as
+    <code>MFA_ENCRYPTION_KEY_V&lt;n&gt;</code>. A secret sealed under an older
+    key version is transparently <strong>re-sealed under the current key on its
+    next successful verification</strong>. No migration job, no downtime, no
+    forced re-enrollment.
+  </p>
+
+  <h4>Bearer tokens — hash-at-rest, plaintext only in transit</h4>
+  <p>
+    JIT-elevation tokens, impersonation grants, and tenant API keys are stored
+    as <code>sha256</code> digests only. The plaintext exists solely in the
+    httpOnly cookie or the one-time creation response and is never persisted.
+    Comparison is constant-time. SSO client secrets are AES-256-GCM encrypted
+    at rest.
+  </p>
+</section>
+
+<section class="break">
+  <h2><span class="n">05</span>Atomic replay protection</h2>
+  <p>
+    A read-then-write check for "has this code been used?" has a
+    time-of-check / time-of-use gap: two concurrent requests both read
+    "unused" and both proceed. A2R-DOS closes that gap at the database, not in
+    application logic.
+  </p>
+
+  <h4>TOTP — a single conditional UPDATE</h4>
+  <p>
+    The anti-replay high-water mark advances only if the presented code's
+    time-step is strictly newer, in one atomic statement:
+  </p>
+  <div class="codeblock">UPDATE operator_mfa
+   SET last_step_counter = :candidate
+ WHERE user_id = :id
+   AND (last_step_counter IS NULL OR last_step_counter &lt; :candidate);
+-- verification succeeds only if exactly one row was updated</div>
+  <p>
+    Two concurrent requests presenting the same valid code: the mark advances
+    once, exactly one request updates a row and succeeds, the other updates
+    zero rows and is rejected as replayed.
+  </p>
+
+  <h4>Recovery codes — SELECT … FOR UPDATE row lock</h4>
+  <p>
+    Recovery-code consumption runs inside a transaction that takes a
+    <code>SELECT … FOR UPDATE</code> row lock on the code before marking it
+    spent. A concurrent consumer blocks on the lock, then reads the code as
+    already used. Recovery codes are high-entropy random values stored as
+    SHA-256 — a password KDF is neither needed nor appropriate for them.
+  </p>
+  <div class="callout">
+    <p class="label">Verified</p>
+    <p>
+      Both paths have dedicated concurrency tests that fire parallel requests
+      and assert exactly one winner — "atomic anti-replay — two concurrent
+      requests" and "atomic consumption — recovery code race".
+    </p>
+  </div>
+</section>
+
+<section class="break">
+  <h2><span class="n">06</span>Three-layer operator RBAC — six tiers + guest observers</h2>
+  <p>
+    The internal operator console is not reachable with any tenant membership.
+    It requires an explicit, attributed, revocable <code>staff_grants</code>
+    entitlement, and that grant carries exactly one of six organizational
+    roles.
+  </p>
+  <table>
+    <thead><tr><th style="width:26%">Operator tier</th><th>Remit</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Super Admin / Owner</strong></td><td>Full access — the only tier that may purge a tenant, manage staff grants, change roles, or manage API keys.</td></tr>
+      <tr><td><strong>Provisioning</strong></td><td>Tenant onboarding and lifecycle, SSO setup, ingestion configuration.</td></tr>
+      <tr><td><strong>Support / Troubleshooting</strong></td><td>Diagnostics, platform health, read-only impersonation, audit view.</td></tr>
+      <tr><td><strong>Auditor / Compliance</strong></td><td>Read-only — audit ledger, elevation history, contract records, tenant export.</td></tr>
+      <tr><td><strong>Billing / Finance</strong></td><td>Contract tiers, seat counts, subscription state.</td></tr>
+      <tr><td><strong>Viewer</strong></td><td>Restricted read-only — platform pulse and telemetry only.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Enforced in three independent layers</h4>
+  <div class="layers">
+    <div class="layer">
+      <div class="idx">A</div>
+      <div class="body">
+        <strong>Edge middleware</strong>
+        A route guard redirects a role away from any <code>/ops</code>
+        sub-route its capability set does not include — before the page code
+        runs.
+      </div>
+    </div>
+    <div class="layer">
+      <div class="idx">B</div>
+      <div class="body">
+        <strong>Server page guard</strong>
+        Every <code>/ops/*</code> page calls
+        <code>requireOpsCapability(cap)</code>; a missing capability redirects
+        to the role's landing route.
+      </div>
+    </div>
+    <div class="layer">
+      <div class="idx">C</div>
+      <div class="body">
+        <strong>Server action guard</strong>
+        Every mutating operator action calls
+        <code>requireElevatedOps(cap)</code> and returns
+        <code>ROLE_FORBIDDEN</code> before touching data — independent of what
+        the UI rendered.
+      </div>
+    </div>
+  </div>
+
+  <h4>Just-In-Time elevation — no standing privilege</h4>
+  <p>
+    A role grants <em>eligibility</em>, not standing access. Every mutating
+    operator action <strong>also</strong> requires a live JIT elevation
+    obtained in one request with: a stated reason (≥ 10 chars), a fresh
+    <code>bcrypt</code> password re-verification, <strong>and</strong> a valid
+    TOTP code or single-use recovery code. The elevation is bound to the
+    session epoch, auto-expires (default 30 min, hard cap ≤ 240), and there is
+    at most one live elevation per operator. A password change or global
+    sign-out kills every active elevation instantly. Changing a role is itself
+    an audit-preserving re-grant, gated on Super Admin + elevation — and an
+    operator can never change their own role.
+  </p>
+
+  <h4>Isolated guest observers</h4>
+  <p>
+    On the tenant side, the <code>VIEWER</code> tier is strict read-only:
+    whole-org read of the portfolio and the SteerCo board, zero edit authority
+    anywhere, and every financial figure scrubbed server-side to the
+    <code>restricted</code> masking tier. Guest accounts provisioned at this
+    tier are structurally walled off from the operator console and from tenant
+    administration — verified by a dedicated end-to-end suite in which every
+    <code>/ops/*</code> and <code>/admin</code> route redirects the guest away.
+  </p>
+</section>
+
+<section class="break">
+  <h2><span class="n">07</span>Engine-level audit immutability</h2>
+  <p>
+    Every operator action that touches a tenant, and every privilege
+    elevation, is written to a hash-chained ledger. The ledger is immutable
+    <strong>at the PostgreSQL engine</strong>, not by application convention:
+  </p>
+  <ul>
+    <li>The runtime role <code>a2r_app</code> holds <strong>no <code>UPDATE</code> or <code>DELETE</code> privilege</strong> on <code>immutable_audit_ledger</code> (verified via <code>information_schema.role_table_grants</code>).</li>
+    <li>A <code>BEFORE UPDATE / DELETE / TRUNCATE</code> trigger rejects every caller — including a superuser — unless a deliberate, transaction-local GUC is set that the runtime role can never set. That opt-in exists only for lawful data-subject erasure.</li>
+    <li>Integrity is continuously verifiable: each entry's hash chains to its predecessor, and a verification routine walks the chain.</li>
+  </ul>
+  <p>
+    Tenant-side, the same hash-chained ledger records governance-relevant
+    activity per organization and is surfaced read-only at
+    <code>/admin/audit-log</code>.
+  </p>
+</section>
+
+<section>
+  <h2><span class="n">08</span>Fail-closed session integrity</h2>
+  <p>
+    Every authenticated request re-derives session state from the database:
+    the <code>sessionVersion</code> epoch, <code>passwordChangedAt</code>, and
+    the forced-rotation flag. The state machine has one bias — <strong>any
+    uncertainty fails closed</strong>:
+  </p>
+  <table>
+    <thead><tr><th style="width:44%">Condition</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Database error resolving session state</td><td><code>REVOKED</code> — user-less session</td></tr>
+      <tr><td>Lookup exceeds <code>SESSION_LOOKUP_TIMEOUT_MS</code></td><td><code>REVOKED</code></td></tr>
+      <tr><td>User row missing / deleted</td><td><code>REVOKED</code></td></tr>
+      <tr><td>Token epoch ≠ account epoch</td><td><code>REVOKED</code></td></tr>
+      <tr><td><code>mustChangePassword</code> set</td><td><code>PENDING_PASSWORD_CHANGE</code> — only the change-password route</td></tr>
+    </tbody>
+  </table>
+  <p>
+    A password change atomically writes the new hash, stamps
+    <code>passwordChangedAt</code>, increments <code>sessionVersion</code> (an
+    all-device logout), and mints exactly one fresh token for the acting
+    device. There is no fail-open path.
+  </p>
+  <h4>Surface hardening</h4>
+  <ul>
+    <li><strong>Rate limiting</strong> fails <em>closed</em> in production when a shared backend is configured and unreachable — deny and alert, never silent degradation.</li>
+    <li>The <strong>public readiness probe</strong> returns only up/down; database dependency, latency, and error type require an internal token.</li>
+    <li><strong>Error sanitization</strong> — no raw backend error (Prisma exception, stack, driver message) reaches a client; statically enforced across every API route.</li>
+    <li><strong>Operational CLIs</strong> never accept a password as a command-line argument, and refuse an unconfirmed production write; admin-forced resets set <code>mustChangePassword</code> and invalidate sessions.</li>
+  </ul>
+</section>
+
+<section class="break">
+  <h2><span class="n">09</span>The seven-audit pedigree</h2>
+  <p class="lead">
+    A2R-DOS reached v1.16.0 through seven successive rounds of adversarial
+    AI-assisted self-audit and hardening.
+  </p>
+  <p>
+    Each round ran the same discipline: an independent review by an AI audit
+    agent (ChatGPT) producing prioritized, adversarial findings; implementation
+    and regression tests by a second AI agent (Claude), with every database
+    migration rehearsed <code>BEGIN … ROLLBACK</code> before application; a
+    verification gate the round closed only on a full green suite; and a
+    release tag cut at the <strong>exact immutable commit</strong> deployed to
+    production.
+  </p>
+  <table>
+    <thead><tr><th>Round</th><th class="k">Release</th><th>Hardening focus</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="k">v1.10.0</td><td>Mass-assignment lockdown (<code>strictObject</code>); all-device sign-out; strict cookies.</td></tr>
+      <tr><td>2</td><td class="k">v1.11.0</td><td>Exact-decimal money columns; FK <code>onDelete: Restrict</code> on the operator-grant chain.</td></tr>
+      <tr><td>3</td><td class="k">v1.12.0</td><td>Production RLS cutover; identity-table hard denial; <code>a2r_app</code> set <code>NOLOGIN</code>.</td></tr>
+      <tr><td>4</td><td class="k">v1.13.0</td><td>Engine-level audit-ledger immutability; composite-FK closure; global break-glass removed.</td></tr>
+      <tr><td>5</td><td class="k">v1.14.0</td><td>Exact-decimal arithmetic through the calc engine; JIT elevation password step-up + session binding; test-rig production isolation.</td></tr>
+      <tr><td>6</td><td class="k">v1.15.0–.2</td><td>Rate-limiter fail-closed; mandatory operator TOTP MFA; MFA key separation; atomic replay protection; readiness-probe + CLI hardening.</td></tr>
+      <tr><td>7</td><td class="k">v1.16.0</td><td>Six-tier operator RBAC with a three-layer capability matrix; Role &amp; Access console; strict read-only tenant Viewer tier + guest observers.</td></tr>
+    </tbody>
+  </table>
+  <div class="callout warn">
+    <p class="label">Compliance alignment — stated precisely</p>
+    <p>
+      The platform is <strong>designed and operated in alignment with SOC 1
+      and SOC 2 control objectives</strong>: logical access control, change
+      management, segregation of duties, and a tamper-evident audit trail for
+      financially-relevant activity. This alignment is demonstrated by the
+      evidence artifacts in the repository — the requirements traceability
+      matrix, the test-coverage report, and the hash-chained ledger.
+      <strong>No third-party SOC 1 or SOC 2 attestation has been
+      performed</strong>, and nothing in this document should be read as
+      claiming one. Formal attestation is a business decision; the
+      control-design work and evidence are already in place to support it.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">10</span>Verification evidence (v1.16.0)</h2>
+  <div class="scorecard">
+    <div><p class="l">Type check</p><p class="v">0</p></div>
+    <div><p class="l">Lint</p><p class="v">0 / 0</p></div>
+    <div><p class="l">Unit + DB</p><p class="v">693</p></div>
+    <div><p class="l">End-to-end</p><p class="v">65</p></div>
+    <div><p class="l">Build</p><p class="v">clean</p></div>
+    <div><p class="l">Prod RLS check</p><p class="v">pass</p></div>
+    <div><p class="l">Prod health</p><p class="v">ready</p></div>
+    <div><p class="l">Migrations</p><p class="v">0–25</p></div>
+  </div>
+  <table>
+    <thead><tr><th style="width:40%">Control</th><th>Representative automated proof</th></tr></thead>
+    <tbody>
+      <tr><td>Tenant isolation (all 4 layers)</td><td><code>tenant-isolation</code>, <code>rls-policies</code>, <code>env-isolation</code>; e2e Suite O; SQL RLS smoke (10-check) + read-only prod acceptance</td></tr>
+      <tr><td>MFA key separation &amp; rotation</td><td><code>secret-box.test.ts</code> — versioned key, rotation with old-key ciphertext still decrypting, legacy <code>v1</code> decrypt</td></tr>
+      <tr><td>Atomic replay protection</td><td><code>operator-mfa.test.ts</code> — two concurrent requests, recovery-code race</td></tr>
+      <tr><td>3-layer operator RBAC</td><td><code>operator-roles.test.ts</code> (13), <code>operator-role-grants.test.ts</code> (7); e2e Suites P, Q</td></tr>
+      <tr><td>Ledger immutability</td><td><code>ledger-immutability</code>, <code>ledger-concurrency</code>; e2e Suite F</td></tr>
+      <tr><td>Fail-closed session state</td><td><code>session-state.test.ts</code> (29), <code>password-rotation-flow.test.ts</code>; e2e Suite N</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2><span class="n">11</span>Residual items — disclosed</h2>
+  <table>
+    <thead><tr><th style="width:52%">Item</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>WebAuthn / passkeys for phishing-resistant AAL2</td><td>Tracked — slots in at the <code>verifySecondFactor</code> seam; TOTP is the interim second factor.</td></tr>
+      <tr><td>Legacy operator accounts not yet MFA-enrolled</td><td>Operator action — the hard cut-over means they must enroll before they can elevate.</td></tr>
+      <tr><td><code>FORCE ROW LEVEL SECURITY</code> on production</td><td>Post-soak — RLS is applied and enforced; <code>FORCE</code> follows the soak window.</td></tr>
+      <tr><td>Dedicated <code>a2r_ops</code> database role for the cross-tenant admin path</td><td>Phase-3 residual — currently runs as <code>postgres</code> via audited <code>runUnscoped</code>.</td></tr>
+      <tr><td>Third-party SOC 1 / SOC 2 attestation</td><td>Not started — control-aligned; attestation is a business decision.</td></tr>
+    </tbody>
+  </table>
+  <p class="foot">
+    Source of record: <code>docs/SECURITY.md</code> · <code>docs/ROLE_ACCESS_MATRIX.md</code> · <code>docs/RTM.md</code> · <code>docs/TEST_COVERAGE.md</code> · <code>docs/EXECUTIVE_SUMMARY.md</code><br>
+    A2R Delivery OS™ · © 2026 A2R Ventures LLC. All rights reserved. Proprietary and confidential.<br>
+    Generated 2026-09-07 against commit e1a0c09 (tag v1.16.0).
+  </p>
+</section>
+
+</body>
+</html>

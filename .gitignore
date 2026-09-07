@@ -32,3 +32,6 @@ next-env.d.ts
 
 # Vercel CLI project link (`vercel link`) — machine-local
 .vercel
+
+# Generated font cache for docs/pdf/render-pdfs.mjs
+docs/pdf/fonts-embedded.css

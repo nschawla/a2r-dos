@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A2R Delivery OS — Executive Summary</title>
+<style>
+/* FONT-FACES */
+
+:root {
+  --paper: #faf8f4;
+  --ink: #1b1e24;
+  --ink-soft: #464b54;
+  --faint: #82868d;
+  --rule: #e5dfd4;
+  --rule-strong: #cfc7b7;
+  --accent: #2f5c8f;
+  --accent-soft: #eef3f8;
+  --accent-deep: #21456c;
+  --ok: #2f7150;
+  --watch: #8a5a1f;
+}
+
+* { box-sizing: border-box; }
+
+@page { size: A4; margin: 17mm 16mm 18mm; }
+@page:first { margin: 0; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10.2pt;
+  line-height: 1.58;
+}
+
+p { margin: 0 0 0.7em; }
+strong { font-weight: 600; }
+h1, h2, h3, h4 { font-family: 'Spectral', Georgia, serif; font-weight: 600; }
+
+code, .mono {
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  font-size: 0.86em;
+}
+
+/* ---------- cover ---------- */
+.cover {
+  height: 297mm;
+  padding: 30mm 24mm 24mm;
+  background:
+    linear-gradient(180deg, var(--accent-soft) 0%, var(--paper) 46%);
+  display: flex;
+  flex-direction: column;
+  page-break-after: always;
+}
+.cover .kicker {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5pt;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  margin: 0;
+}
+.cover .rule {
+  height: 2.5pt;
+  background: var(--ink);
+  width: 62mm;
+  margin: 9mm 0 12mm;
+}
+.cover h1 {
+  font-size: 33pt;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0 0 8mm;
+  max-width: 150mm;
+}
+.cover .sub {
+  font-family: 'Spectral', Georgia, serif;
+  font-size: 13pt;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 135mm;
+  margin: 0;
+}
+.cover .spacer { flex: 1; }
+.cover .meta {
+  border-top: 1px solid var(--rule-strong);
+  padding-top: 6mm;
+  display: flex;
+  gap: 14mm;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5pt;
+  color: var(--ink-soft);
+}
+.cover .meta div span {
+  display: block;
+  color: var(--faint);
+  font-size: 7.5pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 1.5mm;
+}
+.cover .confidential {
+  margin-top: 5mm;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7.5pt;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ---------- content ---------- */
+section { margin-bottom: 8mm; }
+section.break { page-break-before: always; }
+
+h2 {
+  font-size: 9pt;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 3mm;
+  padding-bottom: 1.8mm;
+  border-bottom: 1px solid var(--rule);
+}
+h2 .n { color: var(--faint); font-family: 'IBM Plex Mono', monospace; margin-right: 2mm; }
+
+h3 {
+  font-size: 12.5pt;
+  margin: 5mm 0 2mm;
+  letter-spacing: -0.005em;
+}
+
+.lead {
+  font-family: 'Spectral', Georgia, serif;
+  font-size: 11.5pt;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 3mm 0;
+  font-size: 9.4pt;
+}
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 7.6pt;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: 1.5px solid var(--rule-strong);
+  padding: 2mm 3mm 1.6mm;
+}
+td {
+  border-bottom: 1px solid var(--rule);
+  padding: 2mm 3mm;
+  vertical-align: top;
+}
+tr { page-break-inside: avoid; }
+td.k { font-family: 'IBM Plex Mono', monospace; font-size: 8.4pt; white-space: nowrap; }
+
+.callout {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  padding: 4mm 5mm;
+  margin: 4mm 0;
+  page-break-inside: avoid;
+}
+.callout p:last-child { margin-bottom: 0; }
+.callout .label {
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  font-size: 7.6pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  margin: 0 0 1.5mm;
+}
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin: 4mm 0; }
+.tile {
+  border: 1px solid var(--rule);
+  border-radius: 2mm;
+  padding: 4mm 4.5mm;
+  page-break-inside: avoid;
+}
+.tile h4 {
+  margin: 0 0 1.5mm;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 8pt;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.tile p { margin: 0; font-size: 9.3pt; }
+
+.scorecard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--rule-strong);
+  border-radius: 2mm;
+  overflow: hidden;
+  margin: 4mm 0;
+}
+.scorecard div {
+  padding: 3mm 3.5mm;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.scorecard .v {
+  font-family: 'Spectral', Georgia, serif;
+  font-weight: 600;
+  font-size: 15pt;
+  color: var(--ok);
+  line-height: 1;
+}
+.scorecard .l {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7pt;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 1.5mm;
+}
+
+ul { margin: 2mm 0; padding-left: 5mm; }
+li { margin: 1.5mm 0; }
+
+.foot {
+  margin-top: 10mm;
+  padding-top: 4mm;
+  border-top: 1px solid var(--rule);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 7.4pt;
+  line-height: 1.7;
+  color: var(--faint);
+}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <p class="kicker">A2R Ventures LLC · Executive Summary</p>
+  <div class="rule"></div>
+  <h1>A2R Delivery OS</h1>
+  <p class="sub">
+    A secure, multi-tenant delivery operating system for professional-services
+    firms — built for operational certainty and frictionless stakeholder
+    visibility, on an architecture where isolation and least-privilege access
+    are enforced at the database and the framework edge, not in the UI.
+  </p>
+  <div class="spacer"></div>
+  <div class="meta">
+    <div><span>Release</span>v1.16.0</div>
+    <div><span>Commit</span>e1a0c09</div>
+    <div><span>Date</span>2026-09-07</div>
+    <div><span>Status</span>Production · healthy</div>
+  </div>
+  <p class="confidential">Proprietary &amp; confidential — for executive and stakeholder review</p>
+</div>
+
+<section>
+  <h2><span class="n">01</span>The problem we solve</h2>
+  <p class="lead">
+    Professional-services delivery leaders are forced into a false choice.
+  </p>
+  <p>
+    <strong>Spreadsheets and slideware</strong> are fast to start but fragile,
+    un-auditable, and impossible to trust at portfolio scale. Numbers drift,
+    versions fork, and there is no record of who changed what.
+    <strong>General-purpose PM and ERP platforms</strong> either bolt
+    "security" onto a UI layer that a determined user can walk around, or hand
+    operators raw database and infrastructure access and call it power-user
+    mode.
+  </p>
+  <p>
+    Neither gives a sponsor <strong>operational certainty</strong> — a single,
+    current, tamper-evident view of engagement health, financial realization,
+    and governance — without also widening the attack surface.
+  </p>
+  <div class="callout">
+    <p class="label">The A2R position</p>
+    <p>
+      A2R-DOS removes the choice. It delivers the portfolio, financial, and
+      governance model of a purpose-built PS platform on an architecture that
+      enforces tenant isolation, auditability, and least-privilege operator
+      access where they cannot be bypassed — at the database and the edge.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">02</span>What A2R-DOS is</h2>
+  <table>
+    <thead><tr><th style="width:32%">Capability</th><th>What it delivers</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Portfolio governance</strong></td><td>PS Control Tower, RBAC-scoped portfolios, SteerCo briefings, decision ledger.</td></tr>
+      <tr><td><strong>Engagement delivery</strong></td><td>Commercial Baseline (sizing + rate card), Control Audit (weighted scoring), RAID, Schedule &amp; Milestones.</td></tr>
+      <tr><td><strong>Financial realization</strong></td><td>EAC / BAC / margin-drift with exact-decimal arithmetic — no floating-point error at portfolio scale.</td></tr>
+      <tr><td><strong>Capacity planning</strong></td><td>Utilization, concurrency radar, 52-week forecast, holiday and policy controls.</td></tr>
+      <tr><td><strong>Stakeholder visibility</strong></td><td>Executive Briefing Hub, print-ready board packs, and a strict read-only Viewer tier for guests and clients.</td></tr>
+      <tr><td><strong>Operator control plane</strong></td><td>An internal console for the vendor — tenant lifecycle, telemetry, platform health — under a six-tier least-privilege role model.</td></tr>
+    </tbody>
+  </table>
+  <p>
+    <strong>Stack.</strong> Next.js 15 (App Router) · NextAuth v4 · Prisma 5.22
+    · PostgreSQL 17 (Supabase) · deployed on Vercel at
+    <code>www.a2rventures.com</code>. Production is healthy and continuously
+    verified.
+  </p>
+</section>
+
+<section>
+  <h2><span class="n">03</span>Operational certainty &amp; frictionless visibility</h2>
+  <div class="grid2">
+    <div class="tile">
+      <h4>Certainty for the operator</h4>
+      <p>
+        One current source of truth. Every currency and rate figure is computed
+        in exact decimal and rounded once, at its accounting boundary — the
+        number on screen is the number that is stored. A locked baseline is the
+        immutable reference every future comparison measures against.
+      </p>
+    </div>
+    <div class="tile">
+      <h4>Visibility for the stakeholder</h4>
+      <p>
+        A dedicated read-only Viewer tier: whole-org read of the portfolio and
+        the SteerCo board, zero edit authority, every financial figure scrubbed
+        server-side. Guests and clients see the picture without ever touching
+        it, and without a bespoke export.
+      </p>
+    </div>
+  </div>
+  <p>
+    Governance is configurable per tenant — compliance templates toggle module
+    visibility and financial masking — so the same platform fits a
+    board-reporting engagement and a hands-on delivery team without a fork.
+  </p>
+</section>
+
+<section class="break">
+  <h2><span class="n">04</span>Security posture at a glance</h2>
+  <p>
+    A2R-DOS reached v1.16.0 through seven successive audit-and-hardening rounds.
+    The full architecture is documented separately in the
+    <strong>Multi-Tenant Security Briefing</strong>; in summary:
+  </p>
+  <ul>
+    <li><strong>Tenant isolation</strong> is enforced at four independent layers, including PostgreSQL row-level security — one client's data is never one bug away from another's.</li>
+    <li><strong>Cryptographic key separation</strong> — the MFA secret is sealed under a dedicated, versioned key, fully decoupled from the session-signing secret, with zero-downtime rotation.</li>
+    <li><strong>Atomic replay protection</strong> — second-factor consumption is a single conditional database write plus a row lock; a replayed code can never yield a second privileged session.</li>
+    <li><strong>Three-layer operator RBAC</strong> across six least-privilege tiers, plus isolated guest observers — enforced at the edge, the page, and the action.</li>
+    <li><strong>Engine-level audit immutability</strong> — the hash-chained ledger cannot be altered even by the application's own database role.</li>
+  </ul>
+  <div class="callout">
+    <p class="label">Compliance alignment</p>
+    <p>
+      A2R-DOS is designed and operated in alignment with SOC 1 and SOC 2
+      control objectives — logical access control, change management,
+      segregation of duties, and a tamper-evident audit trail. This is
+      control-design alignment demonstrated by the repository's own evidence
+      artifacts; no third-party SOC attestation has been performed, and this
+      document claims none.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">05</span>Verification (v1.16.0)</h2>
+  <div class="scorecard">
+    <div><p class="l">Type check</p><p class="v">0</p></div>
+    <div><p class="l">Lint</p><p class="v">0 / 0</p></div>
+    <div><p class="l">Unit + DB</p><p class="v">693</p></div>
+    <div><p class="l">End-to-end</p><p class="v">65</p></div>
+    <div><p class="l">Build</p><p class="v">clean</p></div>
+    <div><p class="l">Prod RLS</p><p class="v">pass</p></div>
+    <div><p class="l">Prod health</p><p class="v">ready</p></div>
+    <div><p class="l">Migrations</p><p class="v">0–25</p></div>
+  </div>
+  <p>
+    Vitest across 59 files, Playwright across Suites A–Q, both on the staging
+    database — the automated suites cannot target production, a hard guard
+    aborts any run whose resolved URL is the production project. The production
+    posture is verified read-only. Every release tag from <code>v1.12.0</code>
+    points at the exact immutable commit deployed to production.
+  </p>
+</section>
+
+<section>
+  <h2><span class="n">06</span>Product roadmap — next release for beta clients</h2>
+  <table>
+    <thead><tr><th style="width:26%">Theme</th><th>What ships</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Deep PM Pulse</strong></td>
+        <td>
+          A composite engagement health score across schedule, cost, scope,
+          risk, and stakeholder sentiment, with milestone-velocity tracking
+          (accelerating / steady / slipping), trend arrows and sparklines on
+          the Control Tower and every project header, and weekly immutable
+          Pulse snapshots. Engagements crossing a downward threshold are
+          promoted to the top of the Control Tower and the Executive Hub.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Advanced telemetry &amp; webhooks</strong></td>
+        <td>
+          Threshold and anomaly alerts on platform and engagement signals,
+          delivered to tenant-configured webhook endpoints (HMAC-signed
+          payloads, replay window, dead-letter view) and the in-app activity
+          stream. Per-rule cool-down and full delivery audit; endpoints are
+          validated against SSRF, and payloads honor each tenant's financial
+          masking.
+        </td>
+      </tr>
+      <tr>
+        <td><strong>Self-service Viewer widgets</strong></td>
+        <td>
+          A read-only widget library for the Viewer / guest tier — portfolio
+          heat, milestone timeline, RAG summary, Pulse trend — with a
+          composable personal landing view. Every widget renders through the
+          same <code>restricted</code> masking and RBAC-scoped queries the tier
+          already enforces, and adds zero write paths.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Sequenced Pulse → telemetry → widgets (later themes consume the Pulse
+    score). Each ships behind the same release discipline: migration
+    rehearsal, a full green suite, a production build, and a tag at the
+    deployed commit.
+  </p>
+</section>
+
+<section>
+  <h2><span class="n">07</span>Residual items</h2>
+  <table>
+    <thead><tr><th style="width:52%">Item</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>WebAuthn / passkeys (phishing-resistant AAL2)</td><td>Tracked — TOTP is the interim second factor.</td></tr>
+      <tr><td>Legacy operator accounts unenrolled in MFA</td><td>Operator action — the hard cut-over means they enroll before they can elevate.</td></tr>
+      <tr><td><code>FORCE ROW LEVEL SECURITY</code> on production</td><td>Post-soak — RLS is applied and enforced; <code>FORCE</code> follows the soak window.</td></tr>
+      <tr><td>Dedicated <code>a2r_ops</code> database role for the cross-tenant admin path</td><td>Phase-3 residual.</td></tr>
+      <tr><td>Third-party SOC 1 / SOC 2 attestation</td><td>Not started — the platform is control-aligned; attestation is a business decision.</td></tr>
+    </tbody>
+  </table>
+  <p class="foot">
+    Source of record: <code>docs/EXECUTIVE_SUMMARY.md</code> · <code>docs/ROADMAP.md</code><br>
+    A2R Delivery OS™ · © 2026 A2R Ventures LLC. All rights reserved. Proprietary and confidential.<br>
+    Generated 2026-09-07 against commit e1a0c09 (tag v1.16.0).
+  </p>
+</section>
+
+</body>
+</html>
