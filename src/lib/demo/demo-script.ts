@@ -12,16 +12,27 @@
  * Each DemoStep is one screen the walkthrough lands on: the route it
  * pushes to, how long it lingers there before advancing, and the
  * teleprompter caption CinematicOverlay shows while it's active. Steps are
- * grouped into "acts" (currently Introduction and Ops Console) and tagged
- * with which non-"Full Tour" persona track(s) include them — "Full Tour"
+ * grouped into "acts" (Introduction, Ops Console, Security & Trust) and
+ * tagged with which non-"Full Tour" persona track(s) include them — "Full Tour"
  * always plays every step in script order, in one continuous walkthrough.
+ *
+ * Tracks (persona-filtered subsequences of the one master script, in
+ * script order — never a rewrite):
+ *   - 'Executive'   — board-level: portfolio, command, scoped visibility,
+ *                     SteerCo, Exec Hub, plus the one tenant-isolation beat.
+ *   - 'Admin'       — the delivery-leader / ops walkthrough end to end,
+ *                     including the full Security & Trust segment.
+ *   - 'Security'    — the CISO / security-reviewer cut: scoped visibility +
+ *                     tenant isolation + least-privilege operator RBAC +
+ *                     step-up MFA + the immutable audit ledger.
+ *   - 'Full Tour'   — every beat, in order.
  */
 
-export type DemoPersona = 'Executive' | 'Admin' | 'Full Tour';
+export type DemoPersona = 'Executive' | 'Admin' | 'Security' | 'Full Tour';
 
-export const DEMO_PERSONAS: readonly DemoPersona[] = ['Executive', 'Admin', 'Full Tour'] as const;
+export const DEMO_PERSONAS: readonly DemoPersona[] = ['Executive', 'Admin', 'Security', 'Full Tour'] as const;
 
-export type DemoAct = 'Introduction' | 'Ops Console';
+export type DemoAct = 'Introduction' | 'Ops Console' | 'Security & Trust';
 
 export interface DemoStep {
   /** Stable id — used as the React key and for step lookups, independent
@@ -44,13 +55,15 @@ export interface DemoStep {
    * destination route is the point of the beat rather than the page as a
    * whole. CinematicOverlay draws a pulsing glow ring around this element
    * for as long as the step is active (see HighlightSpotlight in that
-   * file) — the ids it names are real, stable elements already in the DOM
-   * (see the `id="..."` attributes on src/components/layout/Header.tsx's
-   * <header>, its Perspective switcher wrapper,
-   * src/app/(admin)/layout.tsx's <header>,
-   * src/components/ingestion/BatchUploadPortal.tsx's dropzone,
-   * src/app/(dashboard)/capacity/page.tsx's scope-indicator line, and
-   * src/components/admin/KpiBuilderPanel.tsx's "+ New KPI" button).
+   * file) — the ids it names are real, stable elements already in the DOM:
+   *   #global-header               — src/components/layout/Header.tsx +
+   *                                  src/app/(admin)/layout.tsx <header>
+   *   #capacity-scope-indicator    — src/app/(dashboard)/capacity/page.tsx
+   *   #batch-import-zone           — src/components/ingestion/BatchUploadPortal.tsx
+   *   #new-kpi-button              — src/components/admin/KpiBuilderPanel.tsx
+   *   #operator-capability-matrix  — src/components/ops/OperatorAccessManager.tsx
+   *   #operator-mfa-panel          — src/app/(admin)/ops/security/page.tsx
+   *   #jit-elevation-log           — src/app/(admin)/ops/audit/page.tsx
    * Omitted where a step is about the page generally, not one element on it.
    */
   highlightSelector?: string;
@@ -69,7 +82,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     // pacing math behind every duration in this file.
     durationMs: 10000,
     act: 'Introduction',
-    personas: ['Executive', 'Admin'],
+    personas: ['Executive', 'Admin', 'Security'],
     highlightSelector: '#global-header',
     caption:
       'Welcome to A2R Delivery OS — the delivery operating system built for professional services firms. This is the Portfolio Control Tower: every engagement, rolled up into one live view.',
@@ -88,7 +101,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     route: '/capacity',
     durationMs: 15000, // 41 words at ~164 wpm
     act: 'Introduction',
-    personas: ['Executive', 'Admin'],
+    personas: ['Executive', 'Admin', 'Security'],
     highlightSelector: '#capacity-scope-indicator',
     caption:
       'Every view in A2R Delivery OS is role-aware. A VP or Ops lead sees the whole portfolio here — tenant-wide. Switch to a Practice Director’s seat, and the exact same screen scopes itself to just their own practice’s roster and projects, automatically.',
@@ -149,8 +162,12 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
       'And this is the Custom KPI Builder. An admin picks a real metric — margin, schedule health, RAID exposure, utilization — sets a target and a warning line, and assigns it to exactly the personas who should see it. Save it, and the card appears immediately on the Control Tower and the Executive Hub for everyone in that persona — no redeploy, no waiting.',
   },
   {
+    // `/ops` itself 307-redirects to the role's landing route
+    // (`/ops/telemetry` for a full operator) as of the v1.16.0 operator-RBAC
+    // work — point the beat straight at the resolved route so the demo
+    // never shows a redirect flash.
     id: 'ops-console',
-    route: '/ops',
+    route: '/ops/telemetry',
     durationMs: 10000, // 28 words at ~168 wpm
     act: 'Ops Console',
     personas: ['Admin'],
@@ -167,19 +184,62 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
       'Platform Pulse is engineering telemetry for A2R Delivery OS itself — build, tests, and database health, ingested automatically, never typed in by hand.',
   },
   {
+    // Tenant-side security beat — shown to every single-persona track. The
+    // point of the beat is the org name/switcher in the header (the only
+    // tenant you can ever see), so it reuses #global-header.
+    id: 'tenant-isolation',
+    route: '/portfolio',
+    durationMs: 16000, // 45 words at ~169 wpm
+    act: 'Security & Trust',
+    personas: ['Executive', 'Admin', 'Security'],
+    highlightSelector: '#global-header',
+    caption:
+      'Everything you have seen sits inside one tenant. A2R Delivery OS enforces that at the database itself — row-level security, composite keys, and a query layer scoped by default. One client’s data is never one bug away from another’s. Not a UI rule — a database guarantee.',
+  },
+  {
+    id: 'operator-roles',
+    route: '/ops/access',
+    durationMs: 21000, // 53 words at ~151 wpm — see docs/AUTO_DEMO_SCRIPT.md §3
+    act: 'Security & Trust',
+    personas: ['Admin', 'Security'],
+    highlightSelector: '#operator-capability-matrix',
+    caption:
+      'Our own operators run under least privilege. Six roles — provisioning, support, audit, billing, read-only, owner — each with an exact capability set, enforced in three independent layers: the edge, the page, and the action itself. No operator can widen their own access, and no role can reach a screen it is not cleared for.',
+  },
+  {
+    id: 'step-up-mfa',
+    route: '/ops/security',
+    durationMs: 17000, // 43 words at ~152 wpm
+    act: 'Security & Trust',
+    personas: ['Admin', 'Security'],
+    highlightSelector: '#operator-mfa-panel',
+    caption:
+      'And there is no standing admin access. Every privileged action takes a fresh step-up — a stated reason, a re-entered password, and a one-time code from an authenticator app — valid for a few minutes, then gone. Changing a password kills every active elevation instantly.',
+  },
+  {
+    id: 'audit-ledger',
+    route: '/ops/audit',
+    durationMs: 15000, // 42 words at ~168 wpm
+    act: 'Security & Trust',
+    personas: ['Admin', 'Security'],
+    highlightSelector: '#jit-elevation-log',
+    caption:
+      'Every elevation, and every action taken on a client’s data, is written to a hash-chained ledger that is immutable at the database engine — the application’s own role cannot update or delete a single row of it. What happened, happened, on the record.',
+  },
+  {
     id: 'closing',
     route: '/portfolio',
     durationMs: 7000, // 19 words at ~163 wpm
     act: 'Introduction',
-    personas: ['Executive', 'Admin'],
+    personas: ['Executive', 'Admin', 'Security'],
     caption: 'That’s the tour. Feel free to take the wheel from here — everything you just saw is one click away.',
   },
 ];
 
 /**
  * The step sequence for a persona track, in script order. 'Full Tour'
- * always returns the whole script; 'Executive' / 'Admin' return only the
- * steps tagged for that track.
+ * always returns the whole script; 'Executive' / 'Admin' / 'Security'
+ * return only the steps tagged for that track, in the same relative order.
  */
 export function getStepsForPersona(persona: DemoPersona): DemoStep[] {
   if (persona === 'Full Tour') return [...DEMO_SCRIPT];

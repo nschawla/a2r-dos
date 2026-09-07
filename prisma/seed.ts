@@ -26,7 +26,13 @@
  *
  * Run with: npm run db:seed
  */
-import { PrismaClient, type DeliveryAccessRole, type MembershipRole, type Prisma } from '@prisma/client';
+import {
+  PrismaClient,
+  type DeliveryAccessRole,
+  type MembershipRole,
+  type OperatorRole,
+  type Prisma,
+} from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { DEFAULT_PRACTICES, DEFAULT_ROLES, DEFAULT_SCOPE, PHASES, CONTROL_DEFS } from '../src/lib/constants';
 import { recordLedgerEvent } from '../src/lib/audit-ledger';
@@ -49,11 +55,17 @@ function daysFromNow(n: number): Date {
  * A2R Operator Control Plane — grant explicit /ops access to a user.
  * Replaces the former `User.isA2rStaff = true` writes + the
  * `@a2rventures.com` email wildcard (P0 #2). Idempotent.
+ *
+ * `role` is the v1.16.0 organizational operator role on the grant
+ * (`OperatorRole`) — defaults to `SUPER_ADMIN` (full reach), passed
+ * explicitly here so the seed dataset documents the tier it intends and
+ * so a lower-tier demo operator (`support@`) shows a real, multi-row
+ * capability matrix on `/ops/access`.
  */
-async function grantStaffAccess(userId: string, reason: string) {
+async function grantStaffAccess(userId: string, reason: string, role: OperatorRole = 'SUPER_ADMIN') {
   const existing = await db.staffGrant.findFirst({ where: { userId, revokedAt: null } });
   if (!existing) {
-    await db.staffGrant.create({ data: { userId, reason } });
+    await db.staffGrant.create({ data: { userId, reason, role } });
   }
 }
 
@@ -856,7 +868,7 @@ async function main() {
   // shortcut any more (P0 #2).
   // ============================================================
   const opsUser = await upsertUser('ops@a2rventures.com', 'Riley Operator');
-  await grantStaffAccess(opsUser.id, 'Seed — dedicated Ops Console operator login');
+  await grantStaffAccess(opsUser.id, 'Seed — dedicated Ops Console operator login', 'SUPER_ADMIN');
 
   // ============================================================
   // RESOURCE & CAPACITY COCKPIT + CONCURRENCY FOUNDATION
@@ -1248,7 +1260,7 @@ async function main() {
     update: { name: 'Navinder Chawla' },
     create: { email: MASTER_ADMIN_EMAIL, name: 'Navinder Chawla', passwordHash: masterAdminHash },
   });
-  await grantStaffAccess(masterAdmin.id, 'Seed — master super-admin (bootstrap operator)');
+  await grantStaffAccess(masterAdmin.id, 'Seed — master super-admin (bootstrap operator)', 'SUPER_ADMIN');
 
   // Dedicated E2E master. The enterprise-verification suite's Suite A / I
   // need a staff account that also holds an OWNER/ADMIN membership in every
@@ -1256,7 +1268,16 @@ async function main() {
   // from navinder@ so the suite never depends on a human's real credential
   // — and it keeps the shared demo password, unrotated.
   const e2eMaster = await upsertUser('master.e2e@a2rventures.com', 'E2E Master');
-  await grantStaffAccess(e2eMaster.id, 'Seed — E2E master (Ops Console + all-tenant admin)');
+  await grantStaffAccess(e2eMaster.id, 'Seed — E2E master (Ops Console + all-tenant admin)', 'SUPER_ADMIN');
+
+  // A second, lower-tier operator so the v1.16.0 Role & Access console
+  // (`/ops/access`) shows a real multi-row roster and capability matrix
+  // rather than a single SUPER_ADMIN. SUPPORT can view telemetry, health,
+  // audit, and run read-only impersonation — but cannot provision, purge,
+  // manage billing, or change roles. No tenant membership: operator axis
+  // only. Shared demo password.
+  const supportOperator = await upsertUser('support@a2rventures.com', 'Sky Nakamura');
+  await grantStaffAccess(supportOperator.id, 'Seed — support / troubleshooting operator (least privilege)', 'SUPPORT');
 
   // Oldest org first, so the FIRST membership created for each master
   // account is the primary demo tenant (A2R DOS Demo) — requireOrgContext
@@ -1297,7 +1318,8 @@ async function main() {
   console.log('               Digital Front Door (Red)');
   console.log('');
   console.log('  A2R Ops Console (internal):');
-  console.log(`    ops@a2rventures.com           -> staff grant (no client membership) — password ${DEMO_PASSWORD}`);
+  console.log(`    ops@a2rventures.com           -> SUPER_ADMIN operator, no client membership — password ${DEMO_PASSWORD}`);
+  console.log(`    support@a2rventures.com       -> SUPPORT operator (least privilege), no client membership — password ${DEMO_PASSWORD}`);
   console.log(`    navinder@a2rventures.com      -> MASTER super-admin: staff grant + OWNER/ADMIN in all ${allOrgs.length} orgs — password Password123!`);
 }
 

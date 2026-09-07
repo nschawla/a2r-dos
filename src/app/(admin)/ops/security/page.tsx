@@ -30,10 +30,12 @@ export default async function OperatorSecurityPage() {
         </p>
       </div>
 
-      <OperatorMfaPanel
-        initialStatus={status}
-        operatorEmail={ops.email}
-      />
+      <div id="operator-mfa-panel">
+        <OperatorMfaPanel
+          initialStatus={status}
+          operatorEmail={ops.email}
+        />
+      </div>
 
       <section className="card text-[12.5px] text-ink-muted leading-relaxed">
         <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">

@@ -39,19 +39,25 @@ const TRACKS: { persona: DemoPersona; label: string; blurb: string }[] = [
     persona: 'Full Tour',
     label: 'Full Platform Tour',
     blurb:
-      'Every screen, front-to-back — delivery, financials, role-based practice scoping, custom KPIs, governance, and the A2R Ops Console.',
+      'Every screen, front-to-back — delivery, financials, role-based practice scoping, custom KPIs, governance, the A2R Ops Console, and the full security posture.',
   },
   {
     persona: 'Executive',
     label: 'Executive Lens',
     blurb:
-      'The board-level view: Control Tower, Command Center, scoped-vs-global practice visibility, the SteerCo Briefing, and the Executive Hub.',
+      'The board-level view: Control Tower, Command Center, scoped-vs-global practice visibility, the SteerCo Briefing, the Executive Hub, and how tenant data stays walled off.',
   },
   {
     persona: 'Admin',
     label: 'Admin / Ops Lens',
     blurb:
-      'Behind the curtain: roster & governance, the Self-Service Batch Import Engine, the Custom KPI Builder, and the A2R Ops Console.',
+      'Behind the curtain: roster & governance, the Self-Service Batch Import Engine, the Custom KPI Builder, the A2R Ops Console, and the Security & Trust segment.',
+  },
+  {
+    persona: 'Security',
+    label: 'Security & Trust',
+    blurb:
+      'For a security reviewer: database-enforced tenant isolation, least-privilege operator roles across six tiers, step-up MFA on every privileged action, and the immutable audit ledger.',
   },
 ];
 

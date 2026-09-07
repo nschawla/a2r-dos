@@ -118,7 +118,7 @@ export function OperatorAccessManager({
         </div>
       </section>
 
-      <section className="card">
+      <section className="card" id="operator-capability-matrix">
         <h2 className="text-[15.5px] font-bold mb-1">What each role can do</h2>
         <p className="text-[12.5px] text-ink-muted mb-4">
           The capability matrix (`src/lib/ops/operator-roles.ts`). A mutating action also requires a live

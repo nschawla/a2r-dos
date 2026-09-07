@@ -507,7 +507,7 @@ function RoleMappingStepView({
       <PanelHead
         eyebrow="Step 4 of 5"
         title="Role Mapping"
-        desc="Every person on your roster already maps onto an A2R Delivery OS access tier through their rate-card role. Review it below — change any of it anytime from Admin & Org Setup → Roster."
+        desc="Every person on your roster already maps onto an A2R Delivery OS access tier through their rate-card role — from whole-portfolio Admin down to strict read-only Viewer, with financials scrubbed. Review it below; change any of it anytime from Admin & Org Setup → Roster."
       />
       <div className="overflow-x-auto rounded-md border border-border-soft">
         <table className="w-full text-[13px]">

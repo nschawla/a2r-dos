@@ -57,7 +57,7 @@ export default async function OpsAuditPage() {
         </div>
       </section>
 
-      <section className="card">
+      <section className="card" id="jit-elevation-log">
         <h2 className="text-[15.5px] font-bold mb-1">Just-In-Time elevations</h2>
         <p className="text-[12.5px] text-ink-muted mb-3">
           Every temporary privilege elevation. Auto-expiring; no standing privileged sessions.
