@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Deploy trigger: 2026-09-07T17:30 — snapshot DB credentials re-set on Vercel via CLI from the verified .env values.
+// Deploy trigger: 2026-09-07T17:40 — snapshot SESSION_LOOKUP_TIMEOUT_MS=8000 (cold-start headroom for the jwt session check).
 import { readFileSync } from 'node:fs';
 import { evaluateEnvironmentIsolation } from './src/lib/config/env-isolation-core.mjs';
 import { siteModeBuildError } from './src/lib/config/site-mode.mjs';
