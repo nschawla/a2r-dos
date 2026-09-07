@@ -1,8 +1,8 @@
 /**
  * A2R Operator Control Plane — operator second-factor CLI (Batch 2).
  *
- *   npm run ops:mfa:status                 # list operators + MFA state
- *   npm run ops:mfa:reset  -- <email>      # remove an operator's factor
+ *   npm run ops:mfa:status                        # list operators + MFA state
+ *   npm run ops:mfa:reset  -- <email> [--yes-prod]  # remove an operator's factor
  *
  * `reset` is the break-glass for a fully locked-out operator (lost device
  * AND out of recovery codes). It only DELETES the enrollment — the operator
@@ -13,6 +13,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import { assertProdWriteAllowed } from './lib/cli-io';
 
 function loadEnv(): void {
   if (process.env.DATABASE_URL) return;
@@ -74,6 +75,7 @@ async function main(): Promise<void> {
       console.error(`No account for ${email}.`);
       process.exit(1);
     }
+    await assertProdWriteAllowed(process.env.DATABASE_URL, `remove the second factor for ${user.email}`);
     const res = await db.operatorMfa.deleteMany({ where: { userId: user.id } });
     if (res.count === 0) {
       console.log(`${user.email} had no second factor enrolled — nothing to do.`);

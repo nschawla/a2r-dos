@@ -10,6 +10,53 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.15.1] — 2026-09-07
+
+_Follow-on hardening (ChatGPT audit): MFA key separation, atomic replay
+protection, and hardened operational CLIs._
+
+### Security
+
+- **MFA encryption key separated from `NEXTAUTH_SECRET`.**
+  `src/lib/crypto/secret-box.ts` now derives its AES-256-GCM key from a
+  dedicated **`MFA_ENCRYPTION_KEY`** (required in production; rejected if it
+  equals `NEXTAUTH_SECRET`). Ciphertexts are `v2.<keyVersion>.<iv>.<tag>.<ct>`;
+  the key version is carried inline. Rotation: set
+  `MFA_ENCRYPTION_KEY_V<current>` to the current key, then
+  `MFA_ENCRYPTION_KEY` to the new one and bump `MFA_ENCRYPTION_KEY_VERSION`.
+  Legacy `v1` ciphertexts (NEXTAUTH_SECRET-derived) still decrypt, and any
+  secret not on the active key version is re-sealed on the next successful
+  `verifySecondFactor` (`operator-mfa.ts`).
+- **Atomic TOTP / recovery-code consumption.** `verifySecondFactor`:
+  - TOTP anti-replay is now a **single conditional `UPDATE`** — it advances
+    `lastStepCounter` only `WHERE lastStepCounter IS NULL OR < candidate`, so
+    two racing requests with the same code produce exactly one success (the
+    other sees `count = 0` → `REPLAYED`).
+  - Recovery-code consumption runs inside a transaction with
+    `SELECT … FOR UPDATE`; a concurrent use blocks, then observes the code
+    already removed → `BAD_CODE`.
+- **Operational CLI hardening** (`scripts/reset-password.ts`,
+  `create-operator.ts`, `ops-mfa.ts`, `grant-staff.ts`, new
+  `scripts/lib/cli-io.ts`):
+  - A password is **never** a command-line argument. It is read from a
+    masked interactive prompt, from stdin (`--password-stdin`), or generated
+    (`--generate`). A positional password is rejected.
+  - `user:password:set` and `operator:create` set **`mustChangePassword = true`
+    by default** (`--no-force-change` to opt out) and always bump
+    `sessionVersion` (revokes every existing session).
+  - Any mutating CLI run against the **production** database requires
+    `--yes-prod` / `A2R_ALLOW_PROD_WRITE=1`, or a typed confirmation of the
+    project ref; a non-interactive prod run is refused.
+
+### Fixed
+
+- `deriveSessionState` no longer revokes a fresh credential login for an
+  account whose `sessionVersion` was previously bumped — the jwt callback
+  pins the version claim on the first pass (also shipped as a hotfix between
+  1.15.0 and this release; `src/lib/auth.ts`).
+
+---
+
 ## [1.15.0] — 2026-09-07
 
 _Post-v1.14.0 hardening batches (ChatGPT recommendations): rate-limiter

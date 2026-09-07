@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.15.1',
+    date: '2026-09-07',
+    headline: 'MFA key separation, atomic replay protection, and hardened operator CLIs',
+    changes: [
+      { type: 'security', text: 'The operator MFA (TOTP) secret is now encrypted with a dedicated, versioned key (MFA_ENCRYPTION_KEY) instead of reusing the session-signing secret. A key version is recorded with each ciphertext, and a secret on an older key is transparently re-encrypted on the next successful verification, so future key rotation needs no downtime.' },
+      { type: 'security', text: 'TOTP and recovery-code verification are now strictly atomic at the database — a single conditional update for the TOTP anti-replay counter, and a row lock for recovery-code consumption. Two concurrent requests presenting the same valid code can no longer both succeed.' },
+      { type: 'security', text: 'The direct-database operator CLIs no longer accept a password as a command-line argument (it leaked into process listings and shell history). Passwords are read from a masked prompt or stdin. An admin-forced password reset now requires the account to choose a new one on next sign-in by default and always invalidates existing sessions, and any write against the production database requires an explicit confirmation.' },
+    ],
+  },
+  {
     version: '1.15.0',
     date: '2026-09-07',
     headline: 'Rate limiter fails closed in production; mandatory operator MFA for elevation',

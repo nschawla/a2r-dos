@@ -12,13 +12,20 @@
  * Storage — `operator_mfa`, one row per operator, a platform table (in
  * UNSCOPED_MODELS):
  *   - `secretCiphertext`         the ACTIVE TOTP secret, AES-256-GCM sealed
+ *                                under a DEDICATED, versioned key
+ *                                (`MFA_ENCRYPTION_KEY`, not NEXTAUTH_SECRET —
+ *                                see src/lib/crypto/secret-box.ts). A secret
+ *                                on an older key version is re-sealed on the
+ *                                next successful verification.
  *   - `pendingSecretCiphertext`  a not-yet-confirmed secret from enrollment
  *   - `activatedAt`              null ⇒ does NOT satisfy the requirement
- *   - `lastStepCounter`          anti-replay high-water mark (TOTP step)
+ *   - `lastStepCounter`          anti-replay high-water mark (TOTP step);
+ *                                advanced by a single conditional UPDATE
  *   - `recoveryCodeHashes`       10 single-use codes, SHA-256-hashed (the
  *                                codes are high-entropy random, so a fast
  *                                digest — like the bearer tokens — is the
- *                                right primitive, not a password KDF)
+ *                                right primitive, not a password KDF);
+ *                                consumed under a row lock
  *
  * Server-only (Prisma + node crypto).
  */
@@ -26,7 +33,7 @@ import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 import { randomBytes } from 'node:crypto';
 import { db } from '@/lib/db';
-import { seal, open } from '@/lib/crypto/secret-box';
+import { seal, open, needsReseal } from '@/lib/crypto/secret-box';
 import { hashToken, tokenHashesEqual } from '@/lib/crypto/bearer-token';
 
 // ±1 time-step (30 s) of clock drift tolerated; 6 digits; 30 s period.
@@ -139,7 +146,7 @@ export type ActivateResult =
 /**
  * Confirm a pending enrollment: the operator proves one live code, the
  * pending secret is promoted to active, and 10 fresh single-use recovery
- * codes are issued (returned once, only their bcrypt hashes are stored).
+ * codes are issued (returned once, only their SHA-256 hashes are stored).
  */
 export async function activateEnrollment(userId: string, code: string): Promise<ActivateResult> {
   const row = await db.operatorMfa.findUnique({ where: { userId } });
@@ -175,8 +182,14 @@ export type SecondFactorResult =
 
 /**
  * The elevation step-up check. Accepts a 6-digit TOTP code or an
- * `XXXXX-XXXXX` recovery code. Enforces TOTP anti-replay via
- * `lastStepCounter` and consumes a recovery code on use.
+ * `XXXXX-XXXXX` recovery code.
+ *
+ * Both paths consume the credential ATOMICALLY at the database so two
+ * concurrent requests presenting the same valid code cannot both succeed:
+ *   - TOTP:     a single conditional UPDATE that advances `lastStepCounter`
+ *               only when the candidate step is strictly higher.
+ *   - recovery: `SELECT … FOR UPDATE` inside a transaction, so the second
+ *               request blocks, then observes the code already gone.
  */
 export async function verifySecondFactor(
   userId: string,
@@ -188,45 +201,59 @@ export async function verifySecondFactor(
   if (!row.secretCiphertext || !row.activatedAt) return { ok: false, reason: 'NOT_ACTIVATED' };
   if (!input) return { ok: false, reason: 'BAD_CODE' };
 
-  // Recovery code path — anything that is not exactly 6 digits.
+  // ── Recovery code path — anything that is not exactly 6 digits ─────────
   if (!/^\d{6}$/.test(input)) {
-    const hashes: string[] = Array.isArray(row.recoveryCodeHashes)
-      ? (row.recoveryCodeHashes as string[])
-      : [];
     const inputHash = hashToken(input);
-    const match = hashes.find((h) => tokenHashesEqual(h, inputHash));
-    if (match) {
-      await db.operatorMfa.update({
+    return db.$transaction(async (tx) => {
+      // Lock the row: a concurrent recovery-code use blocks here until this
+      // transaction commits, then re-reads a list with the code removed.
+      const locked = await tx.$queryRaw<Array<{ recoveryCodeHashes: unknown }>>`
+        SELECT "recoveryCodeHashes" FROM "operator_mfa" WHERE "userId" = ${userId} FOR UPDATE`;
+      const hashes: string[] = Array.isArray(locked[0]?.recoveryCodeHashes)
+        ? (locked[0]!.recoveryCodeHashes as string[])
+        : [];
+      const idx = hashes.findIndex((h) => tokenHashesEqual(h, inputHash));
+      if (idx === -1) return { ok: false as const, reason: 'BAD_CODE' as const };
+      hashes.splice(idx, 1);
+      await tx.operatorMfa.update({
         where: { userId },
-        data: {
-          recoveryCodeHashes: hashes.filter((x) => x !== match),
-          lastUsedAt: new Date(),
-        },
+        data: { recoveryCodeHashes: hashes, lastUsedAt: new Date() },
       });
-      return { ok: true, method: 'recovery' };
-    }
-    return { ok: false, reason: 'BAD_CODE' };
+      return { ok: true as const, method: 'recovery' as const };
+    });
   }
 
-  // TOTP path.
+  // ── TOTP path ────────────────────────────────────────────────────────
   const secret = open(row.secretCiphertext);
   const delta = safeCheckDelta(input, secret);
   if (delta === null) return { ok: false, reason: 'BAD_CODE' };
 
   const matchedCounter = BigInt(stepCounter() + delta);
-  if (
-    !replayCheckDisabled() &&
-    row.lastStepCounter !== null &&
-    row.lastStepCounter !== undefined &&
-    matchedCounter <= row.lastStepCounter
-  ) {
-    return { ok: false, reason: 'REPLAYED' };
+  const bypassReplay = replayCheckDisabled();
+
+  // Opportunistic key rotation — re-seal a secret that is on an old key
+  // version. Strictly best-effort: a `seal()` failure (e.g. the new key is
+  // not configured yet) must never fail the verification itself.
+  let reseal: { secretCiphertext?: string } = {};
+  if (needsReseal(row.secretCiphertext)) {
+    try {
+      reseal = { secretCiphertext: seal(secret) };
+    } catch {
+      /* leave the old ciphertext in place; migrate on a later verification */
+    }
   }
 
-  await db.operatorMfa.update({
-    where: { userId },
-    data: { lastStepCounter: matchedCounter, lastUsedAt: new Date() },
+  // ONE conditional UPDATE is the anti-replay guard: it only matches (and so
+  // only counts) when this step is strictly newer than what any prior
+  // request recorded. Two racing requests with the same code → the first
+  // advances the counter, the second's WHERE no longer matches → count 0.
+  const res = await db.operatorMfa.updateMany({
+    where: bypassReplay
+      ? { userId }
+      : { userId, OR: [{ lastStepCounter: null }, { lastStepCounter: { lt: matchedCounter } }] },
+    data: { lastStepCounter: matchedCounter, lastUsedAt: new Date(), ...reseal },
   });
+  if (res.count === 0) return { ok: false, reason: 'REPLAYED' };
   return { ok: true, method: 'totp' };
 }
 

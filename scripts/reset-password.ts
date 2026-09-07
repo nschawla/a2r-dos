@@ -2,28 +2,32 @@
  * A2R — account password CLI (break-glass; direct DB access).
  *
  *   npm run user:password:status -- <email>
- *   npm run user:password:set    -- <email> ["<new password>"]
+ *   npm run user:password:set    -- <email> [--generate] [--password-stdin]
+ *                                           [--no-force-change] [--yes-prod]
  *
  * There is no self-service "forgot password" flow in this build
  * (`changePasswordAction` needs the *current* password). This is the
- * recovery path for a locked-out account — including the bootstrap
- * operator — mirroring `scripts/grant-staff.ts` and `scripts/ops-mfa.ts`.
+ * recovery path for a locked-out account — mirroring `scripts/grant-staff.ts`
+ * and `scripts/ops-mfa.ts`.
  *
- * `set`:
- *   - password given  → set it verbatim (must pass the strength policy),
- *     `mustChangePassword = false` (you chose it, it is yours).
- *   - password omitted → generate a strong temporary one, print it once,
- *     `mustChangePassword = true` (recipient must pick their own on first
- *     sign-in — `src/middleware.ts` → /change-password).
- * Either way `passwordChangedAt` is stamped and `sessionVersion` is bumped,
- * so every existing session for that account is revoked immediately.
+ * The new password is NEVER taken as a command-line argument (visible in
+ * `ps` / shell history). It is read from a masked interactive prompt, or
+ * from stdin with `--password-stdin`, or generated with `--generate`.
+ *
+ * `set` semantics (an admin forcing a reset):
+ *   - `mustChangePassword = true` by default — the recipient must pick their
+ *     own on next sign-in (`src/middleware.ts` -> /change-password).
+ *     `--no-force-change` clears it (you are resetting your OWN password).
+ *   - `passwordChangedAt` is stamped and `sessionVersion` is bumped, so
+ *     every existing session for that account is revoked immediately.
+ *   - a production database requires `--yes-prod` or a typed confirmation.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { randomBytes } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { validatePasswordStrength } from '../src/lib/auth/password-policy';
+import { resolvePassword, assertProdWriteAllowed, hasFlag } from './lib/cli-io';
 
 function loadEnv(): void {
   if (process.env.DATABASE_URL) return;
@@ -43,21 +47,6 @@ function loadEnv(): void {
 loadEnv();
 const db = new PrismaClient();
 
-/** A 20-char temp password that always satisfies the strength policy. */
-function generatePassword(): string {
-  const pick = (set: string, n: number) =>
-    Array.from({ length: n }, () => set[randomBytes(1)[0]! % set.length]).join('');
-  const raw =
-    pick('ABCDEFGHJKLMNPQRSTUVWXYZ', 4) +
-    pick('abcdefghijkmnpqrstuvwxyz', 10) +
-    pick('23456789', 4) +
-    '-';
-  return raw
-    .split('')
-    .sort(() => (randomBytes(1)[0]! < 128 ? -1 : 1))
-    .join('');
-}
-
 async function findUser(email: string) {
   const u = await db.user.findUnique({
     where: { email: email.toLowerCase().trim() },
@@ -71,7 +60,15 @@ async function findUser(email: string) {
 }
 
 async function main(): Promise<void> {
-  const [cmd, email, maybePassword] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+  const [cmd, email, extra] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+
+  if (extra) {
+    console.error(
+      'A password on the command line is not accepted (it leaks into `ps` and shell history).\n' +
+        'Run without it — you will be prompted — or use --password-stdin / --generate.',
+    );
+    process.exit(1);
+  }
 
   if (cmd === 'status') {
     if (!email) {
@@ -91,48 +88,48 @@ async function main(): Promise<void> {
 
   if (cmd === 'set') {
     if (!email) {
-      console.error('Usage: npm run user:password:set -- <email> ["<new password>"]');
+      console.error('Usage: npm run user:password:set -- <email> [--generate|--password-stdin] [--no-force-change]');
       process.exit(1);
     }
     const u = await findUser(email);
+    await assertProdWriteAllowed(process.env.DATABASE_URL, `reset the password for ${u.email}`);
 
-    const generated = !maybePassword;
-    const password = maybePassword ?? generatePassword();
+    const { password, generated } = await resolvePassword();
     const weak = validatePasswordStrength(password);
     if (weak) {
       console.error(`That password does not meet the policy: ${weak}`);
       process.exit(1);
     }
 
+    // Admin-forced reset: force a change on next login unless explicitly
+    // opted out (you resetting your own known password).
+    const forceChange = generated || !hasFlag('no-force-change');
+
     const passwordHash = await bcrypt.hash(password, 10);
     await db.user.update({
       where: { id: u.id },
       data: {
         passwordHash,
-        mustChangePassword: generated,
+        mustChangePassword: forceChange,
         passwordChangedAt: new Date(),
         sessionVersion: { increment: 1 },
       },
     });
 
-    console.log(`Password updated for ${u.email}.`);
-    console.log(`  every existing session for this account is now revoked (sessionVersion ${u.sessionVersion} → ${u.sessionVersion + 1}).`);
-    if (generated) {
-      console.log(`\n  temporary password:  ${password}`);
-      console.log(`  the account will be forced to /change-password on next sign-in.`);
-    } else {
-      console.log(`  mustChangePassword is cleared — sign in with the new password directly.`);
-    }
+    console.log(`\nPassword updated for ${u.email}.`);
+    console.log(`  every existing session revoked (sessionVersion ${u.sessionVersion} -> ${u.sessionVersion + 1}).`);
+    console.log(`  mustChangePassword: ${forceChange} ${forceChange ? '(forced to /change-password on next sign-in)' : '(sign in with this password directly)'}`);
+    if (generated) console.log(`\n  temporary password:  ${password}\n`);
     return;
   }
 
-  console.error('Commands: status <email> | set <email> ["<new password>"]');
+  console.error('Commands: status <email> | set <email> [--generate|--password-stdin] [--no-force-change]');
   process.exit(1);
 }
 
 main()
   .catch((err) => {
-    console.error('[reset-password] failed', err);
+    console.error(`[reset-password] ${err instanceof Error ? err.message : err}`);
     process.exitCode = 1;
   })
   .finally(() => db.$disconnect());

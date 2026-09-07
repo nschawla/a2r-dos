@@ -72,11 +72,11 @@ platform table (`UNSCOPED_MODELS`):
 
 | Column | Meaning |
 | --- | --- |
-| `secretCiphertext` | the active TOTP secret, AES-256-GCM sealed (`src/lib/crypto/secret-box.ts` — a TOTP secret can't be hashed). |
+| `secretCiphertext` | the active TOTP secret, AES-256-GCM sealed with a **dedicated, versioned key** — `MFA_ENCRYPTION_KEY` (not `NEXTAUTH_SECRET`), `src/lib/crypto/secret-box.ts`. Format `v2.<keyVersion>.<iv>.<tag>.<ct>`; legacy `v1` (NEXTAUTH_SECRET-derived) still decrypts and is re-sealed on next use. Rotation: `MFA_ENCRYPTION_KEY_V<n>` holds an old key decrypt-only. |
 | `pendingSecretCiphertext` | a not-yet-confirmed secret from `beginEnrollment` / rotation; promoted on `activateEnrollment`. An abandoned enrollment never weakens the active factor. |
 | `activatedAt` | null ⇒ the row does **not** satisfy the requirement. |
-| `lastStepCounter` | anti-replay high-water mark — a TOTP code whose time-step ≤ this is rejected even if in-window, so a shoulder-surfed code can't be reused inside its ~90 s validity. (`OPS_MFA_ALLOW_REPLAY` disables *only* this check, for the Playwright suite; ignored when `NODE_ENV=production`.) |
-| `recoveryCodeHashes` | 10 single-use `XXXXX-XXXXX` codes, SHA-256-hashed (high-entropy random — a fast digest, like the bearer tokens, not a password KDF). A used code's hash is dropped from the array. |
+| `lastStepCounter` | anti-replay high-water mark — a TOTP code whose time-step ≤ this is rejected even if in-window. Advanced by a **single conditional `UPDATE … WHERE lastStepCounter IS NULL OR < candidate`**, so two concurrent requests with the same code produce exactly one success. (`OPS_MFA_ALLOW_REPLAY` disables *only* this check, for the Playwright suite; ignored when `NODE_ENV=production`.) |
+| `recoveryCodeHashes` | 10 single-use `XXXXX-XXXXX` codes, SHA-256-hashed. Consumed inside a transaction under `SELECT … FOR UPDATE`, so a concurrent use blocks then finds the code gone. |
 
 **Enrollment** is deliberately reachable with just a standing grant + a fresh
 password re-check (`/ops/security` → `beginOperatorMfaEnrollmentAction` →
@@ -97,10 +97,10 @@ WebAuthn assertion would slot in.
 | --- | --- | --- |
 | Guard | `src/lib/ops-auth.ts` | `requireElevatedOps()` → `{ ok, ops } \| { ok:false, reason: 'NOT_AUTHORIZED' \| 'ELEVATION_REQUIRED' }`. Resolves the cookie via `resolveActiveElevation(token, session.sessionVersion)`, and requires `row.userId === session.user.id`. `getOpsContextOrNull` / `requireOpsContext` are unchanged. |
 | Service | `src/lib/ops/staff-elevation.ts` | `requestElevation` (needs `hasActiveStaffGrant` + **a fresh `bcrypt` password check** + **`verifySecondFactor`** + the caller's `sessionVersion`, clamps TTL, supersedes), `resolveActiveElevation` (+ optional `expectedSessionVersion`), `endElevation`, `hasActiveElevation`, `listElevationHistory`. |
-| Second factor | `src/lib/ops/operator-mfa.ts` | `getMfaStatus`, `hasActivatedMfa`, `beginEnrollment`, `activateEnrollment`, `verifySecondFactor` (TOTP + recovery, anti-replay), `disableMfa`. TOTP via `otplib`; QR via `qrcode`; secret sealed via `src/lib/crypto/secret-box.ts`. |
+| Second factor | `src/lib/ops/operator-mfa.ts` | `getMfaStatus`, `hasActivatedMfa`, `beginEnrollment`, `activateEnrollment`, `verifySecondFactor` (TOTP + recovery, atomic consumption + opportunistic key re-seal), `disableMfa`. TOTP via `otplib`; QR via `qrcode`; secret sealed via `src/lib/crypto/secret-box.ts` under `MFA_ENCRYPTION_KEY`. |
 | Actions | `src/server/actions/ops-elevation.ts` · `ops-mfa.ts` | `requestOpsElevationAction` (standing grant only), `endOpsElevationAction` (de-escalation). `beginOperatorMfaEnrollmentAction` / `activateOperatorMfaAction` (standing grant + password; rotation needs elevation). |
 | Enrollment UI | `src/app/(admin)/ops/security/page.tsx` · `src/components/ops/OperatorMfaPanel.tsx` | password → QR + manual key → confirm code → save 10 recovery codes. |
-| CLI | `scripts/ops-mfa.ts` | `npm run ops:mfa:status` · `npm run ops:mfa:reset -- <email>` (break-glass; direct DB). |
+| CLI | `scripts/ops-mfa.ts` · `scripts/lib/cli-io.ts` | `npm run ops:mfa:status` · `npm run ops:mfa:reset -- <email>` (break-glass; direct DB). Mutating CLIs never take a password as an argument (masked prompt / `--password-stdin` / `--generate`) and require `--yes-prod` or a typed confirmation to write to production. |
 | Mutating ops actions | `ops.ts`, `identity.ts`, `staff-access.ts` | each opens with `requireElevatedOps()` and returns `'ELEVATION_REQUIRED'` verbatim. Covered: provision / suspend / impersonate-start / export / purge / issue+revoke API key, **all 7 identity-federation writes** (via the shared `authorizeSsoAction`), grant+revoke staff. **Not** gated: `endImpersonationAction`, `listTenantApiKeys` (read). |
 | UI | `src/components/ops/OpsElevationBar.tsx` | strip under the Ops Console header — amber "read-only" + **Elevate** modal (reason + 15/30/60 min), or green "Elevated · expires in mm:ss" + **Drop elevation**. Also opens its modal on the `a2r:ops-elevate` window event that `useSafeAction` dispatches when any action returns `ELEVATION_REQUIRED`. Hydration-safe: the countdown renders `··:··` until mounted. |
 
@@ -127,7 +127,13 @@ same pattern as the Impersonation Gateway.
   satisfied; bad code rejected; activate issues 10 recovery codes), TOTP
   verify, **anti-replay (same code twice → REPLAYED)**, recovery codes
   (once each, then consumed), `NO_MFA` / `disableMfa`.
-- `tests/secret-box.test.ts` — AES-256-GCM round-trip + tamper detection.
+- `tests/secret-box.test.ts` — AES-256-GCM round-trip, tamper detection,
+  dedicated versioned key, rotation (old ciphertext still decrypts + flags
+  for re-seal), legacy `v1` decrypt.
+- `tests/operator-mfa.test.ts` — includes **concurrent** TOTP + recovery-code
+  races (exactly one of N parallel verifications wins).
+- `tests/cli-io.test.ts` — production-URL detection, `--yes-prod` / prompt
+  gate, no-TTY refusal, generated-password strength.
 - `tests/staff-elevation.test.ts` — the service (grant required, thin reason
   rejected, **wrong password rejected**, **SSO-only → NO_PASSWORD**,
   **no 2FA → MFA_SETUP_REQUIRED**, **wrong/replayed code → BAD_MFA**, TTL

@@ -1,31 +1,30 @@
 /**
  * A2R Operator Control Plane — bootstrap a new operator account.
  *
- *   npm run operator:create -- <email> "<name>" ["<password>"] [--by <granter-email>] [--reason "<why>"]
+ *   npm run operator:create -- <email> "<name>" [--by <granter-email>] [--reason "<why>"]
+ *                                              [--generate|--password-stdin] [--no-force-change] [--yes-prod]
  *
  * There is no self-serve invite flow: `/register` only creates new
  * organizations and `staff:grant` needs the account to exist first. This
  * does the whole bootstrap in one shot — the `User` row, its password, and
- * an active `staff_grants` entitlement — mirroring `scripts/grant-staff.ts`
- * and `scripts/reset-password.ts` (direct DB access).
+ * an active `staff_grants` entitlement.
  *
- *   - password given   → set verbatim (must pass the strength policy),
- *     `mustChangePassword = false`.
- *   - password omitted → a strong temp one is generated + printed once,
- *     `mustChangePassword = true` (forced to /change-password on first login).
- *
- * The new operator still enrolls a second factor at /ops/security before
- * they can elevate for any privileged action.
+ * The password is NEVER a command-line argument. It is read from a masked
+ * prompt, from stdin (`--password-stdin`), or generated (`--generate`).
+ * `mustChangePassword = true` by default (the operator picks their own on
+ * first sign-in); `--no-force-change` opts out. A production database
+ * requires `--yes-prod` or a typed confirmation.
  *
  * Refuses if the account already exists — use `user:password:set` +
- * `staff:grant` for an existing one.
+ * `staff:grant` for an existing one. The new operator still enrolls a
+ * second factor at /ops/security before they can elevate.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { randomBytes } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { validatePasswordStrength } from '../src/lib/auth/password-policy';
+import { resolvePassword, assertProdWriteAllowed, hasFlag } from './lib/cli-io';
 
 function loadEnv(): void {
   if (process.env.DATABASE_URL) return;
@@ -50,26 +49,21 @@ function argFlag(name: string): string | undefined {
   return i !== -1 ? process.argv[i + 1] : undefined;
 }
 
-/** A 20-char temp password that always satisfies the strength policy. */
-function generatePassword(): string {
-  const pick = (set: string, n: number) =>
-    Array.from({ length: n }, () => set[randomBytes(1)[0]! % set.length]).join('');
-  return (pick('ABCDEFGHJKLMNPQRSTUVWXYZ', 4) + pick('abcdefghijkmnpqrstuvwxyz', 10) + pick('23456789', 4) + '-')
-    .split('')
-    .sort(() => (randomBytes(1)[0]! < 128 ? -1 : 1))
-    .join('');
-}
-
 async function main(): Promise<void> {
   const positional = process.argv.slice(2).filter((a, i, arr) => {
     if (a.startsWith('--')) return false;
-    // drop the value that follows a --flag
-    return !(i > 0 && arr[i - 1]?.startsWith('--'));
+    return !(i > 0 && arr[i - 1]?.startsWith('--')); // drop a --flag's value
   });
-  const [email, name, password] = positional;
+  const [email, name, extra] = positional;
 
   if (!email || !name) {
-    console.error('Usage: npm run operator:create -- <email> "<name>" ["<password>"] [--by <granter-email>] [--reason "<why>"]');
+    console.error('Usage: npm run operator:create -- <email> "<name>" [--by <granter-email>] [--reason "<why>"] [--generate|--password-stdin]');
+    process.exit(1);
+  }
+  if (extra) {
+    console.error(
+      'A password on the command line is not accepted. Run without it (you will be prompted), or use --password-stdin / --generate.',
+    );
     process.exit(1);
   }
 
@@ -78,19 +72,21 @@ async function main(): Promise<void> {
   if (existing) {
     console.error(
       `${normalizedEmail} already exists. Use:\n` +
-        `  npm run user:password:set -- ${normalizedEmail} "<password>"\n` +
+        `  npm run user:password:set -- ${normalizedEmail}\n` +
         `  npm run staff:grant       -- ${normalizedEmail} "<reason>"`,
     );
     process.exit(1);
   }
 
-  const generated = !password;
-  const finalPassword = password ?? generatePassword();
-  const weak = validatePasswordStrength(finalPassword);
+  await assertProdWriteAllowed(process.env.DATABASE_URL, `create operator ${normalizedEmail}`);
+
+  const { password, generated } = await resolvePassword();
+  const weak = validatePasswordStrength(password);
   if (weak) {
     console.error(`That password does not meet the policy: ${weak}`);
     process.exit(1);
   }
+  const forceChange = generated || !hasFlag('no-force-change');
 
   const reason = argFlag('reason') ?? 'CLI bootstrap — new operator';
   const byEmail = argFlag('by');
@@ -104,27 +100,22 @@ async function main(): Promise<void> {
     grantedByUserId = granter.id;
   }
 
-  const passwordHash = await bcrypt.hash(finalPassword, 10);
-
+  const passwordHash = await bcrypt.hash(password, 10);
   const user = await db.user.create({
-    data: { email: normalizedEmail, name: name.trim(), passwordHash, mustChangePassword: generated },
+    data: { email: normalizedEmail, name: name.trim(), passwordHash, mustChangePassword: forceChange },
   });
   await db.staffGrant.create({ data: { userId: user.id, grantedByUserId, reason } });
 
-  console.log(`Created operator ${normalizedEmail} (${name.trim()}).`);
-  console.log(`  operator grant:  ACTIVE — can reach /ops`);
-  if (generated) {
-    console.log(`\n  temporary password:  ${finalPassword}`);
-    console.log(`  forced to /change-password on first sign-in.`);
-  } else {
-    console.log(`  password set — sign in directly.`);
-  }
+  console.log(`\nCreated operator ${normalizedEmail} (${name.trim()}).`);
+  console.log(`  operator grant:      ACTIVE — can reach /ops`);
+  console.log(`  mustChangePassword:  ${forceChange} ${forceChange ? '(forced to /change-password on first sign-in)' : ''}`);
+  if (generated) console.log(`\n  temporary password:  ${password}`);
   console.log(`\n  Next: they sign in, then enroll a second factor at /ops/security before they can elevate.`);
 }
 
 main()
   .catch((err) => {
-    console.error('[create-operator] failed', err);
+    console.error(`[create-operator] ${err instanceof Error ? err.message : err}`);
     process.exitCode = 1;
   })
   .finally(() => db.$disconnect());

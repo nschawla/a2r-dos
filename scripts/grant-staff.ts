@@ -13,6 +13,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
+import { assertProdWriteAllowed } from './lib/cli-io';
 
 function loadEnv(): void {
   if (process.env.DATABASE_URL) return;
@@ -76,6 +77,7 @@ async function main(): Promise<void> {
       process.exit(1);
     }
     const userId = await userIdForEmail(email);
+    await assertProdWriteAllowed(process.env.DATABASE_URL, `grant operator access to ${email}`);
     const grantedByUserId = argFlag('by') ? await userIdForEmail(argFlag('by')!) : null;
     const existing = await db.staffGrant.findFirst({ where: { userId, revokedAt: null }, select: { id: true } });
     if (existing) {
@@ -94,6 +96,7 @@ async function main(): Promise<void> {
       process.exit(1);
     }
     const userId = await userIdForEmail(email);
+    await assertProdWriteAllowed(process.env.DATABASE_URL, `revoke operator access for ${email}`);
     const revokedByUserId = argFlag('by') ? await userIdForEmail(argFlag('by')!) : null;
     const res = await db.staffGrant.updateMany({
       where: { userId, revokedAt: null },

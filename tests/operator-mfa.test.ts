@@ -104,6 +104,39 @@ describe('operator MFA (TOTP)', () => {
     expect(await verifySecondFactor(userId, code)).toEqual({ ok: false, reason: 'REPLAYED' });
   });
 
+  it('atomic anti-replay — two CONCURRENT requests with the same TOTP code: exactly one wins', async () => {
+    const userId = await makeUser('race-totp');
+    const secret = await enroll(userId);
+    const code = authenticator.generate(secret);
+
+    const results = await Promise.all([
+      verifySecondFactor(userId, code),
+      verifySecondFactor(userId, code),
+      verifySecondFactor(userId, code),
+    ]);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.filter((r) => !r.ok && r.reason === 'REPLAYED')).toHaveLength(2);
+  });
+
+  it('atomic consumption — two CONCURRENT requests with the same recovery code: exactly one wins', async () => {
+    const userId = await makeUser('race-recovery');
+    const { secret } = await beginEnrollment(userId, 'op@a2rventures.com');
+    const act = await activateEnrollment(userId, authenticator.generate(secret));
+    if (!act.ok) throw new Error('setup');
+    const oneCode = act.recoveryCodes[0]!;
+
+    const results = await Promise.all([
+      verifySecondFactor(userId, oneCode),
+      verifySecondFactor(userId, oneCode),
+      verifySecondFactor(userId, oneCode),
+    ]);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(results.filter((r) => !r.ok && r.reason === 'BAD_CODE')).toHaveLength(2);
+
+    const row = await db.operatorMfa.findUnique({ where: { userId } });
+    expect((row?.recoveryCodeHashes as string[]).length).toBe(9); // exactly one consumed
+  });
+
   it('recovery codes work once each, then are consumed', async () => {
     const userId = await makeUser('recovery');
     const { secret } = await beginEnrollment(userId, 'op@a2rventures.com');
