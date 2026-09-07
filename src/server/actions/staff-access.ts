@@ -22,7 +22,7 @@ import {
 /** Grant / revoke staff are themselves high-privilege ops operations —
  * they need a live JIT elevation, not just a standing entitlement. */
 async function elevatedOps(): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
-  const gate = await requireElevatedOps();
+  const gate = await requireElevatedOps('staff:manage');
   if (gate.ok) return { ok: true, userId: gate.ops.userId };
   return {
     ok: false,

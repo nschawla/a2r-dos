@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { requireOpsContext } from '@/lib/ops-auth';
+import { requireOpsCapability } from '@/lib/ops-auth';
 import { getPlatformTelemetry } from '@/server/queries/ops-telemetry';
 import { StatCard } from '@/components/ui/stat-card';
 
 const TIER_LABEL: Record<string, string> = { TRIAL: 'Trial', STANDARD: 'Standard', ENTERPRISE: 'Enterprise' };
 
 export default async function OpsTelemetryPage() {
-  await requireOpsContext();
+  await requireOpsCapability('telemetry:view');
   const t = await getPlatformTelemetry();
 
   return (

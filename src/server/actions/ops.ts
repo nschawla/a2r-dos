@@ -28,19 +28,20 @@ function actorOf(ops: OpsContext) {
 
 /**
  * P1 — the gate for every mutating ops action: a standing operator
- * entitlement AND a live Just-In-Time elevation (src/lib/ops/staff-elevation.ts).
- * Returns `'ELEVATION_REQUIRED'` verbatim so the ops UI can open the
- * elevation modal instead of showing a raw error toast.
+ * entitlement, a role that permits `capability` (v1.16.0), AND a live
+ * Just-In-Time elevation. Returns `'ELEVATION_REQUIRED'` verbatim so the
+ * ops UI can open the elevation modal instead of a raw error toast.
  */
-async function elevatedOps(): Promise<
-  { ok: true; ops: OpsContext } | { ok: false; error: string }
-> {
-  const gate = await requireElevatedOps();
+async function elevatedOps(
+  capability?: import('@/lib/ops/operator-roles').OperatorCapability,
+): Promise<{ ok: true; ops: OpsContext } | { ok: false; error: string }> {
+  const gate = await requireElevatedOps(capability);
   if (gate.ok) return { ok: true, ops: gate.ops };
-  return {
-    ok: false,
-    error: gate.reason === 'ELEVATION_REQUIRED' ? 'ELEVATION_REQUIRED' : 'Not authorized.',
-  };
+  if (gate.reason === 'ELEVATION_REQUIRED') return { ok: false, error: 'ELEVATION_REQUIRED' };
+  if (gate.reason === 'ROLE_FORBIDDEN') {
+    return { ok: false, error: 'Your operator role is not permitted to perform this action.' };
+  }
+  return { ok: false, error: 'Not authorized.' };
 }
 
 export type OpsResult = { ok: true } | { ok: false; error: string };
@@ -99,7 +100,7 @@ export interface ProvisionedTenant {
  * All in one transaction; nothing is half-created on failure.
  */
 export const provisionTenant = withAction('provisionTenant', async (input: unknown): Promise<OpsDataResult<ProvisionedTenant>> => {
-  const gate = await elevatedOps();
+  const gate = await elevatedOps('tenants:provision');
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
 
@@ -165,7 +166,7 @@ const statusSchema = z.strictObject({
  * — both enforced in src/app/(dashboard)/layout.tsx + src/server/authz.ts.
  */
 export const setTenantStatus = withAction('setTenantStatus', async (input: unknown): Promise<OpsResult> => {
-  const gate = await elevatedOps();
+  const gate = await elevatedOps('tenants:suspend');
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
 
@@ -206,7 +207,7 @@ export interface ImpersonationStarted {
  * inside the tenant workspace (read-only) until they exit or it expires.
  */
 export const impersonateTenant = withAction('impersonateTenant', async (input: unknown): Promise<OpsDataResult<ImpersonationStarted>> => {
-  const gate = await elevatedOps();
+  const gate = await elevatedOps('tenants:impersonate');
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
 
@@ -279,7 +280,7 @@ export interface TenantExportResult {
  * TENANT_DATA_EXPORT ledger entry.
  */
 export const exportTenantData = withAction('exportTenantData', async (input: unknown): Promise<OpsDataResult<TenantExportResult>> => {
-  const gate = await elevatedOps();
+  const gate = await elevatedOps('tenants:export');
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
 
@@ -328,7 +329,7 @@ export interface TenantPurgeResult {
  * Requires the operator to type the tenant name to confirm.
  */
 export const purgeTenant = withAction('purgeTenant', async (input: unknown): Promise<OpsDataResult<TenantPurgeResult>> => {
-  const gate = await elevatedOps();
+  const gate = await elevatedOps('tenants:purge');
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
 
@@ -360,7 +361,7 @@ const issueKeySchema = z.strictObject({
 
 /** Mint a tenant-scoped API key (returns the plaintext exactly once). */
 export const issueTenantApiKey = withAction('issueTenantApiKey', async (input: unknown): Promise<OpsDataResult<IssuedApiKey>> => {
-  const gate = await elevatedOps();
+  const gate = await elevatedOps('apikeys:manage');
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
 
@@ -382,7 +383,7 @@ export const issueTenantApiKey = withAction('issueTenantApiKey', async (input: u
 });
 
 export const revokeTenantApiKey = withAction('revokeTenantApiKey', async (input: unknown): Promise<OpsResult> => {
-  const gate = await elevatedOps();
+  const gate = await elevatedOps('apikeys:manage');
   if (!gate.ok) return { ok: false, error: gate.error };
   const ops = gate.ops;
 

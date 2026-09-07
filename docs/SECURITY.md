@@ -159,16 +159,26 @@ the managed database can't be reached *around* the application:
 ### Platform-operator access (A2R staff)
 
 A separate, non-tenant authorization axis governs the internal Operator Control
-Plane (`/ops`). It has two levels as of v1.7.0:
+Plane (`/ops`). It has three levels:
 
-- **Eligibility** — an account can reach the `/ops` *read* views only if it
-  holds an explicit, attributed, revocable `staff_grants` row (migration
+- **Eligibility** — an account can reach the `/ops` views only if it holds
+  an explicit, attributed, revocable `staff_grants` row (migration
   `00000000000009`). The former "`isA2rStaff` flag **or** `@a2rventures.com`
   email" rule is **removed** — a compromised corporate inbox grants nothing.
   Grant / revoke from `/ops/staff` or `npm run staff:grant|revoke|list`;
   every change is attributed and you cannot revoke your own access. Checked in
   middleware (defence in depth) and authoritatively, live, in every operator
   route and server action (`requireOpsContext`).
+- **Role (v1.16.0)** — the live grant carries one `OperatorRole`:
+  `SUPER_ADMIN` (full), `PROVISIONING` (tenant onboarding), `SUPPORT`
+  (diagnostics + read-only impersonation), `AUDITOR` (read-only ledger /
+  elevation history), `BILLING` (contract-tier / subscription records), or
+  `VIEWER` (platform pulse + telemetry only). The capability matrix
+  (`src/lib/ops/operator-roles.ts`) gates each `/ops` sub-route and each
+  mutating action three ways: the Edge middleware, `requireOpsCapability`
+  in the page, and `requireElevatedOps(capability)` in the action. Changing
+  a role (`/ops/access`, `SUPER_ADMIN` only + a live elevation) is a
+  re-grant, so the trail is preserved.
 - **Just-In-Time elevation** — every *state-changing* `/ops` operation
   (provisioning, suspension, impersonation, data export, purge, API keys,
   identity federation, granting/revoking staff) additionally requires a live

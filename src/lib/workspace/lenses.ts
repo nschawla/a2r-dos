@@ -112,6 +112,7 @@ const PREFERRED_BY_ROLE: Record<DeliveryRole, WorkspaceLens> = {
   PRACTICE_DIRECTOR: 'delivery',
   DELIVERY_MANAGER: 'delivery',
   PROJECT_MANAGER: 'delivery',
+  VIEWER: 'executive',
 };
 
 /** The landing lens for a viewer who has never made an explicit choice.

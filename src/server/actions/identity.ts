@@ -36,7 +36,7 @@ const MEMBERSHIP_ROLES = ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'] as const;
 async function authorizeSsoAction(
   organizationId: string,
 ): Promise<{ ok: true; actorId: string } | { ok: false; error: string }> {
-  const gate = await requireElevatedOps();
+  const gate = await requireElevatedOps('identity:manage');
   if (!gate.ok) {
     return {
       ok: false,

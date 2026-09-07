@@ -26,7 +26,13 @@ import { getServerSession, type Session } from 'next-auth';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
-import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
+import { hasActiveStaffGrant, activeOperatorRole } from '@/lib/ops/staff-grants';
+import {
+  type OperatorRole,
+  type OperatorCapability,
+  operatorCan,
+  OPERATOR_ROLE_HOME,
+} from '@/lib/ops/operator-roles';
 import {
   ELEVATION_COOKIE,
   resolveActiveElevation,
@@ -41,9 +47,26 @@ export interface OpsContext {
   userId: string;
   email: string;
   name: string;
+  /** v1.16.0 — the operator's organizational role (defaults to VIEWER for a
+   * grant row that predates the enum / carries an unknown value). */
+  role: OperatorRole;
+  /** True when this operator's role holds `capability`. */
+  can: (capability: OperatorCapability) => boolean;
   /** P1 — the operator's live JIT elevation, or null when unelevated.
    * Every mutating ops action requires this to be non-null. */
   elevation: ElevationView | null;
+}
+
+/** Thrown when a standing operator's ROLE does not include the capability a
+ * page / action requires. Distinct from `OpsElevationRequiredError` (which
+ * is about freshness, not authority). */
+export class OpsRoleForbiddenError extends Error {
+  readonly code = 'ROLE_FORBIDDEN' as const;
+  readonly status = 403 as const;
+  constructor(public readonly capability: OperatorCapability) {
+    super(`Your operator role is not permitted to ${capability}.`);
+    this.name = 'OpsRoleForbiddenError';
+  }
 }
 
 /** Thrown by action helpers that can't return a result shape (e.g.
@@ -69,14 +92,20 @@ async function toOpsContext(session: Session): Promise<OpsContext> {
   // WP2 — bind to BOTH the user id AND the session epoch: an elevation minted
   // under a superseded `sessionVersion` (password change, sign-out-everywhere)
   // resolves to null, so it dies the instant the session rotates/revokes.
-  const row = await resolveActiveElevation(token, session.sessionVersion);
+  const [row, role] = await Promise.all([
+    resolveActiveElevation(token, session.sessionVersion),
+    activeOperatorRole(userId),
+  ]);
   const elevation = row && row.userId === userId ? toElevationView(row) : null;
+  const effectiveRole: OperatorRole = role ?? 'VIEWER';
 
   return {
     session,
     userId,
     email: session.user.email ?? '',
     name: session.user.name ?? session.user.email ?? 'Operator',
+    role: effectiveRole,
+    can: (capability) => operatorCan(effectiveRole, capability),
     elevation,
   };
 }
@@ -110,21 +139,34 @@ export async function requireOpsContext(): Promise<OpsContext> {
 
 export type OpsGate =
   | { ok: true; ops: OpsContext }
-  | { ok: false; reason: 'NOT_AUTHORIZED' | 'ELEVATION_REQUIRED' };
+  | { ok: false; reason: 'NOT_AUTHORIZED' | 'ELEVATION_REQUIRED' | 'ROLE_FORBIDDEN' };
 
 /**
  * The authoritative gate for every **mutating** ops Server Action. Returns
  * `NOT_AUTHORIZED` for a non-staff / signed-out / rotation-locked session,
- * and `ELEVATION_REQUIRED` for a standing operator with no live JIT
- * elevation. The caller maps the reason onto its own result shape.
+ * `ELEVATION_REQUIRED` for a standing operator with no live JIT elevation,
+ * and `ROLE_FORBIDDEN` when a `capability` is supplied and the operator's
+ * role does not include it. The caller maps the reason onto its result shape.
  */
-export async function requireElevatedOps(): Promise<OpsGate> {
+export async function requireElevatedOps(capability?: OperatorCapability): Promise<OpsGate> {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { ok: false, reason: 'NOT_AUTHORIZED' };
   if (session.user.mustChangePassword) throw new PasswordChangeRequiredError();
   if (!(await hasActiveStaffGrant(session.user.id))) return { ok: false, reason: 'NOT_AUTHORIZED' };
 
   const ops = await toOpsContext(session);
+  if (capability && !ops.can(capability)) return { ok: false, reason: 'ROLE_FORBIDDEN' };
   if (!ops.elevation) return { ok: false, reason: 'ELEVATION_REQUIRED' };
   return { ok: true, ops };
+}
+
+/**
+ * Redirecting capability guard for `/ops/*` pages. Reaches the console
+ * (standing grant) AND the operator's role must include `capability`, or
+ * they are bounced to the telemetry landing every role can see.
+ */
+export async function requireOpsCapability(capability: OperatorCapability): Promise<OpsContext> {
+  const ops = await requireOpsContext();
+  if (!ops.can(capability)) redirect(OPERATOR_ROLE_HOME);
+  return ops;
 }

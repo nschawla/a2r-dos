@@ -35,6 +35,7 @@ export const DELIVERY_ROLES: readonly DeliveryRole[] = [
   'PRACTICE_DIRECTOR',
   'DELIVERY_MANAGER',
   'PROJECT_MANAGER',
+  'VIEWER',
 ] as const;
 
 export const DELIVERY_ROLE_LABEL: Record<DeliveryRole, string> = {
@@ -43,6 +44,7 @@ export const DELIVERY_ROLE_LABEL: Record<DeliveryRole, string> = {
   PRACTICE_DIRECTOR: 'Practice Director',
   DELIVERY_MANAGER: 'Delivery Manager',
   PROJECT_MANAGER: 'Project Manager',
+  VIEWER: 'Viewer',
 };
 
 /**
@@ -131,6 +133,9 @@ const PERMISSIONS: Record<DeliveryRole, ReadonlySet<PermissionAction>> = {
     'project:editSchedule',
     'project:editFinancials',
   ]),
+  // v1.16.0 — strict read-only observer: full portfolio + SteerCo view,
+  // zero edit / admin authority.
+  VIEWER: new Set<PermissionAction>(['portfolio:viewAll', 'steerco:view']),
 };
 
 export function hasPermission(role: DeliveryRole, action: PermissionAction): boolean {
@@ -159,7 +164,7 @@ export interface MembershipRoleInput {
  * OWNER/ADMIN (tenant tier) -> ADMIN (full delivery authority — the org's
  * creator/admins shouldn't be locked out of project actions by default).
  * MEMBER -> PROJECT_MANAGER (the least-privileged project-editing tier).
- * VIEWER -> VP_EXECUTIVE (read-only, matches the tenant tier's intent).
+ * VIEWER -> VIEWER (strict read-only observer; v1.16.0).
  */
 export function resolveDeliveryRole(membership: MembershipRoleInput): DeliveryRole {
   if (membership.deliveryRole) return membership.deliveryRole;
@@ -170,7 +175,9 @@ export function resolveDeliveryRole(membership: MembershipRoleInput): DeliveryRo
     case 'MEMBER':
       return 'PROJECT_MANAGER';
     case 'VIEWER':
-      return 'VP_EXECUTIVE';
+      return 'VIEWER';
+    default:
+      return 'VIEWER';
   }
 }
 

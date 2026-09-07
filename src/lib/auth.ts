@@ -12,7 +12,8 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
 import { runUnscoped } from '@/lib/db/org-scope';
-import { hasActiveStaffGrant } from '@/lib/ops/staff-grants';
+import { activeOperatorRole } from '@/lib/ops/staff-grants';
+import type { OperatorRole } from '@/lib/ops/operator-roles';
 import { isSsoEnforcedForEmail } from '@/lib/identity/service';
 import {
   deriveSessionState,
@@ -148,10 +149,11 @@ export const authOptions: AuthOptions = {
         | null = null;
       let mappedMemberships: SessionMembership[] = [];
       let isStaff = false;
+      let operatorRole: OperatorRole | null = null;
       let lookupFailed = false;
 
       try {
-        const [acct, mems, staff] = await withTimeout(
+        const [acct, mems, role] = await withTimeout(
           runUnscoped('nextauth-jwt', async () =>
             Promise.all([
               db.user.findUnique({
@@ -163,14 +165,15 @@ export const authOptions: AuthOptions = {
                 include: { organization: { select: { id: true, name: true, slug: true, status: true } } },
                 orderBy: { createdAt: 'asc' },
               }),
-              hasActiveStaffGrant(token.userId as string),
+              activeOperatorRole(token.userId as string),
             ]),
           ),
           sessionLookupTimeoutMs(),
           'session-state lookup',
         );
         account = acct;
-        isStaff = staff;
+        operatorRole = role;
+        isStaff = role !== null;
         mappedMemberships = mems.map((m) => ({
           organizationId: m.organizationId,
           organizationName: m.organization.name,
@@ -239,6 +242,7 @@ export const authOptions: AuthOptions = {
       }
       token.state = nextState;
       token.isA2rStaff = isStaff;
+      token.operatorRole = operatorRole;
       token.mustChangePassword = nextState === 'PENDING_PASSWORD_CHANGE';
       token.memberships = mappedMemberships;
       return token;
@@ -258,6 +262,7 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = token.userId as string;
         session.user.isA2rStaff = token.isA2rStaff === true;
+        session.user.operatorRole = (token.operatorRole as OperatorRole | null | undefined) ?? null;
         session.user.mustChangePassword = token.mustChangePassword === true;
         session.memberships = (token.memberships as typeof session.memberships) ?? [];
         session.sessionVersion = token.sessionVersion as number | undefined;

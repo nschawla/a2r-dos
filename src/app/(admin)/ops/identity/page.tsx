@@ -1,4 +1,4 @@
-import { requireOpsContext } from '@/lib/ops-auth';
+import { requireOpsCapability } from '@/lib/ops-auth';
 import { loadOpsIdentityPractices } from '@/server/queries/pages/admin';
 import { listTenants } from '@/server/queries/ops-telemetry';
 import { getIdentityProvider } from '@/lib/identity/service';
@@ -18,7 +18,7 @@ export default async function OpsIdentityPage({
 }: {
   searchParams: Promise<{ org?: string }>;
 }) {
-  await requireOpsContext();
+  await requireOpsCapability('identity:manage');
   const tenants = await listTenants();
 
   const orgId = (await searchParams).org ?? null;

@@ -51,6 +51,7 @@ export async function getScopedProjectWhere(session: OrgContext): Promise<Prisma
   switch (deliveryRole) {
     case 'ADMIN':
     case 'VP_EXECUTIVE':
+    case 'VIEWER':
       return { organizationId };
 
     case 'PRACTICE_DIRECTOR': {

@@ -104,13 +104,18 @@ model User {
 // `token.isA2rStaff` each request; src/lib/ops-auth.ts re-checks this table
 // directly on every /ops render / action.
 model StaffGrant {
-  id              String    @id @default(cuid())
+  id              String       @id @default(cuid())
   userId          String
+  // v1.16.0 — the operator's role. A single role per live grant; the
+  // capability matrix lives in src/lib/ops/operator-roles.ts and the
+  // per-route guards in src/lib/ops-auth.ts / src/middleware.ts. Existing
+  // grants migrate to SUPER_ADMIN (unchanged full access).
+  role            OperatorRole @default(SUPER_ADMIN)
   // The operator who granted it. Null only for the seed / initial
   // bootstrap grant (no operator exists yet to attribute it to).
   grantedByUserId String?
   reason          String
-  createdAt       DateTime  @default(now())
+  createdAt       DateTime     @default(now())
   // Set to soft-revoke. A revoked grant never confers access again; a new
   // grant row is created to re-grant, so the full history is preserved.
   revokedAt       DateTime?
@@ -290,6 +295,23 @@ enum DeliveryAccessRole {
   PRACTICE_DIRECTOR
   DELIVERY_MANAGER
   PROJECT_MANAGER
+  // v1.16.0 — a strict read-only tenant tier (portfolio + SteerCo view, no
+  // edit, no admin). `MembershipRole.VIEWER` resolves here. Used for guest /
+  // observer accounts.
+  VIEWER
+}
+
+// v1.16.0 — A2R organizational (operator) roles. The axis for `/ops`
+// console access, layered on top of the binary `staff_grants` entitlement:
+// a live grant carries exactly one of these. Capability matrix + route
+// map: src/lib/ops/operator-roles.ts.
+enum OperatorRole {
+  SUPER_ADMIN // full access (the pre-v1.16 default)
+  PROVISIONING // tenant onboarding + creation
+  SUPPORT // diagnostic inspection + impersonation for troubleshooting
+  AUDITOR // read-only: immutable audit ledgers, elevation history, logs
+  BILLING // subscription / contract-tier / invoicing records
+  VIEWER // restricted read-only observation (platform pulse + telemetry)
 }
 
 // How a Membership's role assignment was last set. SSO_JIT means the role

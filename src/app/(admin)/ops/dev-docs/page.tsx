@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { requireOpsContext } from '@/lib/ops-auth';
+import { requireOpsCapability } from '@/lib/ops-auth';
 import { BUILD_INFO } from '@/lib/build-info';
 import { CHANGELOG } from '@/lib/changelog';
 import { DevDocs } from '@/components/ops/DevDocs';
@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: 'Developer Docs · A2R Ops' };
  * header.
  */
 export default async function OpsDevDocsPage() {
-  await requireOpsContext();
+  await requireOpsCapability('devdocs:view');
 
   return <DevDocs build={BUILD_INFO} releases={CHANGELOG} />;
 }

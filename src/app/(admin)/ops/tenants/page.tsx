@@ -1,4 +1,4 @@
-import { requireOpsContext } from '@/lib/ops-auth';
+import { requireOpsCapability } from '@/lib/ops-auth';
 import { listTenants } from '@/server/queries/ops-telemetry';
 import { ProvisionTenantModal } from '@/components/ops/ProvisionTenantModal';
 import { TenantStatusToggle } from '@/components/ops/TenantStatusToggle';
@@ -12,7 +12,7 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
 };
 
 export default async function OpsTenantsPage() {
-  await requireOpsContext();
+  await requireOpsCapability('tenants:view');
   const tenants = await listTenants();
 
   return (

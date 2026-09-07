@@ -1,4 +1,4 @@
-import type { DeliveryAccessRole, MembershipRole, OrgStatus } from '@prisma/client';
+import type { DeliveryAccessRole, MembershipRole, OrgStatus, OperatorRole } from '@prisma/client';
 import 'next-auth';
 import 'next-auth/jwt';
 
@@ -31,6 +31,9 @@ declare module 'next-auth' {
        * callback each request (hasActiveStaffGrant); src/lib/ops-auth.ts
        * re-checks the table directly. No email-domain shortcut. */
       isA2rStaff: boolean;
+      /** v1.16.0 — the operator's organizational role (`staff_grants.role`),
+       * or null for a non-operator. Resolved live in the jwt callback. */
+      operatorRole?: OperatorRole | null;
       /** True while the account's password was set by someone else and the
        * user must pick their own. src/middleware.ts forces them to
        * /change-password until changePasswordAction clears it. Refreshed
@@ -49,6 +52,8 @@ declare module 'next-auth/jwt' {
   interface JWT {
     userId?: string;
     isA2rStaff?: boolean;
+    /** v1.16.0 — `staff_grants.role` for an operator, else null. */
+    operatorRole?: OperatorRole | null;
     mustChangePassword?: boolean;
     memberships?: SessionMembership[];
     /** P1 — the session state machine's current state, re-derived from the

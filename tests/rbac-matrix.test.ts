@@ -21,9 +21,9 @@ import {
 const ALL_MODULE_KEYS = new Set(GOVERNABLE_MODULES.map((m) => m.key));
 
 describe('RBAC matrix — data integrity', () => {
-  it('has exactly 5 personas, each keyed consistently in RBAC_MATRIX', () => {
-    expect(RBAC_PERSONAS).toHaveLength(5);
-    expect(Object.keys(RBAC_MATRIX)).toHaveLength(5);
+  it('has exactly 6 personas, each keyed consistently in RBAC_MATRIX', () => {
+    expect(RBAC_PERSONAS).toHaveLength(6);
+    expect(Object.keys(RBAC_MATRIX)).toHaveLength(6);
     for (const key of RBAC_PERSONAS) expect(RBAC_MATRIX[key].key).toBe(key);
   });
 
@@ -37,7 +37,7 @@ describe('RBAC matrix — data integrity', () => {
 
   it('each persona maps to a distinct real DeliveryRole (one persona per tier)', () => {
     const roles = RBAC_PERSONAS.map((p) => RBAC_MATRIX[p].deliveryRole);
-    expect(new Set(roles).size).toBe(5);
+    expect(new Set(roles).size).toBe(6);
     expect([...roles].sort()).toEqual([...DELIVERY_ROLES].sort());
   });
 
@@ -83,7 +83,7 @@ describe('personaForDeliveryRole', () => {
 });
 
 describe('isRbacPersona', () => {
-  it('accepts exactly the 5 persona keys', () => {
+  it('accepts every persona key', () => {
     for (const p of RBAC_PERSONAS) expect(isRbacPersona(p)).toBe(true);
   });
 
@@ -106,10 +106,12 @@ describe('rbacHiddenHrefs', () => {
     }
   });
 
-  it('GLOBAL_ADMIN hides nothing; CLIENT_SPONSOR hides the most', () => {
+  it('GLOBAL_ADMIN hides nothing; the OBSERVER (guest) persona hides the most', () => {
     expect(rbacHiddenHrefs('GLOBAL_ADMIN')).toEqual([]);
     const hiddenCounts = RBAC_PERSONAS.map((p) => rbacHiddenHrefs(p).length);
-    expect(Math.max(...hiddenCounts)).toBe(rbacHiddenHrefs('CLIENT_SPONSOR').length);
+    expect(Math.max(...hiddenCounts)).toBe(rbacHiddenHrefs('OBSERVER').length);
+    // the OBSERVER sees strictly fewer modules than the external client sponsor
+    expect(rbacHiddenHrefs('OBSERVER').length).toBeGreaterThan(rbacHiddenHrefs('CLIENT_SPONSOR').length);
   });
 });
 

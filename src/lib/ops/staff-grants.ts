@@ -19,6 +19,7 @@
  * alone).
  */
 import { db } from '@/lib/db';
+import { type OperatorRole, isOperatorRole } from '@/lib/ops/operator-roles';
 
 /**
  * Live check — one indexed `findFirst` on the small `staff_grants` table.
@@ -35,11 +36,28 @@ export async function hasActiveStaffGrant(userId: string | null | undefined): Pr
   return grant !== null;
 }
 
+/**
+ * The operator's live role, or null when they hold no active grant. The
+ * authoritative resolver — `src/lib/ops-auth.ts` calls this on every /ops
+ * render/action; the jwt callback caches it into `token.operatorRole`.
+ */
+export async function activeOperatorRole(userId: string | null | undefined): Promise<OperatorRole | null> {
+  if (!userId) return null;
+  const grant = await db.staffGrant.findFirst({
+    where: { userId, revokedAt: null },
+    orderBy: { createdAt: 'desc' },
+    select: { role: true },
+  });
+  if (!grant) return null;
+  return isOperatorRole(grant.role) ? grant.role : 'VIEWER';
+}
+
 export interface StaffGrantView {
   id: string;
   userId: string;
   userEmail: string;
   userName: string | null;
+  role: OperatorRole;
   reason: string;
   grantedByEmail: string | null;
   grantedAt: string;
@@ -52,6 +70,9 @@ export async function listActiveStaffGrants(): Promise<StaffGrantView[]> {
     orderBy: { createdAt: 'desc' },
     include: { user: { select: { email: true, name: true } } },
   });
+  // Newest live grant per user (a re-grant creates a new row rather than
+  // mutating the old one).
+  const seen = new Set<string>();
 
   const granterIds = [...new Set(rows.map((r) => r.grantedByUserId).filter((v): v is string => v != null))];
   const granters = granterIds.length
@@ -59,15 +80,22 @@ export async function listActiveStaffGrants(): Promise<StaffGrantView[]> {
     : [];
   const granterEmail = new Map(granters.map((g) => [g.id, g.email]));
 
-  return rows.map((r) => ({
-    id: r.id,
-    userId: r.userId,
-    userEmail: r.user.email,
-    userName: r.user.name,
-    reason: r.reason,
-    grantedByEmail: r.grantedByUserId ? (granterEmail.get(r.grantedByUserId) ?? null) : null,
-    grantedAt: r.createdAt.toISOString(),
-  }));
+  return rows
+    .filter((r) => {
+      if (seen.has(r.userId)) return false;
+      seen.add(r.userId);
+      return true;
+    })
+    .map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      userEmail: r.user.email,
+      userName: r.user.name,
+      role: isOperatorRole(r.role) ? r.role : 'VIEWER',
+      reason: r.reason,
+      grantedByEmail: r.grantedByUserId ? (granterEmail.get(r.grantedByUserId) ?? null) : null,
+      grantedAt: r.createdAt.toISOString(),
+    }));
 }
 
 export type StaffGrantResult =
@@ -82,9 +110,11 @@ export async function grantStaffAccess(input: {
   email: string;
   grantedByUserId: string;
   reason: string;
+  role?: OperatorRole;
 }): Promise<StaffGrantResult> {
   const email = input.email.toLowerCase().trim();
   const reason = input.reason.trim();
+  const role: OperatorRole = input.role && isOperatorRole(input.role) ? input.role : 'SUPER_ADMIN';
   if (!email) return { ok: false, error: 'An email is required.' };
   if (reason.length < 3) return { ok: false, error: 'A reason (why this account needs operator access) is required.' };
 
@@ -95,8 +125,48 @@ export async function grantStaffAccess(input: {
   if (existing) return { ok: true };
 
   await db.staffGrant.create({
-    data: { userId: user.id, grantedByUserId: input.grantedByUserId, reason },
+    data: { userId: user.id, grantedByUserId: input.grantedByUserId, reason, role },
   });
+  return { ok: true };
+}
+
+/**
+ * Change a live operator's role. A re-grant: the current live grant is
+ * revoked and a fresh one created with the new role, so the audit trail
+ * keeps the full history. No-op success when the role is already set.
+ */
+export async function setOperatorRole(input: {
+  targetUserId: string;
+  role: OperatorRole;
+  actingUserId: string;
+  reason?: string;
+}): Promise<StaffGrantResult> {
+  if (!isOperatorRole(input.role)) return { ok: false, error: 'Unknown role.' };
+  if (input.targetUserId === input.actingUserId) {
+    return { ok: false, error: 'You cannot change your own role.' };
+  }
+  const current = await db.staffGrant.findFirst({
+    where: { userId: input.targetUserId, revokedAt: null },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, role: true },
+  });
+  if (!current) return { ok: false, error: 'That account does not currently hold operator access.' };
+  if (current.role === input.role) return { ok: true };
+
+  await db.$transaction([
+    db.staffGrant.updateMany({
+      where: { userId: input.targetUserId, revokedAt: null },
+      data: { revokedAt: new Date(), revokedByUserId: input.actingUserId },
+    }),
+    db.staffGrant.create({
+      data: {
+        userId: input.targetUserId,
+        grantedByUserId: input.actingUserId,
+        role: input.role,
+        reason: input.reason?.trim() || `Role changed to ${input.role}`,
+      },
+    }),
+  ]);
   return { ok: true };
 }
 

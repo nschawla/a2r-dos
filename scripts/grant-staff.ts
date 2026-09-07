@@ -84,8 +84,14 @@ async function main(): Promise<void> {
       console.log(`${email} already holds an active grant — nothing to do.`);
       return;
     }
-    await db.staffGrant.create({ data: { userId, grantedByUserId, reason } });
-    console.log(`Granted Operator Control Plane access to ${email}.`);
+    const roleArg = (argFlag('role') ?? 'SUPER_ADMIN').toUpperCase();
+    const OPERATOR_ROLES = ['SUPER_ADMIN', 'PROVISIONING', 'SUPPORT', 'AUDITOR', 'BILLING', 'VIEWER'];
+    if (!OPERATOR_ROLES.includes(roleArg)) {
+      console.error(`--role must be one of: ${OPERATOR_ROLES.join(', ')}`);
+      process.exit(1);
+    }
+    await db.staffGrant.create({ data: { userId, grantedByUserId, reason, role: roleArg as never } });
+    console.log(`Granted Operator Control Plane access (${roleArg}) to ${email}.`);
     return;
   }
 

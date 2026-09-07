@@ -10,6 +10,53 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.16.0] — 2026-09-07
+
+_A2R organizational roles, a read-only tenant tier, guest accounts, and Ops
+Console role management._
+
+### Added
+
+- **`OperatorRole` — six A2R organizational roles** on `staff_grants.role`
+  (migration `00000000000025`, applied production & staging; existing grants
+  default to `SUPER_ADMIN`):
+  `SUPER_ADMIN` · `PROVISIONING` · `SUPPORT` · `AUDITOR` · `BILLING` ·
+  `VIEWER`. The capability matrix + route map is
+  `src/lib/ops/operator-roles.ts` (pure, Edge-safe). Enforcement is layered:
+  - `src/middleware.ts` — Edge route guard: a role that can't reach an
+    `/ops/*` sub-path is redirected to `/ops/telemetry`.
+  - `src/lib/ops-auth.ts` — `requireOpsCapability(cap)` (redirecting page
+    guard) and `requireElevatedOps(cap?)` (adds a `ROLE_FORBIDDEN` reason).
+    `OpsContext` gains `role` + `can(capability)`.
+  - every mutating ops action passes its capability
+    (`tenants:provision`, `tenants:impersonate`, `staff:manage`, …).
+  - `token.operatorRole` / `session.user.operatorRole` resolved live in the
+    jwt callback.
+- **Ops Console → Role & Access** (`/ops/access`) — a `SUPER_ADMIN` views
+  every operator, changes a role (a re-grant: the old grant is revoked and
+  a fresh one recorded, preserving the audit trail —
+  `setOperatorRole` / `setOperatorRoleAction`), and sees the capability
+  matrix. New **`/ops/billing`** (contract tiers / seats — `BILLING`,
+  `AUDITOR`) and **`/ops/audit`** (operator roster + JIT-elevation history —
+  `AUDITOR`, `SUPPORT`) sections. `OpsNav` filters by role.
+- **`DeliveryAccessRole.VIEWER`** — a strict read-only tenant tier
+  (`MembershipRole.VIEWER` resolves to it): `portfolio:viewAll` +
+  `steerco:view`, no project/admin edit, financial figures `restricted`.
+  New `OBSERVER` RBAC persona (control tower · SteerCo · reports only).
+- **Five family guest accounts** — `npm run guests:seed` provisions Abha,
+  Janvi, Honey, Griffin, Chan as `VIEWER` members of the demo organization
+  (shared password, `mustChangePassword` false). Idempotent; production-
+  write guarded.
+- `staff:grant` / `operator:create` gain `--role <ROLE>`.
+
+### Changed
+
+- **Sign-in screen** — the password field has a show/hide toggle
+  (eye / eye-off SVG, `aria-label` + `aria-pressed`), toggling
+  `type="password"` ↔ `"text"`.
+
+---
+
 ## [1.15.2] — 2026-09-07
 
 _Audit cleanup: public readiness-probe hardening._

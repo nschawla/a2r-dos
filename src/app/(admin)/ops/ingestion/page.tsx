@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { requireOpsContext } from '@/lib/ops-auth';
+import { requireOpsCapability } from '@/lib/ops-auth';
 import { INGESTION_TEMPLATES } from '@/server/services/templates';
 import { IngestionTemplateHub } from '@/components/ingestion/IngestionTemplateHub';
 
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
  * and the load rules. Same component the tenant-facing /admin surface uses.
  */
 export default async function OpsIngestionPage() {
-  await requireOpsContext();
+  await requireOpsCapability('ingestion:manage');
 
   return (
     <IngestionTemplateHub

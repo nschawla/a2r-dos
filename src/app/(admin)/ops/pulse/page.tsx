@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { requireOpsContext } from '@/lib/ops-auth';
+import { requireOpsCapability } from '@/lib/ops-auth';
 import { getPlatformPulse, getPlatformStream } from '@/server/queries/platform-pulse';
 import { relativeTime } from '@/lib/relative-time';
 import { PulseStrip, type PulseVital } from '@/components/command-center/PulseStrip';
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
  * recent commits, and a live database probe. Staff-only; no tenant data.
  */
 export default async function OpsPulsePage() {
-  await requireOpsContext();
+  await requireOpsCapability('pulse:view');
 
   const pulse = await getPlatformPulse();
   const stream = getPlatformStream(pulse);

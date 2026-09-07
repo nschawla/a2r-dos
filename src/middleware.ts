@@ -2,6 +2,7 @@ import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
 import { resolveDeliveryRole } from '@/lib/auth/rbac';
 import { personaForDeliveryRole, isRouteBlockedForPersona } from '@/lib/governance/rbacMatrix';
+import { roleReachesOpsRoute, OPERATOR_ROLE_HOME, type OperatorRole } from '@/lib/ops/operator-roles';
 import { parseSiteMode, resolveRootRoute } from '@/lib/config/site-mode.mjs';
 
 // Must match src/lib/session.ts#ACTIVE_ORG_COOKIE exactly. Duplicated as a
@@ -78,10 +79,16 @@ export default withAuth(
       return res;
     }
 
-    // ── /ops — staff first-pass + the org-scope hint header ─────────────
+    // ── /ops — staff first-pass + role route-guard + org-scope hint ─────
     if (pathname.startsWith('/ops')) {
       if (token?.isA2rStaff !== true) {
         return noStore(NextResponse.redirect(new URL('/portfolio', req.url)));
+      }
+      // v1.16.0 — the operator's role must permit this sub-route. Defence in
+      // depth; src/lib/ops-auth.ts's requireOpsCapability is authoritative.
+      const role = (token as { operatorRole?: string | null }).operatorRole ?? 'VIEWER';
+      if (!roleReachesOpsRoute(role as OperatorRole, pathname)) {
+        return noStore(NextResponse.redirect(new URL(OPERATOR_ROLE_HOME, req.url)));
       }
       const headers = new Headers(req.headers);
       headers.set('x-a2r-scope', 'ops');

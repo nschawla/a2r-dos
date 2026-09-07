@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { requireOpsContext } from '@/lib/ops-auth';
+import { requireOpsCapability } from '@/lib/ops-auth';
 import { listActiveStaffGrants } from '@/lib/ops/staff-grants';
 import { listElevationHistory } from '@/lib/ops/staff-elevation';
 import { StaffAccessManager } from '@/components/ops/StaffAccessManager';
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  * attributed, revocable `staff_grants` row per operator.
  */
 export default async function OpsStaffAccessPage() {
-  const ops = await requireOpsContext();
+  const ops = await requireOpsCapability('staff:manage');
   const [grants, elevations] = await Promise.all([
     listActiveStaffGrants(),
     listElevationHistory(25),

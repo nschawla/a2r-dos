@@ -106,6 +106,7 @@ export function isProjectInScope(
   switch (identity.deliveryRole) {
     case 'ADMIN':
     case 'VP_EXECUTIVE':
+    case 'VIEWER':
       return true;
 
     case 'PRACTICE_DIRECTOR':
@@ -150,6 +151,7 @@ export function isResourceInScope(identity: ScopeIdentity, resource: ScopableRes
   switch (identity.deliveryRole) {
     case 'ADMIN':
     case 'VP_EXECUTIVE':
+    case 'VIEWER':
       return true;
 
     case 'PRACTICE_DIRECTOR':
@@ -186,6 +188,7 @@ export function getScopedResourceWhere(session: OrgContext): Prisma.ResourceWher
   switch (deliveryRole) {
     case 'ADMIN':
     case 'VP_EXECUTIVE':
+    case 'VIEWER':
       return { organizationId };
 
     case 'PRACTICE_DIRECTOR': {

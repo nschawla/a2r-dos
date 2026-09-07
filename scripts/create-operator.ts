@@ -89,6 +89,12 @@ async function main(): Promise<void> {
   const forceChange = generated || !hasFlag('no-force-change');
 
   const reason = argFlag('reason') ?? 'CLI bootstrap — new operator';
+  const roleArg = (argFlag('role') ?? 'SUPER_ADMIN').toUpperCase();
+  const OPERATOR_ROLES = ['SUPER_ADMIN', 'PROVISIONING', 'SUPPORT', 'AUDITOR', 'BILLING', 'VIEWER'];
+  if (!OPERATOR_ROLES.includes(roleArg)) {
+    console.error(`--role must be one of: ${OPERATOR_ROLES.join(', ')}`);
+    process.exit(1);
+  }
   const byEmail = argFlag('by');
   let grantedByUserId: string | null = null;
   if (byEmail) {
@@ -104,10 +110,10 @@ async function main(): Promise<void> {
   const user = await db.user.create({
     data: { email: normalizedEmail, name: name.trim(), passwordHash, mustChangePassword: forceChange },
   });
-  await db.staffGrant.create({ data: { userId: user.id, grantedByUserId, reason } });
+  await db.staffGrant.create({ data: { userId: user.id, grantedByUserId, reason, role: roleArg as never } });
 
   console.log(`\nCreated operator ${normalizedEmail} (${name.trim()}).`);
-  console.log(`  operator grant:      ACTIVE — can reach /ops`);
+  console.log(`  operator grant:      ACTIVE (${roleArg}) — can reach /ops`);
   console.log(`  mustChangePassword:  ${forceChange} ${forceChange ? '(forced to /change-password on first sign-in)' : ''}`);
   if (generated) console.log(`\n  temporary password:  ${password}`);
   console.log(`\n  Next: they sign in, then enroll a second factor at /ops/security before they can elevate.`);

@@ -36,6 +36,17 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.16.0',
+    date: '2026-09-07',
+    headline: 'A2R organizational roles, guest viewer accounts, and Ops Console role management',
+    changes: [
+      { type: 'feature', text: 'Operator (Ops Console) access now carries a role: Super Admin, Provisioning Staff, Support / Troubleshooting, Auditor / Compliance, Billing / Finance, or Viewer / Guest. Each role reaches only the console sections and actions its remit needs — enforced in the route guard, the middleware, and every mutating action. Existing operators are Super Admin, unchanged.' },
+      { type: 'feature', text: 'New Ops Console → Role & Access page: a Super Admin can view every operator, change a role (recorded as a re-grant so the audit trail is preserved), and see the full capability matrix. New Billing and Audit & Compliance sections for those roles.' },
+      { type: 'feature', text: 'A strict read-only tenant tier (Viewer): full portfolio and SteerCo visibility, zero edit authority, financial figures scrubbed. Five family guest accounts provisioned as Viewers of the demo organization.' },
+      { type: 'improvement', text: 'The sign-in screen has a show/hide toggle on the password field (eye / eye-off), with proper accessibility labelling.' },
+    ],
+  },
+  {
     version: '1.15.2',
     date: '2026-09-07',
     headline: 'Readiness probe no longer leaks infrastructure detail to the internet',

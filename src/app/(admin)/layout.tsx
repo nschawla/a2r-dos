@@ -35,7 +35,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="px-2.5 py-2.5 flex-1">
-          <OpsNav />
+          <OpsNav role={ops.role} />
         </div>
 
         <div className="border-t border-border px-2.5 py-2.5">

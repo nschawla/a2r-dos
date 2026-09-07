@@ -39,6 +39,9 @@ const VISIBILITY_BY_ROLE: Record<DeliveryRole, FinancialVisibility> = {
   PRACTICE_DIRECTOR: 'summary',
   DELIVERY_MANAGER: 'restricted',
   PROJECT_MANAGER: 'restricted',
+  // v1.16.0 — a guest observer gets the most conservative tier: cost rates,
+  // margins and variance are all scrubbed ("restricted read-only observation").
+  VIEWER: 'restricted',
 };
 
 /** Roles below VP that the org-level `maskFinancialsForDelivery` toggle

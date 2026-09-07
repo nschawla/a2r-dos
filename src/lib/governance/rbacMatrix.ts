@@ -37,7 +37,8 @@ export type RbacPersona =
   | 'EXECUTIVE_BOARD'
   | 'ENGAGEMENT_MANAGER'
   | 'CLIENT_SPONSOR'
-  | 'DELIVERY_LEAD';
+  | 'DELIVERY_LEAD'
+  | 'OBSERVER';
 
 export interface RbacPersonaDef {
   key: RbacPersona;
@@ -61,6 +62,7 @@ export const RBAC_PERSONAS: readonly RbacPersona[] = [
   'ENGAGEMENT_MANAGER',
   'CLIENT_SPONSOR',
   'DELIVERY_LEAD',
+  'OBSERVER',
 ];
 
 /**
@@ -130,6 +132,14 @@ export const RBAC_MATRIX: Record<RbacPersona, RbacPersonaDef> = {
     ],
     financialVisibility: 'restricted',
   },
+  OBSERVER: {
+    key: 'OBSERVER',
+    deliveryRole: 'VIEWER',
+    label: 'Viewer / Guest',
+    blurb: 'Read-only observation — the control tower, board briefing, and reports. No edit, no cost or contract detail.',
+    allowedModules: ['control-tower', 'steerco', 'reports'],
+    financialVisibility: 'restricted',
+  },
 };
 
 const DELIVERY_ROLE_TO_PERSONA: Record<DeliveryRole, RbacPersona> = {
@@ -138,6 +148,7 @@ const DELIVERY_ROLE_TO_PERSONA: Record<DeliveryRole, RbacPersona> = {
   PRACTICE_DIRECTOR: 'ENGAGEMENT_MANAGER',
   DELIVERY_MANAGER: 'CLIENT_SPONSOR',
   PROJECT_MANAGER: 'DELIVERY_LEAD',
+  VIEWER: 'OBSERVER',
 };
 
 /** The persona for a signed-in user's real, session-verified DeliveryRole. */
