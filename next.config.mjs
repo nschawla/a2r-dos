@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Deploy trigger: 2026-09-07T14:20 — fresh build to pick up corrected DATABASE_URL / DIRECT_URL env vars.
+// Deploy trigger: 2026-09-07T16:45 — fresh build to pick up rotated DB credentials (DATABASE_URL / DIRECT_URL).
 import { readFileSync } from 'node:fs';
 import { evaluateEnvironmentIsolation } from './src/lib/config/env-isolation-core.mjs';
 import { siteModeBuildError } from './src/lib/config/site-mode.mjs';
