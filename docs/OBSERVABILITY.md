@@ -56,6 +56,29 @@ too, not just the 429 (which also carries `Retry-After`).
 Every `limit` is overridable via `RL_<NAME>_LIMIT` (e.g.
 `RL_BULK_EXPORT_LIMIT=50`); windows are fixed in code.
 
+### Distributed enforcement & failure policy — `src/lib/rate-limiter-redis.ts`
+
+With `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` set, every
+boundary shares **one atomic sliding window** in Upstash Redis
+(`SLIDING_WINDOW_LUA`, one round trip). Without them each instance keeps its
+own window.
+
+| Environment | Upstash not configured | Upstash configured, Redis call throws |
+| --- | --- | --- |
+| Non-production (`NODE_ENV !== 'production'`) | in-process limiter | in-process limiter, reported once at `warning` |
+| **Production** | in-process limiter (accepted posture), noted once at `info` | **request DENIED (429)**, reported once at `error` |
+
+A deployment with **no** Upstash backend runs on the in-process limiter by
+design — that is a deliberate, accepted posture, not a failure, so it falls
+back cleanly (production leaves one `info` breadcrumb).
+
+A deployment that **has** committed to Upstash and then loses it is the case
+that must not silently downgrade: in production the request **fails closed**
+(`429`, `error`-level alert). Escape hatch:
+`RL_ALLOW_INPROCESS_FALLBACK=1` restores the fall-back after a configured-Redis
+failure (for a sustained outage where locking users out is worse), reported
+once at `warning`; unset it once Upstash recovers.
+
 A **Server Action** has no `Response`, so the over-limit path returns
 `{ ok:false, error:'RATE_LIMITED — too many requests. Try again in …' }`
 (`src/lib/rate-limit-action.ts` — `rateLimitByIp` / `rateLimitByUser`). The

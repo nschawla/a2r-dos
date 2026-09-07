@@ -305,8 +305,15 @@ store:** with `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` set,
 every limit is enforced as **one atomic global window** (a single
 server-side Lua script) consistent across all serverless instances; unset,
 it uses the in-process limiter (behind multiple instances each enforces a
-proportional share), and a per-call Redis failure falls back to it so a
-Redis blip never blocks sign-in. Every limit is overridable per environment
+proportional share) — a deliberate, accepted posture for a deployment that
+does not run Upstash. **Where Upstash *is* configured, production fails
+closed on failure:** a Redis call that throws **denies** the request (`429`)
+and alerts observability at `error` level, rather than silently degrading to
+per-instance limiting. (A completely absent backend still falls back
+cleanly, noted once at `info`; non-production always falls back.) The escape
+hatch `RL_ALLOW_INPROCESS_FALLBACK=1` restores the fall-back after a
+configured-Redis failure for a sustained outage (per-instance limiting only,
+reported once at `warning`). Every limit is overridable per environment
 (`RL_<NAME>_LIMIT`); `X-RateLimit-Limit / -Remaining / -Reset` headers are
 returned on the **allowed** response, not only the `429` (which also carries
 `Retry-After`). Defaults:

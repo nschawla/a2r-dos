@@ -108,3 +108,74 @@ describe('hitDistributed — Redis configured (faked eval)', () => {
     expect(r.ok).toBe(true); // fell through to hit()
   });
 });
+
+describe('hitDistributed — production failure policy', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.stubEnv('NODE_ENV', 'production');
+    delete process.env.RL_ALLOW_INPROCESS_FALLBACK;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.doUnmock('@upstash/redis');
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    delete process.env.RL_ALLOW_INPROCESS_FALLBACK;
+  });
+
+  it('with NO Upstash backend, falls back cleanly to the in-process limiter (no 429 storm)', async () => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const { hitDistributed } = await import('@/lib/rate-limiter-redis');
+    const { __resetRateLimiter } = await import('@/lib/rate-limiter');
+    __resetRateLimiter();
+
+    const key = `prod-noconf-${Date.now()}`;
+    for (let i = 0; i < RULE.limit; i++) {
+      expect((await hitDistributed(key, RULE)).ok).toBe(true);
+    }
+    expect((await hitDistributed(key, RULE)).ok).toBe(false); // in-process limit reached
+  });
+
+  it('with Upstash CONFIGURED but a call throws, fails closed (no silent downgrade)', async () => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://example.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+    vi.doMock('@upstash/redis', () => ({
+      Redis: class {
+        async eval() {
+          throw new Error('network down');
+        }
+      },
+    }));
+
+    const { hitDistributed } = await import('@/lib/rate-limiter-redis');
+    const r = await hitDistributed(`prod-throw-${Date.now()}`, RULE);
+    expect(r.ok).toBe(false);
+    expect(r.remaining).toBe(0);
+  });
+
+  it('RL_ALLOW_INPROCESS_FALLBACK=1 restores the fallback after a configured-Redis failure', async () => {
+    vi.stubEnv('RL_ALLOW_INPROCESS_FALLBACK', '1');
+    process.env.UPSTASH_REDIS_REST_URL = 'https://example.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'test-token';
+    vi.doMock('@upstash/redis', () => ({
+      Redis: class {
+        async eval() {
+          throw new Error('network down');
+        }
+      },
+    }));
+
+    const { hitDistributed } = await import('@/lib/rate-limiter-redis');
+    const { __resetRateLimiter } = await import('@/lib/rate-limiter');
+    __resetRateLimiter();
+
+    const key = `prod-hatch-${Date.now()}`;
+    for (let i = 0; i < RULE.limit; i++) {
+      expect((await hitDistributed(key, RULE)).ok).toBe(true);
+    }
+    expect((await hitDistributed(key, RULE)).ok).toBe(false); // in-process limit reached
+  });
+});
