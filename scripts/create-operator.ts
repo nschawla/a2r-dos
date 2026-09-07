@@ -1,0 +1,130 @@
+/**
+ * A2R Operator Control Plane — bootstrap a new operator account.
+ *
+ *   npm run operator:create -- <email> "<name>" ["<password>"] [--by <granter-email>] [--reason "<why>"]
+ *
+ * There is no self-serve invite flow: `/register` only creates new
+ * organizations and `staff:grant` needs the account to exist first. This
+ * does the whole bootstrap in one shot — the `User` row, its password, and
+ * an active `staff_grants` entitlement — mirroring `scripts/grant-staff.ts`
+ * and `scripts/reset-password.ts` (direct DB access).
+ *
+ *   - password given   → set verbatim (must pass the strength policy),
+ *     `mustChangePassword = false`.
+ *   - password omitted → a strong temp one is generated + printed once,
+ *     `mustChangePassword = true` (forced to /change-password on first login).
+ *
+ * The new operator still enrolls a second factor at /ops/security before
+ * they can elevate for any privileged action.
+ *
+ * Refuses if the account already exists — use `user:password:set` +
+ * `staff:grant` for an existing one.
+ */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { validatePasswordStrength } from '../src/lib/auth/password-policy';
+
+function loadEnv(): void {
+  if (process.env.DATABASE_URL) return;
+  try {
+    const raw = readFileSync(join(process.cwd(), '.env'), 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+      if (m?.[1] && m[2] !== undefined && !process.env[m[1]]) {
+        process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+      }
+    }
+  } catch {
+    /* the client will surface its own connection error */
+  }
+}
+
+loadEnv();
+const db = new PrismaClient();
+
+function argFlag(name: string): string | undefined {
+  const i = process.argv.indexOf(`--${name}`);
+  return i !== -1 ? process.argv[i + 1] : undefined;
+}
+
+/** A 20-char temp password that always satisfies the strength policy. */
+function generatePassword(): string {
+  const pick = (set: string, n: number) =>
+    Array.from({ length: n }, () => set[randomBytes(1)[0]! % set.length]).join('');
+  return (pick('ABCDEFGHJKLMNPQRSTUVWXYZ', 4) + pick('abcdefghijkmnpqrstuvwxyz', 10) + pick('23456789', 4) + '-')
+    .split('')
+    .sort(() => (randomBytes(1)[0]! < 128 ? -1 : 1))
+    .join('');
+}
+
+async function main(): Promise<void> {
+  const positional = process.argv.slice(2).filter((a, i, arr) => {
+    if (a.startsWith('--')) return false;
+    // drop the value that follows a --flag
+    return !(i > 0 && arr[i - 1]?.startsWith('--'));
+  });
+  const [email, name, password] = positional;
+
+  if (!email || !name) {
+    console.error('Usage: npm run operator:create -- <email> "<name>" ["<password>"] [--by <granter-email>] [--reason "<why>"]');
+    process.exit(1);
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const existing = await db.user.findUnique({ where: { email: normalizedEmail }, select: { id: true } });
+  if (existing) {
+    console.error(
+      `${normalizedEmail} already exists. Use:\n` +
+        `  npm run user:password:set -- ${normalizedEmail} "<password>"\n` +
+        `  npm run staff:grant       -- ${normalizedEmail} "<reason>"`,
+    );
+    process.exit(1);
+  }
+
+  const generated = !password;
+  const finalPassword = password ?? generatePassword();
+  const weak = validatePasswordStrength(finalPassword);
+  if (weak) {
+    console.error(`That password does not meet the policy: ${weak}`);
+    process.exit(1);
+  }
+
+  const reason = argFlag('reason') ?? 'CLI bootstrap — new operator';
+  const byEmail = argFlag('by');
+  let grantedByUserId: string | null = null;
+  if (byEmail) {
+    const granter = await db.user.findUnique({ where: { email: byEmail.toLowerCase().trim() }, select: { id: true } });
+    if (!granter) {
+      console.error(`--by ${byEmail}: no such account.`);
+      process.exit(1);
+    }
+    grantedByUserId = granter.id;
+  }
+
+  const passwordHash = await bcrypt.hash(finalPassword, 10);
+
+  const user = await db.user.create({
+    data: { email: normalizedEmail, name: name.trim(), passwordHash, mustChangePassword: generated },
+  });
+  await db.staffGrant.create({ data: { userId: user.id, grantedByUserId, reason } });
+
+  console.log(`Created operator ${normalizedEmail} (${name.trim()}).`);
+  console.log(`  operator grant:  ACTIVE — can reach /ops`);
+  if (generated) {
+    console.log(`\n  temporary password:  ${finalPassword}`);
+    console.log(`  forced to /change-password on first sign-in.`);
+  } else {
+    console.log(`  password set — sign in directly.`);
+  }
+  console.log(`\n  Next: they sign in, then enroll a second factor at /ops/security before they can elevate.`);
+}
+
+main()
+  .catch((err) => {
+    console.error('[create-operator] failed', err);
+    process.exitCode = 1;
+  })
+  .finally(() => db.$disconnect());
