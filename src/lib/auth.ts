@@ -185,6 +185,19 @@ export const authOptions: AuthOptions = {
         lookupFailed = true;
       }
 
+      // ── Fresh login: pin the version claim BEFORE the state check ─────
+      // `authorize()` returns no `sessionVersion`, so a just-minted token
+      // has none. A login is authoritative — the password was just verified,
+      // there is no stale token to catch — so stamp it with the account's
+      // current epoch now. Without this, `deriveSessionState` reads the
+      // missing claim as 0, compares it to the real epoch, and REVOKES every
+      // login for any account whose `sessionVersion` has ever been bumped
+      // (i.e. after any password change / sign-out-everywhere). `lookupFailed`
+      // still fails closed — we never pin a version we could not read.
+      if (user && !lookupFailed && account) {
+        token.sessionVersion = account.sessionVersion;
+      }
+
       const priorState: SessionState = (token.state as SessionState | undefined) ?? 'ACTIVE';
       let nextState = deriveSessionState({
         token: {
@@ -217,9 +230,10 @@ export const authOptions: AuthOptions = {
         return { revoked: true, state: 'REVOKED' };
       }
 
-      // Pin the token to the account's epoch — ONCE (fresh login, or the
-      // first refresh of a legacy pre-P1 token). Never re-pinned afterward,
-      // or a stale token would heal itself past a version bump.
+      // Pin the token to the account's epoch — ONCE, for the first refresh
+      // of a legacy pre-P1 token (no `user`, no version claim, account still
+      // at 0). Fresh logins are pinned above. Never re-pinned afterward, or a
+      // stale token would heal itself past a version bump.
       if (token.sessionVersion === undefined && account) {
         token.sessionVersion = account.sessionVersion;
       }

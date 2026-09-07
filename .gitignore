@@ -29,3 +29,6 @@ next-env.d.ts
 # regenerated on every `npx playwright test` run — not meaningful to track
 /playwright-report/
 /test-results/
+
+# Vercel CLI project link (`vercel link`) — machine-local
+.vercel

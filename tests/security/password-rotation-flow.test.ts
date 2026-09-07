@@ -38,6 +38,11 @@ const jwt = authOptions.callbacks!.jwt!;
 const sessionCb = authOptions.callbacks!.session!;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const callJwt = (token: Record<string, unknown>) => jwt({ token, user: undefined, account: null } as any);
+/** A fresh credential login — the jwt callback's first pass, with `user` set
+ * and a bare token (no sessionVersion / iat / state claim yet). */
+const callJwtFreshLogin = (userId: string) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  jwt({ token: {}, user: { id: userId }, account: { provider: 'credentials' } } as any);
 
 /**
  * P1 — restricted-session state machine, live-DB integration.
@@ -127,6 +132,19 @@ describe('changePasswordAction + jwt callback — the session state machine', ()
     const fresh = await callJwt({ userId: u.id, sessionVersion: 1, iat: Math.floor(Date.now() / 1000), state: 'ACTIVE' });
     expect((fresh as { revoked?: boolean }).revoked).toBeUndefined();
     expect(fresh).toMatchObject({ state: 'ACTIVE', mustChangePassword: false, sessionVersion: 1 });
+  });
+
+  it('a fresh login pins the new token to the account epoch — even after sessionVersion was bumped', async () => {
+    const u = await makeUser(false);
+    // simulate a few prior password changes / sign-out-everywhere events
+    await db.user.update({ where: { id: u.id }, data: { sessionVersion: 3 } });
+
+    // `authorize()` returns no sessionVersion, so the jwt callback's first
+    // pass has a bare token + `user`. Without the fresh-login pin this would
+    // resolve to REVOKED (missing claim read as 0 ≠ account epoch 3).
+    const t = await callJwtFreshLogin(u.id);
+    expect((t as { revoked?: boolean }).revoked).toBeUndefined();
+    expect(t).toMatchObject({ state: 'ACTIVE', mustChangePassword: false, sessionVersion: 3 });
   });
 
   it('a PENDING_PASSWORD_CHANGE token is derived for a mustChangePassword account', async () => {
