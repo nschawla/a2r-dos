@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Deploy trigger: v1.14.0 (2026-09-07) — force a fresh Vercel production build.
 import { readFileSync } from 'node:fs';
 import { evaluateEnvironmentIsolation } from './src/lib/config/env-isolation-core.mjs';
 import { siteModeBuildError } from './src/lib/config/site-mode.mjs';
