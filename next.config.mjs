@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Deploy trigger: 2026-09-07T17:05 — clean build after DB credential rotation + Vercel env update.
+// Deploy trigger: 2026-09-07T17:25 — new commit (redeploys were dedup-canceled) to snapshot the updated DB credentials.
 import { readFileSync } from 'node:fs';
 import { evaluateEnvironmentIsolation } from './src/lib/config/env-isolation-core.mjs';
 import { siteModeBuildError } from './src/lib/config/site-mode.mjs';
