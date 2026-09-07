@@ -10,6 +10,56 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.12.0] — 2026-09-06
+
+_Production RLS cutover preparation — Phase 2 of the enterprise-readiness
+hardening plan: database-level tenant isolation on production, strict
+identity-table governance, and a tested break-glass._
+
+### Added
+
+- **RLS break-glass** (`src/lib/db/rls-break-glass.ts`, `_rls_control` table
+  — migration `00000000000020`, applied to **production & staging**). A
+  single control-plane row holds a time-boxed window; while it is open,
+  `withTenantTx` skips the `SET LOCAL ROLE a2r_app` switch and runs as
+  `postgres`, so DB-level RLS is inert **but application-tier scoping
+  (`src/lib/db/org-scope.ts`) still fully applies** — the exact posture of
+  `RLS_ENFORCE` unset. Every affected request emits a throttled `error`-level
+  alert. The window auto-expires (≤ 60 min, time-based — no cron, no
+  redeploy); propagation ≤ 10 s. Operable via `scripts/rls-break-glass.ts`
+  (over `DIRECT_URL`, no app dependency) or the elevated ops actions
+  `engageRlsBreakGlassAction` / `disengageRlsBreakGlassAction` /
+  `getRlsBreakGlassStatus`.
+- **`docs/TENANT_MODEL_INVENTORY.md`** — every one of the 37 Prisma models
+  mapped to its tenant binding and DB-level enforcement (9 identity/routing +
+  28 tenant-owned, of which 11 also carry a composite FK to a tenant parent),
+  plus two tracked residuals for Phase 3. `tests/security/tenant-model-inventory.test.ts`
+  parses the schema and fails on drift.
+
+### Changed
+
+- **Identity / routing tables → deny-all for the restricted role** (migration
+  `00000000000020`). The 9 tables (`users`, `accounts`, `sessions`,
+  `verification_tokens`, `memberships`, `organizations`, `staff_grants`,
+  `staff_elevations`, `impersonation_grants`) move from the permissive
+  `rls_app_plumbing` policy (`USING (true)`) to a hard `rls_deny_app`
+  (`USING (false) WITH CHECK (false)`) for `a2r_app`. `signOutEverywhereAction`
+  and `changePasswordAction` — the only tenant-runtime flows that touched
+  `users` / `sessions` — now run under `runUnscoped` (they key by explicit
+  `userId`, an account-level operation), so the tenant runtime never touches
+  any identity table as `a2r_app`. `a2r_app` is also set `NOLOGIN`.
+- **Production database prepared for RLS** (v1.12.0, inert). Migrations 16 +
+  17 + 20 applied to production via `DIRECT_URL` (rehearsed with
+  `BEGIN … ROLLBACK`); `npm run db:rls:smoke` against production prints
+  `OK — all 28 tenant tables enforce isolation`. The remaining step is
+  `RLS_ENFORCE=1` on Vercel Production — see `docs/RLS_ENFORCEMENT_RUNBOOK.md`.
+- **`scripts/rls-smoke.ts`** extended from 4 to **8 checks**: adds
+  cross-tenant `DELETE`, `UPSERT` (a B-owned row is never mutated while
+  scoped to A), cross-tenant foreign key (a child pointing at a B parent is
+  rejected), and the ingestion-shape scoped `INSERT`.
+
+---
+
 ## [1.11.0] — 2026-09-06
 
 _Data-model integrity — Phase 1 of the enterprise-readiness hardening plan:

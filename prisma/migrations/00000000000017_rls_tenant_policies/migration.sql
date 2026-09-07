@@ -1,11 +1,13 @@
 -- A2R Delivery OS — P0-2 (Phase C): per-table tenant-isolation RLS policies.
 --
--- ══ Applied to STAGING (v1.9.0). NOT applied to production. ═════════════
+-- ══ Applied to STAGING (v1.9.0) and PRODUCTION (v1.12.0, inert). ════════
 -- Requires migration 16 (the `a2r_app` role) first, and `RLS_ENFORCE=1` on
 -- the app so every tenant query arrives inside a tx that has run
 -- `SELECT set_config('app.current_org', <org>, true)` (src/lib/db/with-tenant-tx.ts).
--- Cross-tenant / pre-session flows run on a BYPASSRLS connection
--- (src/lib/db/admin-db.ts). See docs/RLS_ENFORCEMENT_RUNBOOK.md.
+-- Cross-tenant / pre-session flows run as `postgres` (BYPASSRLS) — no role
+-- switch. Migration 20 (Phase 2) replaces the `rls_app_plumbing` policy
+-- below with a deny-all `rls_deny_app` on the 9 identity tables.
+-- See docs/RLS_ENFORCEMENT_RUNBOOK.md.
 -- ═════════════════════════════════════════════════════════════════════════
 --
 -- MODEL. Two policy shapes, both scoped `TO "a2r_app"` so the table owner

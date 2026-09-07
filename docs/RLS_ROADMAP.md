@@ -1,24 +1,27 @@
 # Database-level Row Level Security — implementation roadmap
 
-_Status: **ENFORCED on staging** as of v1.9.0 (Phase C). Production stays
-app-tier-only until its own cutover (§ "Production cutover" below)._
-_Owner: platform / security. Audience: engineering + the security auditor._
+_Status: **ENFORCED on staging** (v1.9.0). Production has the migrations
+applied **inert** (v1.12.0); the `RLS_ENFORCE=1` flip is the last step
+(§ "Production cutover")._
+_Owner: platform / security. Audience: engineering + the security auditor.
+See `docs/TENANT_MODEL_INVENTORY.md` for the full model map._
 
-## Where we are (v1.9.0, Phase C)
+## Where we are (v1.12.0, Phase 2)
 
-A dedicated **staging Supabase project** (`urdlkmlhjhvoxsphvwte`) now runs
-with full DB-level RLS. `npm run db:rls:smoke` there confirms all 28 tenant
-tables reject cross-tenant reads / writes for the restricted role, and the
-complete suite (tsc / vitest 542 / playwright 60 / build) is green against
-it with `RLS_ENFORCE=1`.
+A dedicated **staging Supabase project** (`urdlkmlhjhvoxsphvwte`) runs with
+full DB-level RLS. **Production** (`xoaabhqsbfetffyawayw`) has migrations 16 +
+17 + 20 applied but still connects/acts as `postgres`, so RLS is inert there
+until `RLS_ENFORCE=1` is set on Vercel.
 
 | Artefact | Purpose | Staging | Production |
 | --- | --- | --- | --- |
 | `00000000000014` composite FK guard | DB rejects a child row whose tenant ≠ parent's. | **APPLIED** | **APPLIED** (v1.8.0) |
-| `src/lib/db/rls-transaction.ts` + `src/lib/db/with-tenant-tx.ts` | Every `db.$transaction` that touches tenant data → `withTenantTx`, which runs `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org` when `RLS_ENFORCE=1`. Bare `db.model.op()` in a tenant request is wrapped per-op by the extension. Cross-tenant / pre-session flows run as `postgres` (BYPASSRLS). | **`RLS_ENFORCE=1`** | no-op (flag unset) |
-| `00000000000016` restricted role | `CREATE ROLE a2r_app` (NOBYPASSRLS) + grants + `GRANT a2r_app TO postgres` (for `SET ROLE`). | **APPLIED** | NOT applied |
-| `00000000000017` tenant policies | `tenant_isolation` (`organizationId = current_setting('app.current_org')`) on 28 tenant tables + `rls_app_plumbing` (`USING (true)`) on the 9 identity/routing tables, all `TO "a2r_app"`. `FORCE` block still commented. | **APPLIED** | NOT applied |
-| `scripts/rls-smoke.ts` / `tests/security/rls-policies.test.ts` | Direct-SQL enforcement checks. Auto-detect the `a2r_app` role; run on staging, skip on prod. | runs, **OK** | skips |
+| `src/lib/db/rls-transaction.ts` + `src/lib/db/with-tenant-tx.ts` | Every `db.$transaction` that touches tenant data → `withTenantTx`, which runs `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org` when `RLS_ENFORCE=1`. Bare `db.model.op()` wrapped per-op by the extension. Cross-tenant / pre-session flows run as `postgres`. Break-glass (`_rls_control`) short-circuits to `postgres`. | **`RLS_ENFORCE=1`** | no-op (flag unset) |
+| `00000000000016` restricted role | `CREATE ROLE a2r_app` (NOBYPASSRLS) + grants + `GRANT a2r_app TO postgres` (for `SET ROLE`). | **APPLIED** | **APPLIED (inert)** v1.12.0 |
+| `00000000000017` tenant policies | `tenant_isolation` (`organizationId = current_setting('app.current_org')`) on the 28 tenant tables, `TO "a2r_app"`. `FORCE` block still commented. | **APPLIED** | **APPLIED (inert)** v1.12.0 |
+| `00000000000020` identity lockdown + break-glass | The 9 identity/routing tables → **`rls_deny_app`** (`USING (false)`) for `a2r_app` — the tenant runtime cannot touch `sessions` / `staff_grants` / `staff_elevations` / `impersonation_grants` / … at all. `a2r_app` → `NOLOGIN`. `_rls_control` break-glass table. | **APPLIED** | **APPLIED (inert)** v1.12.0 |
+| `scripts/rls-smoke.ts` (8-check matrix) / `tests/security/rls-policies.test.ts` | Direct-SQL enforcement checks. Auto-detect the `a2r_app` role. | runs, **OK** | **runs, OK** (role now exists) |
+| `src/lib/db/rls-break-glass.ts` / `scripts/rls-break-glass.ts` | Time-boxed, auto-expiring, alerting break-glass to disable enforcement in an incident. | shipped | shipped |
 
 ### The `SET ROLE`-in-a-transaction design (why not a second connection)
 
@@ -32,14 +35,25 @@ Supavisor feature dependency.
 
 ## Production cutover
 
-1. Apply migrations 16 + 17 to production via `DIRECT_URL` (inert while the
-   app still connects/acts as `postgres` — `GRANT a2r_app TO postgres` is
-   the only new capability).
-2. Deploy with `RLS_ENFORCE=1`. Same-region Vercel↔Supabase latency means
-   the default `SESSION_LOOKUP_TIMEOUT_MS` is fine.
-3. Soak; `npm run db:rls:smoke` from a cron.
+Full procedure + the pre-cutover verification matrix + the break-glass
+rehearsal: **`docs/RLS_ENFORCEMENT_RUNBOOK.md`**. In brief:
+
+1. ✅ **Done (v1.12.0).** Migrations 16 + 17 + 20 applied to production via
+   `DIRECT_URL`, rehearsed with `BEGIN … ROLLBACK` first. Inert while the app
+   is `postgres`; `SET ROLE a2r_app` is the only new capability.
+   `npm run db:rls:smoke` against production prints
+   `OK — all 28 tenant tables enforce isolation`.
+2. **Remaining — operator action.** Set `RLS_ENFORCE=1` on Vercel Production
+   and redeploy. Same-region latency → the default `SESSION_LOOKUP_TIMEOUT_MS`
+   is fine.
+3. Soak 48 h; `npm run db:rls:smoke` from a cron; synthetic login + ingest.
 4. Uncomment + apply the `FORCE ROW LEVEL SECURITY` block in migration 17
-   (needs a break-glass BYPASSRLS role + owner-side policies first).
+   (needs an owner-side BYPASSRLS break-glass role + owner-side policies first).
+
+**Break-glass:** `_rls_control` (migration 20) + `src/lib/db/rls-break-glass.ts`
+— time-boxed, auto-expiring, alerting. `npx tsx scripts/rls-break-glass.ts
+engage --minutes 30 --reason "…"` disables enforcement in ≤ 10 s with no
+redeploy; app-tier scoping still applies. See the runbook.
 
 ## 1. Where we are today (v1.7.0)
 
@@ -67,8 +81,9 @@ bug in either application layer cannot leak data — true defence in depth.
 
 ## 2. Model → tenant classification
 
-35 models. The extension already encodes this split (`src/lib/db/org-scope.ts`); the
-RLS policies must mirror it exactly.
+37 models (9 identity/routing + 28 tenant-owned). The extension encodes this
+split (`src/lib/db/org-scope.ts`) and `docs/TENANT_MODEL_INVENTORY.md` is the
+authoritative map; the RLS policies mirror it exactly.
 
 > **P1 update (composite tenant keys).** Migration `00000000000012` added an
 > own `organization_id` column + FK + index to the 8 formerly project-scoped
@@ -77,12 +92,19 @@ RLS policies must mirror it exactly.
 > table can take the simple same-table `USING (organization_id = …)` policy;
 > no `EXISTS (SELECT 1 FROM projects …)` sub-queries are needed anywhere.
 
-### 2a. Identity / tenant-plumbing — **no tenant policy** (6)
-`User`, `Account`, `Session`, `VerificationToken`, `Membership`, `Organization`.
-A user spans tenants; `Membership` / `Organization` are how "which tenant" is resolved.
-These stay protected by the app's JWT membership checks. RLS here would be
-membership-based (`Membership` visible where `user_id = auth_uid() OR
-organization_id IN (my_orgs())`), added last and carefully.
+### 2a. Identity / routing — **`rls_deny_app`** (9)
+`User`, `Account`, `Session`, `VerificationToken`, `Membership`,
+`Organization`, `StaffGrant`, `StaffElevation`, `ImpersonationGrant`.
+
+Originally these carried a permissive `rls_app_plumbing` policy
+(`USING (true)`) — a user spans tenants and `Membership` / `Organization`
+are how "which tenant" is resolved. **Migration 20 (Phase 2)** replaced that
+with a hard **`rls_deny_app`** (`USING (false) WITH CHECK (false)`) for
+`a2r_app`: after `signOutEverywhereAction` / `changePasswordAction` were
+moved to `runUnscoped`, the tenant runtime never touches these tables as
+`a2r_app`. Every legitimate reader/writer (NextAuth, the ops console,
+provisioning, SSO JIT, session bootstrap) runs as `postgres`. Protection for
+those `postgres` paths stays the app's JWT + membership + `ops-auth` checks.
 
 ### 2b. Own `organization_id` column — **direct policy** (29, was 20)
 `ActivityLogEntry`, `ApiKey`, `AuditEntry`, `AuditLog`, `ControlLabel`,

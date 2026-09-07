@@ -1,9 +1,9 @@
 -- A2R Delivery OS — P0-2 (Phase C): restricted runtime database role.
 --
--- ══ Applied to STAGING (v1.9.0). NOT applied to production. ═════════════
--- Production cutover is the tail of docs/RLS_ENFORCEMENT_RUNBOOK.md.
--- After CREATE ROLE, set the password out-of-band (never commit it):
---   ALTER ROLE "a2r_app" WITH PASSWORD '<generated>';
+-- ══ Applied to STAGING (v1.9.0) and PRODUCTION (v1.12.0, inert). ════════
+-- Inert on production until `RLS_ENFORCE=1` — see docs/RLS_ENFORCEMENT_RUNBOOK.md.
+-- On staging the password was set out-of-band; on production migration 20
+-- makes the role NOLOGIN (nothing connects directly as it).
 -- ═════════════════════════════════════════════════════════════════════════
 --
 -- WHY

@@ -157,14 +157,21 @@ export const signOutEverywhereAction = withAction(
     if (!session?.user?.id) return { ok: false, error: 'You are not signed in.' };
     const userId = session.user.id;
 
-    await withTenantTx(async (tx) => {
-      await tx.user.update({
-        where: { id: userId },
-        data: { sessionVersion: { increment: 1 } },
+    // `users` / `sessions` are identity tables keyed here by an explicit
+    // `userId` — this is an account-level revocation, not tenant data. Run it
+    // with the cross-tenant marker so under `RLS_ENFORCE=1` it executes as
+    // `postgres`, not the restricted `a2r_app` role (which has no access to
+    // the identity tables — migration 20's `rls_deny_app`).
+    await runUnscoped('account-session-revocation', async () => {
+      await withTenantTx(async (tx) => {
+        await tx.user.update({
+          where: { id: userId },
+          data: { sessionVersion: { increment: 1 } },
+        });
+        // Clear any NextAuth adapter Session rows too (JWT strategy doesn't
+        // create these, but a future DB-session provider would).
+        await tx.session.deleteMany({ where: { userId } });
       });
-      // Clear any NextAuth adapter Session rows too (JWT strategy doesn't
-      // create these, but a future DB-session provider would).
-      await tx.session.deleteMany({ where: { userId } });
     });
 
     // Security event — like JIT elevation, this is a platform/account event,
@@ -255,20 +262,28 @@ export const changePasswordAction = withAction('changePasswordAction', async (in
   //      deriveSessionState() resolves each of them to REVOKED on its next
   //      request.
   //   4. delete any NextAuth adapter Session rows.
-  const { sessionVersion: newSessionVersion } = await withTenantTx(async (tx) => {
-    const updated = await tx.user.update({
-      where: { id: userId },
-      data: {
-        passwordHash,
-        mustChangePassword: false,
-        passwordChangedAt: changedAt,
-        sessionVersion: { increment: 1 },
-      },
-      select: { sessionVersion: true },
-    });
-    await tx.session.deleteMany({ where: { userId } });
-    return updated;
-  });
+  // `users` / `sessions` keyed by explicit `userId` — an account-level state
+  // transition, not tenant data. `runUnscoped` so it runs as `postgres` under
+  // `RLS_ENFORCE=1` (the `a2r_app` role cannot touch the identity tables —
+  // migration 20's `rls_deny_app`).
+  const { sessionVersion: newSessionVersion } = await runUnscoped(
+    'account-session-revocation',
+    async () =>
+      withTenantTx(async (tx) => {
+        const updated = await tx.user.update({
+          where: { id: userId },
+          data: {
+            passwordHash,
+            mustChangePassword: false,
+            passwordChangedAt: changedAt,
+            sessionVersion: { increment: 1 },
+          },
+          select: { sessionVersion: true },
+        });
+        await tx.session.deleteMany({ where: { userId } });
+        return updated;
+      }),
+  );
 
   // Mint ONE fresh token for the current device, pinned to the NEW epoch so
   // it is the only session that survives the increment above.

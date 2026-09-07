@@ -36,6 +36,17 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.12.0',
+    date: '2026-09-06',
+    headline: 'Production RLS cutover prep, identity-table lockdown, and break-glass',
+    changes: [
+      { type: 'security', text: 'Database-level Row-Level Security is now staged on production: the restricted role and tenant-isolation policies are applied and verified (inert until enforcement is switched on), so a single environment-variable change completes the cutover. Staging has run fully enforced since v1.9.0.' },
+      { type: 'security', text: 'The identity and routing tables (sessions, staff grants, elevations, impersonation grants, memberships, …) are now hard-denied to the restricted application role — the tenant runtime cannot read or modify them at all. They are reached only through the privileged administrative path.' },
+      { type: 'feature', text: 'Break-glass: a time-boxed, auto-expiring control that disables database-level tenant isolation within seconds during an incident — no redeploy — while keeping application-tier scoping in force and paging the on-call on every affected request. Operable from the Ops Console or an incident shell.' },
+      { type: 'improvement', text: 'A complete tenant-model inventory (docs/TENANT_MODEL_INVENTORY.md) maps all 37 data models to how their tenant boundary is enforced, with a test that fails if the schema drifts from it. The direct-SQL RLS smoke test now covers SELECT/INSERT/UPDATE/DELETE/UPSERT, cross-tenant foreign keys, and the ingestion path.' },
+    ],
+  },
+  {
     version: '1.11.0',
     date: '2026-09-06',
     headline: 'Financial precision (exact NUMERIC money) + audit-trail retention',

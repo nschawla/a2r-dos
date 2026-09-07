@@ -13,6 +13,13 @@ import { getOpsContextOrNull, requireElevatedOps, type OpsContext } from '@/lib/
 import { seedOrganizationDefaults } from '@/lib/tenant/defaults';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
 import {
+  engageBreakGlass,
+  disengageBreakGlass,
+  breakGlassStatus,
+  MAX_WINDOW_MINUTES,
+  type BreakGlassStatus,
+} from '@/lib/db/rls-break-glass';
+import {
   applyTenantLifecycle,
   startImpersonation,
   endImpersonation,
@@ -440,3 +447,57 @@ export const listTenantApiKeys = withAction('listTenantApiKeys', async (organiza
     })),
   };
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// RLS break-glass (Phase 2) — disable DB-level tenant isolation fast during
+// an incident. Time-boxed + auto-expiring (src/lib/db/rls-break-glass.ts).
+// A platform/infra event, not tenant governance, so it goes to the
+// structured log (like JIT elevation), not a per-tenant ledger.
+// ─────────────────────────────────────────────────────────────────────────
+
+const breakGlassSchema = z.strictObject({
+  minutes: z.number().int().min(1).max(MAX_WINDOW_MINUTES),
+  reason: z.string().min(8, 'Give a reason (min 8 chars) — this is audited.').max(500),
+});
+
+/** Read the current break-glass window (any operator — read-only). */
+export const getRlsBreakGlassStatus = withAction(
+  'getRlsBreakGlassStatus',
+  async (): Promise<OpsDataResult<BreakGlassStatus>> => {
+    const ops = await getOpsContextOrNull();
+    if (!ops) return { ok: false, error: 'Not authorized.' };
+    return { ok: true, data: await breakGlassStatus() };
+  },
+);
+
+/** Open a break-glass window. Requires a live JIT elevation. */
+export const engageRlsBreakGlassAction = withAction(
+  'engageRlsBreakGlassAction',
+  async (input: unknown): Promise<OpsDataResult<{ until: string; minutes: number }>> => {
+    const gate = await elevatedOps();
+    if (!gate.ok) return { ok: false, error: gate.error };
+
+    const parsed = breakGlassSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    }
+
+    const { breakGlassUntil, minutes } = await engageBreakGlass({
+      minutes: parsed.data.minutes,
+      reason: parsed.data.reason,
+      actorEmail: gate.ops.email,
+    });
+    return { ok: true, data: { until: breakGlassUntil.toISOString(), minutes } };
+  },
+);
+
+/** Close the break-glass window immediately. Requires a live JIT elevation. */
+export const disengageRlsBreakGlassAction = withAction(
+  'disengageRlsBreakGlassAction',
+  async (): Promise<OpsResult> => {
+    const gate = await elevatedOps();
+    if (!gate.ok) return { ok: false, error: gate.error };
+    await disengageBreakGlass({ actorEmail: gate.ops.email });
+    return { ok: true };
+  },
+);

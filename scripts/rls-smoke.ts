@@ -10,12 +10,19 @@
  * app.current_org`, exactly as `src/lib/db/with-tenant-tx.ts` does at
  * runtime:
  *
- *   1. scoped to tenant A, `SELECT count(*)` on each of the 29 tenant tables
+ *   1. scoped to tenant A, `SELECT count(*)` on each of the 28 tenant tables
  *      returns ONLY A's rows (vs. the ground truth read as `postgres`);
  *   2. with the GUC set to '' every tenant table returns 0 rows (fail-closed);
  *   3. a cross-tenant `INSERT` (org B row while scoped to A) is rejected by
  *      the policy `WITH CHECK` (SQLSTATE 42501 / "row-level security");
- *   4. a cross-tenant `UPDATE` touches 0 rows.
+ *   4. a cross-tenant `UPDATE` touches 0 rows;
+ *   5. a cross-tenant `DELETE` touches 0 rows;
+ *   6. an `UPSERT` (INSERT … ON CONFLICT) keyed on a B-owned unique row,
+ *      while scoped to A, never mutates B's row;
+ *   7. a cross-tenant FK — inserting a child row that points at a B-owned
+ *      parent while scoped to A — is rejected (parent invisible under RLS);
+ *   8. the ingestion path — scoped INSERT into weekly_assignment_slots +
+ *      activity_log_entries — succeeds for A and is invisible to B.
  *
  * Exit 0 = all enforced, OR the `a2r_app` role does not exist yet (dormant —
  * expected on production and any environment before migrations 16+17).
@@ -124,6 +131,91 @@ async function main(): Promise<number> {
     );
     if (typeof updated === 'number' && updated > 0) {
       failures.push(`cross-tenant UPDATE modified ${updated} rows`);
+    }
+
+    // 5 — cross-tenant DELETE touches nothing.
+    const deleted = await scoped(db, a, (tx) =>
+      tx.$executeRawUnsafe(`DELETE FROM "practices" WHERE "organizationId" = $1`, b),
+    );
+    if (typeof deleted === 'number' && deleted > 0) {
+      failures.push(`cross-tenant DELETE removed ${deleted} of tenant B's rows`);
+    }
+
+    // 6 — UPSERT keyed on a B-owned control_labels row must not mutate it.
+    const bLabel = await db.$queryRawUnsafe<{ controlKey: string; label: string }[]>(
+      `SELECT "controlKey", "label" FROM "control_labels" WHERE "organizationId" = $1 LIMIT 1`, b,
+    );
+    if (bLabel[0]) {
+      const { controlKey, label } = bLabel[0];
+      try {
+        await scoped(db, a, (tx) =>
+          tx.$executeRawUnsafe(
+            `INSERT INTO "control_labels" ("id","organizationId","controlKey","label")
+               VALUES ($1,$2,$3,'rls-smoke-upsert')
+             ON CONFLICT ("organizationId","controlKey")
+               DO UPDATE SET "label" = EXCLUDED."label"`,
+            `rls-smoke-${Date.now()}`, b, controlKey,
+          ),
+        );
+      } catch {
+        /* rejected by WITH CHECK — also fine */
+      }
+      const after = await db.$queryRawUnsafe<{ label: string }[]>(
+        `SELECT "label" FROM "control_labels" WHERE "organizationId" = $1 AND "controlKey" = $2`, b, controlKey,
+      );
+      if (after[0] && after[0].label !== label) {
+        failures.push(`cross-tenant UPSERT mutated tenant B's control_labels row (${label} → ${after[0].label})`);
+      }
+      // clean any A-side row the insert branch may have created
+      await db.$executeRawUnsafe(
+        `DELETE FROM "control_labels" WHERE "organizationId" = $1 AND "label" = 'rls-smoke-upsert'`, a,
+      );
+    }
+
+    // 7 — cross-tenant FK: a scope_items row pointing at a B project, scoped to A.
+    const bProject = await db.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT "id" FROM "projects" WHERE "organizationId" = $1 LIMIT 1`, b,
+    );
+    if (bProject[0]) {
+      try {
+        await scoped(db, a, (tx) =>
+          tx.$executeRawUnsafe(
+            `INSERT INTO "scope_items" ("id","organizationId","projectId","key","name")
+               VALUES ($1,$2,$3,'rls-smoke','rls-smoke')`,
+            `rls-smoke-${Date.now()}`, a, bProject[0]!.id,
+          ),
+        );
+        failures.push('cross-tenant FK: inserted a scope_items row against a B-owned project while scoped to A');
+        await db.$executeRawUnsafe(`DELETE FROM "scope_items" WHERE "key" = 'rls-smoke'`);
+      } catch (err) {
+        const msg = String(err);
+        if (!/row-level security|42501|foreign key|23503/.test(msg)) {
+          failures.push(`cross-tenant FK check failed with an unexpected error: ${msg.split('\n')[0]}`);
+        }
+      }
+    }
+
+    // 8 — ingestion path: a scoped INSERT (the shape /api/v1/ingest uses via
+    //     withTenantTx) lands for A and is invisible to B's scope.
+    const logId = `rls-smoke-log-${Date.now()}`;
+    try {
+      await scoped(db, a, (tx) =>
+        tx.$executeRawUnsafe(
+          `INSERT INTO "activity_log_entries" ("id","organizationId","text","tab")
+             VALUES ($1,$2,'rls-smoke ingest','home')`,
+          logId, a,
+        ),
+      );
+      const seenByB = await scoped(db, b, (tx) =>
+        tx.$queryRawUnsafe<{ n: bigint }[]>(
+          `SELECT count(*)::bigint AS n FROM "activity_log_entries" WHERE "id" = $1`, logId,
+        ),
+      );
+      if (seenByB[0]!.n !== 0n) {
+        failures.push('ingestion path: tenant B can see an activity_log_entries row written for tenant A');
+      }
+    } finally {
+      await db.$executeRawUnsafe(`DELETE FROM "activity_log_entries" WHERE "id" = $1`, logId);
     }
   } finally {
     await db.$disconnect();

@@ -28,6 +28,7 @@ import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { currentOrgScope, resolveScopeLazily } from '@/lib/db/org-scope';
 import { applyRlsSession, isRlsEnforced, runWithGucSet } from '@/lib/db/rls-transaction';
+import { isBreakGlassActive } from '@/lib/db/rls-break-glass';
 
 /** The interactive-transaction client `db.$transaction(fn)` hands its callback. */
 export type TenantTx = Prisma.TransactionClient;
@@ -79,7 +80,10 @@ export async function withTenantTxFor<T>(
   options?: TenantTxOptions,
 ): Promise<T> {
   const opts = { ...TX_DEFAULTS, ...options };
-  if (!isRlsEnforced()) {
+  if (!isRlsEnforced() || (await isBreakGlassActive())) {
+    // Break-glass: run as `postgres`, no role switch — tenant isolation
+    // falls back to the app tier (org-scope.ts). `rls-break-glass.ts` has
+    // already emitted the alert.
     return db.$transaction((tx) => runWithGucSet(() => fn(tx)), opts);
   }
   return db.$transaction(async (tx) => {
