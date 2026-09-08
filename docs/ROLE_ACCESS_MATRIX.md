@@ -144,7 +144,7 @@ tab pills, and (via middleware) the route:
 
 ## 3. Family guest accounts
 
-The roster lives in `scripts/lib/family-guests.ts` (10 members) and shares
+The roster lives in `scripts/lib/family-guests.ts` (11 members) and shares
 one password, `a2r-DOS-233444` (satisfies the strength policy; `mustChangePassword`
 is `false`):
 
@@ -160,6 +160,7 @@ is `false`):
 | 8 | Mani | `mani@a2rventures.local` |
 | 9 | Urvashi | `urvashi@a2rventures.local` |
 | 10 | Ananya | `ananya@a2rventures.local` |
+| 11 | Sudhindra | `sudhindra@a2rventures.local` |
 
 ### Designed (launch) tier — `VIEWER`
 

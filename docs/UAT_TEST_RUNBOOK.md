@@ -56,13 +56,13 @@ at **Ops Console → Role & Access** (`/ops/access`, Super Admin + elevation).
 Capability reference: `docs/ROLE_ACCESS_MATRIX.md` § 1.2.
 
 **Family guest accounts** (v1.16.0) — roster in `scripts/lib/family-guests.ts`
-(10 members), shared password **`a2r-DOS-233444`**. Designed tier is
+(11 members), shared password **`a2r-DOS-233444`**. Designed tier is
 `MembershipRole.VIEWER` + `deliveryRole = VIEWER` of A2R DOS Demo
 (`npm run guests:seed` / `e2e/global-setup.ts`).
 
 | Accounts (`<name>@a2rventures.local`) | Tier | Default landing |
 | --- | --- | --- |
-| abha, janvi, honey, griffin, chan, lucky, angad, mani, urvashi, ananya | **VIEWER** (launch) | SteerCo Briefing (`/steerco`) — "Executive Viewer", read-only, financials scrubbed |
+| abha, janvi, honey, griffin, chan, lucky, angad, mani, urvashi, ananya, sudhindra | **VIEWER** (launch) | SteerCo Briefing (`/steerco`) — "Executive Viewer", read-only, financials scrubbed |
 
 > **Pre-launch:** the roster is currently promoted with
 > `npm run guests:access -- --tier full --yes-prod` to `OWNER` / `ADMIN` in

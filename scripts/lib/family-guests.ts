@@ -27,6 +27,7 @@ export const FAMILY_GUESTS: readonly FamilyGuest[] = [
   { name: 'Mani', email: 'mani@a2rventures.local' },
   { name: 'Urvashi', email: 'urvashi@a2rventures.local' },
   { name: 'Ananya', email: 'ananya@a2rventures.local' },
+  { name: 'Sudhindra', email: 'sudhindra@a2rventures.local' },
 ] as const;
 
 export const FAMILY_GUEST_EMAILS: readonly string[] = FAMILY_GUESTS.map((g) => g.email);
