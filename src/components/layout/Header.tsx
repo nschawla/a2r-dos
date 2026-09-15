@@ -63,15 +63,16 @@ export function Header({
       <div className="flex-1 flex justify-center">
         <CommandPaletteTrigger />
       </div>
-      {/* Right: utilities — perspective, alerts, help, and the account menu
-          grouped together rather than split across the header. */}
+      {/* Right: the Perspective switcher leads — it decides which curated
+          home a click on the brand mark returns to, so it gets first
+          billing over the smaller utility icons that follow it. */}
       <div className="flex items-center gap-1.5">
-        <NotificationsBell notifications={notifications} />
-        <SupportTrigger />
-        <HelpTrigger />
         <div id="persona-switcher">
           <LensSwitcher current={currentLens} available={availableLenses} />
         </div>
+        <NotificationsBell notifications={notifications} />
+        <SupportTrigger />
+        <HelpTrigger />
         <UserMenu userName={userName} role={role} />
       </div>
     </header>
@@ -105,11 +106,11 @@ function WorkspaceSwitcher({ organizationName, memberships }: { organizationName
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        title="A2R Delivery OS™"
+        title="PS-DOS™"
         className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-sm hover:bg-surface-2 transition-colors max-w-[220px]"
       >
         <BrandMark size="sm" />
-        <span className="sr-only">A2R Delivery OS™ —</span>
+        <span className="sr-only">PS-DOS™ —</span>
         <span className="text-sm font-semibold truncate">{organizationName}</span>
         <span className="text-ink-faint text-[10px]">▾</span>
       </button>

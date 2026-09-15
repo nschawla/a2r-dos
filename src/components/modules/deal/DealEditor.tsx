@@ -263,7 +263,7 @@ export function DealEditor({
       </div>
 
       {mode === 'MATRIX' ? (
-        <div className="card">
+        <div className="card card-tint-commercial">
           <div className="flex items-start justify-between gap-3 mb-1">
             <h2 className="text-[15.5px] font-bold">Phase-Effort Matrix</h2>
             {canEdit && (
@@ -283,9 +283,9 @@ export function DealEditor({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                    <th className="py-2 pr-4">Phase</th>
+                    <th className="py-2 pr-4 whitespace-nowrap">Phase</th>
                     {roles.map((r) => (
-                      <th key={r.id} className="py-2 pr-4 text-right">
+                      <th key={r.id} className="py-2 pr-4 text-right whitespace-nowrap">
                         <span className="inline-flex items-center gap-1.5 justify-end">
                           {r.name}
                           <span
@@ -299,7 +299,7 @@ export function DealEditor({
                         </span>
                       </th>
                     ))}
-                    <th className="py-2 pr-4 text-right">Phase Total</th>
+                    <th className="py-2 pr-4 text-right whitespace-nowrap">Phase Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -339,13 +339,13 @@ export function DealEditor({
                 </tbody>
                 <tfoot>
                   <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-t border-border">
-                    <th className="py-2 pr-4">Role Total</th>
+                    <th className="py-2 pr-4 whitespace-nowrap">Role Total</th>
                     {roles.map((r) => (
-                      <th key={r.id} className="py-2 pr-4 text-right tabular-nums font-semibold text-ink">
+                      <th key={r.id} className="py-2 pr-4 text-right tabular-nums font-semibold text-ink whitespace-nowrap">
                         {(totals.roleTotals[r.id] ?? 0).toLocaleString('en-US')}
                       </th>
                     ))}
-                    <th className="py-2 pr-4 text-right tabular-nums font-semibold text-ink">
+                    <th className="py-2 pr-4 text-right tabular-nums font-semibold text-ink whitespace-nowrap">
                       {totals.totalHours.toLocaleString('en-US')}
                     </th>
                   </tr>

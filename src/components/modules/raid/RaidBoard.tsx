@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { createRaidEntry, updateRaidEntry, updateRaidStatus, toggleRaidEscalation } from '@/server/actions/raid';
 import { CsvImportModal } from '@/components/ingestion/CsvImportModal';
+import { dueStatusFor, DUE_STATUS_LABEL, DUE_STATUS_BADGE_CLASS } from '@/lib/due-status';
 
 type RaidType = 'RISK' | 'ASSUMPTION' | 'ISSUE' | 'DEPENDENCY';
 type RaidSeverity = 'CRITICAL' | 'HIGH' | 'MED' | 'LOW';
@@ -264,7 +265,7 @@ export function RaidBoard({ projectId, canEdit, entries, resources }: RaidBoardP
         </button>
       </div>
 
-      <div className="card">
+      <div className="card card-tint-delivery">
         {filtered.length === 0 ? (
           <p className="text-ink-muted text-sm">
             {matrixCell ? 'No open risks in this cell.' : 'Nothing matches the current filters.'}
@@ -638,6 +639,13 @@ function RaidRow({
           <span className="badge bg-surface-3 text-ink-muted">{LIKELIHOOD_LABEL[likelihood]}</span>
         )}
         {escalate && <span className="badge bg-warning-soft text-warning">SteerCo</span>}
+        {status !== 'CLOSED' &&
+          (() => {
+            const due = dueStatusFor(entry.targetDate || null);
+            return due === 'none' ? null : (
+              <span className={clsx('badge', DUE_STATUS_BADGE_CLASS[due])}>{DUE_STATUS_LABEL[due]}</span>
+            );
+          })()}
         <div className="flex-1 min-w-[200px]">
           <p className="text-sm font-semibold">{displayTitle({ title, description })}</p>
           {title && <p className="text-ink-muted text-xs mt-0.5">{description}</p>}

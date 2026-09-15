@@ -4,6 +4,7 @@ import { requireOrgContext } from '@/lib/session';
 import { loadAuditModulePage } from '@/server/queries/pages/project-modules';
 import { CONTROL_DEFS, getControlDef } from '@/lib/constants';
 import { AuditChecklist } from '@/components/modules/audit/AuditChecklist';
+import { StatusBlurbEditor } from '@/components/modules/audit/StatusBlurbEditor';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { getProjectHealth } from '@/server/queries/health';
 import { canEditProject } from '@/lib/auth/rbac';
@@ -70,6 +71,13 @@ export default async function AuditProjectPage({ params }: { params: Promise<{ p
           </Link>
         </div>
       </div>
+
+      <StatusBlurbEditor
+        projectId={project.id}
+        initialValue={project.narrativeBlockers ?? ''}
+        canEdit={canEdit}
+        healthCode={health.code}
+      />
 
       <AuditChecklist projectId={project.id} canEdit={canEdit} entries={entries} />
     </>

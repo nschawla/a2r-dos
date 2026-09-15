@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * DAL query functions for the portfolio-level dashboard pages
  * (/portfolio, /capacity, /methodology, /reports). Each fails closed via
@@ -43,6 +43,89 @@ export async function loadPortfolioDashboardExtras(context: OrgContext, scopedPr
     }),
   ]);
   return { recentActivity, resourceCount, practiceCount, raidCounts };
+}
+
+// ── /portfolio Decision Center — exception-driven "needs attention today" ──
+//
+// Deliberately narrow: two concrete, already-modeled exception classes
+// (an open SteerCo decision awaiting a call, a CRITICAL/HIGH RAID item
+// still open) rather than a new derived-risk score. Both are scoped by
+// `scopedProjectIds` — the same row-level scope the rest of the page uses
+// — so a Project Manager sees only their own engagements' exceptions, a
+// Practice Director their whole practice's, and Admin/VP the full tenant.
+// Red-health engagements are computed by the page itself from the project
+// list it already loaded (via `getProjectHealth`) — no extra query.
+
+export interface DecisionAlert {
+  id: string;
+  projectId: string;
+  projectName: string;
+  decisionRequired: string;
+  ownerName: string | null;
+  resolutionTargetDate: string | null;
+  overdue: boolean;
+}
+
+export interface RaidAlert {
+  id: string;
+  projectId: string;
+  projectName: string;
+  type: 'RISK' | 'ASSUMPTION' | 'ISSUE' | 'DEPENDENCY';
+  title: string;
+  severity: 'CRITICAL' | 'HIGH';
+  targetDate: string | null;
+  overdue: boolean;
+}
+
+export async function loadDecisionCenterAlerts(
+  context: OrgContext,
+  scopedProjectIds: string[]
+): Promise<{ pendingDecisions: DecisionAlert[]; criticalRaid: RaidAlert[] }> {
+  assertTenantContext(context);
+  const { organizationId } = context;
+  const now = new Date();
+
+  const [decisions, raid] = await Promise.all([
+    tenantDb.steerCoDecision.findMany({
+      where: { organizationId, projectId: { in: scopedProjectIds }, status: 'OPEN' },
+      orderBy: [{ resolutionTargetDate: 'asc' }, { createdAt: 'asc' }],
+      take: 8,
+      include: { project: { select: { name: true } }, owner: { select: { name: true } } },
+    }),
+    tenantDb.raidEntry.findMany({
+      where: {
+        organizationId,
+        projectId: { in: scopedProjectIds },
+        status: { not: 'CLOSED' },
+        severity: { in: ['CRITICAL', 'HIGH'] },
+      },
+      orderBy: [{ targetDate: 'asc' }, { createdAt: 'asc' }],
+      take: 8,
+      include: { project: { select: { name: true } } },
+    }),
+  ]);
+
+  return {
+    pendingDecisions: decisions.map((d) => ({
+      id: d.id,
+      projectId: d.projectId,
+      projectName: d.project.name,
+      decisionRequired: d.decisionRequired,
+      ownerName: d.owner?.name ?? null,
+      resolutionTargetDate: d.resolutionTargetDate?.toISOString() ?? null,
+      overdue: d.resolutionTargetDate != null && d.resolutionTargetDate < now,
+    })),
+    criticalRaid: raid.map((r) => ({
+      id: r.id,
+      projectId: r.projectId,
+      projectName: r.project.name,
+      type: r.type,
+      title: r.title ?? r.description.split('\n')[0]!.slice(0, 90),
+      severity: r.severity as 'CRITICAL' | 'HIGH',
+      targetDate: r.targetDate?.toISOString() ?? null,
+      overdue: r.targetDate != null && r.targetDate < now,
+    })),
+  };
 }
 
 // ── /capacity (Resource & Capacity Cockpit) ──────────────────────────

@@ -56,7 +56,15 @@ function DiffView({ previous, next }: { previous: unknown; next: unknown }) {
   const prevObj = (previous ?? {}) as Record<string, unknown>;
   const nextObj = (next ?? {}) as Record<string, unknown>;
   const keys = Array.from(new Set([...Object.keys(prevObj), ...Object.keys(nextObj)])).filter(
-    (k) => JSON.stringify(prevObj[k]) !== JSON.stringify(nextObj[k])
+    (k) =>
+      JSON.stringify(prevObj[k]) !== JSON.stringify(nextObj[k]) &&
+      // Drop raw internal-record identifiers (Prisma's own `id` /
+      // `<thing>Id` foreign-key convention) — never meaningful to a
+      // stakeholder reading this trail, and a bare cuid string reads as a
+      // database leak, not information. The audited action's own
+      // human-readable fields (name, status, amount, ...) still show.
+      k !== 'id' &&
+      !/Id$/.test(k)
   );
 
   if (keys.length === 0) return <p className="text-ink-faint text-[11px]">No field-level changes recorded.</p>;

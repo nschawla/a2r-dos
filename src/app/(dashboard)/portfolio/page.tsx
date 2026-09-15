@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requireOrgContext } from '@/lib/session';
 import { getScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
-import { loadPortfolioDashboardExtras } from '@/server/queries/pages/dashboards';
+import { loadPortfolioDashboardExtras, loadDecisionCenterAlerts } from '@/server/queries/pages/dashboards';
 import { getProjectHealth } from '@/server/queries/health';
 import { getBlendedUtilization } from '@/server/queries/capacity';
 import { getVisibleCustomKpis, getKpiMetricValues } from '@/server/queries/kpi-data';
@@ -12,6 +12,7 @@ import { MaskedValue } from '@/components/security/Masked';
 import { StatCard } from '@/components/ui/stat-card';
 import { ModuleTabs } from '@/components/ui/module-tabs';
 import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
+import { DecisionCenter } from '@/components/portfolio/DecisionCenter';
 import { CreateProjectForm } from './create-project-form';
 
 const HEALTH_DOT: Record<string, string> = { G: 'bg-success', Y: 'bg-warning', R: 'bg-critical' };
@@ -33,11 +34,22 @@ export default async function HomePage() {
   // boundary data, same as the project list. `practiceCount` stays
   // tenant-wide deliberately: a structural fact about the org (how many
   // practice buckets exist), not a roster. See loadPortfolioDashboardExtras.
-  const [{ recentActivity, resourceCount, practiceCount, raidCounts }, utilization] = await Promise.all([
-    loadPortfolioDashboardExtras(context, scopedProjectIds),
-    getBlendedUtilization(organizationId),
-  ]);
+  const [{ recentActivity, resourceCount, practiceCount, raidCounts }, utilization, decisionCenterAlerts] =
+    await Promise.all([
+      loadPortfolioDashboardExtras(context, scopedProjectIds),
+      getBlendedUtilization(organizationId),
+      loadDecisionCenterAlerts(context, scopedProjectIds),
+    ]);
   const openRaidByProject = new Map(raidCounts.map((r) => [r.projectId, r._count._all]));
+
+  // Decision Center — the exception-driven "needs attention today" panel.
+  // Red-health projects come free from the list this page already loaded
+  // (each carries the auditEntries getProjectHealth needs); the decisions
+  // and RAID exceptions are the dedicated query above. All three are
+  // already scoped to this viewer's portfolio.
+  const redProjects = projects
+    .filter((p) => getProjectHealth(p).code === 'R')
+    .map((p) => ({ id: p.id, name: p.name, narrativeBlockers: p.narrativeBlockers }));
 
   // Custom KPI Definition Engine — skip the extra schedule/RAID/capacity
   // queries entirely when the tenant hasn't defined any KPIs, the common
@@ -148,7 +160,7 @@ export default async function HomePage() {
 
   const engagementsPanel = (
     <>
-      <div className="card">
+      <div className="card card-tint-governance">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
           <div>
             <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Portfolio Registry</div>
@@ -184,13 +196,23 @@ export default async function HomePage() {
                   const health = getProjectHealth(p);
                   return (
                     <tr key={p.id} className="border-b border-border/60 last:border-0">
-                      <td className="py-2.5 pr-4 font-semibold">{p.name}</td>
+                      <td className="py-2.5 pr-4 font-semibold max-w-[26ch]">
+                        {p.name}
+                        {health.code !== 'G' && p.narrativeBlockers && (
+                          <div className="text-[11px] font-normal text-ink-faint mt-0.5 whitespace-normal leading-snug">
+                            {p.narrativeBlockers}
+                          </div>
+                        )}
+                      </td>
                       <td className="py-2.5 pr-4 text-ink-muted">{p.client || '—'}</td>
                       <td className="py-2.5 pr-4 text-ink-muted">{p.projectManager?.name ?? 'Unassigned'}</td>
                       <td className="py-2.5 pr-4 text-ink-muted">{p.commercialModel}</td>
                       <td className="py-2.5 pr-4 text-ink-muted capitalize">{p.methodology.toLowerCase()}</td>
                       <td className="py-2.5 pr-4">
-                        <span className={`status-dot ${HEALTH_DOT[health.code]}`} />
+                        <span
+                          className={`status-dot ${HEALTH_DOT[health.code]}`}
+                          title={health.code !== 'G' && p.narrativeBlockers ? p.narrativeBlockers : undefined}
+                        />
                       </td>
                       <td className="py-2.5 pr-4 tabular-nums">{openRaidByProject.get(p.id) ?? 0}</td>
                       <td className="py-2.5 pr-4">
@@ -250,6 +272,12 @@ export default async function HomePage() {
             : `Scoped to your ${DELIVERY_ROLE_LABEL[deliveryRole]} portfolio — ${projects.length} engagement${projects.length === 1 ? '' : 's'}.`}
         </p>
       </div>
+
+      <DecisionCenter
+        redProjects={redProjects}
+        pendingDecisions={decisionCenterAlerts.pendingDecisions}
+        criticalRaid={decisionCenterAlerts.criticalRaid}
+      />
 
       <ModuleTabs
         tabs={[

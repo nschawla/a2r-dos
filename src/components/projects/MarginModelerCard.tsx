@@ -42,7 +42,23 @@ export function MarginModelerCard({ totals }: { totals: SizingTotals }) {
               onChange={(e) => setTarget(Number(e.target.value))}
               className="flex-1 accent-brand"
             />
-            <span className="tabular-nums font-semibold w-12 text-right">{target}%</span>
+            {/* Typed entry for an exact target — the slider alone can't
+                land precisely on e.g. 27%. */}
+            <input
+              type="number"
+              min={0}
+              max={80}
+              step={1}
+              inputMode="numeric"
+              value={target}
+              onChange={(e) => {
+                const raw = e.target.value === '' ? 0 : Number(e.target.value);
+                setTarget(Math.min(80, Math.max(0, Math.round(raw))));
+              }}
+              className="input !w-16 !px-2 !py-1 text-sm font-semibold text-right tabular-nums flex-none"
+              aria-label="Target margin (exact)"
+            />
+            <span className="text-ink-muted">%</span>
           </label>
 
           <dl className="grid grid-cols-2 gap-y-2.5 text-sm">

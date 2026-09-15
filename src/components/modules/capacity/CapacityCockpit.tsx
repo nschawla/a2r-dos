@@ -101,6 +101,19 @@ export function CapacityCockpit(props: CapacityCockpitProps) {
 // ───────────────────────────────────────────── Tab 1 — Utilization & Attainment
 
 function UtilizationTab({ periodLabel, orgSummary, practices, resourceRows }: CapacityCockpitProps) {
+  // The roster mixes billable and non-billable rows (the latter show "—"
+  // for target/actual), so its total is a direct sum of every row
+  // currently on screen — not orgSummary, which is billable-only and
+  // wouldn't tie out against a table that includes non-billable people.
+  const rosterTotals = resourceRows.reduce(
+    (acc, r) => ({
+      fte: acc.fte + r.fte,
+      availableHours: acc.availableHours + r.availableHours,
+      billableHours: acc.billableHours + r.billableHours,
+    }),
+    { fte: 0, availableHours: 0, billableHours: 0 }
+  );
+
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -156,6 +169,28 @@ function UtilizationTab({ periodLabel, orgSummary, practices, resourceRows }: Ca
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              {/* Org-wide total — orgSummary, not a client re-sum of the
+                  rows above, so this always agrees with the KPI cards. */}
+              <tr className="border-t-2 border-border text-[13px] font-bold">
+                <td className="py-2.5 pr-4">Total</td>
+                <td className="py-2.5 pr-4 text-right tabular-nums">{orgSummary.headcountFte.toFixed(1)}</td>
+                <td className="py-2.5 pr-4 text-right tabular-nums text-ink-muted">
+                  {Math.round(orgSummary.availableHours).toLocaleString('en-US')}
+                </td>
+                <td className="py-2.5 pr-4 text-right tabular-nums">
+                  {Math.round(orgSummary.billableHours).toLocaleString('en-US')}
+                </td>
+                <td className="py-2.5 pr-4 text-right tabular-nums text-ink-muted">{pctLabel(orgSummary.targetUtilPct)}</td>
+                <td className="py-2.5 pr-4 text-right tabular-nums">{pctLabel(orgSummary.utilizationPct)}</td>
+                <td className="py-2.5 pr-4 w-40">
+                  <PlanVsActualBar target={orgSummary.targetUtilPct} actual={orgSummary.utilizationPct} />
+                </td>
+                <td className={clsx('py-2.5 pr-4 text-right tabular-nums', attainmentTone(orgSummary.attainmentPct))}>
+                  {pctLabel(orgSummary.attainmentPct)}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
@@ -202,6 +237,22 @@ function UtilizationTab({ periodLabel, orgSummary, practices, resourceRows }: Ca
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-border text-[13px] font-bold">
+                <td className="py-2.5 pr-4">Total ({resourceRows.length})</td>
+                <td className="py-2.5 pr-4" />
+                <td className="py-2.5 pr-4 text-right tabular-nums">{rosterTotals.fte.toFixed(1)}</td>
+                <td className="py-2.5 pr-4 text-right tabular-nums text-ink-muted">
+                  {Math.round(rosterTotals.availableHours).toLocaleString('en-US')}
+                </td>
+                <td className="py-2.5 pr-4 text-right tabular-nums">
+                  {Math.round(rosterTotals.billableHours).toLocaleString('en-US')}
+                </td>
+                <td className="py-2.5 pr-4 text-right text-ink-faint font-normal text-[11px]" colSpan={3}>
+                  blended target/actual shown in Practice Breakdown above
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
         <p className="text-[11px] text-ink-faint mt-3">

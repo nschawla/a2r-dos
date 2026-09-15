@@ -73,7 +73,7 @@ export function ScheduleTracker({ projectId, canEdit, phases, tolerances }: Sche
   const phaseByKey = new Map(phases.map((p) => [p.phaseKey, p]));
 
   return (
-    <div className="card">
+    <div className="card card-tint-delivery">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -211,7 +211,7 @@ function PhaseRow({
         />
       </td>
       <td className="py-1.5 pr-4">
-        <div className="flex items-center gap-2 w-40">
+        <div className="flex items-center gap-2 w-44">
           <input
             type="range"
             min={0}
@@ -222,7 +222,25 @@ function PhaseRow({
             onChange={(e) => patch({ pctComplete: Number(e.target.value) })}
             className="flex-1 accent-brand"
           />
-          <span className="tabular-nums text-xs w-9 text-right">{draft.pctComplete}%</span>
+          {/* The slider is quick and coarse; this box is for typing an exact
+              figure (e.g. "63%") straight from a status report. Both drive
+              the same draft.pctComplete, so either one stays authoritative. */}
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            inputMode="numeric"
+            value={draft.pctComplete}
+            disabled={!canEdit}
+            onChange={(e) => {
+              const raw = e.target.value === '' ? 0 : Number(e.target.value);
+              patch({ pctComplete: Math.min(100, Math.max(0, Math.round(raw))) });
+            }}
+            className="input !w-14 !px-1.5 !py-1 text-xs text-right tabular-nums"
+            aria-label="% Complete (exact)"
+          />
+          <span className="text-xs text-ink-faint">%</span>
         </div>
       </td>
       <td className="py-1.5 pr-4">

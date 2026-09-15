@@ -326,3 +326,43 @@ export const setEstimationMode = withAction('setEstimationMode', async (input: u
   revalidateProjectRoutes(projectId);
   return { ok: true };
 });
+
+const statusBlurbSchema = z.strictObject({
+  projectId: z.string().min(1),
+  // "Concise 1-2 sentence" — capped well short of a paragraph so the field
+  // stays a scannable flag, not a second narrative field.
+  narrativeBlockers: z.string().max(280).optional().or(z.literal('')),
+});
+
+/**
+ * The executive status blurb — a one-or-two sentence plain-English note on
+ * *why* an engagement is Yellow or Red, shown next to the RAG flag in every
+ * project registry (Control Tower, Decision Center) so a stakeholder gets
+ * the "what's blocking this" without opening the project. Backed by the
+ * long-standing `narrativeBlockers` column — part of the original
+ * steering-deck narrative trio (`narrativeAccomplishments` /
+ * `narrativeBlockers` / `narrativePriorities`) that previously only
+ * round-tripped through Workspace Backup/Restore with no editor UI.
+ */
+export const updateProjectStatusBlurb = withAction(
+  'updateProjectStatusBlurb',
+  async (input: unknown): Promise<ActionResult> => {
+    const parsed = statusBlurbSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input' };
+    const { projectId, narrativeBlockers } = parsed.data;
+
+    const auth = await authorizeProjectEdit(projectId);
+    if (!auth.ok) return { ok: false, error: auth.error };
+
+    await db.project.update({
+      where: { id: projectId },
+      data: { narrativeBlockers: narrativeBlockers?.trim() || null },
+    });
+
+    revalidateProjectRoutes(projectId);
+    revalidatePath(`/audit/${projectId}`);
+    revalidatePath('/portfolio');
+    revalidatePath('/steerco');
+    return { ok: true };
+  }
+);

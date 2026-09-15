@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * A2R Delivery OS — design tokens ("Executive Clarity" light theme).
+ * PS-DOS — design tokens ("Executive Clarity" light theme).
  *
  * NEUTRALS are a crisp light ramp built for an executive audience (ages
  * 30–50+) and print/PDF export. `bg` is a soft cool off-white page canvas
@@ -68,6 +68,17 @@ const config: Config = {
         warning: { DEFAULT: '#B45309', soft: 'rgba(180,83,9,0.10)' }, // amber-700, ~5.9:1 (AAA large)
         critical: { DEFAULT: '#B91C1C', soft: 'rgba(185,28,28,0.10)' }, // red-700, ~6.4:1
         na: { DEFAULT: '#52525B', soft: 'rgba(82,82,91,0.10)' },
+
+        // ── Sidebar functional-area accents (narrow, deliberate use) ──
+        // Three muted hues distinct from both `brand` and the RAG status
+        // set above, used ONLY to tell the app's three functional zones
+        // apart at a glance — sidebar icon tint + a thin card accent
+        // border on that zone's primary working card. `brand` remains the
+        // one interactive accent (links, primary actions, active nav,
+        // focus rings); these never appear on a control or a link.
+        groupGovernance: { DEFAULT: '#4F46E5', soft: 'rgba(79,70,229,0.06)' }, // indigo-600 — Portfolio Governance
+        groupDelivery: { DEFAULT: '#0D9488', soft: 'rgba(13,148,136,0.06)' }, // teal-600 — Delivery Tracking
+        groupCommercial: { DEFAULT: '#7C3AED', soft: 'rgba(124,58,237,0.06)' }, // violet-600 — Commercials
       },
       fontFamily: {
         display: ['var(--font-sora)', 'Segoe UI', 'system-ui', 'sans-serif'],

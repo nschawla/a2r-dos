@@ -81,6 +81,22 @@
   .card {
     @apply bg-surface-1 border border-border rounded-lg p-6 shadow-card;
   }
+  /* Functional-area card tints — a soft background wash + a colored left
+     edge on a zone's primary working card (the Phase-Effort Matrix, the
+     RAID board, the audit checklist...), so a viewer moving between
+     Portfolio Governance / Delivery Tracking / Commercials screens picks
+     up a consistent color cue instead of every card reading identically.
+     Deliberately subtle — a 6% wash, not a filled block — and never used
+     on interactive elements (see tailwind.config.ts for the palette note). */
+  .card-tint-governance {
+    @apply bg-groupGovernance-soft border-l-[3px] border-l-groupGovernance;
+  }
+  .card-tint-delivery {
+    @apply bg-groupDelivery-soft border-l-[3px] border-l-groupDelivery;
+  }
+  .card-tint-commercial {
+    @apply bg-groupCommercial-soft border-l-[3px] border-l-groupCommercial;
+  }
   .badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold
       bg-surface-2 border border-border text-ink-muted whitespace-nowrap;

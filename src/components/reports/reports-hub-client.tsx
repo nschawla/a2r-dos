@@ -25,6 +25,7 @@ import {
   type SteerCoDecisionView,
 } from '@/server/actions/steerco';
 import type { HealthCode } from '@/lib/calculations/types';
+import { dueStatusFor, DUE_STATUS_LABEL, DUE_STATUS_BADGE_CLASS } from '@/lib/due-status';
 
 export interface ReportsProjectView {
   id: string;
@@ -297,9 +298,16 @@ function DecisionTracker({
         <ul className="flex flex-col gap-2">
           {decisions.map((d) => (
             <li key={d.id} className="bg-surface-2 rounded-sm px-3.5 py-3 flex items-start gap-3 flex-wrap">
-              <span className={clsx('badge', d.status === 'OPEN' ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success')}>
+              <span className={clsx('badge', d.status === 'OPEN' ? 'bg-na-soft text-na' : 'bg-success-soft text-success')}>
                 {STATUS_LABEL[d.status]}
               </span>
+              {d.status === 'OPEN' &&
+                (() => {
+                  const due = dueStatusFor(d.resolutionTargetDate);
+                  return due === 'none' ? null : (
+                    <span className={clsx('badge', DUE_STATUS_BADGE_CLASS[due])}>{DUE_STATUS_LABEL[due]}</span>
+                  );
+                })()}
               <div className="flex-1 min-w-[200px]">
                 <p className="text-sm font-semibold">{d.decisionRequired}</p>
                 <p className="text-ink-faint text-xs mt-1">

@@ -181,7 +181,7 @@ export function EacEditor({
 
       <BurnCurve series={burnSeries} />
 
-      <div className="card">
+      <div className="card card-tint-commercial">
         <div className="flex items-start justify-between gap-3 mb-4">
           <h2 className="text-[15.5px] font-bold">
             {estimationMode === 'DIRECT' ? 'Blended Actuals & Forecast' : 'Actuals, Forecast & Open Demand by Role'}
@@ -199,14 +199,14 @@ export function EacEditor({
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                  <th className="py-2 pr-4">Role</th>
-                  <th className="py-2 pr-4 text-right">Baseline Hrs</th>
-                  <th className="py-2 pr-4 text-right">Baseline Rate</th>
-                  <th className="py-2 pr-4 text-right">Actual Hrs</th>
-                  <th className="py-2 pr-4 text-right">Actual Cost</th>
-                  <th className="py-2 pr-4 text-right">Forecast Hrs Remaining</th>
-                  <th className="py-2 pr-4 text-right">Open RR Hrs</th>
-                  <th className="py-2 pr-4 text-right">EAC</th>
+                  <th className="py-2 pr-4 whitespace-nowrap">Role</th>
+                  <th className="py-2 pr-4 text-right whitespace-nowrap">Baseline Hrs</th>
+                  <th className="py-2 pr-4 text-right whitespace-nowrap">Baseline Rate</th>
+                  <th className="py-2 pr-4 text-right whitespace-nowrap">Actual Hrs</th>
+                  <th className="py-2 pr-4 text-right whitespace-nowrap">Actual Cost</th>
+                  <th className="py-2 pr-4 text-right whitespace-nowrap">Forecast Hrs Remaining</th>
+                  <th className="py-2 pr-4 text-right whitespace-nowrap">Open RR Hrs</th>
+                  <th className="py-2 pr-4 text-right whitespace-nowrap">EAC</th>
                   {canEdit && <th className="py-2 pr-4" />}
                 </tr>
               </thead>

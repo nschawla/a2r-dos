@@ -8,13 +8,29 @@ import { BrandMark } from '@/components/ui/brand-mark';
 import { useDashboardUI } from './dashboard-ui-context';
 import { rbacHiddenHrefs } from '@/lib/governance/rbacMatrix';
 
+/** The three functional zones the sidebar groups into — a color cue only
+ * (see tailwind.config.ts's groupGovernance/groupDelivery/groupCommercial
+ * tokens), independent of the section `heading` a link renders under.
+ * Setup/Ops items carry none — they sit apart from the three zones. */
+type NavColorGroup = 'governance' | 'delivery' | 'commercial';
+
+const GROUP_ICON_CLASS: Record<NavColorGroup, string> = {
+  governance: 'text-groupGovernance',
+  delivery: 'text-groupDelivery',
+  commercial: 'text-groupCommercial',
+};
+
 interface NavItem {
   href: string;
   label: string;
+  /** Which functional zone this link's icon is tinted for — omit for an
+   * item that doesn't belong to one of the three (Setup, Ops). */
+  colorGroup?: NavColorGroup;
   /**
    * Minimalist 24-unit line glyph — just the inner shapes; the shared
-   * <svg> shell (currentColor, 1.75 stroke, round caps) lives in NavLink so
-   * every icon inherits the link's ink colour and the single blue accent.
+   * <svg> shell (1.75 stroke, round caps) lives in NavLink. The icon
+   * takes its zone's tint color (or plain ink, unset); the label text and
+   * the active-row indicator stay on the single blue `brand` accent.
    */
   icon: ReactNode;
 }
@@ -31,6 +47,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/command',
         label: 'Command Center',
+        colorGroup: 'governance',
         // terminal chevron + prompt line
         icon: (
           <>
@@ -42,6 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/portfolio',
         label: 'Control Tower',
+        colorGroup: 'governance',
         // 2×2 portfolio grid
         icon: (
           <>
@@ -55,6 +73,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/capacity',
         label: 'Resource & Capacity',
+        colorGroup: 'governance',
         // utilization gauge
         icon: (
           <>
@@ -73,6 +92,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/commercial-baseline',
         label: 'Commercial Baseline',
+        colorGroup: 'commercial',
         // contract document
         icon: (
           <>
@@ -85,6 +105,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/financials',
         label: 'Financial Realization',
+        colorGroup: 'commercial',
         // trending line + arrow head
         icon: (
           <>
@@ -96,6 +117,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/schedule',
         label: 'Schedule & Milestones',
+        colorGroup: 'delivery',
         // calendar
         icon: (
           <>
@@ -107,6 +129,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/raid',
         label: 'RAID Cockpit',
+        colorGroup: 'delivery',
         // risk triangle
         icon: (
           <>
@@ -118,6 +141,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/audit',
         label: 'Control Audit',
+        colorGroup: 'delivery',
         // shield check — governance integrity
         icon: (
           <>
@@ -134,6 +158,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/steerco',
         label: 'SteerCo Briefing',
+        colorGroup: 'governance',
         // presentation board
         icon: (
           <>
@@ -146,6 +171,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: '/reports',
         label: 'Executive Hub',
+        colorGroup: 'governance',
         // analytics wedge
         icon: (
           <>
@@ -372,7 +398,14 @@ function NavLink({ item, active, collapsed }: { item: NavItem; active: boolean; 
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden
-        className={clsx('flex-none', collapsed ? 'h-[19px] w-[19px]' : 'h-[17px] w-[17px]')}
+        className={clsx(
+          'flex-none',
+          collapsed ? 'h-[19px] w-[19px]' : 'h-[17px] w-[17px]',
+          // Functional-area tint — quieter at rest, full strength on the
+          // active row. The label text and the left-rail indicator above
+          // stay untinted, so this reads as "which zone" not "which page".
+          item.colorGroup ? [GROUP_ICON_CLASS[item.colorGroup], !active && 'opacity-65'] : undefined
+        )}
       >
         {item.icon}
       </svg>

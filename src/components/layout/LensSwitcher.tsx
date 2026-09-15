@@ -65,8 +65,10 @@ export function LensSwitcher({
         aria-expanded={open}
         title="Switch workspace perspective"
         className={clsx(
-          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm border text-xs font-semibold whitespace-nowrap transition-colors',
-          open ? 'border-brand text-ink' : 'border-border-soft text-ink-muted hover:text-ink hover:border-ink-faint',
+          'flex items-center gap-1.5 pl-2.5 pr-2 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap transition-colors',
+          open
+            ? 'border-brand bg-brand/15 text-brand'
+            : 'border-brand/40 bg-brand/10 text-brand hover:bg-brand/15 hover:border-brand/60',
           pending && 'opacity-60'
         )}
       >
@@ -86,9 +88,9 @@ export function LensSwitcher({
           <path d="M8 20H5a1 1 0 0 1-1-1v-3" />
           <circle cx="12" cy="12" r="2.5" />
         </svg>
-        <span className="hidden md:inline text-ink-faint font-normal">Perspective ·</span>
+        <span className="hidden lg:inline font-normal opacity-80">Perspective ·</span>
         {activeLabel}
-        <span className="text-ink-faint text-[10px]">▾</span>
+        <span className="text-[10px] opacity-70">▾</span>
       </button>
 
       {open && (
