@@ -10,19 +10,25 @@
  * `DeliveryAccessRole` tiers already defined in src/lib/auth/rbac.ts (the
  * tier that gates every scoped query, edit action and masked figure in the
  * app) — see `PERSONA_TO_DELIVERY_ROLE`. Introducing a second, disconnected
- * role enum would either (a) gate nothing real, same as the cosmetic
- * `Persona` preview in src/components/layout/personas.ts, or (b) require a
- * schema migration and a second set of authorization checks to keep in
- * sync with the first — both are worse for security than one true axis
- * with a friendlier name painted on top of it.
+ * role enum would either (a) gate nothing real, or (b) require a schema
+ * migration and a second set of authorization checks to keep in sync with
+ * the first — both are worse for security than one true axis with a
+ * friendlier name painted on top of it.
  *
  * What IS new here: a per-persona ALLOW-list of `GOVERNABLE_MODULES` keys
  * (src/lib/governance/config.ts — the same module/route registry the
  * tenant Governance framework already uses), used to:
- *   1. filter the Sidebar and ProjectHeader's per-engagement pills so an
+ *   1. filter the Sidebar and ProjectHeader's per-engagement pills (and
+ *      write affordances like the Lock Baseline control) so an
  *      unauthorized item is never rendered at all (not just disabled), and
  *   2. gate the underlying routes in middleware.ts, so hiding a link is
  *      never the only thing standing between a persona and a page.
+ *
+ * The one place a viewer can *change* which persona they're rendered as is
+ * src/components/layout/PersonaPreviewBar.tsx — a single, explicit control
+ * shown only to a tenant ADMIN or A2R staff. Every other signed-in user
+ * gets no switcher: they're locked into `personaForDeliveryRole` of their
+ * own real session role.
  *
  * The RBAC allow-list and the tenant's own Governance hidden-module list
  * are two independent restrictions over the same module registry — a

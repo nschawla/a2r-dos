@@ -159,7 +159,10 @@ test.describe('Suite K3 — Custom KPI Builder reflects instantly on the Control
     const numberInputs = page.locator('input[type="number"]');
     await numberInputs.nth(0).fill('30'); // target
     await numberInputs.nth(1).fill('20'); // warning
-    await page.getByRole('button', { name: 'Global Admin' }).click();
+    // exact: true — the tenant shell's Persona Preview banner and identity
+    // chip (src/components/layout/PersonaPreviewBar.tsx, Header.tsx) also
+    // surface the "Global Admin" persona label elsewhere on this page.
+    await page.getByRole('button', { name: 'Global Admin', exact: true }).click();
     await page.getByRole('button', { name: 'Create KPI' }).click();
     await expect(page.locator(`text=${TEST_KPI_NAME}`)).toBeVisible({ timeout: 10_000 });
 

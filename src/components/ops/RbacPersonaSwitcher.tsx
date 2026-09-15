@@ -1,21 +1,24 @@
 'use client';
 
 /**
- * RBAC Persona Preview — an Ops Console-only demo / testing helper, not an
- * access control. Lets an A2R operator set which RBAC persona
- * (src/lib/governance/rbacMatrix.ts) a tenant's Sidebar and per-engagement
- * module pills render as, ahead of a demo or setup walkthrough — without
- * ever exposing a "preview as" control to the everyday users or external
- * clients signed into that tenant themselves (it lived in the main header
- * before; it now lives only here).
+ * RBAC Persona Preview — the Ops Console's copy of this control, for an A2R
+ * operator to set which RBAC persona (src/lib/governance/rbacMatrix.ts) a
+ * tenant's Sidebar and per-engagement module pills render as, ahead of a
+ * demo or setup walkthrough. The tenant shell itself has its own explicit
+ * version of this same control — src/components/layout/PersonaPreviewBar.tsx,
+ * a clearly-labeled top banner shown only to a tenant ADMIN or A2R staff —
+ * so an operator can also set (or change) the preview from inside the
+ * tenant they're looking at. Everyday users and external clients never see
+ * either control: they stay locked into their own real navigation.
  *
  * Strictly DISPLAY-ONLY: the choice is client-side state (localStorage,
- * shared with src/components/layout/dashboard-ui-context.tsx via
- * src/lib/client/rbac-preview.ts), never sent to the server, and never
- * changes what a route actually lets through — middleware.ts and every
- * scoped query still enforce whichever real user is signed into the
- * tenant's own session DeliveryRole. Set it here, then switch to
- * "← Client Workspace" (or start an impersonation session) to see it live.
+ * shared with src/components/layout/dashboard-ui-context.tsx and
+ * PersonaPreviewBar.tsx via src/lib/client/rbac-preview.ts), never sent to
+ * the server, and never changes what a route actually lets through —
+ * middleware.ts and every scoped query still enforce whichever real user is
+ * signed into the tenant's own session DeliveryRole. Set it here, then
+ * switch to "← Client Workspace" (or start an impersonation session) to see
+ * it live.
  */
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';

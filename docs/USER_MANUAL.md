@@ -499,9 +499,15 @@ the sidebar groups, per-engagement module pills, and routes it may reach.
 An unauthorized item is never rendered at all — there's no disabled button
 or greyed-out link to notice and wonder about — and the same matrix backs a
 server-side route guard, so a direct link to a page outside your role never
-gets further than a redirect. A2R staff can preview how a role's navigation
-looks from the **Ops Console** (a "Persona Preview" — display-only, and
-never a way to see data your own account isn't actually permitted to see).
+gets further than a redirect. A tenant Admin (or an A2R staff member) sees
+a **Persona Preview** banner at the top of the workspace and can pick any
+role to see the app exactly as that role would — sidebar, tab pills, and
+write controls (like Lock Baseline) all strip down to match. It's clearly
+labeled and unmissable while active (a solid warning-colored bar with an
+"Exit preview" button) so it's never mistaken for real access, and it's
+display-only — it can never show data your own account isn't actually
+permitted to see. Every other role signs in and stays locked to its own
+real view; no switcher is shown at all.
 
 ### Role-Based Scoped Filtering — where "Their practice" is actually enforced
 

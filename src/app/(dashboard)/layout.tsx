@@ -11,7 +11,7 @@ import { Footer } from '@/components/layout/Footer';
 import { HelpDrawer } from '@/components/layout/HelpDrawer';
 import { SupportTicketModal } from '@/components/support/SupportTicketModal';
 import { DashboardUIProvider } from '@/components/layout/dashboard-ui-context';
-import { defaultPersonaForRole } from '@/components/layout/personas';
+import { PersonaPreviewBar } from '@/components/layout/PersonaPreviewBar';
 import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner';
 import { GraceperiodBanner } from '@/components/layout/GraceperiodBanner';
 import { Container } from '@/components/ui/container';
@@ -25,6 +25,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const lenses = availableLenses(lensCtx);
   const currentLens = resolveLens((await cookies()).get(LENS_COOKIE)?.value ?? null, lensCtx);
   const realRbacPersona = personaForDeliveryRole(deliveryRole);
+  // Who may see and use the Persona Preview banner at all: a tenant ADMIN
+  // (full delivery authority already — previewing a narrower role can't
+  // grant anything) or an A2R staff member. Every other signed-in user is
+  // locked into their own real navigation with no switcher rendered.
+  const personaPreviewEligible = isA2rStaff || deliveryRole === 'ADMIN';
 
   // A2R Operator Control Plane — a SUSPENDED tenant retains all its data but
   // its members cannot use the workspace until an operator reactivates it.
@@ -38,11 +43,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const notifications = await getNotificationSummary(organizationId);
 
   return (
-    <DashboardUIProvider defaultPersona={defaultPersonaForRole(role)} realRbacPersona={realRbacPersona}>
+    <DashboardUIProvider realRbacPersona={realRbacPersona}>
       {impersonation && (
         <ImpersonationBanner organizationName={organizationName} expiresAt={impersonation.expiresAt} />
       )}
       {graceReadOnly && <GraceperiodBanner organizationName={organizationName} />}
+      <PersonaPreviewBar eligible={personaPreviewEligible} />
       <div className="flex min-h-screen">
         <Sidebar hiddenHrefs={hiddenHrefs(governance)} isA2rStaff={isA2rStaff} />
         <div className="flex-1 min-w-0 flex flex-col">

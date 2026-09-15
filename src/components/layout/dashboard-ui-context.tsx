@@ -1,22 +1,9 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import {
-  PERSONAS,
-  PERSONA_STORAGE_KEY,
-  PERSONAS_WITH_WRITE_ACCESS,
-  defaultPersonaForRole,
-  type Persona,
-} from './personas';
 import { RBAC_MATRIX, type RbacPersona } from '@/lib/governance/rbacMatrix';
 import { useRbacPreview } from '@/lib/client/rbac-preview';
 
-// Re-exported so existing client-side imports from this module keep working.
-// The definitions live in ./personas (a non-client module) so Server
-// Components can call defaultPersonaForRole without hitting the RSC client
-// boundary, where non-component exports become non-callable stubs.
-export { PERSONAS, PERSONAS_WITH_WRITE_ACCESS, defaultPersonaForRole };
-export type { Persona };
 export { RBAC_MATRIX };
 export type { RbacPersona };
 
@@ -35,8 +22,6 @@ interface DashboardUIState {
   supportModalOpen: boolean;
   openSupportModal: () => void;
   closeSupportModal: () => void;
-  persona: Persona;
-  setPersona: (p: Persona) => void;
   /** The signed-in user's REAL, server-verified RBAC persona (derived from
    * their session DeliveryRole — see src/lib/governance/rbacMatrix.ts).
    * Never changes client-side; middleware.ts enforces routes against this
@@ -55,40 +40,17 @@ const DashboardUIContext = createContext<DashboardUIState | null>(null);
 
 export function DashboardUIProvider({
   children,
-  defaultPersona,
   realRbacPersona,
 }: {
   children: ReactNode;
-  defaultPersona: Persona;
   realRbacPersona: RbacPersona;
 }) {
   const [helpDrawerOpen, setHelpDrawerOpen] = useState(false);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
-  const [persona, setPersonaState] = useState<Persona>(defaultPersona);
   // Shared with src/components/ops/RbacPersonaSwitcher.tsx (the Ops Console
-  // has no DashboardUIProvider of its own) via the same localStorage key.
+  // has no DashboardUIProvider of its own) and PersonaPreviewBar.tsx (the
+  // explicit tenant-shell banner) via the same localStorage key.
   const { rbacPreview, setRbacPreview } = useRbacPreview();
-
-  // Restore a persona choice from a prior visit in this browser. Falls
-  // back silently (private windows, storage disabled) — persona always
-  // has a valid value either way.
-  useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(PERSONA_STORAGE_KEY);
-      if (stored && PERSONAS.some((p) => p.key === stored)) setPersonaState(stored as Persona);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const setPersona = useCallback((p: Persona) => {
-    setPersonaState(p);
-    try {
-      window.localStorage.setItem(PERSONA_STORAGE_KEY, p);
-    } catch {
-      // ignore
-    }
-  }, []);
 
   // The ⌘K palette lives at the app root (CommandK) so it works on every
   // surface, not just the dashboard — this just pokes it open.
@@ -121,8 +83,6 @@ export function DashboardUIProvider({
       supportModalOpen,
       openSupportModal,
       closeSupportModal,
-      persona,
-      setPersona,
       realRbacPersona,
       rbacPersona: rbacPreview ?? realRbacPersona,
       rbacPreviewActive: rbacPreview !== null,
@@ -131,13 +91,11 @@ export function DashboardUIProvider({
     [
       helpDrawerOpen,
       supportModalOpen,
-      persona,
       openCommandPalette,
       openHelpDrawer,
       closeHelpDrawer,
       openSupportModal,
       closeSupportModal,
-      setPersona,
       realRbacPersona,
       rbacPreview,
       setRbacPreview,

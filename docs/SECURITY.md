@@ -517,16 +517,24 @@ retention window and never edits a row**, and it **never touches**:
   `DeliveryAccessRole`. A single global write guard also enforces
   impersonation-readonly and grace-period-readonly.
 - **RBAC Master Matrix — navigation & route enforcement.** A single source
-  of truth (`src/lib/governance/rbacMatrix.ts`) maps each of five personas
+  of truth (`src/lib/governance/rbacMatrix.ts`) maps each of six personas
   (mapped 1:1 onto the real `DeliveryAccessRole`) to the sidebar groups,
   per-engagement module pills, and route prefixes it may reach. Unauthorized
   items are **omitted from rendering**, not merely disabled, in the
-  Sidebar and every `ModuleTabs`/`ModuleNav` surface; `src/middleware.ts`
-  independently blocks/redirects a direct navigation to a route the same
-  matrix disallows for the signed-in session's real role, as defence in
-  depth alongside (never instead of) the server-side authorization above.
-  An Ops-Console-only "Persona Preview" lets an A2R operator preview a
-  tenant's navigation as a given persona ahead of a demo — display-only,
+  Sidebar and every `ModuleTabs`/`ModuleNav` surface, and this same active
+  persona gates write affordances too (e.g. `ProjectHeader`'s Lock Baseline
+  control checks it alongside the real, server-computed edit authority);
+  `src/middleware.ts` independently blocks/redirects a direct navigation to
+  a route the same matrix disallows for the signed-in session's real role,
+  as defence in depth alongside (never instead of) the server-side
+  authorization above. A **Persona Preview** banner — shown only to a
+  tenant Admin or an A2R staff member, with no switcher rendered at all for
+  any other role — lets that viewer preview the workspace as a given
+  persona, from an explicit, clearly-labeled control at the top of the
+  screen (`src/components/layout/PersonaPreviewBar.tsx`; the Ops Console
+  carries its own copy, `RbacPersonaSwitcher.tsx`, for setting a preview
+  ahead of a tenant visit). Solid warning styling and an "Exit preview"
+  button make an active preview unmistakable. Strictly display-only,
   backed by client-side state the server never reads, and incapable of
   granting access a real session doesn't already have.
 - **Role-Based Scoped Filtering — data-row enforcement.** A third, distinct

@@ -7,7 +7,10 @@
  * implementation shared by:
  *   - src/components/layout/dashboard-ui-context.tsx (the tenant shell,
  *     where the preview overrides src/components/layout/Sidebar.tsx and
- *     ProjectHeader's ModuleNav for whoever is signed in), and
+ *     ProjectHeader's ModuleNav / write-affordance for whoever is signed
+ *     in), rendered through src/components/layout/PersonaPreviewBar.tsx —
+ *     the explicit, clearly-labeled banner shown only to a tenant ADMIN or
+ *     A2R staff; and
  *   - src/components/ops/RbacPersonaSwitcher.tsx (the A2R Ops Console,
  *     where an operator sets a preview ahead of a tenant demo).
  *

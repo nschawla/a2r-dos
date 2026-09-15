@@ -10,11 +10,12 @@
  * drops onto by default. Every destination stays reachable from the
  * sidebar and ⌘K regardless of the active lens.
  *
- * It is also a different thing from `Persona`
- * (src/components/layout/personas.ts), which is a client-only RBAC preview
- * for testing. Persona simulates "what would a PROJECT_MANAGER see"; a lens
- * is the real user choosing "land me on the board briefing, not the
- * delivery tower".
+ * It is also a different thing from `RbacPersona`
+ * (src/lib/governance/rbacMatrix.ts), which is a client-only RBAC preview
+ * for testing — surfaced via src/components/layout/PersonaPreviewBar.tsx to
+ * eligible admins only. A persona preview simulates "what would a Delivery
+ * Lead see"; a lens is the real user choosing "land me on the board
+ * briefing, not the delivery tower".
  *
  * Deliberately dependency-light — pure functions over the two existing
  * capability checks, so it stays trivially unit-testable.

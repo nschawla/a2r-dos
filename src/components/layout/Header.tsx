@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import clsx from 'clsx';
-import { useDashboardUI, PERSONAS, type Persona } from './dashboard-ui-context';
+import { useDashboardUI, RBAC_MATRIX } from './dashboard-ui-context';
 import { LensSwitcher } from './LensSwitcher';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { AutoDemoLaunchModal } from '@/components/demo/AutoDemoLaunchModal';
@@ -271,11 +271,13 @@ function NotificationsBell({ notifications }: { notifications: NotificationSumma
 // ------------------------------------------------------------- User + persona menu
 
 function UserMenu({ userName, role }: { userName: string; role: SessionMembership['role'] }) {
-  const { persona, setPersona } = useDashboardUI();
+  // The identity chip always reflects who you ARE, never an active Persona
+  // Preview (realRbacPersona, not rbacPersona) — the one place preview
+  // state is surfaced is the explicit banner (PersonaPreviewBar.tsx).
+  const { realRbacPersona } = useDashboardUI();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useOutsideClose(ref, open, () => setOpen(false));
-  const activePersonaLabel = PERSONAS.find((p) => p.key === persona)?.label ?? persona;
 
   return (
     <div className="relative" ref={ref}>
@@ -289,7 +291,7 @@ function UserMenu({ userName, role }: { userName: string; role: SessionMembershi
         </span>
         <span className="hidden sm:block text-left">
           <span className="block text-xs font-semibold leading-tight max-w-[120px] truncate">{userName}</span>
-          <span className="block text-[10px] text-ink-faint leading-tight">{activePersonaLabel}</span>
+          <span className="block text-[10px] text-ink-faint leading-tight">{RBAC_MATRIX[realRbacPersona].label}</span>
         </span>
       </button>
       {open && (
@@ -298,26 +300,6 @@ function UserMenu({ userName, role }: { userName: string; role: SessionMembershi
             <div className="text-sm font-semibold truncate">{userName}</div>
             <div className="text-[10px] text-ink-faint uppercase">Org role: {role}</div>
           </div>
-          <div className="px-3 py-2 text-[10px] uppercase tracking-wide text-ink-faint font-semibold border-b border-border">
-            Preview as (RBAC testing)
-          </div>
-          <ul className="py-1">
-            {PERSONAS.map((p) => (
-              <li key={p.key}>
-                <button
-                  type="button"
-                  onClick={() => setPersona(p.key as Persona)}
-                  className={clsx(
-                    'w-full flex items-center justify-between px-3 py-1.5 text-sm text-left hover:bg-surface-2 transition-colors',
-                    p.key === persona ? 'text-brand' : 'text-ink-muted'
-                  )}
-                >
-                  {p.label}
-                  {p.key === persona && <span>✓</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
           <div className="border-t border-border">
             <button
               type="button"
