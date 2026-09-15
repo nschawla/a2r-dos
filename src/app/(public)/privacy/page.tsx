@@ -1,7 +1,6 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
- * Proprietary and confidential. Licensed, not sold, under the A2R Delivery
- * OS Terms of Service & EULA (/terms).
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * Proprietary and confidential. Licensed, not sold, under the PS-DOS Terms of Service & EULA (/terms).
  */
 
 /**
@@ -17,7 +16,7 @@ import type { Metadata } from 'next';
 import { Container } from '@/components/ui/container';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — A2R Delivery OS™',
+  title: 'Privacy Policy — PS-DOS™',
 };
 
 const EFFECTIVE_DATE = 'January 1, 2026';
@@ -37,13 +36,13 @@ export default function PrivacyPage() {
       <div>
         <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Legal</div>
         <h1 className="text-2xl font-display font-bold">Privacy Policy</h1>
-        <p className="text-ink-faint text-xs mt-2">Effective {EFFECTIVE_DATE} &middot; A2R Delivery OS™, a product of A2R Ventures LLC</p>
+        <p className="text-ink-faint text-xs mt-2">Effective {EFFECTIVE_DATE} &middot; PS-DOS™, a product of A2R Ventures LLC</p>
       </div>
 
       <Section id="overview" title="1. Overview">
         <p>
           This Privacy Policy describes how A2R Ventures LLC (&ldquo;A2R,&rdquo; &ldquo;we&rdquo;) collects, uses,
-          stores, and protects information in connection with A2R Delivery OS™ (the &ldquo;Service&rdquo;). It applies
+          stores, and protects information in connection with PS-DOS™ (the &ldquo;Service&rdquo;). It applies
           to the organizations and individual users (&ldquo;Customer,&rdquo; &ldquo;you&rdquo;) who access the
           Service. Capitalized terms not defined here have the meaning given in the Terms of Service.
         </p>
@@ -71,7 +70,7 @@ export default function PrivacyPage() {
 
       <Section id="isolation" title="3. Multi-Tenant Data Isolation">
         <p>
-          A2R Delivery OS™ is a multi-tenant application: every organization (&ldquo;tenant&rdquo;) that signs up
+          PS-DOS™ is a multi-tenant application: every organization (&ldquo;tenant&rdquo;) that signs up
           shares the same application infrastructure, but tenant data is logically isolated at the database layer.
           Every record in the system — every project, deal, RAID entry, financial actual, audit entry, and report — is
           tagged with the owning organization&rsquo;s identifier, and every server-side query used to read or write

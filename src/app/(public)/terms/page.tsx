@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  * Proprietary and confidential. Licensed, not sold, under this Terms of
  * Service & EULA document itself.
  */
@@ -20,7 +20,7 @@ import type { Metadata } from 'next';
 import { Container } from '@/components/ui/container';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — A2R Delivery OS™',
+  title: 'Terms of Service — PS-DOS™',
 };
 
 const EFFECTIVE_DATE = 'January 1, 2026';
@@ -40,13 +40,13 @@ export default function TermsPage() {
       <div>
         <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Legal</div>
         <h1 className="text-2xl font-display font-bold">Terms of Service &amp; End-User License Agreement</h1>
-        <p className="text-ink-faint text-xs mt-2">Effective {EFFECTIVE_DATE} &middot; A2R Delivery OS™, a product of A2R Ventures LLC</p>
+        <p className="text-ink-faint text-xs mt-2">Effective {EFFECTIVE_DATE} &middot; PS-DOS™, a product of A2R Ventures LLC</p>
       </div>
 
       <Section id="acceptance" title="1. Acceptance of these Terms">
         <p>
           These Terms of Service, together with any order form, statement of work, or subscription agreement referencing
-          them (collectively, the &ldquo;Agreement&rdquo;), govern access to and use of A2R Delivery OS™ (the
+          them (collectively, the &ldquo;Agreement&rdquo;), govern access to and use of PS-DOS™ (the
           &ldquo;Service&rdquo;) provided by A2R Ventures LLC (&ldquo;A2R,&rdquo; &ldquo;we,&rdquo; &ldquo;us&rdquo;). By
           creating an organization, signing in, or otherwise accessing the Service, the individual doing so, and the
           professional services organization they represent (&ldquo;Customer,&rdquo; &ldquo;you&rdquo;), agree to be
@@ -67,7 +67,7 @@ export default function TermsPage() {
           it work: the underlying software, source code, calculation engines (including the Commercial Baseline sizing,
           EAC/Financial Realization, Audit Compliance, Schedule Pace-Risk, Portfolio Rollup, and Executive Reporting
           engines), user
-          interface designs, workflows, documentation, and the A2R Delivery OS™ name, logo, and trademarks — whether or
+          interface designs, workflows, documentation, and the PS-DOS™ name, logo, and trademarks — whether or
           not registered. A2R IP does not include Customer Data, even where Customer Data is displayed within, or
           exported from, the Service.
         </p>

@@ -165,7 +165,7 @@ test.describe('Suite B — PS Control Tower & Multi-Tenant Scoping', () => {
     await expect(registry).toContainText('Cloud EHR Migration');
     await expect(registry).toContainText('Data Platform Modernization');
     await expect(registry).toContainText('Digital Front Door');
-    // A2R DOS Demo engagements must no longer appear
+    // PS-DOS Demo engagements must no longer appear
     await expect(registry).not.toContainText('Claims Automation Pilot');
     await expectNoErrorOverlay(page);
   });
@@ -330,7 +330,7 @@ test.describe('Suite D — A2R Ops Console', () => {
     await page.goto('/ops/tenants');
     await expect(page.getByRole('heading', { name: 'Tenants', level: 1 })).toBeVisible();
     const table = page.locator('table');
-    await expect(table).toContainText('A2R DOS Demo');
+    await expect(table).toContainText('PS-DOS Demo');
     await expect(table).toContainText('Acme Health');
     await expect(table.getByText('Active').first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Provision New Tenant' })).toBeVisible();
@@ -367,7 +367,7 @@ test.describe('Suite E — Resource & Capacity Cockpit', () => {
   test.beforeAll(async () => {
     // back to the client workspace (Suite D left us in the ops console)
     await page.goto('/portfolio');
-    await switchTenant(page, 'A2R DOS Demo');
+    await switchTenant(page, 'PS-DOS Demo');
   });
 
   test('E1 · PS Control Tower shows the Blended Billable Utilization KPI linking to /capacity', async () => {
@@ -511,8 +511,8 @@ test.describe('Suite G — Methodology Playbook', () => {
 // ────────────────────────────────────────────────────────────────────────────
 test.describe('Suite H — Role-Based Data Masking', () => {
   test('H1 · master admin (Partner) sees financials in full — no masking', async () => {
-    await page.goto('/portfolio'); // Suite E left the active tenant on A2R DOS Demo
-    await expect(page.locator('header').getByRole('button').first()).toContainText('A2R DOS Demo');
+    await page.goto('/portfolio'); // Suite E left the active tenant on PS-DOS Demo
+    await expect(page.locator('header').getByRole('button').first()).toContainText('PS-DOS Demo');
     await expect(page.locator('.card', { hasText: 'Avg. Baseline Margin' })).not.toContainText('••••');
 
     await page.goto('/financials');
@@ -571,10 +571,10 @@ test.describe('Suite I — Tenant & Data Sovereignty', () => {
 
   test('I1 · every tenant row exposes the actions menu (Suspend / Impersonate / Export / Purge)', async () => {
     await page.goto('/ops/tenants');
-    const menuBtn = page.getByRole('button', { name: /Tenant actions for A2R DOS Demo/ });
+    const menuBtn = page.getByRole('button', { name: /Tenant actions for PS-DOS Demo/ });
     await expect(menuBtn).toBeVisible();
     await menuBtn.click();
-    const menu = page.getByRole('menu', { name: /Actions for A2R DOS Demo/ });
+    const menu = page.getByRole('menu', { name: /Actions for PS-DOS Demo/ });
     for (const item of ['Suspend', 'Impersonate (View As)', 'Export Data', 'Execute Purge']) {
       await expect(menu.getByRole('menuitem', { name: item, exact: true })).toBeVisible();
     }
@@ -609,13 +609,13 @@ test.describe('Suite I — Tenant & Data Sovereignty', () => {
 
   test('I3 · Cryptographic Data Export requires type-to-confirm and returns a payload digest', async () => {
     await page.goto('/ops/tenants');
-    await page.getByRole('button', { name: /Tenant actions for A2R DOS Demo/ }).click();
+    await page.getByRole('button', { name: /Tenant actions for PS-DOS Demo/ }).click();
     await page.getByRole('menuitem', { name: 'Export Data', exact: true }).click();
 
-    const dialog = page.getByRole('dialog', { name: /Export A2R DOS Demo data/ });
+    const dialog = page.getByRole('dialog', { name: /Export PS-DOS Demo data/ });
     const generate = dialog.getByRole('button', { name: 'Generate export package' });
     await expect(generate).toBeDisabled();
-    await dialog.getByRole('textbox').fill('A2R DOS Demo');
+    await dialog.getByRole('textbox').fill('PS-DOS Demo');
     await expect(generate).toBeEnabled();
     await generate.click();
 

@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * P2 — Server Action rate-limit helpers. A Server Action has no `Response`
  * object, so the over-limit path returns the same `{ ok:false, error }`

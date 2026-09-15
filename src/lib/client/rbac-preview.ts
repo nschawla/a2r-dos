@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Standalone, localStorage-backed RBAC persona preview state — the single
  * implementation shared by:

@@ -1,8 +1,8 @@
-# A2R Delivery OS™ — User Manual & Operator's Guide
+# PS-DOS™ — User Manual & Operator's Guide
 
 _Applies to v1.14.0 · Last updated 2026-09-07_
 
-A2R Delivery OS is a Delivery Operating System for professional-services
+PS-DOS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
 sidebar workflow, the Command Center, the universal command palette, the
 executive briefing, the enterprise governance and identity-federation
@@ -257,7 +257,7 @@ BAU data streams:
    cells and click **Save & re-validate** — it re-checks against your live
    roster and projects right there, no re-upload required.
 5. **Re-validate & Commit** stays disabled for as long as *any* row in the
-   batch still has an error. This is a hard stop: A2R Delivery OS will
+   batch still has an error. This is a hard stop: PS-DOS will
    never write part of a batch to your workspace while the rest is broken.
    Once every row is clean, committing writes them all in one step and
    records the batch in your Compliance Ledger.
@@ -299,7 +299,7 @@ shell with no tenant context.
 | Page | Use it to… |
 | --- | --- |
 | **Telemetry** (`/ops/telemetry`) | High-level health across every tenant — totals, red engagements, at-risk RAID, per-tenant breakdown. |
-| **Platform Pulse** (`/ops/pulse`) | The engineering health of A2R Delivery OS *itself* — see below. |
+| **Platform Pulse** (`/ops/pulse`) | The engineering health of PS-DOS *itself* — see below. |
 | **Tenants** (`/ops/tenants`) | Provision a new client organization (the new admin gets a one-time password shown to you once — they're forced to set their own on first sign-in); suspend / reactivate / move to grace period; **impersonate** (read-only, time-boxed, audited); export a tenant's data; execute the Purge Protocol; manage a tenant's API keys. |
 | **Staff Access** (`/ops/staff`) | Grant / revoke operator access (attributed, revocable — you can't revoke your own), and the **Just-In-Time elevations** audit trail. |
 | **Ingestion & Templates** (`/ops/ingestion`) | The intake templates and schema reference to hand a new tenant admin during onboarding. |
@@ -352,7 +352,7 @@ Automatically ingested — no manual entry:
 Below the vitals, an **Engineering Stream** lists recent commits (local
 development only), the last test run, releases, and database probes.
 
-The build stamp (`A2R Delivery OS vX.Y.Z`) sits at the bottom of the
+The build stamp (`PS-DOS vX.Y.Z`) sits at the bottom of the
 operator sidebar on every page — click it to open the **Release Notes**.
 
 ---

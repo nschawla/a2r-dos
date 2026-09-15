@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * P0-6 — shared, atomic, globally-distributed rate limiting.
  *

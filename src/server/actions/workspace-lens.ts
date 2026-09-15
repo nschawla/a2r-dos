@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Persists the signed-in user's Workspace Lens choice (see
  * src/lib/workspace/lenses.ts) in a cookie so the server-side landing

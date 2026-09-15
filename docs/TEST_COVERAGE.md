@@ -1,4 +1,4 @@
-# Test Suite Documentation & Coverage — A2R Delivery OS™
+# Test Suite Documentation & Coverage — PS-DOS™
 
 _Current-state, **v1.16.0**. How the automated suites are organised, what
 each layer guarantees, and how to run them. Requirement-level traceability:

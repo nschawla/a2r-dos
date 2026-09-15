@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS — P0-2 (Phase C): direct-SQL RLS enforcement smoke test.
+ * PS-DOS — P0-2 (Phase C): direct-SQL RLS enforcement smoke test.
  *
  *   npx tsx scripts/rls-smoke.ts
  *

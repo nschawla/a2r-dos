@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS — pure calculation engine.
+ * PS-DOS — pure calculation engine.
  *
  * Every export here is a deterministic function of its arguments: no
  * fetch, no Prisma, no React, no module-level mutable state. Given the

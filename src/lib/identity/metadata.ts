@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * IdP metadata parsing & verification — pure, dependency-light (no XML
  * library; the SAML metadata shapes we accept are regular enough to pull

@@ -14,7 +14,7 @@ export default async function OpsTelemetryPage() {
       <div>
         <h1 className="text-2xl font-display font-bold">Platform Telemetry</h1>
         <p className="text-ink-muted text-sm mt-1">
-          High-level health across every tenant in the A2R Delivery OS estate.
+          High-level health across every tenant in the PS-DOS estate.
         </p>
       </div>
 

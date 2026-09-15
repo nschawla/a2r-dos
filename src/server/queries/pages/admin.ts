@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * DAL query functions for the tenant-admin pages (/admin, /admin/onboarding,
  * /admin/ingestion) and the Ops Console Identity Federation panel. Each

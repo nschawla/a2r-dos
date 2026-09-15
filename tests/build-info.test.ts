@@ -6,7 +6,7 @@ describe('makeBuildInfo', () => {
     const info = makeBuildInfo({ version: '1.2.3', commit: 'a1b2c3d', buildTime: '2026-09-03T10:15:00.000Z' });
     expect(info.version).toBe('1.2.3');
     expect(info.commit).toBe('a1b2c3d');
-    expect(info.versionLabel).toBe('A2R Delivery OS v1.2.3');
+    expect(info.versionLabel).toBe('PS-DOS v1.2.3');
     expect(info.fullStamp).toBe('v1.2.3 · a1b2c3d · 2026-09-03');
   });
 
@@ -20,7 +20,7 @@ describe('makeBuildInfo', () => {
   it('falls back to a dev version outside a build', () => {
     const info = makeBuildInfo({});
     expect(info.version).toBe('0.0.0-dev');
-    expect(info.versionLabel).toBe('A2R Delivery OS v0.0.0-dev');
+    expect(info.versionLabel).toBe('PS-DOS v0.0.0-dev');
   });
 
   it('ignores blank / malformed values', () => {

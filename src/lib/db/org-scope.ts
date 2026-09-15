@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * ORM-level tenant scoping — the belt-and-suspenders layer over the
  * hand-written `organizationId` filters in server actions and queries.

@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * /change-password. Requires a session (middleware-gated, plus the check
  * below). Reached two ways:
@@ -16,7 +16,7 @@ import { authOptions } from '@/lib/auth';
 import { AuthShell } from '@/components/layout/AuthShell';
 import { ChangePasswordForm } from '@/components/auth/ChangePasswordForm';
 
-export const metadata: Metadata = { title: 'Change your password — A2R Delivery OS™' };
+export const metadata: Metadata = { title: 'Change your password — PS-DOS™' };
 
 export default async function ChangePasswordPage() {
   const session = await getServerSession(authOptions);

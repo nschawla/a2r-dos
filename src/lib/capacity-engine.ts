@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — Resource & Capacity Cockpit calculation engine.
+ * PS-DOS™ — Resource & Capacity Cockpit calculation engine.
  *
  * Pure functions, no I/O — same contract as src/lib/calculations/*. The
  * page (src/app/(dashboard)/capacity/page.tsx) and the seed both drive

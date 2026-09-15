@@ -191,14 +191,14 @@ export function AuditCertificateView(props: AuditCertificateProps): string {
   </table>
 
   <p class="attest">
-    This certificate reflects the delivery-controls compliance state recorded in A2R Delivery OS for the engagement named
+    This certificate reflects the delivery-controls compliance state recorded in PS-DOS for the engagement named
     above as of the generation timestamp below. Weighted compliance credits Verified controls in full, Partial controls at
     half weight, and excludes controls marked N/A from the denominator entirely. It is not a substitute for the underlying
     evidence linked from each control.
   </p>
 
   <div class="footer">
-    <span>A2R Delivery OS &middot; Executive Reporting Hub</span>
+    <span>PS-DOS &middot; Executive Reporting Hub</span>
     <span class="conf">Confidential &amp; Proprietary &mdash; &copy; 2026 A2R Ventures LLC</span>
   </div>
 </body>

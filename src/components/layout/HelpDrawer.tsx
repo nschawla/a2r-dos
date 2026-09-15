@@ -167,7 +167,7 @@ const HELP_CONTENT: { prefix: string; section: HelpSection }[] = [
 // guidance (Workspace Backup, the Audit Trail) to earn a dedicated
 // section rather than sharing one with "everything unmatched."
 const HOME_SECTION: HelpSection = {
-  eyebrow: 'A2R Delivery OS',
+  eyebrow: 'PS-DOS',
   title: 'PS Control Tower',
   body: [
     {
@@ -186,7 +186,7 @@ const HOME_SECTION: HelpSection = {
 };
 
 const DEFAULT_SECTION: HelpSection = {
-  eyebrow: 'A2R Delivery OS',
+  eyebrow: 'PS-DOS',
   title: 'Guidance',
   body: [
     {

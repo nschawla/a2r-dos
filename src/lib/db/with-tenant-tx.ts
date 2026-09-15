@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * P0-2 (Phase C) — `withTenantTx`: the interactive-transaction wrapper that
  * carries the tenant identity into the database session for RLS.

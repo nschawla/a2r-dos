@@ -7,7 +7,7 @@ import { DevDocs } from '@/components/ops/DevDocs';
 export const metadata: Metadata = { title: 'Developer Docs · A2R Ops' };
 
 /**
- * /ops/dev-docs — the in-app engineering reference for A2R DOS. A2R-staff
+ * /ops/dev-docs — the in-app engineering reference for PS-DOS. A2R-staff
  * only (requireOpsContext, same gate as every other Ops Console page).
  *
  * Thin by design: the live build/release data comes from BUILD_INFO and

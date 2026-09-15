@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 
 /**
- * "Concept B: Ascent Vector" — the A2R DOS logo mark. A single geometric
+ * "Concept B: Ascent Vector" — the PS-DOS logo mark. A single geometric
  * glyph, not raster artwork or a gradient fill: one solid triangle rising
  * to a point (an apex, not a curve — the ascent) with a smaller
  * triangular counter cut from its center on the same taper as its outer

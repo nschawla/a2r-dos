@@ -1,12 +1,12 @@
 <!--
-A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
-Proprietary and confidential. Licensed, not sold, under the A2R Delivery OS
+PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
+Proprietary and confidential. Licensed, not sold, under the PS-DOS
 Terms of Service & EULA (/terms).
 -->
 
 # Admin Onboarding Package
 
-The setup runbook for the first administrator of a new A2R Delivery OS™
+The setup runbook for the first administrator of a new PS-DOS™
 organization — from signup to the first locked baseline, plus the access
 model every admin should understand before a real rollout.
 
@@ -31,7 +31,7 @@ teammate-invite flow) are called out explicitly at the end — read
 
 ## 0. The access model (read this first)
 
-A2R Delivery OS has **two independent authorization axes**. As a tenant
+PS-DOS has **two independent authorization axes**. As a tenant
 admin you own the first; A2R operates the second.
 
 ### Tenant axis — your people, your workspace
@@ -97,7 +97,7 @@ safe to re-run for a live walkthrough or a repeated demo.
 | 1 | **Workspace Provisioning** | Confirms your org is live and shows its tier + creation date. | No |
 | 2 | **Governance Template** | Pick a compliance posture — **Standard**, **Strict Financial**, **Agile**, or **Board-Only**. This really calls `applyGovernanceTemplate()` and changes your live configuration (route visibility + financial masking). | **Yes** |
 | 3 | **Base Data Ingestion** | Drop in your existing projects / work-orders / resourcing exports. This step runs the same schema-shape check the real Batch Import Engine does but **never writes** — it is a preview of what a migration will look like. | No (preview only) |
-| 4 | **Role Mapping** | Review how your roster maps onto A2R Delivery OS access tiers (read-only). Every person's `DeliveryAccessRole` is derived from their rate-card role; change it from **Admin & Org Setup → Roster**. Confirm the mapping — including anyone who should be a **Viewer** — before continuing. | No |
+| 4 | **Role Mapping** | Review how your roster maps onto PS-DOS access tiers (read-only). Every person's `DeliveryAccessRole` is derived from their rate-card role; change it from **Admin & Org Setup → Roster**. Confirm the mapping — including anyone who should be a **Viewer** — before continuing. | No |
 | 5 | **Go-Live Verification** | Confirms every step is complete and drops you into the live workspace. | No |
 
 The wizard is the fastest path to a configured tenant. Step 3's real,

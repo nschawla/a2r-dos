@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * IdP vendor presets + email-domain helpers. ZERO dependencies (no
  * node:crypto, no Prisma) so this is safe to import from client components

@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Custom KPI Definition Engine — the dashboard widget. A server component
  * (no interactivity needed to just display a computed value), dropped

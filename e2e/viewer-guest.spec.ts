@@ -4,7 +4,7 @@ import { test, expect, type Page } from '@playwright/test';
  * Suite Q — Viewer / Guest role (v1.16.0).
  *
  * The five family guest accounts (seeded by e2e/global-setup.ts) are
- * `MembershipRole.VIEWER` + `deliveryRole = VIEWER` members of the A2R DOS
+ * `MembershipRole.VIEWER` + `deliveryRole = VIEWER` members of the PS-DOS
  * Demo org: strict read-only observation.
  *
  *   Q1  a guest signs in and lands in the demo workspace (Executive Viewer)

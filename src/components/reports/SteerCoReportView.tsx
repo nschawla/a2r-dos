@@ -343,7 +343,7 @@ export function SteerCoReportView(props: SteerCoReportProps): string {
   ${decisionTrackerHtml(props.decisions)}
 
   <div class="footer">
-    <span>A2R Delivery OS &middot; Executive Reporting Hub</span>
+    <span>PS-DOS &middot; Executive Reporting Hub</span>
     <span class="conf">Confidential &amp; Proprietary &mdash; &copy; 2026 A2R Ventures LLC</span>
   </div>
 </body>

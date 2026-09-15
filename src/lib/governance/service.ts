@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Server-only loader for a tenant's resolved Governance Configuration
  * (see ./config.ts for the pure model). Wrapped in React `cache()` so the

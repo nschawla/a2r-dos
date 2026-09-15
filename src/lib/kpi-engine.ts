@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Custom KPI Definition Engine — pure calculation logic. No React, no
  * Next.js, no Prisma client (same philosophy as src/lib/calculations/*):

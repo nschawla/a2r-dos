@@ -3,7 +3,7 @@
 import { withAction } from '@/lib/observability/action-wrapper';
 
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Custom KPI Definition Engine — CRUD server actions behind
  * /admin/kpis. Gated on `admin:governance` (ADMIN only): a custom KPI

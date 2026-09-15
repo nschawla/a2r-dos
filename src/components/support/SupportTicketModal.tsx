@@ -1,7 +1,6 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
- * Proprietary and confidential. Licensed, not sold, under the A2R Delivery
- * OS Terms of Service & EULA (/terms).
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * Proprietary and confidential. Licensed, not sold, under the PS-DOS Terms of Service & EULA (/terms).
  */
 
 'use client';

@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * DAL query functions for the per-engagement module pages
  * (/commercial-baseline, /audit, /raid, /schedule, /financials and their

@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — Role-Based Data Masking & PII / financial security.
+ * PS-DOS™ — Role-Based Data Masking & PII / financial security.
  *
  * A field-visibility layer that sits on top of the src/lib/auth/rbac.ts
  * DeliveryRole tier. Dependency-light and pure (only Prisma *types*), same

@@ -60,7 +60,7 @@ export function SneakPeekModal() {
           className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-[#03060F]/85 px-4 py-8 backdrop-blur-md sm:py-12"
           role="dialog"
           aria-modal="true"
-          aria-label="A sneak peek at A2R Delivery OS"
+          aria-label="A sneak peek at PS-DOS"
           onClick={close}
         >
           <div
@@ -73,7 +73,7 @@ export function SneakPeekModal() {
                   Sneak Peek
                 </div>
                 <h2 className="mt-1 font-display text-[20px] font-bold text-white">
-                  What’s inside A2R Delivery OS
+                  What’s inside PS-DOS
                 </h2>
               </div>
               <button

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Auto Demo — the "Teleprompter" subtitle bar. Fixed to the bottom of the
  * viewport, above every route the walkthrough drives through (mounted

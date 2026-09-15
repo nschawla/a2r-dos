@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * The site root `/` — the public early-access marketing page.
  *
@@ -25,9 +25,9 @@ import { EarlyAccessForm } from '@/components/marketing/EarlyAccessForm';
 export const dynamic = 'force-static';
 
 export const metadata = {
-  title: 'A2R Delivery OS™ — Coming Soon',
+  title: 'PS-DOS™ — Coming Soon',
   description:
-    'A2R Delivery OS is the delivery operating system for professional-services organizations. Request early access.',
+    'PS-DOS is the delivery operating system for professional-services organizations. Request early access.',
 };
 
 const VALUE_PROPS = [
@@ -45,7 +45,7 @@ export default function MarketingLandingPage() {
           <div className="flex items-center gap-2.5">
             <BrandMark size="md" className="!text-white" />
             <span className="whitespace-nowrap font-display text-[14px] font-bold text-white sm:text-[15px]">
-              A2R Delivery OS<span className="align-top text-[10px] text-white/50">™</span>
+              PS-DOS<span className="align-top text-[10px] text-white/50">™</span>
             </span>
           </div>
           <nav className="flex items-center gap-2.5 sm:gap-3">
@@ -74,7 +74,7 @@ export default function MarketingLandingPage() {
             </h1>
 
             <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-[#AEB7CC] sm:text-[17px]">
-              A2R DOS is the delivery operating system for professional-services organizations — track
+              PS-DOS is the delivery operating system for professional-services organizations — track
               every engagement, keep your RAID logs current, and automate status reporting from one
               governed workspace. We&rsquo;re onboarding early-access organizations now.
             </p>
@@ -100,7 +100,7 @@ export default function MarketingLandingPage() {
       {/* ── Footer ─────────────────────────────────────────────────────── */}
       <footer className="border-t border-white/[0.08]">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1.5 px-6 py-5 text-[11.5px] text-[#5A6683]">
-          <span>A2R Delivery OS™ · © {new Date().getFullYear()} A2R Ventures LLC. All rights reserved.</span>
+          <span>PS-DOS™ · © {new Date().getFullYear()} A2R Ventures LLC. All rights reserved.</span>
           <nav className="flex items-center gap-4">
             <Link href="/terms" className="transition-colors hover:text-[#AEB7CC]">
               Terms of Service

@@ -1,4 +1,4 @@
-# Product Roadmap &amp; PM Pulse — A2R Delivery OS™
+# Product Roadmap &amp; PM Pulse — PS-DOS™
 
 _Current production baseline: **v1.16.0** (`e1a0c09`). This document is the
 forward plan; it does not describe shipped behaviour (see `docs/FRD.md` for

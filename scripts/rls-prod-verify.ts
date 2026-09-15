@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS — WP2: READ-ONLY production RLS / security posture check.
+ * PS-DOS — WP2: READ-ONLY production RLS / security posture check.
  *
  *   npx tsx scripts/rls-prod-verify.ts        (or: npm run db:rls:verify)
  *

@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Symmetric encryption for identity-federation secrets at rest (the OIDC
  * client secret). AES-256-GCM with a key derived from NEXTAUTH_SECRET, so

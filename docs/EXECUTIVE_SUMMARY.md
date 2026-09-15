@@ -1,4 +1,4 @@
-# Executive Security &amp; Architecture Summary — A2R Delivery OS™
+# Executive Security &amp; Architecture Summary — PS-DOS™
 
 _Authoritative current-state, **v1.16.0** (commit `e1a0c09`, tag `v1.16.0`)._
 _Audience: executive sponsors, security review, prospective enterprise clients,
@@ -8,7 +8,7 @@ external audit. Requirement- and code-level detail: `docs/FRD.md` ·
 
 ---
 
-## 1. The problem A2R-DOS solves
+## 1. The problem PS-DOS solves
 
 Professional-services delivery leaders are forced into a false choice:
 
@@ -23,7 +23,7 @@ Neither gives a sponsor **operational certainty** — a single, current,
 tamper-evident view of engagement health, financial realization, and
 governance — without also widening the attack surface.
 
-**A2R-DOS removes the choice.** It is an enterprise-grade, multi-tenant
+**PS-DOS removes the choice.** It is an enterprise-grade, multi-tenant
 **delivery operating system**: the portfolio, financial, and governance model
 of a purpose-built PS platform, on an architecture where tenant isolation,
 auditability, and least-privilege operator access are enforced at the
@@ -32,7 +32,7 @@ operator.
 
 ---
 
-## 2. What A2R-DOS is
+## 2. What PS-DOS is
 
 A multi-tenant SaaS platform for professional-services organizations:
 
@@ -54,7 +54,7 @@ database ok.
 
 ## 3. Security hardening pedigree
 
-A2R-DOS reached v1.16.0 through **seven successive audit-and-hardening
+PS-DOS reached v1.16.0 through **seven successive audit-and-hardening
 rounds**, v1.10.0 → v1.16.0. Each round followed the same discipline:
 
 1. **Independent review** — an AI audit agent (ChatGPT) reviewed the codebase

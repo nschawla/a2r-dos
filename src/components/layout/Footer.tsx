@@ -1,7 +1,6 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
- * Proprietary and confidential. Licensed, not sold, under the A2R Delivery
- * OS Terms of Service & EULA (/terms) — see that document for the full
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * Proprietary and confidential. Licensed, not sold, under the PS-DOS Terms of Service & EULA (/terms) — see that document for the full
  * customer-data vs. A2R-IP ownership split and reverse-engineering
  * restrictions this software is licensed under.
  */
@@ -24,7 +23,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border px-6 py-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-1.5 text-[11.5px] text-ink-faint">
       <span>
-        A2R Delivery OS™ &middot; &copy; {year} A2R Ventures LLC. All rights reserved.
+        PS-DOS™ &middot; &copy; {year} A2R Ventures LLC. All rights reserved.
       </span>
       <nav className="flex items-center gap-4">
         <Link href="/terms" className="hover:text-ink-muted transition-colors">

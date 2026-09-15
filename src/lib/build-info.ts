@@ -15,13 +15,13 @@ export interface BuildInfo {
   commit: string | null;
   /** ISO 8601 build timestamp, or null in local dev. */
   buildTime: string | null;
-  /** Discreet footer label: "A2R Delivery OS v1.0.0". */
+  /** Discreet footer label: "PS-DOS v1.0.0". */
   versionLabel: string;
   /** Fuller stamp: "v1.0.0 · a1b2c3d · 2026-09-03" (SHA/date omitted when absent). */
   fullStamp: string;
 }
 
-const PRODUCT_NAME = 'A2R Delivery OS';
+const PRODUCT_NAME = 'PS-DOS';
 
 function clean(value: string | undefined): string | null {
   const v = (value ?? '').trim();

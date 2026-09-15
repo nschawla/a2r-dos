@@ -21,7 +21,7 @@ export default async function OpsTenantsPage() {
         <div>
           <h1 className="text-2xl font-display font-bold">Tenants</h1>
           <p className="text-ink-muted text-sm mt-1">
-            Every client organization on A2R Delivery OS — {tenants.length} total.
+            Every client organization on PS-DOS — {tenants.length} total.
           </p>
         </div>
         <div className="self-center">

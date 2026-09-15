@@ -211,7 +211,7 @@ export const CHANGELOG: ReleaseNote[] = [
     date: '2026-09-05',
     headline: 'A public landing page — and the app moves off the bare root',
     changes: [
-      { type: 'feature', text: 'A2R Ventures now has a public marketing landing page at the site root, readable with no account: a hero, the delivery problems A2R DOS solves (scattered spreadsheets, invisible risks, status-report fatigue), the three capabilities that answer them, and a "Launch App" button. A signed-in visitor is forwarded straight into their workspace.' },
+      { type: 'feature', text: 'A2R Ventures now has a public marketing landing page at the site root, readable with no account: a hero, the delivery problems PS-DOS solves (scattered spreadsheets, invisible risks, status-report fatigue), the three capabilities that answer them, and a "Launch App" button. A signed-in visitor is forwarded straight into their workspace.' },
       { type: 'improvement', text: 'The authenticated Portfolio Control Tower moved from "/" to "/portfolio". Every post-sign-in landing, the perspective switcher, "back to workspace" links, and the Auto Demo tour follow the new path; the sidebar and ⌘K are unchanged. Existing bookmarks to "/" now land on the marketing page, which forwards a signed-in user onward.' },
     ],
   },
@@ -241,14 +241,14 @@ export const CHANGELOG: ReleaseNote[] = [
   {
     version: '1.3.0',
     date: '2026-09-04',
-    headline: 'A2R DOS rebrand, the Gunmetal Ascent Vector logo, an RBAC Master Matrix, and the Self-Service Batch Import Engine',
+    headline: 'PS-DOS rebrand, the Gunmetal Ascent Vector logo, an RBAC Master Matrix, and the Self-Service Batch Import Engine',
     changes: [
       { type: 'feature', text: 'Self-Service Batch Import Engine — a drag-and-drop portal (Admin & Org Setup → Data Ingestion & Templates → Batch Import) for weekly, tenant-wide CSV or Excel uploads of Actuals or Milestone & Progress updates spanning any number of engagements in one file. Every row is validated against your live projects and roster and staged for review — valid and invalid rows alike, so nothing is lost to a bad upload.' },
       { type: 'feature', text: 'Quarantine & inline correction — malformed rows are isolated with a plain-English reason for every failure (missing primary keys, unmapped project references, unrecognizable dates); fix a row directly in the grid and re-validate it live, with no re-upload required.' },
       { type: 'feature', text: 'Hard-stop batch commit — Re-validate & Commit stays disabled while any row still errors, and the server re-checks every row one more time immediately before writing anything. A batch can never partially land: it is all-or-nothing in one transaction, logged to both the Audit Trail and the hash-chained Compliance Ledger.' },
       { type: 'feature', text: 'Centralized RBAC Master Matrix — a single permission matrix maps five personas to allowed sidebar groups, per-engagement module pills, and routes. Unauthorized items are omitted from rendering entirely, not just disabled, and an edge middleware guard independently blocks a direct navigation to a disallowed route.' },
       { type: 'improvement', text: 'Header cleanup — the RBAC persona preview and its redundant second role picker moved out of the main tenant header into a dedicated "Persona Preview" control inside the A2R Ops Console, restoring a clean, uncluttered executive header.' },
-      { type: 'improvement', text: 'Application renamed — the "A2R Ventures Demo" flagship demo workspace is now "A2R DOS Demo" across the UI, seed data, and documentation.' },
+      { type: 'improvement', text: 'Application renamed — the "A2R Ventures Demo" flagship demo workspace is now "PS-DOS Demo" across the UI, seed data, and documentation.' },
       { type: 'improvement', text: '"Concept B: Ascent Vector" logo — the brand mark is now a single geometric glyph (a solid triangle with a nested triangular counter forming the letter "A") rendered in a fixed solid Gunmetal Gray, on its own design token independent of the interactive-accent blue used by buttons and links.' },
     ],
   },

@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Custom KPI Definition Engine — the data adapter. Builds a
  * `KpiMetricValues` object (src/lib/kpi-engine.ts) from real tenant data,

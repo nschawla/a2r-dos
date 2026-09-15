@@ -1,10 +1,10 @@
-# Security & Role Access Matrix — A2R Delivery OS
+# Security & Role Access Matrix — PS-DOS
 
 _Current as of **v1.16.0**. Source of truth: `src/lib/ops/operator-roles.ts`
 (operator axis), `src/lib/auth/rbac.ts` + `src/lib/governance/rbacMatrix.ts`
 (tenant axis). This document is a reader's map onto that code._
 
-A2R Delivery OS has **two independent authorization axes**. An account may sit
+PS-DOS has **two independent authorization axes**. An account may sit
 on one, the other, or (for A2R staff who also administer a tenant) both.
 
 | Axis | Question it answers | Backed by |

@@ -1,7 +1,7 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
- * Developer Documentation — the in-app engineering reference for A2R DOS,
+ * Developer Documentation — the in-app engineering reference for PS-DOS,
  * rendered at /ops/dev-docs behind the A2R-staff gate (requireOpsContext).
  * No tenant can reach it.
  *
@@ -168,7 +168,7 @@ const SETUP_STEPS: SetupStep[] = [
     cmd: 'npx prisma db push --skip-generate && npx prisma generate',
     note: 'Applies prisma/schema.prisma to the database. This project does NOT use `prisma migrate` — schema changes are: edit schema.prisma → db push → generate.',
   },
-  { cmd: 'npm run db:seed', note: 'Idempotent — safe to re-run. Seeds the A2R DOS Demo + Acme Health tenants and per-role logins.' },
+  { cmd: 'npm run db:seed', note: 'Idempotent — safe to re-run. Seeds the PS-DOS Demo + Acme Health tenants and per-role logins.' },
   { cmd: 'npm run dev', note: '→ http://localhost:3000' },
 ];
 
@@ -337,7 +337,7 @@ export function DevDocs({ build, releases }: { build: BuildInfo; releases: Relea
       <div>
         <h1 className="text-2xl font-display font-bold">Developer Documentation</h1>
         <p className="text-ink-muted text-sm mt-1 max-w-3xl">
-          The in-app engineering reference for A2R Delivery OS — build summary, architecture notes, and
+          The in-app engineering reference for PS-DOS — build summary, architecture notes, and
           setup guidelines in one place. A2R staff only; no tenant can reach this page. It{' '}
           <span className="font-medium">consolidates</span> the repo docs listed at the bottom — it does not
           replace them. When this page and the repo disagree, the repo wins.

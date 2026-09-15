@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>A2R Delivery OS — Executive Platform Summary</title>
+<title>PS-DOS — Executive Platform Summary</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -479,7 +479,7 @@
       <div class="masthead__top">
         <div class="brand-lockup">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M12 2L22 22H2L12 2ZM12 6L17 16H7L12 6Z"/></svg>
-          <span>A2R Delivery OS</span>
+          <span>PS-DOS</span>
         </div>
         <span class="draft-pill">Confidential · Draft</span>
       </div>
@@ -503,8 +503,8 @@
         <div class="eyebrow"><span class="num">01</span> Executive Summary</div>
         <h2>A governed system of record for the entire delivery portfolio</h2>
         <div class="prose-card">
-          <p><strong>A2R Delivery OS™ ("A2R DOS")</strong> is an enterprise-grade Delivery Operating System purpose-built for professional services organizations. It unifies commercial baselining, financial realization, resourcing, schedule governance, and risk management for an entire portfolio of client engagements into one governed, role-aware workspace — replacing the spreadsheets, point-in-time status decks, and disconnected timesheet tools most delivery organizations still stitch together by hand.</p>
-          <p>Every screen in A2R DOS — the Portfolio Control Tower, the Resource &amp; Capacity Cockpit, Financial Realization, the RAID Cockpit, and the SteerCo and Executive Hub briefings — is driven from the same operational data the delivery organization already produces each week, and is automatically scoped to the person viewing it: a Practice Director and a VP see the identical screen, narrowed to exactly what their role should see.</p>
+          <p><strong>PS-DOS™ ("PS-DOS")</strong> is an enterprise-grade Delivery Operating System purpose-built for professional services organizations. It unifies commercial baselining, financial realization, resourcing, schedule governance, and risk management for an entire portfolio of client engagements into one governed, role-aware workspace — replacing the spreadsheets, point-in-time status decks, and disconnected timesheet tools most delivery organizations still stitch together by hand.</p>
+          <p>Every screen in PS-DOS — the Portfolio Control Tower, the Resource &amp; Capacity Cockpit, Financial Realization, the RAID Cockpit, and the SteerCo and Executive Hub briefings — is driven from the same operational data the delivery organization already produces each week, and is automatically scoped to the person viewing it: a Practice Director and a VP see the identical screen, narrowed to exactly what their role should see.</p>
           <p>Three capabilities requested directly by the platform's largest engagements anchor the current release: a complete four-pillar weekly intake engine, role-based scoped filtering enforced at the data layer, and a Custom KPI Definition Engine that lets an administrator stand up a governed metric card without engineering involvement. They ship alongside the platform's enterprise governance framework, SAML/OIDC identity federation with just-in-time provisioning, and a SOC&nbsp;2-aligned, hash-chained compliance ledger.</p>
           <p><strong>v1.7.0</strong> completes a security-architecture hardening pass driven by an independent Principal-Architect review. Tenant isolation is now enforced at three independent layers, and every tenant record is bound to its organization at the database itself. Privileged operator access follows a zero-trust model: a standing grant confers only <em>eligibility</em>, and every consequential operation runs under a temporary, reason-logged, auto-expiring Just-In-Time elevation — there are no standing privileged sessions. Every authenticated session is re-validated against the database on every request and fails closed on any uncertainty; a password change signs the account out on every other device instantly. The high-risk boundaries — sign-in, exports, document generation, bulk ingestion — carry sliding-window rate limits, and every unhandled server error is captured as a structured, secret-redacted event.</p>
           <p><strong>v1.8.0</strong> continues that track. The database now <em>physically</em> rejects a cross-tenant record: every child table carries a composite foreign key that ties its rows to the same organization as their parent. Short-lived operator credentials — Just-In-Time elevation and tenant impersonation — are stored only as cryptographic hashes, so a database read or a leaked backup yields nothing usable. Rate limiting can now be enforced as a single global window across every server instance. The release runs on the current Next.js Long-Term-Support line.</p>
@@ -639,7 +639,7 @@
 
       <div class="colophon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M12 2L22 22H2L12 2ZM12 6L17 16H7L12 6Z"/></svg>
-        <span>A2R Delivery OS</span>
+        <span>PS-DOS</span>
       </div>
 
     </div>
@@ -656,10 +656,10 @@
 
       <hr>
 
-      <div class="copyright-line">© 2026 A2R Ventures. All rights reserved. A2R DOS<span class="tm">™</span> and the A2R logo are trademarks of A2R Ventures.</div>
+      <div class="copyright-line">© 2026 A2R Ventures. All rights reserved. PS-DOS<span class="tm">™</span> and the A2R logo are trademarks of A2R Ventures.</div>
 
       <div class="footer-bottom">
-        <span>A2R Delivery OS — Executive Platform Summary</span>
+        <span>PS-DOS — Executive Platform Summary</span>
         <span class="stamp">● Confidential — Draft / Work in Progress</span>
       </div>
     </footer>

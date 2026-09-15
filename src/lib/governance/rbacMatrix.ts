@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Central RBAC Master Matrix — the single table that decides, for every
  * human-facing persona, which sidebar modules, tab pills and routes render

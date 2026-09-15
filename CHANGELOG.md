@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to A2R Delivery OS™ are recorded here. This file
+All notable changes to PS-DOS™ are recorded here. This file
 mirrors `src/lib/changelog.ts`, which powers the in-app **Release Notes**
 viewer in the Ops Console — that is the authoritative source; keep the two
 in sync when cutting a release.
@@ -729,7 +729,7 @@ _The landing page becomes a "Coming Soon" early-access page._
 _A public landing page — and the app moves off the bare root._
 
 ### Added
-- **Public marketing landing page at `/`.** Readable with no account (the middleware auth gate now excludes the bare root — `src/app/(public)/page.tsx`, on the existing lightweight public shell). Hero headline "Deliver Projects with Absolute Clarity. Zero Chaos.", the three problems A2R DOS addresses (scattered spreadsheets, invisible project risks, status-report fatigue), the three capabilities that answer them (AI document parsing, real-time engagement visibility, centralized governed workflows), a clean header/footer, and a **Launch App** button → `/launch`. A signed-in visitor to `/` is redirected to `/launch` (the role-aware dispatcher) rather than shown marketing.
+- **Public marketing landing page at `/`.** Readable with no account (the middleware auth gate now excludes the bare root — `src/app/(public)/page.tsx`, on the existing lightweight public shell). Hero headline "Deliver Projects with Absolute Clarity. Zero Chaos.", the three problems PS-DOS addresses (scattered spreadsheets, invisible project risks, status-report fatigue), the three capabilities that answer them (AI document parsing, real-time engagement visibility, centralized governed workflows), a clean header/footer, and a **Launch App** button → `/launch`. A signed-in visitor to `/` is redirected to `/launch` (the role-aware dispatcher) rather than shown marketing.
 
 ### Changed
 - **The Portfolio Control Tower moved from `/` to `/portfolio`.** The `control-tower` route in `GOVERNABLE_MODULES`, the Delivery lens landing, `middleware.ts` fallback redirects, `requireOpsContext`'s non-staff bounce, the onboarding "enter workspace" links, the `/admin` "← Client Workspace" link, and the Auto Demo `welcome`/`closing` beats all follow the new path. The Sidebar and ⌘K entries are unchanged (they already resolve through the same route registry). `findOwningModule` no longer special-cases `/`.
@@ -772,7 +772,7 @@ _Role-Based Scoped Filtering, the Custom KPI Definition Engine, and the complete
 
 ## [1.3.0] — 2026-09-04
 
-_A2R DOS rebrand, the Gunmetal Ascent Vector logo, an RBAC Master Matrix, and the Self-Service Batch Import Engine._
+_PS-DOS rebrand, the Gunmetal Ascent Vector logo, an RBAC Master Matrix, and the Self-Service Batch Import Engine._
 
 ### Added
 - **Self-Service Batch Import Engine** — a drag-and-drop portal (**Admin & Org Setup → Data Ingestion & Templates → Batch Import**) for weekly, tenant-wide CSV or Excel uploads of **Actuals** or **Milestone & Progress** updates spanning any number of engagements in one file — distinct from the existing per-project CSV import. Every row is validated against the tenant's live projects and roster and staged for review, valid and invalid rows alike.
@@ -783,7 +783,7 @@ _A2R DOS rebrand, the Gunmetal Ascent Vector logo, an RBAC Master Matrix, and th
 
 ### Changed
 - **Header cleanup** — the RBAC persona preview and its redundant second role picker moved out of the main tenant header into a dedicated **Persona Preview** control inside the A2R Ops Console.
-- **Application renamed** — the flagship demo workspace "A2R Ventures Demo" is now **"A2R DOS Demo"** across the UI, seed data, and documentation.
+- **Application renamed** — the flagship demo workspace "A2R Ventures Demo" is now **"PS-DOS Demo"** across the UI, seed data, and documentation.
 - **"Concept B: Ascent Vector" logo** — the integrated brand mark is now a single geometric glyph (a solid triangle with a nested triangular counter forming the letter "A"), rendered in a fixed solid **Gunmetal Gray (`#545A61`)** on its own `logo` design token, independent of the `brand` interactive-accent blue used by buttons and links. Crisp from 18px in the Sidebar to 40px on the sign-in screen.
 - Navigation pills no longer show trailing item-count badges (e.g. `Engagements 6` → `Engagements`), and **Methodology Reference** was removed from the sidebar's Reporting group — it lives solely under Control Audit now.
 

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Custom KPI Definition Engine — the admin builder UI at /admin/kpis.
  * Create/edit/delete against the real server actions

@@ -1,4 +1,4 @@
-# A2R DOS — Auto Demo Voiceover Script &amp; Production Cue Sheet
+# PS-DOS — Auto Demo Voiceover Script &amp; Production Cue Sheet
 
 **Source of truth:** `src/lib/demo/demo-script.ts` (`DEMO_SCRIPT`). Every
 line, route, duration, and beat id below is transcribed verbatim from that
@@ -96,7 +96,7 @@ recording plays when, on which track.
 | --- | --- |
 | A2R | "A, two, R" (three distinct sounds, not "aitor") |
 | SteerCo | "steer-co" (one word) |
-| OS (in "A2R Delivery OS") | "O, S" (letters) |
+| OS (in "PS-DOS") | "O, S" (letters) |
 | PDF / KPI / UI / OS | spell the letters |
 | RAID | said as the word "raid" |
 | MFA | "M, F, A" (letters) |
@@ -120,7 +120,7 @@ comfortable 150–180 wpm band.
 - **Route:** `/portfolio` · **Duration:** 10s · **Personas:** Executive, Admin, Security, Full Tour
 - **Highlight:** `#global-header`
 - **VO:**
-  > Welcome to A2R Delivery OS — the delivery operating system built for professional services firms. This is the Portfolio Control Tower: every engagement, rolled up into one live view.
+  > Welcome to PS-DOS — the delivery operating system built for professional services firms. This is the Portfolio Control Tower: every engagement, rolled up into one live view.
 - **Pacing:** 28 words / 10s ≈ **168 wpm**
 
 #### Beat 2 — `command-center`
@@ -134,7 +134,7 @@ comfortable 150–180 wpm band.
 - **Route:** `/capacity` · **Duration:** 15s · **Personas:** Executive, Admin, Security, Full Tour
 - **Highlight:** `#capacity-scope-indicator`
 - **VO:**
-  > Every view in A2R Delivery OS is role-aware. A VP or Ops lead sees the whole portfolio here — tenant-wide. Switch to a Practice Director's seat, and the exact same screen scopes itself to just their own practice's roster and projects, automatically.
+  > Every view in PS-DOS is role-aware. A VP or Ops lead sees the whole portfolio here — tenant-wide. Switch to a Practice Director's seat, and the exact same screen scopes itself to just their own practice's roster and projects, automatically.
 - **Delivery note:** land the *comparison* — the highlighted line flips between "Tenant-wide — every practice." and "Scoped to your practice — N resources."
 - **Pacing:** 41 words / 15s ≈ **164 wpm**
 
@@ -191,7 +191,7 @@ comfortable 150–180 wpm band.
 - **Route:** `/ops/pulse` · **Duration:** 8s · **Personas:** Admin, Full Tour
 - **Highlight:** —
 - **VO:**
-  > Platform Pulse is engineering telemetry for A2R Delivery OS itself — build, tests, and database health, ingested automatically, never typed in by hand.
+  > Platform Pulse is engineering telemetry for PS-DOS itself — build, tests, and database health, ingested automatically, never typed in by hand.
 - **Pacing:** 22 words / 8s ≈ **165 wpm**
 
 ### ACT III — Security &amp; Trust
@@ -200,7 +200,7 @@ comfortable 150–180 wpm band.
 - **Route:** `/portfolio` · **Duration:** 16s · **Personas:** Executive, Admin, Security, Full Tour
 - **Highlight:** `#global-header`
 - **VO:**
-  > Everything you have seen sits inside one tenant. A2R Delivery OS enforces that at the database itself — row-level security, composite keys, and a query layer scoped by default. One client's data is never one bug away from another's. Not a UI rule — a database guarantee.
+  > Everything you have seen sits inside one tenant. PS-DOS enforces that at the database itself — row-level security, composite keys, and a query layer scoped by default. One client's data is never one bug away from another's. Not a UI rule — a database guarantee.
 - **Delivery note:** the last sentence is the point of the beat — flat and certain, no lift, small pause before "a database guarantee."
 - **Pacing:** 45 words / 16s ≈ **169 wpm**
 

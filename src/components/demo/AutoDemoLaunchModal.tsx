@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Auto Demo — the launch trigger. A single self-contained component (own
  * button + own modal + own open state — same shape as
@@ -110,7 +110,7 @@ export function AutoDemoLaunchModal() {
                 <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1.5">Auto Demo</div>
                 <h2 className="text-lg font-display font-bold leading-snug">Launch a guided walkthrough</h2>
                 <p className="text-[12.5px] text-ink-muted mt-1.5 leading-relaxed">
-                  A2R Delivery OS drives itself — narrated captions, automatic navigation, no clicking required. Exit
+                  PS-DOS drives itself — narrated captions, automatic navigation, no clicking required. Exit
                   anytime from the bar at the bottom of the screen.
                 </p>
               </div>

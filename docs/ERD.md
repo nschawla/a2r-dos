@@ -1,4 +1,4 @@
-# Entity Relationship Diagram — A2R Delivery OS
+# Entity Relationship Diagram — PS-DOS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
 it, current as of **v1.16.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the

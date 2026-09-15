@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build a2r-executive-summary.pdf (repo root) from docs/pdf/exec-summary.html
+Build ps-executive-summary.pdf (repo root) from docs/pdf/exec-summary.html
 via WeasyPrint.
 
 The HTML mirrors docs/EXECUTIVE_SUMMARY.md + docs/ROADMAP.md — edit it in the
@@ -27,7 +27,7 @@ from pathlib import Path
 
 DIR = Path(__file__).resolve().parent
 REPO = DIR.parent.parent
-OUT = REPO / "a2r-executive-summary.pdf"
+OUT = REPO / "ps-executive-summary.pdf"
 
 UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "

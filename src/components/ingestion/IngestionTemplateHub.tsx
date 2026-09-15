@@ -23,7 +23,7 @@ const LOAD_ORDER = [
 export function IngestionTemplateHub({
   templates,
   heading = 'Data Ingestion & Templates',
-  intro = 'Standardized intake templates and the rules for handing structured data to A2R Delivery OS.',
+  intro = 'Standardized intake templates and the rules for handing structured data to PS-DOS.',
 }: {
   templates: IngestionTemplate[];
   heading?: string;

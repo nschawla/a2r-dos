@@ -14,9 +14,9 @@ const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '600
 // page shares, so the ™ mark and copyright line live here once rather than
 // being duplicated per-page.
 export const metadata: Metadata = {
-  title: 'A2R Delivery OS™',
+  title: 'PS-DOS™',
   description:
-    'A2R Delivery OS™ — Delivery Operating System for Professional Services organizations. © 2026 A2R Ventures LLC. All rights reserved.',
+    'PS-DOS™ — Delivery Operating System for Professional Services organizations. © 2026 A2R Ventures LLC. All rights reserved.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

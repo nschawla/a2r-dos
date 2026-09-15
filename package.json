@@ -1,8 +1,8 @@
 {
-  "name": "a2r-dos-app",
+  "name": "ps-dos-app",
   "version": "1.16.0",
   "private": true,
-  "description": "A2R Delivery OS — SaaS foundation (Phase 3). Next.js App Router + Prisma + Postgres.",
+  "description": "PS-DOS — SaaS foundation (Phase 3). Next.js App Router + Prisma + Postgres.",
   "scripts": {
     "dev": "next dev",
     "dev:clean": "npx kill-port 3000 && rm -rf .next && next dev",
@@ -25,6 +25,7 @@
     "operator:create": "tsx scripts/create-operator.ts",
     "guests:seed": "tsx scripts/seed-guests.ts",
     "guests:access": "tsx scripts/set-guest-access.ts",
+    "rebrand:org-name": "tsx scripts/rebrand-demo-org-name.ts",
     "ops:mfa:status": "tsx scripts/ops-mfa.ts status",
     "ops:mfa:reset": "tsx scripts/ops-mfa.ts reset",
     "user:password:status": "tsx scripts/reset-password.ts status",

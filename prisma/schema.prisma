@@ -1,4 +1,4 @@
-// A2R Delivery OS — Phase 3 SaaS foundation schema.
+// PS-DOS — Phase 3 SaaS foundation schema.
 //
 // This models the exact domain captured by the Phase 1/2 static prototype
 // (a2r/index.html`state` object), lifted into a multi-tenant Postgres schema:

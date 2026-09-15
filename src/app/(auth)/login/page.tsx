@@ -64,7 +64,7 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      title="Sign in to A2R Delivery OS™"
+      title="Sign in to PS-DOS™"
       subtitle="Delivery Operating System for Professional Services organizations."
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">

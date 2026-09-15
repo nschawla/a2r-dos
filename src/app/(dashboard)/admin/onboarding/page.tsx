@@ -37,7 +37,7 @@ export default async function AdminOnboardingPage() {
       <div>
         <h1 className="text-2xl font-display font-bold">Onboarding Journey</h1>
         <p className="text-ink-muted text-sm mt-1 max-w-2xl">
-          A guided walkthrough for setting up a new A2R Delivery OS workspace — provisioning, governance, base data,
+          A guided walkthrough for setting up a new PS-DOS workspace — provisioning, governance, base data,
           role mapping, and go-live, in one pipeline. Session-local: reloading this page starts a fresh run.
         </p>
       </div>

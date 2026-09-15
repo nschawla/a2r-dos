@@ -1,4 +1,4 @@
-# Functional Requirements Document — A2R Delivery OS™
+# Functional Requirements Document — PS-DOS™
 
 _Consolidated current-state, **v1.16.0**. Per-phase functional narratives
 live in `README.md` (Phases 1–13); this document is the flattened,
@@ -11,7 +11,7 @@ code and tests: `docs/RTM.md`. Security posture: `docs/SECURITY.md` +
 
 ## 1. Product scope
 
-A2R Delivery OS is a multi-tenant SaaS "Delivery Operating System" for
+PS-DOS is a multi-tenant SaaS "Delivery Operating System" for
 Professional-Services organizations: portfolio governance, engagement
 delivery, financial realization (EAC / margin), capacity planning, and an
 internal operator control plane for the vendor (A2R). Next.js 15 App Router

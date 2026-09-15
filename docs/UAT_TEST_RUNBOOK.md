@@ -1,4 +1,4 @@
-# A2R Delivery OS™ — UAT Test Runbook
+# PS-DOS™ — UAT Test Runbook
 
 _Applies to v1.14.x · Last updated 2026-09-07_
 
@@ -27,7 +27,7 @@ pass/fail checkpoint** for every major module. The automated half
 
 All demo passwords are **`password12345`** unless noted.
 
-**Tenant: A2R DOS Demo** (`a2r-ventures-demo`)
+**Tenant: PS-DOS Demo** (`a2r-ventures-demo`)
 
 | Email | Console role | Delivery role | Default landing |
 | --- | --- | --- | --- |
@@ -57,7 +57,7 @@ Capability reference: `docs/ROLE_ACCESS_MATRIX.md` § 1.2.
 
 **Family guest accounts** (v1.16.0) — roster in `scripts/lib/family-guests.ts`
 (11 members), shared password **`a2r-DOS-233444`**. Designed tier is
-`MembershipRole.VIEWER` + `deliveryRole = VIEWER` of A2R DOS Demo
+`MembershipRole.VIEWER` + `deliveryRole = VIEWER` of PS-DOS Demo
 (`npm run guests:seed` / `e2e/global-setup.ts`).
 
 | Accounts (`<name>@a2rventures.local`) | Tier | Default landing |
@@ -71,7 +71,7 @@ Capability reference: `docs/ROLE_ACCESS_MATRIX.md` § 1.2.
 > `docs/ROLE_ACCESS_MATRIX.md` § 3. Playwright Suite Q exercises the VIEWER
 > tier on staging using the first five names.
 
-### 1.3 Reference figures (A2R DOS Demo, fresh seed)
+### 1.3 Reference figures (PS-DOS Demo, fresh seed)
 
 | Figure | Value |
 | --- | --- |
@@ -209,7 +209,7 @@ Signed in as `ops@a2rventures.com`.
 
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | Sidebar → **Identity Federation** (`/ops/identity`) | Heading "Identity Federation"; a tenant selector + a "Select a tenant to configure" list (A2R DOS Demo, Acme Health) | |
+| 1 | Sidebar → **Identity Federation** (`/ops/identity`) | Heading "Identity Federation"; a tenant selector + a "Select a tenant to configure" list (PS-DOS Demo, Acme Health) | |
 | 2 | Choose **Acme Health** | URL `?org=…`; panel titled **"SSO & Identity Federation — Acme Health"** | |
 | 3 | Provider **Microsoft Entra ID**, Protocol **OIDC**, Connection name `Acme Entra ID`, Email domains `acme-health.test` → **Create connection** | Toast "Identity provider saved"; status chips: **Configured** (green), **Unverified** (grey), **Disabled** (grey), **Optional** (grey), `OIDC · AZURE_AD` | |
 | 4 | Paste a discovery URL (e.g. `https://accounts.google.com/.well-known/openid-configuration`) → **Verify IdP metadata** | Green result box lists Issuer / Authorization endpoint / Token endpoint / JWKS URI; "Verified" chip turns green | |
@@ -446,7 +446,7 @@ Sign in as `ops@a2rventures.com` (or `navinder@…`).
 | 7 | **Ingestion & Templates** | CSV template downloads + schema reference | |
 | 8 | **Staff Access** | Grants table + the **Just-In-Time elevations** audit table (who, why, expiry, active/ended) | |
 | 9 | Impersonate a tenant (elevate first; Tenants → actions → Impersonate, give a reason) | Opens a **read-only** tenant session with a persistent banner; the reason is written to that tenant's Compliance Ledger before the session starts | |
-| 10 | Build stamp at the bottom of the Ops sidebar | Reads `A2R Delivery OS v1.14.x`; click → Release Notes modal (top entry: v1.14.0) | |
+| 10 | Build stamp at the bottom of the Ops sidebar | Reads `PS-DOS v1.14.x`; click → Release Notes modal (top entry: v1.14.0) | |
 
 ### UAT-4.6 · Admin & Org Setup (`/admin`)
 

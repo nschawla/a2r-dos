@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * P2 — the named sliding-window rate-limit rules for the app's high-risk /
  * resource-intensive boundaries. One place to see (and tune) every limit.

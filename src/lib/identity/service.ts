@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Server-only identity-federation reads. `getIdentityProvider` returns a
  * SECRET-FREE view (only the OIDC client-secret fingerprint) for the Admin

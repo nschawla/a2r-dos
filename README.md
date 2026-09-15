@@ -1,6 +1,6 @@
-# A2R Delivery OS — Phase 3: SaaS Foundation
+# PS-DOS — Phase 3: SaaS Foundation
 
-This is the Next.js / Prisma / Postgres backend for **A2R-DOS**, replacing the
+This is the Next.js / Prisma / Postgres backend for **PS-DOS**, replacing the
 Phase 1/2 static prototype (`a2r/index.html`, a single-file localStorage app)
 with a real multi-tenant SaaS foundation. The domain model — Modules 0
 through 5 — is lifted 1:1 from that prototype's `state` object; see
@@ -124,7 +124,7 @@ DDL) — see `.env.example` and `datasource.directUrl` in the schema.
 npm run db:seed
 ```
 
-Creates the **"A2R DOS Demo"** organization with 5 logins, one per
+Creates the **"PS-DOS Demo"** organization with 5 logins, one per
 `DeliveryRole` tier (ADMIN, VP_EXECUTIVE, PRACTICE_DIRECTOR,
 DELIVERY_MANAGER, PROJECT_MANAGER — see Work Package 4), a full practice/
 rate-card roster, and a handful of realistic in-flight projects across
@@ -1013,11 +1013,11 @@ rather than via `AskUserQuestion`, following the same standard WP4–7 set):
 - **The ™ mark on `Header.tsx` is an accessible label, not new visible
   chrome.** Header's design is organization-focused (the workspace
   switcher shows the *active org's* name, not the app's), so forcing a
-  second, visually competing "A2R Delivery OS™" string in there would
+  second, visually competing "PS-DOS™" string in there would
   fight the existing layout. Instead the workspace-switcher button carries
-  `title="A2R Delivery OS™"` plus a screen-reader-only label, and the
+  `title="PS-DOS™"` plus a screen-reader-only label, and the
   browser tab title (`src/app/layout.tsx`'s `metadata.title`) now reads
-  "A2R Delivery OS™" — real, global, page-independent brand real estate
+  "PS-DOS™" — real, global, page-independent brand real estate
   every route already shares. `Sidebar.tsx`'s own brand wordmark (the one
   actually visible on every dashboard page) gets the ™ directly.
 - **`Footer.tsx` is a plain server component reused verbatim in both
@@ -1045,10 +1045,10 @@ rather than via `AskUserQuestion`, following the same standard WP4–7 set):
 new server action; nothing here touches `prisma/schema.prisma`.
 
 **1. Branding & Copyright Enforcement** — `Sidebar.tsx`'s wordmark now
-reads "A2R Delivery OS™"; the browser tab title and workspace-switcher
+reads "PS-DOS™"; the browser tab title and workspace-switcher
 `title`/`sr-only` label carry it too (see the judgment-call note above for
 why `Header.tsx` doesn't get a second visible wordmark). New
-`src/components/layout/Footer.tsx` renders "A2R Delivery OS™ · © {year} A2R
+`src/components/layout/Footer.tsx` renders "PS-DOS™ · © {year} A2R
 Ventures LLC. All rights reserved." plus Terms/Privacy links, mounted in
 both `(dashboard)/layout.tsx` (below `<main>`) and the new
 `(public)/layout.tsx`. A short copyright/license banner comment was
@@ -1271,7 +1271,7 @@ security posture is in **`docs/SECURITY.md`** (§8, §9); the schema is in
   had grown a redundant second role picker next to the Perspective
   switcher) lets an A2R operator preview a tenant's navigation ahead of a
   demo — display-only, never a real access grant.
-- **A2R DOS rebrand.** The flagship demo tenant is renamed "A2R DOS Demo"
+- **PS-DOS rebrand.** The flagship demo tenant is renamed "PS-DOS Demo"
   (from "A2R Ventures Demo") across the UI, seed data, and documentation.
 - **"Concept B: Ascent Vector" logo.** The integrated brand mark is now a
   single geometric glyph — a solid triangle with a nested triangular
@@ -1309,7 +1309,7 @@ security posture is in **`docs/SECURITY.md`** (§8, §9); the schema is in
 | RBAC-2 | **Dynamic Sidebar / `ModuleNav` filtering** — union of governance-hidden + RBAC-hidden hrefs | `src/components/layout/Sidebar.tsx`, `src/components/projects/ProjectHeader.tsx` | `tests/rbac-matrix.test.ts` (`rbacHiddenHrefs` set-partition property) |
 | RBAC-3 | **Edge-safe middleware route guard** — real block/redirect independent of the server-action authorization layer | `src/middleware.ts` | `tests/rbac-matrix.test.ts` (`isRouteBlockedForPersona`) |
 | RBAC-4 | **Cross-shell Persona Preview** — Ops-Console-only, localStorage-shared, display-only | `src/lib/client/rbac-preview.ts`, `src/components/ops/RbacPersonaSwitcher.tsx`, `src/app/(admin)/layout.tsx` | live e2e (set in Ops → reflected in tenant Sidebar) |
-| RB-1 | **"A2R DOS Demo" rebrand** — seed, live tenant row, docs, tests | `prisma/seed.ts`, `tests/steerco-briefing.test.ts`, `e2e/enterprise-verification.spec.ts`, `docs/*.md` | full `vitest` + e2e gate |
+| RB-1 | **"PS-DOS Demo" rebrand** — seed, live tenant row, docs, tests | `prisma/seed.ts`, `tests/steerco-briefing.test.ts`, `e2e/enterprise-verification.spec.ts`, `docs/*.md` | full `vitest` + e2e gate |
 | RB-2 | **"Ascent Vector" logo, Gunmetal Gray** — single glyph component, dedicated `logo` token | `src/components/ui/brand-mark.tsx`, `tailwind.config.ts` | visual; consumed by every existing call site with no changes needed |
 | WP7-1 | **Batch schema + validation** — `WEEKLY_ACTUALS` / `MILESTONE_PROGRESS` column defs, plain-English `BatchRowIssue`s | `src/lib/ingestion/batch-schemas.ts` | `tests/batch-schemas.test.ts` (18) |
 | WP7-2 | **Isomorphic CSV/Excel reader** — shared by client preview and (future) server paths | `src/lib/ingestion/workbook-reader.ts` | `tests/workbook-reader.test.ts` (6, incl. a real `xlsx`-library round-trip) |

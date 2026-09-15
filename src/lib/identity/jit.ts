@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Just-In-Time provisioning — pure decision core. Given the current state
  * (does the user exist? do they already have a membership in this tenant?)

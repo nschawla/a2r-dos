@@ -8,8 +8,8 @@ commit, then rebuild.
 
 | Source (`docs/pdf/`) | Output (repo root) | Pipeline | Audience |
 | --- | --- | --- | --- |
-| `exec-summary.html` | `a2r-executive-summary.pdf` | WeasyPrint (Python) | Executive / stakeholder / family review |
-| `security-briefing.html` | `a2r-security-briefing.pdf` | Playwright chromium (Node) | External executive, security, and audit review |
+| `exec-summary.html` | `ps-executive-summary.pdf` | WeasyPrint (Python) | Executive / stakeholder / family review |
+| `security-briefing.html` | `ps-security-briefing.pdf` | Playwright chromium (Node) | External executive, security, and audit review |
 
 ## Executive summary — `build_exec_summary.py` (WeasyPrint)
 

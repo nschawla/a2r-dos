@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Auto Demo — the hands-free walkthrough script. Pure, dependency-light
  * data (same philosophy as src/lib/governance/rbacMatrix.ts and
@@ -85,7 +85,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     personas: ['Executive', 'Admin', 'Security'],
     highlightSelector: '#global-header',
     caption:
-      'Welcome to A2R Delivery OS — the delivery operating system built for professional services firms. This is the Portfolio Control Tower: every engagement, rolled up into one live view.',
+      'Welcome to PS-DOS — the delivery operating system built for professional services firms. This is the Portfolio Control Tower: every engagement, rolled up into one live view.',
   },
   {
     id: 'command-center',
@@ -104,7 +104,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     personas: ['Executive', 'Admin', 'Security'],
     highlightSelector: '#capacity-scope-indicator',
     caption:
-      'Every view in A2R Delivery OS is role-aware. A VP or Ops lead sees the whole portfolio here — tenant-wide. Switch to a Practice Director’s seat, and the exact same screen scopes itself to just their own practice’s roster and projects, automatically.',
+      'Every view in PS-DOS is role-aware. A VP or Ops lead sees the whole portfolio here — tenant-wide. Switch to a Practice Director’s seat, and the exact same screen scopes itself to just their own practice’s roster and projects, automatically.',
   },
   {
     id: 'steerco',
@@ -181,7 +181,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     act: 'Ops Console',
     personas: ['Admin'],
     caption:
-      'Platform Pulse is engineering telemetry for A2R Delivery OS itself — build, tests, and database health, ingested automatically, never typed in by hand.',
+      'Platform Pulse is engineering telemetry for PS-DOS itself — build, tests, and database health, ingested automatically, never typed in by hand.',
   },
   {
     // Tenant-side security beat — shown to every single-persona track. The
@@ -194,7 +194,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     personas: ['Executive', 'Admin', 'Security'],
     highlightSelector: '#global-header',
     caption:
-      'Everything you have seen sits inside one tenant. A2R Delivery OS enforces that at the database itself — row-level security, composite keys, and a query layer scoped by default. One client’s data is never one bug away from another’s. Not a UI rule — a database guarantee.',
+      'Everything you have seen sits inside one tenant. PS-DOS enforces that at the database itself — row-level security, composite keys, and a query layer scoped by default. One client’s data is never one bug away from another’s. Not a UI rule — a database guarantee.',
   },
   {
     id: 'operator-roles',

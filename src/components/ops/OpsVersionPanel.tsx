@@ -3,7 +3,7 @@
 /**
  * Ops Console footer build stamp + Release Notes viewer.
  *
- * The stamp ("A2R Delivery OS v1.0.0") sits discreetly at the bottom of
+ * The stamp ("PS-DOS v1.0.0") sits discreetly at the bottom of
  * the operator sidebar for build traceability; clicking it opens the
  * changelog modal, which renders src/lib/changelog.ts grouped by release.
  */
@@ -57,7 +57,7 @@ function ChangelogModal({ onClose }: { onClose: () => void }) {
         <div className="flex items-start justify-between gap-4 mb-1">
           <div>
             <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
-              A2R Delivery OS
+              PS-DOS
             </div>
             <h2 className="text-[17px] font-bold">Release Notes</h2>
           </div>

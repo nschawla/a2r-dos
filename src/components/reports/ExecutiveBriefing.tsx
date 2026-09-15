@@ -52,7 +52,7 @@ export function ExecutiveBriefing({
       {/* document header — prints */}
       <header className="exec-section border-b border-border pb-3">
         <div className="text-[11px] uppercase tracking-[0.14em] text-ink-faint font-semibold">
-          A2R Delivery OS · Executive Briefing
+          PS-DOS · Executive Briefing
         </div>
         <h2 className="text-xl font-display font-bold mt-0.5">{briefing.organizationName} — Portfolio Review</h2>
         <p className="text-[12px] exec-muted text-ink-faint mt-1">

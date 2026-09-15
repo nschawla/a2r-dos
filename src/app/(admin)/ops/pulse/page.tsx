@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'Platform Pulse · A2R Ops' };
 export const dynamic = 'force-dynamic';
 
 /**
- * Platform Pulse — the engineering health of A2R Delivery OS itself,
+ * Platform Pulse — the engineering health of PS-DOS itself,
  * ingested automatically: the running build, the last `npm test` result,
  * recent commits, and a live database probe. Staff-only; no tenant data.
  */
@@ -55,7 +55,7 @@ export default async function OpsPulsePage() {
         <div>
           <h1 className="text-2xl font-display font-bold">Platform Pulse</h1>
           <p className="text-ink-muted text-sm mt-1">
-            Engineering health of A2R Delivery OS itself — build, tests, commits, database. Ingested
+            Engineering health of PS-DOS itself — build, tests, commits, database. Ingested
             automatically; not tenant data.
           </p>
         </div>

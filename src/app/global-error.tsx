@@ -7,7 +7,7 @@
  * layout) when an error escapes every nested boundary, so it renders its
  * own <html>/<body> and cannot rely on globals.css, fonts, or providers
  * being present. Styling is therefore inline, using the app's palette so
- * it still reads as A2R Delivery OS rather than Next.js's raw fallback.
+ * it still reads as PS-DOS rather than Next.js's raw fallback.
  *
  * Only errors thrown while rendering the root layout itself, or ones that
  * bubble past `src/app/(dashboard)/error.tsx` / other segment boundaries,
@@ -88,7 +88,7 @@ export default function GlobalError({
           </div>
 
           <h1 style={{ fontSize: '20px', lineHeight: 1.25, margin: '0 0 10px', fontWeight: 700 }}>
-            A2R Delivery OS hit an unexpected error
+            PS-DOS hit an unexpected error
           </h1>
 
           <p style={{ fontSize: '14px', lineHeight: 1.6, color: palette.inkMuted, margin: '0 0 20px' }}>
@@ -117,7 +117,7 @@ export default function GlobalError({
             </button>
             <a
               href={`mailto:support@a2rventures.com?subject=${encodeURIComponent(
-                'A2R Delivery OS error' + (error.digest ? ` (ref ${error.digest})` : '')
+                'PS-DOS error' + (error.digest ? ` (ref ${error.digest})` : '')
               )}`}
               style={{
                 flex: '1 1 auto',

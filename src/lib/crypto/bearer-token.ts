@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * P0-5 — bearer-token crypto primitives for the short-lived opaque tokens
  * carried in httpOnly cookies (JIT staff elevation `a2r_ops_elevation`,

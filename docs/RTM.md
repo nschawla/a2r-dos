@@ -1,4 +1,4 @@
-# Requirements Traceability Matrix — A2R Delivery OS™
+# Requirements Traceability Matrix — PS-DOS™
 
 _Current-state, **v1.16.0**. Maps each `docs/FRD.md` requirement to its
 implementing code and its automated coverage. Per-phase RTMs (with the

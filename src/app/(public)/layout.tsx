@@ -1,7 +1,6 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
- * Proprietary and confidential. Licensed, not sold, under the A2R Delivery
- * OS Terms of Service & EULA (/terms).
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * Proprietary and confidential. Licensed, not sold, under the PS-DOS Terms of Service & EULA (/terms).
  */
 
 /**
@@ -31,7 +30,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <Link href="/" className="flex items-center gap-2.5">
           <BrandMark size="md" />
           <span className="font-display font-bold text-[15px] text-ink">
-            A2R Delivery OS<span className="text-ink-faint text-[10px] align-top ml-0.5">™</span>
+            PS-DOS<span className="text-ink-faint text-[10px] align-top ml-0.5">™</span>
           </span>
         </Link>
         <nav className="flex items-center gap-2 sm:gap-5 text-sm">

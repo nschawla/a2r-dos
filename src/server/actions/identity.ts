@@ -3,7 +3,7 @@
 import { withAction } from '@/lib/observability/action-wrapper';
 
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Enterprise Identity Federation server actions. As of v1.2.1 this is a
  * PLATFORM-level capability: identity federation is infrastructure an A2R

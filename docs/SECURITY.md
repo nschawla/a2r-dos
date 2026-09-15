@@ -1,9 +1,9 @@
-# A2R Delivery OS — Security & Trust Overview
+# PS-DOS — Security & Trust Overview
 
 _Last reviewed: 2026-09-07 · Applies to v1.14.0 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
-compliance controls of A2R Delivery OS™. It is written for the security and
+compliance controls of PS-DOS™. It is written for the security and
 procurement teams of prospective enterprise customers.
 
 Sections marked **Roadmap** are planned but not yet implemented; they are
@@ -14,7 +14,7 @@ statement of the platform's current state.
 
 ## 1. Multi-tenant architecture & logical isolation
 
-A2R Delivery OS is a single application serving many customer organizations
+PS-DOS is a single application serving many customer organizations
 ("tenants"). Isolation is **logical**, enforced consistently at the data-access
 layer:
 

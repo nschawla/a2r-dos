@@ -43,7 +43,7 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
-      title="Set up A2R Delivery OS™"
+      title="Set up PS-DOS™"
       subtitle="Creates your organization with a starter practice roster and rate card."
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4">

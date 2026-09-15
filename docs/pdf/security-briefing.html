@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>A2R Delivery OS — Multi-Tenant Security Briefing</title>
+<title>PS-DOS — Multi-Tenant Security Briefing</title>
 <style>
 /* FONT-FACES */
 
@@ -244,7 +244,7 @@ li { margin: 1.5mm 0; }
   <p class="kicker">A2R Ventures LLC · Security Briefing</p>
   <div class="rule"></div>
   <h1>The Multi-Tenant Security Manifesto</h1>
-  <p class="tag">A2R Delivery OS — cumulative security architecture</p>
+  <p class="tag">PS-DOS — cumulative security architecture</p>
   <p class="sub">
     Every tenant's data, every operator's action, and every privileged
     credential is contained by a control that does not depend on the
@@ -269,7 +269,7 @@ li { margin: 1.5mm 0; }
     every time. One missed clause is a cross-tenant breach.
   </p>
   <p>
-    A2R Delivery OS does not rely on the application being correct. Tenant
+    PS-DOS does not rely on the application being correct. Tenant
     isolation is enforced independently at <strong>four</strong> layers;
     privileged credentials are cryptographically separated and independently
     rotatable; every privileged operator action is least-privilege,
@@ -375,7 +375,7 @@ li { margin: 1.5mm 0; }
 <section class="break">
   <h2><span class="n">04</span>Cryptographic separation &amp; key rotation</h2>
   <p>
-    A2R-DOS holds three classes of secret material — bearer tokens, the
+    PS-DOS holds three classes of secret material — bearer tokens, the
     operator MFA secret, and SSO client secrets. Each has a storage rule that
     assumes the database will one day be read by someone who should not have
     it.
@@ -421,7 +421,7 @@ v1.&lt;iv&gt;.&lt;authTag&gt;.&lt;ciphertext&gt;                   legacy format
   <p>
     A read-then-write check for "has this code been used?" has a
     time-of-check / time-of-use gap: two concurrent requests both read
-    "unused" and both proceed. A2R-DOS closes that gap at the database, not in
+    "unused" and both proceed. PS-DOS closes that gap at the database, not in
     application logic.
   </p>
 
@@ -592,7 +592,7 @@ v1.&lt;iv&gt;.&lt;authTag&gt;.&lt;ciphertext&gt;                   legacy format
 <section class="break">
   <h2><span class="n">09</span>The seven-audit pedigree</h2>
   <p class="lead">
-    A2R-DOS reached v1.16.0 through seven successive rounds of adversarial
+    PS-DOS reached v1.16.0 through seven successive rounds of adversarial
     AI-assisted self-audit and hardening.
   </p>
   <p>
@@ -672,7 +672,7 @@ v1.&lt;iv&gt;.&lt;authTag&gt;.&lt;ciphertext&gt;                   legacy format
   </table>
   <p class="foot">
     Source of record: <code>docs/SECURITY.md</code> · <code>docs/ROLE_ACCESS_MATRIX.md</code> · <code>docs/RTM.md</code> · <code>docs/TEST_COVERAGE.md</code> · <code>docs/EXECUTIVE_SUMMARY.md</code><br>
-    A2R Delivery OS™ · © 2026 A2R Ventures LLC. All rights reserved. Proprietary and confidential.<br>
+    PS-DOS™ · © 2026 A2R Ventures LLC. All rights reserved. Proprietary and confidential.<br>
     Generated 2026-09-07 against commit e1a0c09 (tag v1.16.0).
   </p>
 </section>

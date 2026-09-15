@@ -15,7 +15,7 @@ export default function RootNotFound() {
         <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-2">
           404 — Page not found
         </div>
-        <h1 className="text-xl font-display font-bold mb-1">A2R Delivery OS</h1>
+        <h1 className="text-xl font-display font-bold mb-1">PS-DOS</h1>
         <p className="text-ink-muted text-sm mb-6">
           This address doesn&rsquo;t match anything in the workspace. It may have changed, or the link may be
           incomplete.

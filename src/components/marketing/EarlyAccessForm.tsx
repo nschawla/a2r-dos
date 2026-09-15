@@ -125,7 +125,7 @@ export function EarlyAccessForm() {
       </button>
 
       <p className="mt-3 text-[11px] leading-relaxed text-[#5A6683]">
-        By submitting, you agree to be contacted about A2R DOS early access. See our{' '}
+        By submitting, you agree to be contacted about PS-DOS early access. See our{' '}
         <a href="/privacy" className="text-[#8CA9DB] hover:text-white">
           Privacy Policy
         </a>

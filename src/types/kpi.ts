@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Types for the Custom KPI Definition Engine (Admin & Org Setup → Custom
  * KPIs, `/admin/kpis`) — pure types and the metric catalog, no

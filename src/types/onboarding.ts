@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Types for the Visual Onboarding Journey Wizard
  * (Admin & Org Setup → Onboarding, `/admin/onboarding`) — a guided,
@@ -62,7 +62,7 @@ export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
     order: 4,
     title: 'Role Mapping',
     shortLabel: 'Role Mapping',
-    description: 'Review how your roster maps onto A2R Delivery OS access tiers.',
+    description: 'Review how your roster maps onto PS-DOS access tiers.',
   },
   {
     id: 'go-live',
@@ -79,7 +79,7 @@ export type OnboardingStepStatus = 'complete' | 'active' | 'locked';
 //
 // Modeled on a PowerPlan-style capital-project accounting export — the
 // kind of legacy dataset a professional-services or utilities client
-// migrating onto A2R Delivery OS is likely to be carrying: a projects
+// migrating onto PS-DOS is likely to be carrying: a projects
 // master, a work-order/financials ledger, and a resource allocation
 // sheet. Deliberately its own column-naming convention (snake_case,
 // generic "work order" / "cost category" language) rather than reusing
