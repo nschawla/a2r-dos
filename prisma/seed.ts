@@ -1,5 +1,5 @@
 /**
- * WP4 demo seed: "A2R DOS Demo" — a richer org built specifically to
+ * WP4 demo seed: "PS-DOS Demo" — a richer org built specifically to
  * exercise the RBAC scoping in src/lib/db/scoped-portfolio.ts and the WP2
  * calculation engine end to end.
  *
@@ -13,16 +13,31 @@
  *    one healthy, one deliberately red (slipped schedule, audit gaps,
  *    margin erosion) so the health/notification/pace-risk UI has
  *    something real to show.
- *  - 3 standalone projects, one in DIRECT estimation mode, one with no
- *    assigned Practice Director (practice-matched instead — exercises the
- *    PRACTICE_DIRECTOR "or project practice matches" scoping clause), and
- *    one with an explicit ProjectContributor (exercises the
- *    PROJECT_MANAGER "or explicit contributor" clause).
+ *  - 3 standalone scoping-focused projects, one in DIRECT estimation mode,
+ *    one with no assigned Practice Director (practice-matched instead —
+ *    exercises the PRACTICE_DIRECTOR "or project practice matches"
+ *    scoping clause), and one with an explicit ProjectContributor
+ *    (exercises the PROJECT_MANAGER "or explicit contributor" clause).
+ *  - 5 hyper-realistic enterprise showcase engagements spanning distinct
+ *    verticals — Electric Utility AMI (Yellow), Water/Gas Utility EAM/ERP
+ *    (Amber, with an executive narrative blocker), Healthcare Epic EHR
+ *    (Green, one CRITICAL dependency still tracked), Legal/Info-Tech SAP
+ *    S/4HANA (Yellow, a complex multi-role phase-effort matrix), and
+ *    Manufacturing Oracle EBS→Fusion (Red, EAC well past BAC, baseline
+ *    unlocked pending rebaseline) — so the v1.16.0 Decision Center and
+ *    every portfolio view have real overdue/due-soon/Green-Yellow-Red
+ *    data to show on first login.
  *
  * Idempotent: every top-level row is found-or-created by a natural unique
  * key, and each project's detail rows (scope/schedule/audit/effort/
  * financials/RAID) are only seeded the run it's first created, so
  * `npm run db:seed` is safe to re-run.
+ *
+ * A production run needs --yes-prod / A2R_ALLOW_PROD_WRITE (or a typed
+ * confirmation), same gate every other write-capable CLI in this repo
+ * uses — see scripts/lib/cli-io.ts. This is demo/showcase data, not a
+ * migration; it is meant to be seeded to production deliberately, not by
+ * accident from a bare `npm run db:seed`.
  *
  * Run with: npm run db:seed
  */
@@ -36,6 +51,7 @@ import {
 import bcrypt from 'bcryptjs';
 import { DEFAULT_PRACTICES, DEFAULT_ROLES, DEFAULT_SCOPE, PHASES, CONTROL_DEFS } from '../src/lib/constants';
 import { recordLedgerEvent } from '../src/lib/audit-ledger';
+import { assertProdWriteAllowed } from '../scripts/lib/cli-io';
 
 const db = new PrismaClient();
 
@@ -83,10 +99,12 @@ async function upsertUser(email: string, name: string) {
 }
 
 async function main() {
+  await assertProdWriteAllowed(process.env.DATABASE_URL, 'seed/update the PS-DOS Demo and Acme Health demo data');
+
   // ==================== ORG ====================
   let org = await db.organization.findUnique({ where: { slug: 'a2r-ventures-demo' } });
   if (!org) {
-    org = await db.organization.create({ data: { name: 'A2R DOS Demo', slug: 'a2r-ventures-demo' } });
+    org = await db.organization.create({ data: { name: 'PS-DOS Demo', slug: 'a2r-ventures-demo' } });
   }
   const organizationId = org.id;
 
@@ -538,6 +556,480 @@ async function main() {
       { type: 'ASSUMPTION', description: 'Assumed rugged-device fleet refresh completes before UAT.', severity: 'LOW', status: 'CLOSED' },
     ]);
     await logActivity(fieldApp.id, 'Seeded Field Service Mobile App');
+  }
+
+  // ============================================================
+  // ENTERPRISE SHOWCASE PROJECTS — five hyper-realistic, cross-vertical
+  // engagements so the Decision Center (v1.16.0) and every portfolio view
+  // have real Green/Yellow/Red spread, real overdue/due-soon RAID and
+  // SteerCo items, and a real EAC-exceeds-BAC margin-erosion story to
+  // demonstrate the masking + margin-protection views. Each reuses the
+  // org-scoped seed* helpers above; a handful of vertical-specific rate-
+  // card roles are added to THIS org only (not DEFAULT_ROLES — a real
+  // tenant customizing its own rate card, not a new global default).
+  // ============================================================
+
+  async function seedSteerCo(
+    projectId: string,
+    rows: {
+      decisionRequired: string;
+      ownerId: string | null;
+      targetInDays: number; // negative = already overdue
+      status?: 'OPEN' | 'RESOLVED';
+      resolutionNotes?: string;
+    }[]
+  ) {
+    const organizationId = await orgOf(projectId);
+    for (const r of rows) {
+      await db.steerCoDecision.create({
+        data: {
+          organizationId,
+          projectId,
+          decisionRequired: r.decisionRequired,
+          decisionOwnerId: r.ownerId,
+          resolutionTargetDate: daysFromNow(r.targetInDays),
+          status: r.status ?? 'OPEN',
+          resolutionNotes: r.resolutionNotes ?? null,
+        },
+      });
+    }
+  }
+
+  async function upsertRole(name: string, billRate: number, costRate: number, practiceId: string | null): Promise<string> {
+    const existing = await db.deliveryRole.findFirst({ where: { organizationId, name } });
+    if (existing) return existing.id;
+    const created = await db.deliveryRole.create({ data: { organizationId, name, billRate, costRate, practiceId } });
+    return created.id;
+  }
+
+  const amiRoleId = await upsertRole('Grid/AMI Integration Engineer', 240, 148, corePracticeId);
+  const eamRoleId = await upsertRole('EAM Functional Consultant', 205, 128, archPracticeId);
+  const epicRoleId = await upsertRole('Epic Certified Clinical Analyst', 225, 140, corePracticeId);
+  const sapRoleId = await upsertRole('SAP S/4HANA Functional Lead', 295, 182, corePracticeId);
+  const dataMigRoleId = await upsertRole('Data Migration Specialist', 215, 132, archPracticeId);
+  const oracleRoleId = await upsertRole('Oracle Cloud ERP Architect', 300, 185, archPracticeId);
+
+  // ---- 4. Electric Utility — Smart Grid AMI, Yellow: moderate schedule
+  // variance + a field-crew capacity constraint. ----
+  const { project: ami, justCreated: amiCreated } = await findOrCreateProject({
+    name: 'NextGen AMI & Smart Meter Billing Software Implementation',
+    client: 'Meridian Power & Light',
+    data: {
+      commercialModel: 'FF',
+      methodology: 'HYBRID',
+      contingencyPct: 10,
+      locked: true,
+      lockedAt: daysAgo(95),
+      practiceDirectorId: pdResource.id,
+      deliveryManagerId: dmResource.id,
+      projectManagerId: samResource.id,
+      practiceId: corePracticeId,
+      narrativeBlockers:
+        'Field-crew installation capacity is running roughly 40% below the rate needed to hit the meter-swap schedule; a staffing decision is pending SteerCo before Q3 milestones can be re-baselined.',
+    },
+  });
+  if (amiCreated) {
+    await seedScope(ami.id);
+    // 4 YES + 4 PARTIAL of 8 graded (2 NA) = 75% — locked but under the 80%
+    // Green gate, landing correctly on Yellow (computeProjectHealth).
+    await seedAudit(ami.id, (i) => (i < 4 ? 'YES' : i < 8 ? 'PARTIAL' : 'NA'));
+    await seedEffort(ami.id, [
+      { phaseKey: 'design', roleId: amiRoleId, hours: 120 },
+      { phaseKey: 'build', roleId: amiRoleId, hours: 380 },
+      { phaseKey: 'build', roleId: scRoleId, hours: 140 },
+      { phaseKey: 'test', roleId: amiRoleId, hours: 90 },
+      { phaseKey: 'test', roleId: scRoleId, hours: 60 },
+      { phaseKey: 'deploy', roleId: amiRoleId, hours: 60 },
+    ]);
+    await seedSchedule(ami.id, {
+      initiate: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(120), plannedEnd: daysAgo(105), actualStart: daysAgo(120), actualEnd: daysAgo(104) },
+      design: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(103), plannedEnd: daysAgo(75), actualStart: daysAgo(103), actualEnd: daysAgo(70) },
+      build: { status: 'DELAYED', pctComplete: 55, plannedStart: daysAgo(69), plannedEnd: daysAgo(5) },
+      test: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(1), plannedEnd: daysFromNow(30) },
+      deploy: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(31), plannedEnd: daysFromNow(50) },
+      sustain: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(51), plannedEnd: daysFromNow(90) },
+    });
+    await seedFinancials(ami.id, [
+      { roleKey: amiRoleId, roleId: amiRoleId, hours: 420, cost: 420 * 152, forecastHours: 260, openRRHours: 40 },
+      { roleKey: scRoleId, roleId: scRoleId, hours: 130, cost: 130 * 122, forecastHours: 80, openRRHours: 20 },
+    ]);
+    await seedRaid(ami.id, [
+      {
+        title: 'AMI field-crew capacity shortfall',
+        type: 'RISK',
+        description: 'Field crew AMI installation capacity is constrained; current contractor headcount supports ~60% of the required meter-swap rate.',
+        severity: 'HIGH',
+        ownerId: samResource.id,
+        status: 'OPEN',
+        targetDate: daysFromNow(5),
+      },
+      {
+        title: 'Meter firmware batch 3 interoperability failures',
+        type: 'ISSUE',
+        description: 'Meter firmware batch 3 is failing interoperability tests against the head-end system.',
+        severity: 'MED',
+        ownerId: samResource.id,
+        status: 'INPROGRESS',
+        targetDate: daysFromNow(12),
+      },
+      {
+        title: 'Head-end vendor upgrade blocking firmware batch 4',
+        type: 'DEPENDENCY',
+        description: 'The utility’s AMI head-end vendor upgrade must complete before firmware batch 4 can be certified.',
+        severity: 'HIGH',
+        ownerId: dmResource.id,
+        status: 'OPEN',
+        escalate: true,
+        targetDate: daysAgo(3),
+      },
+    ]);
+    await seedSteerCo(ami.id, [
+      {
+        decisionRequired: 'Approve incremental contractor staffing increase to relieve the AMI field-crew capacity constraint.',
+        ownerId: dmResource.id,
+        targetInDays: 6,
+      },
+    ]);
+    await logActivity(ami.id, 'Seeded NextGen AMI & Smart Meter Billing Software Implementation');
+  }
+
+  // ---- 5. Water/Gas Utility — EAM/ERP, Amber: field-crew scheduling
+  // integration is the executive-narrative blocker. ----
+  const { project: eam, justCreated: eamCreated } = await findOrCreateProject({
+    name: 'Enterprise Asset Management & ERP Modernization',
+    client: 'Cascade Water & Gas Utility',
+    data: {
+      commercialModel: 'FF',
+      methodology: 'WATERFALL',
+      contingencyPct: 12,
+      locked: true,
+      lockedAt: daysAgo(80),
+      practiceDirectorId: pdResource.id,
+      deliveryManagerId: dmResource.id,
+      projectManagerId: jordanResource.id,
+      practiceId: archPracticeId,
+      narrativeBlockers:
+        'Field crew mobile scheduling integration with the new EAM work-order engine is behind baseline; Phase 2 crew go-live is at risk pending a resolved data-mapping approach with the client’s dispatch vendor.',
+    },
+  });
+  if (eamCreated) {
+    await seedScope(eam.id);
+    await seedAudit(eam.id, (i) => (i < 5 ? 'YES' : i < 8 ? 'PARTIAL' : 'NO'));
+    await seedEffort(eam.id, [
+      { phaseKey: 'design', roleId: eamRoleId, hours: 150 },
+      { phaseKey: 'design', roleId: laRoleId, hours: 80 },
+      { phaseKey: 'build', roleId: eamRoleId, hours: 320 },
+      { phaseKey: 'build', roleId: laRoleId, hours: 120 },
+      { phaseKey: 'test', roleId: eamRoleId, hours: 100 },
+    ]);
+    await seedSchedule(eam.id, {
+      initiate: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(110), plannedEnd: daysAgo(95), actualStart: daysAgo(110), actualEnd: daysAgo(94) },
+      design: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(93), plannedEnd: daysAgo(60), actualStart: daysAgo(93), actualEnd: daysAgo(55) },
+      build: { status: 'DELAYED', pctComplete: 45, plannedStart: daysAgo(54), plannedEnd: daysAgo(2) },
+      test: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(5), plannedEnd: daysFromNow(35) },
+      deploy: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(36), plannedEnd: daysFromNow(55) },
+      sustain: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(56), plannedEnd: daysFromNow(95) },
+    });
+    await seedFinancials(eam.id, [
+      { roleKey: eamRoleId, roleId: eamRoleId, hours: 280, cost: 280 * 128, forecastHours: 220, openRRHours: 30 },
+      { roleKey: laRoleId, roleId: laRoleId, hours: 150, cost: 150 * 170, forecastHours: 60 },
+    ]);
+    await seedRaid(eam.id, [
+      {
+        title: 'Dispatch vendor API 6 weeks behind roadmap',
+        type: 'DEPENDENCY',
+        description: 'Field crew mobile scheduling integration depends on the client’s 3rd-party dispatch vendor releasing a stable API — currently ~6 weeks behind their own roadmap.',
+        severity: 'HIGH',
+        ownerId: jordanResource.id,
+        status: 'OPEN',
+        escalate: true,
+        targetDate: daysAgo(2),
+      },
+      {
+        title: 'Legacy CIS meter-read history granularity risk',
+        type: 'RISK',
+        description: 'Data conversion from the legacy CIS may not preserve historical meter-read history at the required granularity.',
+        severity: 'MED',
+        ownerId: jordanResource.id,
+        status: 'OPEN',
+        targetDate: daysFromNow(15),
+      },
+    ]);
+    await seedSteerCo(eam.id, [
+      {
+        decisionRequired: 'Approve an interim manual dispatch workaround for field crews until the vendor’s scheduling API is production-ready.',
+        ownerId: pdResource.id,
+        targetInDays: 4,
+      },
+    ]);
+    await logActivity(eam.id, 'Seeded Enterprise Asset Management & ERP Modernization');
+  }
+
+  // ---- 6. Healthcare Systems — Epic EHR, Green: strong delivery, one
+  // critical dependency still being actively tracked. ----
+  const { project: epic, justCreated: epicCreated } = await findOrCreateProject({
+    name: 'Epic EHR Integration & Revenue Cycle Upgrade',
+    client: 'Beacon Regional Health',
+    data: {
+      commercialModel: 'FF',
+      methodology: 'HYBRID',
+      govProfile: 'MARQUEE',
+      contingencyPct: 10,
+      locked: true,
+      lockedAt: daysAgo(130),
+      practiceDirectorId: pdResource.id,
+      deliveryManagerId: dmResource.id,
+      projectManagerId: pmResource.id,
+      practiceId: corePracticeId,
+    },
+  });
+  if (epicCreated) {
+    await seedScope(epic.id);
+    await seedAudit(epic.id, (i) => (i < 9 ? 'YES' : 'PARTIAL'));
+    await seedEffort(epic.id, [
+      { phaseKey: 'design', roleId: epicRoleId, hours: 140 },
+      { phaseKey: 'build', roleId: epicRoleId, hours: 300 },
+      { phaseKey: 'build', roleId: pmRoleId, hours: 60 },
+      { phaseKey: 'test', roleId: epicRoleId, hours: 120 },
+      { phaseKey: 'deploy', roleId: epicRoleId, hours: 50 },
+    ]);
+    await seedSchedule(epic.id, {
+      initiate: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(150), plannedEnd: daysAgo(135), actualStart: daysAgo(150), actualEnd: daysAgo(136) },
+      design: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(134), plannedEnd: daysAgo(100), actualStart: daysAgo(134), actualEnd: daysAgo(101) },
+      build: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(99), plannedEnd: daysAgo(40), actualStart: daysAgo(99), actualEnd: daysAgo(42) },
+      test: { status: 'INPROGRESS', pctComplete: 80, plannedStart: daysAgo(39), plannedEnd: daysFromNow(5) },
+      deploy: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(6), plannedEnd: daysFromNow(20) },
+      sustain: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(21), plannedEnd: daysFromNow(50) },
+    });
+    await seedFinancials(epic.id, [
+      { roleKey: epicRoleId, roleId: epicRoleId, hours: 520, cost: 520 * 138, forecastHours: 90 },
+      { roleKey: pmRoleId, roleId: pmRoleId, hours: 55, cost: 55 * 130, forecastHours: 5 },
+    ]);
+    await seedRaid(epic.id, [
+      {
+        title: 'HIE vendor HL7 certification — critical path',
+        type: 'DEPENDENCY',
+        description: 'Go-live is contingent on the health information exchange (HIE) vendor completing HL7 interface certification testing — critical path for claims submission.',
+        severity: 'CRITICAL',
+        ownerId: pmResource.id,
+        status: 'OPEN',
+        targetDate: daysFromNow(20),
+      },
+      {
+        title: 'Revenue cycle training pace',
+        type: 'RISK',
+        description: 'Revenue cycle staff training completion rate is tracking slightly behind plan.',
+        severity: 'LOW',
+        ownerId: pmResource.id,
+        status: 'OPEN',
+        targetDate: daysFromNow(30),
+      },
+    ]);
+    await seedSteerCo(epic.id, [
+      {
+        decisionRequired: 'Approve the go-live readiness checklist and cutover-weekend staffing plan.',
+        ownerId: pdResource.id,
+        targetInDays: -20,
+        status: 'RESOLVED',
+        resolutionNotes: 'Approved at the March SteerCo; cutover-weekend staffing confirmed.',
+      },
+      {
+        decisionRequired: 'Confirm downtime-procedure sign-off from Nursing Informatics.',
+        ownerId: pmResource.id,
+        targetInDays: 25,
+      },
+    ]);
+    await logActivity(epic.id, 'Seeded Epic EHR Integration & Revenue Cycle Upgrade');
+  }
+
+  // ---- 7. Legal / Information Services — global SAP S/4HANA migration,
+  // Yellow: high-stakes, complex multi-role phase-effort matrix. ----
+  const { project: sap, justCreated: sapCreated } = await findOrCreateProject({
+    name: 'Global SAP ECC to S/4HANA Financial & Editorial Core Migration',
+    client: 'Meridian Information Solutions',
+    data: {
+      commercialModel: 'FF',
+      methodology: 'WATERFALL',
+      govProfile: 'MARQUEE',
+      contingencyPct: 15,
+      locked: true,
+      lockedAt: daysAgo(150),
+      practiceDirectorId: pdResource.id,
+      deliveryManagerId: dmResource.id,
+      projectManagerId: samResource.id,
+      practiceId: corePracticeId,
+      narrativeBlockers:
+        'Financial-ledger reconciliation in trial migration run 2 showed a 4% variance versus ECC; cutover cannot proceed until root-caused. A parallel-run extension is pending SteerCo approval.',
+    },
+  });
+  if (sapCreated) {
+    await seedScope(sap.id);
+    await seedAudit(sap.id, (i) => (i < 6 ? 'YES' : i < 9 ? 'PARTIAL' : 'NO'));
+    await seedEffort(sap.id, [
+      { phaseKey: 'initiate', roleId: sapRoleId, hours: 40 },
+      { phaseKey: 'design', roleId: sapRoleId, hours: 220 },
+      { phaseKey: 'design', roleId: laRoleId, hours: 160 },
+      { phaseKey: 'build', roleId: sapRoleId, hours: 380 },
+      { phaseKey: 'build', roleId: dataMigRoleId, hours: 260 },
+      { phaseKey: 'build', roleId: scRoleId, hours: 200 },
+      { phaseKey: 'test', roleId: sapRoleId, hours: 150 },
+      { phaseKey: 'test', roleId: dataMigRoleId, hours: 120 },
+      { phaseKey: 'test', roleId: scRoleId, hours: 140 },
+      { phaseKey: 'deploy', roleId: sapRoleId, hours: 80 },
+      { phaseKey: 'deploy', roleId: dataMigRoleId, hours: 60 },
+    ]);
+    await seedSchedule(sap.id, {
+      initiate: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(180), plannedEnd: daysAgo(165), actualStart: daysAgo(180), actualEnd: daysAgo(163) },
+      design: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(162), plannedEnd: daysAgo(110), actualStart: daysAgo(162), actualEnd: daysAgo(105) },
+      build: { status: 'INPROGRESS', pctComplete: 60, plannedStart: daysAgo(104), plannedEnd: daysFromNow(10) },
+      test: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(11), plannedEnd: daysFromNow(55) },
+      deploy: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(56), plannedEnd: daysFromNow(80) },
+      sustain: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(81), plannedEnd: daysFromNow(140) },
+    });
+    await seedFinancials(sap.id, [
+      { roleKey: sapRoleId, roleId: sapRoleId, hours: 520, cost: 520 * 182, forecastHours: 350, openRRHours: 20 },
+      { roleKey: dataMigRoleId, roleId: dataMigRoleId, hours: 200, cost: 200 * 135, forecastHours: 240, openRRHours: 40 },
+      { roleKey: laRoleId, roleId: laRoleId, hours: 140, cost: 140 * 172, forecastHours: 20 },
+      { roleKey: scRoleId, roleId: scRoleId, hours: 180, cost: 180 * 122, forecastHours: 160, openRRHours: 30 },
+    ]);
+    await seedRaid(sap.id, [
+      {
+        title: 'Editorial taxonomy mapping more complex than scoped',
+        type: 'RISK',
+        description: 'Editorial content taxonomy mapping from ECC’s custom classification tables to the S/4HANA data model is more complex than initially scoped.',
+        severity: 'HIGH',
+        ownerId: samResource.id,
+        status: 'OPEN',
+        targetDate: daysFromNow(10),
+      },
+      {
+        title: 'Trial migration run 2 — 4% ledger variance',
+        type: 'ISSUE',
+        description: 'Trial data migration run 2 found a 4% record-count variance in the financial ledger reconciliation.',
+        severity: 'CRITICAL',
+        ownerId: samResource.id,
+        status: 'INPROGRESS',
+        escalate: true,
+        targetDate: daysAgo(1),
+      },
+      {
+        title: 'Two parallel close cycles required before cutover',
+        type: 'DEPENDENCY',
+        description: 'Parallel financial close (ECC + S/4HANA) for two full closing cycles is required before cutover approval.',
+        severity: 'HIGH',
+        ownerId: dmResource.id,
+        status: 'OPEN',
+        targetDate: daysFromNow(35),
+      },
+      {
+        title: 'Search-index rebuild window',
+        type: 'ASSUMPTION',
+        description: 'Assumed the editorial platform’s search-index rebuild can run outside the cutover maintenance window.',
+        severity: 'LOW',
+        status: 'CLOSED',
+      },
+    ]);
+    await seedSteerCo(sap.id, [
+      {
+        decisionRequired: 'Approve an extended parallel-run window (two additional close cycles) before full S/4HANA financial cutover.',
+        ownerId: pdResource.id,
+        targetInDays: 3,
+      },
+    ]);
+    await logActivity(sap.id, 'Seeded Global SAP ECC to S/4HANA Financial & Editorial Core Migration');
+  }
+
+  // ---- 8. Manufacturing — Oracle EBS to Fusion, Red: EAC has blown past
+  // BAC, baseline unlocked pending a SteerCo rebaseline decision. ----
+  const { project: fusion, justCreated: fusionCreated } = await findOrCreateProject({
+    name: 'Supply Chain & Financials Oracle EBS to Fusion Migration',
+    client: 'Ironclad Manufacturing Group',
+    data: {
+      commercialModel: 'FF',
+      methodology: 'WATERFALL',
+      contingencyPct: 12,
+      locked: false,
+      lockedAt: null,
+      practiceDirectorId: pdResource.id,
+      deliveryManagerId: dmResource.id,
+      projectManagerId: jordanResource.id,
+      practiceId: archPracticeId,
+      narrativeBlockers:
+        'EAC has exceeded the approved BAC by roughly 50% due to unscoped legacy customization remediation and repeated data-reconciliation failures. The baseline was unlocked pending a SteerCo rebaseline decision, which is now overdue.',
+    },
+  });
+  if (fusionCreated) {
+    await seedScope(fusion.id);
+    await seedAudit(fusion.id, (i) => (i < 3 ? 'YES' : i < 5 ? 'PARTIAL' : 'NO'));
+    await seedEffort(fusion.id, [
+      { phaseKey: 'design', roleId: oracleRoleId, hours: 180 },
+      { phaseKey: 'build', roleId: oracleRoleId, hours: 320 },
+      { phaseKey: 'build', roleId: dataMigRoleId, hours: 280 },
+      { phaseKey: 'build', roleId: scRoleId, hours: 150 },
+      { phaseKey: 'test', roleId: oracleRoleId, hours: 100 },
+      { phaseKey: 'test', roleId: dataMigRoleId, hours: 90 },
+    ]);
+    await seedSchedule(fusion.id, {
+      initiate: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(160), plannedEnd: daysAgo(145), actualStart: daysAgo(160), actualEnd: daysAgo(144) },
+      design: { status: 'COMPLETE', pctComplete: 100, plannedStart: daysAgo(143), plannedEnd: daysAgo(100), actualStart: daysAgo(143), actualEnd: daysAgo(90) },
+      build: { status: 'DELAYED', pctComplete: 50, plannedStart: daysAgo(89), plannedEnd: daysAgo(15) },
+      test: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(1), plannedEnd: daysFromNow(45) },
+      deploy: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(46), plannedEnd: daysFromNow(70) },
+      sustain: { status: 'NOTSTARTED', pctComplete: 0, plannedStart: daysFromNow(71), plannedEnd: daysFromNow(120) },
+    });
+    await seedFinancials(fusion.id, [
+      { roleKey: oracleRoleId, roleId: oracleRoleId, hours: 520, cost: 520 * 195, forecastHours: 260, openRRHours: 60 },
+      { roleKey: dataMigRoleId, roleId: dataMigRoleId, hours: 340, cost: 340 * 145, forecastHours: 180, openRRHours: 40 },
+      { roleKey: scRoleId, roleId: scRoleId, hours: 130, cost: 130 * 128, forecastHours: 100 },
+    ]);
+    await seedRaid(fusion.id, [
+      {
+        title: '12 legacy EBS customizations unmapped to Fusion',
+        type: 'ISSUE',
+        description: '47 legacy EBS customizations were identified; 12 remain unscoped and unmapped to a Fusion equivalent, blocking financial-close parity testing.',
+        severity: 'CRITICAL',
+        ownerId: jordanResource.id,
+        status: 'OPEN',
+        escalate: true,
+        targetDate: daysAgo(6),
+      },
+      {
+        title: 'Trial load 3 — 8% inventory valuation reconciliation failures',
+        type: 'ISSUE',
+        description: 'Trial data migration load 3 produced reconciliation failures across 8% of supply-chain inventory valuation records.',
+        severity: 'CRITICAL',
+        ownerId: jordanResource.id,
+        status: 'INPROGRESS',
+        escalate: true,
+        targetDate: daysAgo(2),
+      },
+      {
+        title: 'Oracle Cloud ERP Architect burn rate 40% over estimate',
+        type: 'RISK',
+        description: 'Contractor burn rate on the Oracle Cloud ERP Architect role is running ~40% above the original estimate with no corresponding schedule recovery.',
+        severity: 'HIGH',
+        ownerId: dmResource.id,
+        status: 'OPEN',
+        targetDate: daysFromNow(5),
+      },
+      {
+        title: 'Cutover go/no-go blocked on open reconciliation issues',
+        type: 'DEPENDENCY',
+        description: 'Fusion cutover go/no-go depends on closing all CRITICAL reconciliation issues from trial loads 2 and 3.',
+        severity: 'HIGH',
+        ownerId: jordanResource.id,
+        status: 'OPEN',
+        targetDate: daysFromNow(14),
+      },
+    ]);
+    await seedSteerCo(fusion.id, [
+      {
+        decisionRequired: 'Go/no-go decision on the Fusion cutover date given open reconciliation failures and the EAC overrun — delivery recommends delay and rebaseline.',
+        ownerId: pdResource.id,
+        targetInDays: -4,
+      },
+    ]);
+    await logActivity(fusion.id, 'Seeded Supply Chain & Financials Oracle EBS to Fusion Migration');
   }
 
   // ============================================================
@@ -1280,7 +1772,7 @@ async function main() {
   await grantStaffAccess(supportOperator.id, 'Seed — support / troubleshooting operator (least privilege)', 'SUPPORT');
 
   // Oldest org first, so the FIRST membership created for each master
-  // account is the primary demo tenant (A2R DOS Demo) — requireOrgContext
+  // account is the primary demo tenant (PS-DOS Demo) — requireOrgContext
   // falls back to memberships[0] when no active-org cookie is set, and the
   // E2E suite's Suite B expects the master to land there.
   const allOrgs = await db.organization.findMany({ select: { id: true }, orderBy: { createdAt: 'asc' } });
