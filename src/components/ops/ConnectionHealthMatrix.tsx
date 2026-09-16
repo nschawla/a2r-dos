@@ -125,7 +125,7 @@ export function ConnectionHealthMatrix({
 
   return (
     <>
-      <section className="card">
+      <section className="card" id="integration-health-matrix">
         <div className="flex items-center justify-between gap-3 mb-3">
           <h2 className="text-[15.5px] font-bold">Connection Health Matrix</h2>
           <button type="button" className="btn-primary !w-auto px-4 text-xs" onClick={() => setFormOpen((o) => !o)}>

@@ -63,7 +63,7 @@ describe('DEMO_SCRIPT', () => {
   it('carries a Security & Trust segment: tenant isolation, operator RBAC, step-up MFA, immutable ledger', () => {
     const security = DEMO_SCRIPT.filter((s) => s.act === 'Security & Trust');
     const ids = security.map((s) => s.id);
-    expect(ids).toEqual(['tenant-isolation', 'operator-roles', 'step-up-mfa', 'audit-ledger']);
+    expect(ids).toEqual(['tenant-isolation', 'operator-roles', 'step-up-mfa', 'audit-ledger', 'external-integrations']);
 
     const isolation = DEMO_SCRIPT.find((s) => s.id === 'tenant-isolation')!;
     expect(isolation.personas).toEqual(expect.arrayContaining(['Executive', 'Admin', 'Security']));
@@ -83,9 +83,14 @@ describe('DEMO_SCRIPT', () => {
     expect(ledger.highlightSelector).toBe('#jit-elevation-log');
     expect(ledger.caption).toMatch(/immutable|hash-chained/i);
 
+    const integrations = DEMO_SCRIPT.find((s) => s.id === 'external-integrations')!;
+    expect(integrations.route).toBe('/ops/integrations');
+    expect(integrations.highlightSelector).toBe('#integration-health-matrix');
+    expect(integrations.caption).toMatch(/read-only/i);
+
     // the deep operator beats are for the Admin and Security tracks only —
     // never the board-level Executive track.
-    for (const id of ['operator-roles', 'step-up-mfa', 'audit-ledger']) {
+    for (const id of ['operator-roles', 'step-up-mfa', 'audit-ledger', 'external-integrations']) {
       const step = DEMO_SCRIPT.find((s) => s.id === id)!;
       expect(step.personas).toEqual(expect.arrayContaining(['Admin', 'Security']));
       expect(step.personas).not.toContain('Executive');
@@ -148,12 +153,14 @@ describe('getStepsForPersona', () => {
       'operator-roles',
       'step-up-mfa',
       'audit-ledger',
+      'external-integrations',
     ]);
     expect(trustActs(getStepsForPersona('Security'))).toEqual([
       'tenant-isolation',
       'operator-roles',
       'step-up-mfa',
       'audit-ledger',
+      'external-integrations',
     ]);
     // the Executive track gets only the one tenant-facing trust beat.
     expect(trustActs(getStepsForPersona('Executive'))).toEqual(['tenant-isolation']);

@@ -22,25 +22,30 @@ re-points the `ops-console` beat at `/ops/telemetry` (bare `/ops` now
 
 **Current as of v1.17.0** — adds one beat, `persona-preview` (Admin and
 Security tracks, right after `scoped-practice-view`), showcasing the new
-Persona Preview banner. 16 beats total now; every cue sheet in §4 except
-Executive Lens (which doesn't play this beat) shifts by +18s from this
-point on.
+Persona Preview banner.
+
+**Current as of v1.18.0** — adds one beat, `external-integrations` (Admin
+and Security tracks, the new last beat of the Security &amp; Trust segment,
+right before `closing`), showcasing the Read-Only External Integration
+Adapters and the Ops Console's Connection Health Matrix. 17 beats total
+now; every cue sheet in §4 except Executive Lens (which doesn't play
+either new beat) shifts again from this point on.
 
 ---
 
 ## 1. Track overview
 
-Four playback tracks share one 16-beat master script — a track is a
+Four playback tracks share one 17-beat master script — a track is a
 persona-filtered *subsequence* of it, in the same order, never a rewrite:
 
 | Track | Persona value | Beats played | Total runtime |
 | --- | --- | --- | --- |
-| **Full Platform Tour** | `'Full Tour'` | All 16, in script order | **3:29** (209s) |
+| **Full Platform Tour** | `'Full Tour'` | All 17, in script order | **3:50** (230s) |
 | **Executive Lens** | `'Executive'` | Welcome → Command Center → Scoped Practice View → SteerCo → Executive Hub → Tenant Isolation → Closing (7 beats) | **1:15** (75s) |
-| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Scoped Practice View → Persona Preview → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → Closing (14 beats) | **3:12** (192s) |
-| **Security &amp; Trust** | `'Security'` | Welcome → Scoped Practice View → Persona Preview → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → Closing (8 beats) | **1:59** (119s) |
+| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Scoped Practice View → Persona Preview → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Closing (15 beats) | **3:33** (213s) |
+| **Security &amp; Trust** | `'Security'` | Welcome → Scoped Practice View → Persona Preview → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Closing (9 beats) | **2:20** (140s) |
 
-Because a beat's line is identical everywhere it appears, **only 16 unique
+Because a beat's line is identical everywhere it appears, **only 17 unique
 voiceover files are ever needed** — not one per track/beat combination.
 Record each beat once; the per-track cue sheets in §4 just tell you which
 recording plays when, on which track.
@@ -57,9 +62,11 @@ recording plays when, on which track.
   on the Executive and Admin tracks — it's the tenant-facing half of the
   security story (your data is walled off at the database), which every
   audience should hear.
-- **"Operator Roles / Step-Up MFA / Audit Ledger"** are the deep operator
-  beats — Admin and Security tracks only, never the board-level Executive
-  track.
+- **"Operator Roles / Step-Up MFA / Audit Ledger / External Integrations"**
+  are the deep operator beats — Admin and Security tracks only, never the
+  board-level Executive track. **"External Integrations"** (v1.18.0) closes
+  the segment: read-only-by-construction PSA/CRM connectors and the
+  Connection Health Matrix that monitors them.
 
 ---
 
@@ -97,7 +104,7 @@ recording plays when, on which track.
     — the last line is the whole point of the beat; let it land flat and
     certain, no lift.
 - **File naming &amp; delivery:** `vo-<beat-id>.mp3`, one file per beat id
-  in §3 (16 files total). Deliver alongside a duration report (actual
+  in §3 (17 files total). Deliver alongside a duration report (actual
   recorded length per file) so it can be checked against §3's on-screen
   budget before anything is wired into the app.
 
@@ -119,7 +126,7 @@ recording plays when, on which track.
 
 ---
 
-## 3. Master script — all 16 beats
+## 3. Master script — all 17 beats
 
 Grouped by act, exactly as `DEMO_SCRIPT` orders them. **Pacing** is words
 in the caption ÷ (`durationMs` ÷ 60000). Every beat sits inside the
@@ -247,9 +254,17 @@ comfortable 150–180 wpm band.
 - **Delivery note:** "What happened, happened, on the record." — three short beats, spoken like a closing statement.
 - **Pacing:** 42 words / 15s ≈ **168 wpm**
 
+#### Beat 16 — `external-integrations`
+- **Route:** `/ops/integrations` · **Duration:** 21s · **Personas:** Admin, Security, Full Tour
+- **Highlight:** `#integration-health-matrix`
+- **VO:**
+  > And one more layer of trust: when PS-DOS pulls telemetry from a client's Jira, Salesforce, or NetSuite, every connector is read-only by construction — there is no write method in the code to misuse. Credentials are sealed with the same encryption protecting single sign-on secrets, and every failure is logged here in plain language, never a raw stack trace.
+- **Delivery note:** "read-only by construction" is the headline claim — land it plainly, not defensively. The closing line ("never a raw stack trace") is the payoff, same treatment as the audit-ledger beat before it.
+- **Pacing:** 58 words / 21s ≈ **166 wpm**
+
 ### Closing (all tracks rejoin here)
 
-#### Beat 16 — `closing`
+#### Beat 17 — `closing`
 - **Route:** `/portfolio` · **Duration:** 7s · **Personas:** Executive, Admin, Security, Full Tour
 - **Highlight:** —
 - **VO:**
@@ -266,7 +281,7 @@ the instant `startDemo(persona)` fires) — precise to the second, since
 every beat's duration is a whole number of seconds. Each row's OUT point
 is the next beat's IN point; the route change happens exactly on cue.
 
-### 4.1 Full Platform Tour — 3:29 total, all 16 beats
+### 4.1 Full Platform Tour — 3:50 total, all 17 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
@@ -285,7 +300,8 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 2:29–2:50 | 149–170 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
 | 2:50–3:07 | 170–187 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
 | 3:07–3:22 | 187–202 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
-| 3:22–3:29 | 202–209 | `closing` | `/portfolio` | — |
+| 3:22–3:43 | 202–223 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
+| 3:43–3:50 | 223–230 | `closing` | `/portfolio` | — |
 
 ### 4.2 Executive Lens — 1:15 total, 7 beats
 
@@ -299,7 +315,7 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 0:52–1:08 | 52–68 | `tenant-isolation` | `/portfolio` | `#global-header` |
 | 1:08–1:15 | 68–75 | `closing` | `/portfolio` | — |
 
-### 4.3 Admin / Ops Lens — 3:12 total, 14 beats
+### 4.3 Admin / Ops Lens — 3:33 total, 15 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
@@ -316,9 +332,10 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 2:12–2:33 | 132–153 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
 | 2:33–2:50 | 153–170 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
 | 2:50–3:05 | 170–185 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
-| 3:05–3:12 | 185–192 | `closing` | `/portfolio` | — |
+| 3:05–3:26 | 185–206 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
+| 3:26–3:33 | 206–213 | `closing` | `/portfolio` | — |
 
-### 4.4 Security &amp; Trust — 1:59 total, 8 beats
+### 4.4 Security &amp; Trust — 2:20 total, 9 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
@@ -329,7 +346,8 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 0:59–1:20 | 59–80 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
 | 1:20–1:37 | 80–97 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
 | 1:37–1:52 | 97–112 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
-| 1:52–1:59 | 112–119 | `closing` | `/portfolio` | — |
+| 1:52–2:13 | 112–133 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
+| 2:13–2:20 | 133–140 | `closing` | `/portfolio` | — |
 
 ---
 
@@ -341,7 +359,7 @@ is the next beat's IN point; the route change happens exactly on cue.
   against the *actual* recorded file length and update this document in
   the same change.
 - **Visual highlight:** `CinematicOverlay` renders a soft pulsing glow
-  ring around `activeStep.highlightSelector`'s element. The eight ids in
+  ring around `activeStep.highlightSelector`'s element. The nine ids in
   use are all real, stable elements already in the DOM (see the
   `highlightSelector` doc comment in `demo-script.ts` for the file map).
   A future beat that wants one just sets `highlightSelector` to a real,

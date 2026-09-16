@@ -26,7 +26,8 @@
  *   - 'Security'    — the CISO / security-reviewer cut: scoped visibility +
  *                     Persona Preview (live access-control verification) +
  *                     tenant isolation + least-privilege operator RBAC +
- *                     step-up MFA + the immutable audit ledger.
+ *                     step-up MFA + the immutable audit ledger + read-only
+ *                     external integration adapters.
  *   - 'Full Tour'   — every beat, in order.
  */
 
@@ -67,6 +68,7 @@ export interface DemoStep {
    *   #operator-mfa-panel          — src/app/(admin)/ops/security/page.tsx
    *   #jit-elevation-log           — src/app/(admin)/ops/audit/page.tsx
    *   #persona-preview-bar         — src/components/layout/PersonaPreviewBar.tsx
+   *   #integration-health-matrix   — src/components/ops/ConnectionHealthMatrix.tsx
    * Omitted where a step is about the page generally, not one element on it.
    */
   highlightSelector?: string;
@@ -238,6 +240,16 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     highlightSelector: '#jit-elevation-log',
     caption:
       'Every elevation, and every action taken on a client’s data, is written to a hash-chained ledger that is immutable at the database engine — the application’s own role cannot update or delete a single row of it. What happened, happened, on the record.',
+  },
+  {
+    id: 'external-integrations',
+    route: '/ops/integrations',
+    durationMs: 21000, // 58 words at ~166 wpm
+    act: 'Security & Trust',
+    personas: ['Admin', 'Security'],
+    highlightSelector: '#integration-health-matrix',
+    caption:
+      'And one more layer of trust: when PS-DOS pulls telemetry from a client’s Jira, Salesforce, or NetSuite, every connector is read-only by construction — there is no write method in the code to misuse. Credentials are sealed with the same encryption protecting single sign-on secrets, and every failure is logged here in plain language, never a raw stack trace.',
   },
   {
     id: 'closing',
