@@ -1,6 +1,6 @@
 # PS-DOS™ — User Manual & Operator's Guide
 
-_Applies to v1.14.0 · Last updated 2026-09-07_
+_Applies to v1.17.0 · Last updated 2026-09-16_
 
 PS-DOS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the

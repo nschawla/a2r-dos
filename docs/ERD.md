@@ -1,9 +1,16 @@
 # Entity Relationship Diagram — PS-DOS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.16.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
+it, current as of **v1.17.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
 full model → tenant-binding → RLS-policy map and `docs/ROLE_ACCESS_MATRIX.md`
 for the role axes.
+
+**v1.17.0** — no schema changes. Migration 25 (`operator_roles`) remains the
+latest applied migration; the PS-DOS rebrand, the enterprise showcase seed
+data, and the Persona Preview rework (`RbacPersona`'s `CLIENT_SPONSOR` key
+renamed `DELIVERY_EXECUTIVE`) are all application-layer — no new tables,
+columns, or enum values. `CustomKpi.targetPersonas` is a plain `String[]`,
+not a DB enum, and held zero rows referencing the old key at rename time.
 
 **v1.16.0** — (a) new `enum OperatorRole { SUPER_ADMIN PROVISIONING SUPPORT
 AUDITOR BILLING VIEWER }`; **`StaffGrant.role OperatorRole @default(SUPER_ADMIN)`**

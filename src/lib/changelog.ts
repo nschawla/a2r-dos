@@ -36,6 +36,20 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.17.0',
+    date: '2026-09-16',
+    headline: 'PS-DOS rebrand, an enterprise showcase portfolio, and a real Persona Preview',
+    changes: [
+      { type: 'feature', text: 'The platform is now PS-DOS (Professional Services Delivery Operating System) — renamed throughout the app, documentation, and generated reports. No functional change; every account, project, and integration keeps working exactly as before.' },
+      { type: 'feature', text: "A curated, role-aware home screen: each persona lands on a tailored view, and the Control Tower's Decision Center surfaces exactly what needs attention today — overdue SteerCo decisions and critical RAID escalations — instead of a generic dashboard." },
+      { type: 'improvement', text: 'Sidebar navigation is grouped and color-coded by function (Portfolio Governance, Delivery Tracking, Commercials), an at-risk project shows a short executive status blurb next to its health badge, and RAID / decision tables distinguish Due Soon from genuinely Overdue instead of one generic "Open" state.' },
+      { type: 'improvement', text: 'Typed number inputs sit alongside percentage sliders (utilization, margin) for exact entry, Resource & Capacity tables show TOTAL rows, and raw internal record IDs no longer leak into audit-trail diffs.' },
+      { type: 'feature', text: 'Five new hyper-realistic demo engagements across utilities, healthcare, legal/IT, and manufacturing — each with a full RAID log, SteerCo decision history, and financial trail, so the Decision Center and portfolio views show meaningful data out of the box.' },
+      { type: 'feature', text: "Persona Preview: a tenant Admin or A2R staff member can preview the app as any of the six roles from an explicit banner at the top of the workspace. The sidebar, module tabs, and every write control (Lock Baseline, and the RAID / Schedule / Audit / Financials / Commercial Baseline editors) morph to match exactly what that role would see, and picking a persona lands you on that role's own tailored page — never orphaned on a URL the previewed role can't reach. A solid warning-colored bar and an Exit preview button make an active preview impossible to mistake for real access. Every other signed-in role sees no switcher at all." },
+      { type: 'fix', text: 'The Commercial Baseline effort-matrix editor and the RAID / Schedule / Audit / Financials editors now correctly hide their edit controls when previewing a read-only or client-facing persona — previously only the Lock Baseline button respected an active preview.' },
+    ],
+  },
+  {
     version: '1.16.0',
     date: '2026-09-07',
     headline: 'A2R organizational roles, guest viewer accounts, and Ops Console role management',

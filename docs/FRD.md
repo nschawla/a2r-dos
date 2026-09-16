@@ -1,6 +1,6 @@
 # Functional Requirements Document — PS-DOS™
 
-_Consolidated current-state, **v1.16.0**. Per-phase functional narratives
+_Consolidated current-state, **v1.17.0**. Per-phase functional narratives
 live in `README.md` (Phases 1–13); this document is the flattened,
 deduplicated view of what the production system does today. Traceability to
 code and tests: `docs/RTM.md`. Security posture: `docs/SECURITY.md` +
@@ -46,6 +46,7 @@ internal operator control plane for the vendor (A2R). Next.js 15 App Router
 | FR-TEN-7 | Governance config — compliance templates (Strict Financial / Agile / Board-Only / Standard) toggling route visibility + financial masking per tenant. |
 | FR-TEN-8 | Exact-decimal financial arithmetic — the calc engine accumulates every `$`/rate in `decimal.js`, rounds once at the accounting boundary (money HALF_UP 2 dp). No IEEE-754 drift on large portfolios. |
 | FR-TEN-9 | Tenant lifecycle states: `ACTIVE` / `SUSPENDED` (locks non-staff out) / `GRACE_PERIOD` (read-only). |
+| FR-TEN-10 | **Persona Preview** (v1.17.0) — a tenant Admin or A2R staff member simulates any of the six RBAC personas from an explicit banner; the Sidebar, module tabs, and every per-project write control (Lock Baseline, RAID / Schedule / Audit / Financials / Commercial Baseline editors) render exactly as that persona would, and picking one navigates to its `landing` route. Display-only — never changes what `middleware.ts` or any server action actually permits for the real signed-in session. No switcher renders for any other role. |
 
 ---
 

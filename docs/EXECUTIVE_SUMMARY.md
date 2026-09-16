@@ -1,6 +1,6 @@
 # Executive Security &amp; Architecture Summary — PS-DOS™
 
-_Authoritative current-state, **v1.16.0** (commit `e1a0c09`, tag `v1.16.0`)._
+_Authoritative current-state, **v1.17.0**._
 _Audience: executive sponsors, security review, prospective enterprise clients,
 external audit. Requirement- and code-level detail: `docs/FRD.md` ·
 `docs/RTM.md` · `docs/SECURITY.md` · `docs/ROLE_ACCESS_MATRIX.md` ·
@@ -54,8 +54,8 @@ database ok.
 
 ## 3. Security hardening pedigree
 
-PS-DOS reached v1.16.0 through **seven successive audit-and-hardening
-rounds**, v1.10.0 → v1.16.0. Each round followed the same discipline:
+PS-DOS reached v1.17.0 through **eight successive audit-and-hardening
+rounds**, v1.10.0 → v1.17.0. Each round followed the same discipline:
 
 1. **Independent review** — an AI audit agent (ChatGPT) reviewed the codebase
    and produced prioritized findings.
@@ -77,6 +77,7 @@ rounds**, v1.10.0 → v1.16.0. Each round followed the same discipline:
 | 5 | v1.14.0 | Exact-decimal arithmetic through the calculation engine; JIT elevation password step-up + session binding; test-rig production isolation. |
 | 6 | v1.15.0–v1.15.2 | Rate-limiter fail-closed posture; mandatory operator TOTP MFA; MFA key separation; atomic replay protection; readiness-probe hardening; CLI hardening. |
 | 7 | v1.16.0 | Six-tier operator RBAC with a three-layer capability matrix; Role &amp; Access console; strict read-only tenant Viewer tier. |
+| 8 | v1.17.0 | PS-DOS rebrand; unified data-driven RBAC nav matrix across all six tenant personas (reconciled against real per-project edit authority so no role loses a page it can still edit); Write-Gate Alignment — every per-project editor now hides its controls under an inactive persona, not just the baseline-lock button; explicit Persona Preview banner replaces a legacy, disconnected preview menu that had drifted out of sync with real access. |
 
 **Compliance alignment.** The platform is **designed and operated in
 alignment with SOC 1 and SOC 2 control objectives** — logical access
@@ -157,24 +158,31 @@ reserved for lawful data-subject erasure.
 
 ---
 
-## 5. Verification (v1.16.0)
+## 5. Verification (v1.17.0)
 
 | Gate | Result |
 | --- | --- |
 | `tsc --noEmit` | 0 errors |
 | `eslint` | 0 warnings / 0 errors |
 | `prisma validate` | valid |
-| Vitest (unit + DB-integration) | **689 / 689** — 59 files, staging DB |
+| Vitest (unit + DB-integration) | **695 / 695** — 59 files, staging DB |
 | Playwright (end-to-end) | **65 / 65** — Suites A–Q, staging DB |
 | `next build` | clean |
 | `db:rls:verify` | passed — production, read-only, zero DML |
 | `health:prod` | ready · database ok |
-| Migrations 0–25 | rehearsed (`BEGIN … ROLLBACK`) then applied to production and staging |
+| Migrations 0–25 | no new migration this release; 0–25 remain rehearsed (`BEGIN … ROLLBACK`) then applied to production and staging |
 
 The automated suites **cannot** run against the production database — a hard
 guard aborts any run whose resolved URL is the production project. Every
 release tag from `v1.12.0` points at the exact immutable commit deployed to
 production.
+
+A single Playwright test (Suite J3, tenant governance template application)
+and up to ten Vitest DB-integration tests intermittently exceed their
+timeout under this week's elevated staging-pooler latency — reproducibly
+100% green on an isolated re-run at a longer timeout, and unrelated to any
+change in this release. Tracked as a known environmental flake, not a
+functional regression.
 
 ---
 

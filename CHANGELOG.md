@@ -10,6 +10,87 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.17.0] — 2026-09-16
+
+_PS-DOS rebrand, an enterprise showcase portfolio, and a real Persona
+Preview._
+
+### Added
+
+- **PS-DOS rebrand** — renamed throughout the app, documentation, and
+  generated reports (was "A2R Delivery OS" / "A2R-DOS"). No functional
+  change; company name (A2R Ventures LLC), domain, and repo untouched.
+- **Role-aware landing & exception-driven Decision Center** — each persona
+  lands on a tailored view; the Control Tower surfaces overdue SteerCo
+  decisions and critical RAID escalations up front instead of a generic
+  rollup (`src/components/portfolio/DecisionCenter.tsx`,
+  `loadDecisionCenterAlerts`).
+- **Sidebar functional grouping + executive status blurbs** — the sidebar
+  is color-coded by zone (Portfolio Governance / Delivery Tracking /
+  Commercials); an at-risk project carries a short editable status blurb
+  next to its health badge (`Project.narrativeBlockers`,
+  `StatusBlurbEditor.tsx`).
+- **Due-status clarity** — RAID and SteerCo decision tables distinguish
+  Due Soon from Overdue (`src/lib/due-status.ts`) instead of one generic
+  "Open" state.
+- **Input precision & table totals** — typed number inputs beside the
+  utilization and margin sliders; TOTAL rows on Resource & Capacity
+  tables; raw internal record IDs no longer appear in audit-trail diffs.
+- **Five enterprise showcase engagements** — AMI/smart-metering, water/gas
+  EAM/ERP, Epic EHR, SAP S/4HANA, and Oracle EBS→Fusion, each fully
+  populated with RAID, SteerCo decisions, and financials so the Decision
+  Center and portfolio views show meaningful data immediately
+  (`prisma/seed.ts`; `assertProdWriteAllowed` guard added to the seed
+  script itself).
+- **Persona Preview** — a tenant Admin or A2R staff member previews the
+  app as any of the six RBAC personas from an explicit banner at the top
+  of the workspace (`src/components/layout/PersonaPreviewBar.tsx`,
+  replacing the old header "Perspective" lens pill entirely). The
+  sidebar, module tabs, and every write control morph to match, and
+  picking a persona navigates to that persona's own landing route — never
+  orphaned on a URL the previewed role can't reach
+  (`RBAC_MATRIX[persona].landing`). Solid warning styling + an "Exit
+  preview" button make an active preview unmistakable; every other role
+  sees no switcher at all.
+- **Write-Gate Alignment** — `usePersonaGatedEdit` /
+  `usePersonaGatedProjectEdit` (`dashboard-ui-context.tsx`) applied to
+  RaidBoard, ScheduleTracker, AuditChecklist, EacEditor, DealEditor, and
+  ProjectHeader's Lock Baseline, so previewing a read-only or
+  client-facing persona hides every write affordance, not just Lock
+  Baseline.
+
+### Changed
+
+- **RBAC persona matrix redefined** — `CLIENT_SPONSOR` renamed
+  `DELIVERY_EXECUTIVE` (an internal delivery-leadership escalation view:
+  Control Tower, RAID, Schedule, Resource & Capacity — no financials, no
+  admin tools), `EXECUTIVE_BOARD` tightened to Control Tower / SteerCo /
+  Financial Realization / Executive Hub. `ENGAGEMENT_MANAGER` and
+  `DELIVERY_LEAD` keep every non-admin module — both hold real
+  per-project edit authority (`canEditProject`) uniformly across
+  commercial-baseline/financials/schedule/raid/audit, so narrowing their
+  nav to a shorter headline list would 307 them away from pages they can
+  still edit; the "portfolio-wide margins" / "practice-wide capacity"
+  distinction for those two roles is already enforced as data-level
+  masking/scoping on those same pages, not a nav-level block.
+
+### Fixed
+
+- A legacy, disconnected "Preview as (RBAC testing)" menu (buried in the
+  account dropdown) was silently gating the Lock Baseline control with a
+  stale role list — a real Project Manager could lose their own
+  legitimate lock/unlock button. Removed entirely in favor of the one
+  Persona Preview axis.
+
+### Tests
+
+- `tests/rbac-matrix.test.ts`: 23 (was 21) — persona landing routes,
+  PRACTICE_DIRECTOR/PROJECT_MANAGER module-authority reconciliation.
+- New Playwright Suite J2 — Persona Preview banner navigation across all
+  six roles, replacing the old header-pill test it retired.
+
+---
+
 ## [1.16.0] — 2026-09-07
 
 _A2R organizational roles, a read-only tenant tier, guest accounts, and Ops

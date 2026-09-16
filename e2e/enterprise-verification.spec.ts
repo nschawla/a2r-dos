@@ -250,6 +250,33 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
     await expectNoErrorOverlay(page);
   });
 
+  test('C3b · Write-Gate Alignment: previewing Delivery Executive hides Log RAID Item', async () => {
+    // Real master admin: the write control is there.
+    await page.goto(`/raid/${projectId}`);
+    await expect(page.getByRole('button', { name: '+ Log RAID Item' })).toBeVisible();
+
+    // Delivery Executive's real DeliveryRole (DELIVERY_MANAGER) has no
+    // project:editRaid permission at all — switching to it (which
+    // redirects to its own landing route first) and then navigating back
+    // to this exact project's RAID page must hide the control, even
+    // though the signed-in admin's own real edit authority is untouched.
+    await page.getByRole('button', { name: /^Persona Preview:/ }).click();
+    await page.getByRole('menuitemradio', { name: 'Delivery Executive' }).click();
+    await page.waitForURL(/\/portfolio$/, { timeout: 15_000 });
+
+    await page.goto(`/raid/${projectId}`);
+    await expect(page.getByRole('heading', { name: 'RAID Cockpit', level: 1 })).toBeVisible();
+    await expect(page.getByRole('button', { name: '+ Log RAID Item' })).toHaveCount(0);
+    await expectNoErrorOverlay(page);
+
+    // Exit preview — the control is back for the real Global Admin.
+    await page.getByRole('button', { name: /^Persona Preview:/ }).click();
+    await page.getByRole('menuitemradio', { name: /your real access/ }).click();
+    await page.waitForURL(/\/portfolio$/, { timeout: 15_000 });
+    await page.goto(`/raid/${projectId}`);
+    await expect(page.getByRole('button', { name: '+ Log RAID Item' })).toBeVisible();
+  });
+
   test('C4 · Financial Realization: EAC KPI cards + per-role hourly table', async () => {
     await page.goto(`/financials/${projectId}`);
     await expect(page.getByRole('heading', { name: 'Estimate at Completion (EAC)', level: 1 })).toBeVisible();

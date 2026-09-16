@@ -1,6 +1,6 @@
 # Test Suite Documentation & Coverage — PS-DOS™
 
-_Current-state, **v1.16.0**. How the automated suites are organised, what
+_Current-state, **v1.17.0**. How the automated suites are organised, what
 each layer guarantees, and how to run them. Requirement-level traceability:
 `docs/RTM.md`._
 
@@ -8,10 +8,10 @@ each layer guarantees, and how to run them. Requirement-level traceability:
 
 ## 1. Layers
 
-| Layer | Runner | Count (v1.16.0) | Target DB | Gate |
+| Layer | Runner | Count (v1.17.0) | Target DB | Gate |
 | --- | --- | --- | --- | --- |
-| Unit + DB-integration | Vitest | **689 tests / 59 files** | staging (`.env.test`) or local Postgres — **never production** | `npm test` |
-| End-to-end | Playwright (chromium) | **65 tests / 12 spec files** — Suites A–Q | staging (pinned by `playwright.config.ts` + `e2e/global-setup.ts`) | `npm run test:e2e` |
+| Unit + DB-integration | Vitest | **695 tests / 59 files** | staging (`.env.test`) or local Postgres — **never production** | `npm test` |
+| End-to-end | Playwright (chromium) | **64 tests / 8 spec files** — Suites A–Q | staging (pinned by `playwright.config.ts` + `e2e/global-setup.ts`) | `npm run test:e2e` |
 | Direct-SQL RLS smoke | `tsx` script | 10-check matrix | staging / local (guard refuses prod) | `npm run db:rls:smoke` |
 | Production acceptance | `tsx` script | `pg_catalog` / `information_schema` SELECTs, **zero DML** | production (read-only) | `npm run db:rls:verify` |
 | Production health | HTTP probe | liveness + readiness | live deployment | `npm run health:prod` |
@@ -33,7 +33,7 @@ Playwright run whose resolved DB URL is the production project ref
 
 ### RBAC
 - `rbac.test.ts` — the `DeliveryAccessRole` permission matrix + `resolveDeliveryRole` + `canEditProject` (VIEWER → read-only, no edit).
-- `rbac-matrix.test.ts` (21) — **6 personas** (incl. `OBSERVER`), round-trip `DeliveryRole ↔ persona`, `allowedModules` integrity, OBSERVER hides the most.
+- `rbac-matrix.test.ts` (23) — **6 personas** (incl. `OBSERVER`, `DELIVERY_EXECUTIVE`), round-trip `DeliveryRole ↔ persona`, `allowedModules` integrity, OBSERVER hides the most, every persona's `landing` route is one it's actually allowed into, PRACTICE_DIRECTOR/PROJECT_MANAGER keep every module they hold real per-project edit authority on.
 - `scoping.test.ts` — row-level portfolio/resource scope predicates (VIEWER grouped with ADMIN/VP_EXECUTIVE: whole-org read).
 - `masking.test.ts` — financial visibility tiers (VIEWER → `restricted`).
 
@@ -76,7 +76,7 @@ Playwright run whose resolved DB URL is the production project ref
 | **G** | Methodology Playbook |
 | **H** | Role-based data masking (`full` / `summary` / `restricted`) |
 | **I** | Super-Admin tenant & data sovereignty — impersonation, cryptographic export, Purge Protocol + Certificate of Destruction |
-| **J** | Enterprise identity & governance — landing, perspective switch, governance templates, financial masking, SSO config (elevation-gated, password + TOTP) |
+| **J** | Enterprise identity & governance — role-based landing, **Persona Preview banner navigation across all six roles** (J2, v1.17.0 — replaced the retired header "Perspective" lens pill), governance templates, financial masking, SSO config (elevation-gated, password + TOTP) |
 | **K** | Role-based scoped filtering + Custom KPI engine |
 | **M** | Site routing model (`A2R_SITE_MODE` fail-closed) |
 | **N** | Restricted-session state machine — ACTIVE reaches protected; `sessionVersion` bump = instant logout; REVOKED never self-heals |
@@ -107,16 +107,21 @@ npm run db:rls:verify      # production, read-only
 npm run health:prod        # live deployment
 ```
 
-### v1.16.0 verification result
+### v1.17.0 verification result
 
 | Gate | Result |
 | --- | --- |
 | `tsc --noEmit` | 0 errors |
 | `eslint` | 0 / 0 |
 | `prisma validate` | valid |
-| Vitest | **689 / 689** (59 files) — staging |
+| Vitest | **695 / 695** (59 files) — staging |
 | Playwright | **65 / 65** (Suites A–Q) — staging |
 | `next build` | clean |
 | `db:rls:verify` | passed (production, zero DML) |
 | `health:prod` | ready · database ok |
-| Migrations 21–25 | rehearsed (`BEGIN … ROLLBACK`) then applied to production + staging |
+| Migrations | no new migration this release; 21–25 remain rehearsed (`BEGIN … ROLLBACK`) then applied to production + staging |
+
+Suite J3 and up to 10 Vitest DB-integration tests intermittently exceed
+their timeout under this week's elevated staging-pooler latency —
+reproducibly 100% green on an isolated re-run at a longer timeout. Known
+environmental flake, confirmed unrelated to this release's changes.

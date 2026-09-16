@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix — PS-DOS™
 
-_Current-state, **v1.16.0**. Maps each `docs/FRD.md` requirement to its
+_Current-state, **v1.17.0**. Maps each `docs/FRD.md` requirement to its
 implementing code and its automated coverage. Per-phase RTMs (with the
 requirement IDs used at the time) are in `README.md`; this is the flattened
 view. Coverage detail: `docs/TEST_COVERAGE.md`._
@@ -27,7 +27,7 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | Req | Primary code | Coverage |
 | --- | --- | --- |
 | FR-TEN-1 | `src/lib/workspace/lenses.ts`, `src/app/launch/page.tsx` | A `tests/workspace-lens.test.ts` · E Suite J1 · M UAT-3.1 |
-| FR-TEN-2 | `src/lib/auth/rbac.ts`, `src/lib/governance/rbacMatrix.ts`, `src/middleware.ts`, `src/server/authz.ts` | A `tests/rbac.test.ts`, `tests/rbac-matrix.test.ts` (21 — 6 personas) · E Suites B, J · M UAT-3.2 |
+| FR-TEN-2 | `src/lib/auth/rbac.ts`, `src/lib/governance/rbacMatrix.ts`, `src/middleware.ts`, `src/server/authz.ts` | A `tests/rbac.test.ts`, `tests/rbac-matrix.test.ts` (23 — 6 personas) · E Suites B, J · M UAT-3.2 |
 | FR-TEN-3 | `src/lib/scoping.ts`, `src/lib/db/scoped-portfolio.ts` | A `tests/scoping.test.ts` · E Suite K1–K2 |
 | FR-TEN-4 | `DeliveryAccessRole.VIEWER` — `rbac.ts` `PERMISSIONS`/`resolveDeliveryRole`, `rbacMatrix.ts` `OBSERVER` | A `tests/rbac.test.ts`, `tests/rbac-matrix.test.ts` · **E Suite Q** (guest read-only, financials scrubbed, `/ops` + `/admin` walled off) |
 | FR-TEN-5 | `src/lib/security/masking.ts` | A `tests/masking.test.ts` · E Suites H, J4, **Q3** |
@@ -35,6 +35,7 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | FR-TEN-7 | `src/lib/governance/*`, `GovernanceConfig` | A `tests/governance-config.test.ts` · E Suite J3 |
 | FR-TEN-8 | `src/lib/calculations/money.ts` + engine | A `tests/calculations-precision.test.ts` (400-cell matrix, 150-project portfolio, 60-row EAC) |
 | FR-TEN-9 | `src/lib/ops/tenant-management.ts`, `src/app/(dashboard)/layout.tsx` | A `tests/enterprise-flows.test.ts` · E Suite I |
+| FR-TEN-10 | `src/components/layout/PersonaPreviewBar.tsx`, `src/lib/client/rbac-preview.ts`, `src/components/layout/dashboard-ui-context.tsx` (`usePersonaGatedEdit` / `usePersonaGatedProjectEdit`) | A `tests/rbac-matrix.test.ts` (landing-route + module-authority checks) · E Suite J2 |
 
 ## Operator control plane
 
