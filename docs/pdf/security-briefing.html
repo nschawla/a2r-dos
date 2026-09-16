@@ -249,14 +249,14 @@ li { margin: 1.5mm 0; }
     Every tenant's data, every operator's action, and every privileged
     credential is contained by a control that does not depend on the
     application behaving correctly. This briefing documents the full
-    architecture and the seven-round hardening pedigree behind it.
+    architecture and the eight-round hardening pedigree behind it.
   </p>
   <div class="spacer"></div>
   <div class="meta">
-    <div><span>Release</span>v1.16.0</div>
-    <div><span>Commit</span>e1a0c09</div>
-    <div><span>Hardening rounds</span>7 (v1.10 → v1.16)</div>
-    <div><span>Date</span>2026-09-07</div>
+    <div><span>Release</span>v1.17.0</div>
+    <div><span>Commit</span>3c8ed78</div>
+    <div><span>Hardening rounds</span>8 (v1.10 → v1.17)</div>
+    <div><span>Date</span>2026-09-16</div>
   </div>
   <p class="confidential">Proprietary &amp; confidential — for executive, security, and audit review</p>
 </div>
@@ -590,9 +590,9 @@ v1.&lt;iv&gt;.&lt;authTag&gt;.&lt;ciphertext&gt;                   legacy format
 </section>
 
 <section class="break">
-  <h2><span class="n">09</span>The seven-audit pedigree</h2>
+  <h2><span class="n">09</span>The eight-audit pedigree</h2>
   <p class="lead">
-    PS-DOS reached v1.16.0 through seven successive rounds of adversarial
+    PS-DOS reached v1.17.0 through eight successive rounds of adversarial
     AI-assisted self-audit and hardening.
   </p>
   <p>
@@ -614,6 +614,7 @@ v1.&lt;iv&gt;.&lt;authTag&gt;.&lt;ciphertext&gt;                   legacy format
       <tr><td>5</td><td class="k">v1.14.0</td><td>Exact-decimal arithmetic through the calc engine; JIT elevation password step-up + session binding; test-rig production isolation.</td></tr>
       <tr><td>6</td><td class="k">v1.15.0–.2</td><td>Rate-limiter fail-closed; mandatory operator TOTP MFA; MFA key separation; atomic replay protection; readiness-probe + CLI hardening.</td></tr>
       <tr><td>7</td><td class="k">v1.16.0</td><td>Six-tier operator RBAC with a three-layer capability matrix; Role &amp; Access console; strict read-only tenant Viewer tier + guest observers.</td></tr>
+      <tr><td>8</td><td class="k">v1.17.0</td><td>Unified data-driven RBAC nav matrix reconciled against real per-project edit authority; Write-Gate Alignment across every per-project editor; explicit Persona Preview banner replacing a legacy, disconnected preview menu.</td></tr>
     </tbody>
   </table>
   <div class="callout warn">
@@ -634,11 +635,11 @@ v1.&lt;iv&gt;.&lt;authTag&gt;.&lt;ciphertext&gt;                   legacy format
 </section>
 
 <section>
-  <h2><span class="n">10</span>Verification evidence (v1.16.0)</h2>
+  <h2><span class="n">10</span>Verification evidence (v1.17.0)</h2>
   <div class="scorecard">
     <div><p class="l">Type check</p><p class="v">0</p></div>
     <div><p class="l">Lint</p><p class="v">0 / 0</p></div>
-    <div><p class="l">Unit + DB</p><p class="v">693</p></div>
+    <div><p class="l">Unit + DB</p><p class="v">695</p></div>
     <div><p class="l">End-to-end</p><p class="v">65</p></div>
     <div><p class="l">Build</p><p class="v">clean</p></div>
     <div><p class="l">Prod RLS check</p><p class="v">pass</p></div>
@@ -673,7 +674,7 @@ v1.&lt;iv&gt;.&lt;authTag&gt;.&lt;ciphertext&gt;                   legacy format
   <p class="foot">
     Source of record: <code>docs/SECURITY.md</code> · <code>docs/ROLE_ACCESS_MATRIX.md</code> · <code>docs/RTM.md</code> · <code>docs/TEST_COVERAGE.md</code> · <code>docs/EXECUTIVE_SUMMARY.md</code><br>
     PS-DOS™ · © 2026 A2R Ventures LLC. All rights reserved. Proprietary and confidential.<br>
-    Generated 2026-09-07 against commit e1a0c09 (tag v1.16.0).
+    Generated 2026-09-16 against commit 3c8ed78 (tag v1.17.0).
   </p>
 </section>
 
