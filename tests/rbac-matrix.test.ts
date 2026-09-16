@@ -60,9 +60,34 @@ describe('RBAC matrix — data integrity', () => {
     }
   });
 
-  it('CLIENT_SPONSOR — the external-facing persona — never sees internal commercial/cost/roster modules', () => {
-    for (const mod of ['commercial-baseline', 'financials', 'capacity', 'command', 'admin', 'audit-log']) {
-      expect(isModuleAllowedForPersona('CLIENT_SPONSOR', mod)).toBe(false);
+  it('DELIVERY_EXECUTIVE — internal delivery leadership — never sees commercial/cost or admin modules', () => {
+    for (const mod of ['commercial-baseline', 'financials', 'command', 'admin', 'audit-log']) {
+      expect(isModuleAllowedForPersona('DELIVERY_EXECUTIVE', mod)).toBe(false);
+    }
+    // ...but unlike a strictly external-facing role, they DO see staffing
+    // exposure — the whole point of the "Resource Utilization & Staffing
+    // Gaps" nav item in their spec.
+    expect(isModuleAllowedForPersona('DELIVERY_EXECUTIVE', 'capacity')).toBe(true);
+  });
+
+  it('every persona\'s landing module is one it is actually allowed into', () => {
+    for (const persona of RBAC_PERSONAS) {
+      const owner = GOVERNABLE_MODULES.find((m) => m.href === RBAC_MATRIX[persona].landing);
+      expect(owner, `${persona} landing ${RBAC_MATRIX[persona].landing} owns no module`).toBeDefined();
+      expect(isModuleAllowedForPersona(persona, owner!.key)).toBe(true);
+    }
+  });
+
+  it('PRACTICE_DIRECTOR and PROJECT_MANAGER keep every module they hold real per-project edit authority on', () => {
+    // authorizeProjectEdit (canEditProject) is undifferentiated across
+    // commercial-baseline/financials/schedule/raid/audit — a role that can
+    // edit one can edit all five on their own project(s), so none of the
+    // five may ever be missing from their nav allow-list (a "dead route":
+    // reachable-to-edit but unreachable-to-navigate).
+    for (const persona of ['ENGAGEMENT_MANAGER', 'DELIVERY_LEAD'] as const) {
+      for (const mod of ['commercial-baseline', 'financials', 'schedule', 'raid', 'audit']) {
+        expect(isModuleAllowedForPersona(persona, mod), `${persona} → ${mod}`).toBe(true);
+      }
     }
   });
 });
@@ -110,8 +135,8 @@ describe('rbacHiddenHrefs', () => {
     expect(rbacHiddenHrefs('GLOBAL_ADMIN')).toEqual([]);
     const hiddenCounts = RBAC_PERSONAS.map((p) => rbacHiddenHrefs(p).length);
     expect(Math.max(...hiddenCounts)).toBe(rbacHiddenHrefs('OBSERVER').length);
-    // the OBSERVER sees strictly fewer modules than the external client sponsor
-    expect(rbacHiddenHrefs('OBSERVER').length).toBeGreaterThan(rbacHiddenHrefs('CLIENT_SPONSOR').length);
+    // the OBSERVER sees strictly fewer modules than the Delivery Executive
+    expect(rbacHiddenHrefs('OBSERVER').length).toBeGreaterThan(rbacHiddenHrefs('DELIVERY_EXECUTIVE').length);
   });
 });
 
@@ -141,11 +166,12 @@ describe('isRouteBlockedForPersona', () => {
   });
 
   it('matches the deepest owning module on a deep per-project route', () => {
-    // CLIENT_SPONSOR cannot see Financials at all, so a specific project's
-    // financials page is blocked too, not just the bare /financials index.
-    expect(isRouteBlockedForPersona('CLIENT_SPONSOR', '/financials/proj-123')).toBe(true);
+    // DELIVERY_EXECUTIVE cannot see Financials at all, so a specific
+    // project's financials page is blocked too, not just the bare
+    // /financials index.
+    expect(isRouteBlockedForPersona('DELIVERY_EXECUTIVE', '/financials/proj-123')).toBe(true);
     // ...but the same persona IS allowed into Schedule for that project.
-    expect(isRouteBlockedForPersona('CLIENT_SPONSOR', '/schedule/proj-123')).toBe(false);
+    expect(isRouteBlockedForPersona('DELIVERY_EXECUTIVE', '/schedule/proj-123')).toBe(false);
   });
 
   it('agrees with isModuleAllowedForPersona for every module × persona pair', () => {
@@ -164,7 +190,14 @@ describe('every persona resolves through the real DeliveryRole tiers', () => {
   });
 
   it('every RbacPersona type value is a key in RBAC_MATRIX (exhaustiveness)', () => {
-    const keys: RbacPersona[] = ['GLOBAL_ADMIN', 'EXECUTIVE_BOARD', 'ENGAGEMENT_MANAGER', 'CLIENT_SPONSOR', 'DELIVERY_LEAD'];
+    const keys: RbacPersona[] = [
+      'GLOBAL_ADMIN',
+      'EXECUTIVE_BOARD',
+      'DELIVERY_EXECUTIVE',
+      'ENGAGEMENT_MANAGER',
+      'DELIVERY_LEAD',
+      'OBSERVER',
+    ];
     for (const k of keys) expect(RBAC_MATRIX[k]).toBeDefined();
   });
 });

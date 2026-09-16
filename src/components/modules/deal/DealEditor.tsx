@@ -29,6 +29,7 @@ import { MarginModelerCard } from '@/components/projects/MarginModelerCard';
 import { CsvImportModal } from '@/components/ingestion/CsvImportModal';
 import { MaskedValue } from '@/components/security/Masked';
 import type { FinancialVisibility } from '@/lib/security/masking';
+import { usePersonaGatedProjectEdit } from '@/components/layout/dashboard-ui-context';
 
 type EstimationModeUI = 'MATRIX' | 'DIRECT';
 type EffortMatrixState = Record<string, Record<string, number>>;
@@ -76,7 +77,7 @@ function cellKey(phaseKey: string, roleId: string): string {
 
 export function DealEditor({
   projectId,
-  canEdit,
+  canEdit: serverCanEdit,
   estimationMode,
   commercialModel,
   contingencyPct,
@@ -85,6 +86,8 @@ export function DealEditor({
   directIntake,
   visibility = 'full',
 }: DealEditorProps) {
+  // Write-Gate Alignment — see dashboard-ui-context.tsx#usePersonaGatedProjectEdit.
+  const canEdit = usePersonaGatedProjectEdit(serverCanEdit);
   const canMargins = visibility !== 'restricted';
   const router = useRouter();
   const [, startTransition] = useTransition();

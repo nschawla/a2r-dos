@@ -26,6 +26,7 @@ import clsx from 'clsx';
 import { createRaidEntry, updateRaidEntry, updateRaidStatus, toggleRaidEscalation } from '@/server/actions/raid';
 import { CsvImportModal } from '@/components/ingestion/CsvImportModal';
 import { dueStatusFor, DUE_STATUS_LABEL, DUE_STATUS_BADGE_CLASS } from '@/lib/due-status';
+import { usePersonaGatedEdit } from '@/components/layout/dashboard-ui-context';
 
 type RaidType = 'RISK' | 'ASSUMPTION' | 'ISSUE' | 'DEPENDENCY';
 type RaidSeverity = 'CRITICAL' | 'HIGH' | 'MED' | 'LOW';
@@ -97,7 +98,9 @@ interface MatrixCell {
   likelihood: RaidLikelihood;
 }
 
-export function RaidBoard({ projectId, canEdit, entries, resources }: RaidBoardProps) {
+export function RaidBoard({ projectId, canEdit: serverCanEdit, entries, resources }: RaidBoardProps) {
+  // Write-Gate Alignment — see dashboard-ui-context.tsx#usePersonaGatedEdit.
+  const canEdit = usePersonaGatedEdit(serverCanEdit, 'project:editRaid');
   const [typeFilter, setTypeFilter] = useState<Set<RaidType>>(new Set(ALL_TYPES));
   const [escalatedOnly, setEscalatedOnly] = useState(false);
   const [matrixCell, setMatrixCell] = useState<MatrixCell | null>(null);

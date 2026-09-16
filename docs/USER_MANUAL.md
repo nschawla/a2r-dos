@@ -39,29 +39,18 @@ The workspace has three regions:
 | Region | What it is |
 | --- | --- |
 | **Left sidebar** | Navigation, grouped by the delivery workflow (below). Modules your organization has switched off don't appear here. |
-| **Top header** | Organization switcher · **perspective switcher** · global search · notifications · support · help · your account. |
+| **Top header** | Organization switcher · global search · notifications · support · help · your account. |
 | **Main pane** | A single centered column — one focused view at a time, never a wall of panels. |
 
 Everything you can see is scoped to **your** organization and, within it,
 to **your role** — a project manager sees their own engagements, a
 practice director sees their practice, an admin or VP sees the whole
-portfolio.
-
-### Your perspective
-
-If you wear more than one hat, the **Perspective** pill in the header
-(labelled with your current lens) lets you flip your default landing view:
-
-| Perspective | Lands you on | Best for |
-| --- | --- | --- |
-| **Executive / SteerCo** | the SteerCo Briefing | board prep, leadership syncs |
-| **Delivery Lead** | the Control Tower | running engagements day to day |
-| **Finance Controller** | the Executive Hub | margin, EAC and utilization rollups |
-| **Operations** | the Command Center | the live vitals + activity stream |
-
-Only the perspectives your role can use are shown, and switching is purely
-a convenience — every module stays reachable from the sidebar and ⌘K
-whichever lens is active. Your choice is remembered for next time.
+portfolio. Where you land right after signing in is decided automatically
+by your role (a VP lands on the SteerCo Briefing, a Project Manager on the
+Control Tower, and so on) — every module stays reachable from the sidebar
+and ⌘K regardless. A tenant Admin (or A2R staff member) can additionally
+preview the app as any other role from the **Persona Preview** banner at
+the top of the workspace — see "The RBAC Master Matrix" below.
 
 ---
 

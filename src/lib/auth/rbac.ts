@@ -232,3 +232,25 @@ export function canEditProject(session: EditScopeSession, project: EditScopeProj
       return false;
   }
 }
+
+/**
+ * Coarse, instance-independent mirror of `canEditProject`'s own branches:
+ * could this DeliveryRole EVER return true from it, for some project? True
+ * for ADMIN/PRACTICE_DIRECTOR/PROJECT_MANAGER (conditionally, on their own
+ * projects); always false for DELIVERY_MANAGER/VP_EXECUTIVE/VIEWER.
+ *
+ * Used client-side by editors whose real server-side gate is the coarse
+ * `authorizeProjectEdit` (= `canEditProject`) rather than a specific
+ * `PermissionAction` — e.g. the Commercial Baseline effort-matrix / direct
+ * -intake form, whose mutations (updateEffortCell, updateDirectIntake,
+ * setEstimationMode) don't distinguish "baseline" from any other per-
+ * project edit the way the narrower `project:editBaseline` action (Lock
+ * Baseline specifically) does. Reaching for `project:editBaseline` there
+ * instead of this would silently hide a control PROJECT_MANAGER can
+ * actually still invoke server-side, since the PermissionAction matrix
+ * withholds `editBaseline` from PROJECT_MANAGER while `canEditProject`
+ * grants it uniformly across every per-project module.
+ */
+export function roleCanEverEditProjects(role: DeliveryRole): boolean {
+  return role === 'ADMIN' || role === 'PRACTICE_DIRECTOR' || role === 'PROJECT_MANAGER';
+}

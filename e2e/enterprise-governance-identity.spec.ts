@@ -10,7 +10,8 @@ import { e2eOperatorTotp } from './helpers/ops-mfa';
  * Covers the v1.2.x enterprise flows end-to-end against a running dev
  * server + the shared demo database:
  *   J1  role-based landing resolution (per delivery role)
- *   J2  multi-role workspace (perspective) switching + /launch persistence
+ *   J2  removed — the header "Perspective" pill (LensSwitcher.tsx) it
+ *       covered was retired in favor of the Persona Preview banner
  *   J3  tenant governance template application (Agile Delivery ↔ Standard)
  *   J4  financial data masking for delivery roles under Strict Financial Governance
  *   J5  Ops Console SSO configuration (create → verify chips → remove)
@@ -132,29 +133,12 @@ test.describe('Suite J1 — role-based landing resolution', () => {
   });
 });
 
-// ── J2 · perspective switcher ────────────────────────────────────────
-
-test.describe('Suite J2 — multi-role perspective switching', () => {
-  test('the header perspective pill offers all four lenses for an Admin', async () => {
-    await page.locator('button[aria-haspopup="menu"]', { hasText: 'Perspective' }).click();
-    for (const label of ['Executive / SteerCo', 'Delivery Lead', 'Finance Controller', 'Operations']) {
-      await expect(page.getByRole('menuitemradio', { name: new RegExp(label) })).toBeVisible();
-    }
-  });
-
-  test('switching to Executive navigates to /steerco and persists through /launch', async () => {
-    await page.getByRole('menuitemradio', { name: /Executive \/ SteerCo/ }).click();
-    await page.waitForURL(/\/steerco/, { timeout: 15_000 });
-
-    await page.goto('/launch');
-    await expect(page).toHaveURL(/\/steerco$/); // stored lens honoured
-
-    // put it back so later suites start from Delivery
-    await page.locator('button[aria-haspopup="menu"]', { hasText: 'Perspective' }).click();
-    await page.getByRole('menuitemradio', { name: /Delivery Lead/ }).click();
-    await page.waitForURL((u) => !/\/steerco/.test(u.pathname), { timeout: 15_000 });
-  });
-});
+// J2 (the header "Perspective" pill / LensSwitcher.tsx) was removed — the
+// Persona Preview banner (PersonaPreviewBar.tsx) is now the single,
+// explicit control for previewing another role's view. The underlying
+// Workspace Lens redirect logic it used to expose (resolveLens/defaultLens/
+// availableLenses, still driving /launch's post-sign-in landing) keeps its
+// own pure-function coverage in tests/workspace-lens.test.ts.
 
 // ── J3 · governance template application ─────────────────────────────
 

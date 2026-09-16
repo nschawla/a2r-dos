@@ -1204,7 +1204,7 @@ security posture is in **`docs/SECURITY.md`** (§1, §4, §8, §10).
 | --- | --- | --- | --- |
 | RL-1 | **Workspace-Lens resolver** — available lenses, role default, stored-choice validation | `src/lib/workspace/lenses.ts` | `tests/workspace-lens.test.ts` (14) |
 | RL-2 | **Landing dispatcher** `/launch` — post-sign-in redirect to the resolved lens | `src/app/launch/page.tsx`, `src/server/actions/workspace-lens.ts` (cookie) | covered by RL-1 + live e2e |
-| RL-3 | **Header perspective switcher** | `src/components/layout/LensSwitcher.tsx`, `src/components/layout/Header.tsx` | RL-1 |
+| RL-3 | ~~Header perspective switcher~~ — retired; the header no longer offers a lens control. `/launch` still resolves the stored/default lens (RL-1/RL-2) automatically | — | RL-1 |
 | GV-1 | **Governance config model** — templates, `detectTemplate`, `applyTemplate`, `resolveStoredGovernance`, `withOverrides` | `src/lib/governance/config.ts`, `src/lib/governance/service.ts` | `tests/governance-config.test.ts` (20) |
 | GV-2 | **Compliance templates** — Standard / Strict Financial / Agile Delivery / Board-Only | `GOVERNANCE_TEMPLATES` in `config.ts` | `tests/governance-config.test.ts` |
 | GV-3 | **Route visibility** — hidden modules filtered from navigation; core modules immune | `src/components/layout/Sidebar.tsx` (`hiddenHrefs` prop), `src/app/(dashboard)/layout.tsx` | `tests/governance-config.test.ts` (`isPathHidden`, `hiddenHrefs`) |
@@ -1308,7 +1308,7 @@ security posture is in **`docs/SECURITY.md`** (§8, §9); the schema is in
 | RBAC-1 | **Master permission matrix** — personas, allowed modules/routes, `DELIVERY_ROLE_TO_PERSONA` | `src/lib/governance/rbacMatrix.ts` | `tests/rbac-matrix.test.ts` (20) |
 | RBAC-2 | **Dynamic Sidebar / `ModuleNav` filtering** — union of governance-hidden + RBAC-hidden hrefs | `src/components/layout/Sidebar.tsx`, `src/components/projects/ProjectHeader.tsx` | `tests/rbac-matrix.test.ts` (`rbacHiddenHrefs` set-partition property) |
 | RBAC-3 | **Edge-safe middleware route guard** — real block/redirect independent of the server-action authorization layer | `src/middleware.ts` | `tests/rbac-matrix.test.ts` (`isRouteBlockedForPersona`) |
-| RBAC-4 | **Cross-shell Persona Preview** — Ops-Console-only, localStorage-shared, display-only | `src/lib/client/rbac-preview.ts`, `src/components/ops/RbacPersonaSwitcher.tsx`, `src/app/(admin)/layout.tsx` | live e2e (set in Ops → reflected in tenant Sidebar) |
+| RBAC-4 | **Cross-shell Persona Preview** — localStorage-shared, display-only; explicit banner in the tenant shell (Admin/A2R staff only) + a copy in the Ops Console | `src/lib/client/rbac-preview.ts`, `src/components/layout/PersonaPreviewBar.tsx`, `src/components/ops/RbacPersonaSwitcher.tsx`, `src/app/(admin)/layout.tsx` | live e2e (set in Ops → reflected in tenant Sidebar) |
 | RB-1 | **"PS-DOS Demo" rebrand** — seed, live tenant row, docs, tests | `prisma/seed.ts`, `tests/steerco-briefing.test.ts`, `e2e/enterprise-verification.spec.ts`, `docs/*.md` | full `vitest` + e2e gate |
 | RB-2 | **"Ascent Vector" logo, Gunmetal Gray** — single glyph component, dedicated `logo` token | `src/components/ui/brand-mark.tsx`, `tailwind.config.ts` | visual; consumed by every existing call site with no changes needed |
 | WP7-1 | **Batch schema + validation** — `WEEKLY_ACTUALS` / `MILESTONE_PROGRESS` column defs, plain-English `BatchRowIssue`s | `src/lib/ingestion/batch-schemas.ts` | `tests/batch-schemas.test.ts` (18) |

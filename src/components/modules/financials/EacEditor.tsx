@@ -22,6 +22,7 @@ import { updateFinancialActual } from '@/server/actions/financials';
 import { CsvImportModal } from '@/components/ingestion/CsvImportModal';
 import { MaskedValue, RestrictedBadge } from '@/components/security/Masked';
 import { MASK, RESTRICTED_BADGE_LABEL, type FinancialVisibility } from '@/lib/security/masking';
+import { usePersonaGatedEdit } from '@/components/layout/dashboard-ui-context';
 
 interface RowDraft {
   hours: number;
@@ -57,7 +58,7 @@ function money(n: number): string {
 
 export function EacEditor({
   projectId,
-  canEdit,
+  canEdit: serverCanEdit,
   estimationMode,
   commercialModel,
   contingencyPct,
@@ -68,6 +69,8 @@ export function EacEditor({
   burnSeries = [],
   visibility = 'full',
 }: EacEditorProps) {
+  // Write-Gate Alignment — see dashboard-ui-context.tsx#usePersonaGatedEdit.
+  const canEdit = usePersonaGatedEdit(serverCanEdit, 'project:editFinancials');
   const canMargins = visibility !== 'restricted';
   const canCost = visibility === 'full';
   const sizingInput: SizingProjectInput = useMemo(

@@ -4,11 +4,10 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import clsx from 'clsx';
-import { useDashboardUI } from '@/components/layout/dashboard-ui-context';
+import { useDashboardUI, usePersonaGatedEdit } from '@/components/layout/dashboard-ui-context';
 import { toggleProjectLock } from '@/server/actions/projects';
 import { AuditTrailDrawer } from '@/components/projects/AuditTrailDrawer';
-import { isModuleAllowedForPersona, RBAC_MATRIX } from '@/lib/governance/rbacMatrix';
-import { hasPermission } from '@/lib/auth/rbac';
+import { isModuleAllowedForPersona } from '@/lib/governance/rbacMatrix';
 import type { HealthCode } from '@/lib/calculations/types';
 
 const HEALTH_META: Record<HealthCode, { label: string; dot: string; text: string }> = {
@@ -73,14 +72,15 @@ export function ProjectHeader({
   const [auditTrailOpen, setAuditTrailOpen] = useState(false);
 
   const health = HEALTH_META[healthCode];
+  // Write-Gate Alignment (dashboard-ui-context.tsx#usePersonaGatedEdit) —
   // `canEdit` is the real, server-computed authority for THIS signed-in
-  // user on THIS project (src/lib/auth/rbac.ts#canEditProject). The second
-  // check applies the active RBAC persona (real, or an admin's preview —
-  // see PersonaPreviewBar.tsx) at the role-class level, so previewing a
-  // persona without baseline-edit authority (e.g. Delivery Lead) hides the
-  // control even for an ADMIN who could otherwise edit — the same "strict
-  // layout morphing" the Sidebar already applies to navigation.
-  const canShowLockControl = canEdit && hasPermission(RBAC_MATRIX[rbacPersona].deliveryRole, 'project:editBaseline');
+  // user on THIS project; the active RBAC persona (real, or an admin's
+  // preview — see PersonaPreviewBar.tsx) applies on top at the role-class
+  // level, so previewing a persona without baseline-edit authority (e.g.
+  // Project Manager) hides the control even for an ADMIN who could
+  // otherwise edit — the same "strict layout morphing" the Sidebar already
+  // applies to navigation.
+  const canShowLockControl = usePersonaGatedEdit(canEdit, 'project:editBaseline');
 
   function handleToggleLock() {
     setConfirming(false);

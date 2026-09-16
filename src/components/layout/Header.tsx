@@ -6,14 +6,12 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import clsx from 'clsx';
 import { useDashboardUI, RBAC_MATRIX } from './dashboard-ui-context';
-import { LensSwitcher } from './LensSwitcher';
 import { BrandMark } from '@/components/ui/brand-mark';
 import { AutoDemoLaunchModal } from '@/components/demo/AutoDemoLaunchModal';
 import { switchActiveOrganization } from '@/server/actions/organizations';
 import { signOutEverywhereAction } from '@/server/actions/auth';
 import type { NotificationSummary } from '@/server/queries/notifications';
 import type { SessionMembership } from '@/types/next-auth';
-import type { WorkspaceLens } from '@/lib/workspace/lenses';
 
 /** Closes `menu` when a pointer event lands outside `ref`, or Escape is pressed. */
 function useOutsideClose(ref: React.RefObject<HTMLElement>, open: boolean, close: () => void) {
@@ -40,20 +38,9 @@ export interface HeaderProps {
   organizationName: string;
   memberships: SessionMembership[];
   notifications: NotificationSummary;
-  /** Workspace-Lens switcher state (see src/lib/workspace/lenses.ts). */
-  currentLens: WorkspaceLens;
-  availableLenses: WorkspaceLens[];
 }
 
-export function Header({
-  userName,
-  role,
-  organizationName,
-  memberships,
-  notifications,
-  currentLens,
-  availableLenses,
-}: HeaderProps) {
+export function Header({ userName, role, organizationName, memberships, notifications }: HeaderProps) {
   return (
     <header id="global-header" className="sticky top-0 z-40 bg-bg/90 backdrop-blur-md border-b border-border px-5 py-2.5 flex items-center gap-2.5">
       {/* Left: identity — the brand, the workspace, and the one action
@@ -63,13 +50,11 @@ export function Header({
       <div className="flex-1 flex justify-center">
         <CommandPaletteTrigger />
       </div>
-      {/* Right: the Perspective switcher leads — it decides which curated
-          home a click on the brand mark returns to, so it gets first
-          billing over the smaller utility icons that follow it. */}
+      {/* The old "Perspective" lens pill (LensSwitcher.tsx) lived here —
+          retired in favor of PersonaPreviewBar.tsx, the one explicit
+          control for previewing another role's view (mounted above the
+          whole shell in (dashboard)/layout.tsx, not in this icon row). */}
       <div className="flex items-center gap-1.5">
-        <div id="persona-switcher">
-          <LensSwitcher current={currentLens} available={availableLenses} />
-        </div>
         <NotificationsBell notifications={notifications} />
         <SupportTrigger />
         <HelpTrigger />

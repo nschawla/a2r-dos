@@ -25,6 +25,7 @@ import {
 } from '@/lib/calculations/schedule';
 import type { ScheduleTolerances } from '@/lib/calculations/types';
 import { updateSchedulePhase } from '@/server/actions/schedule';
+import { usePersonaGatedEdit } from '@/components/layout/dashboard-ui-context';
 
 type ScheduleStatus = 'NOTSTARTED' | 'INPROGRESS' | 'COMPLETE' | 'DELAYED';
 
@@ -69,7 +70,9 @@ const PACE_META: Record<PaceState, { label: string; tone: string }> = {
   critical: { label: 'Critical Pace Risk', tone: 'text-critical' },
 };
 
-export function ScheduleTracker({ projectId, canEdit, phases, tolerances }: ScheduleTrackerProps) {
+export function ScheduleTracker({ projectId, canEdit: serverCanEdit, phases, tolerances }: ScheduleTrackerProps) {
+  // Write-Gate Alignment — see dashboard-ui-context.tsx#usePersonaGatedEdit.
+  const canEdit = usePersonaGatedEdit(serverCanEdit, 'project:editSchedule');
   const phaseByKey = new Map(phases.map((p) => [p.phaseKey, p]));
 
   return (

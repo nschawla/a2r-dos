@@ -131,14 +131,24 @@ edit authority (`src/lib/auth/rbac.ts` `PERMISSIONS`, `canEditProject`).
 delivery role to a persona whose `allowedModules` list gates the sidebar,
 tab pills, and (via middleware) the route:
 
-| Persona | Delivery role | Modules reachable |
-| --- | --- | --- |
-| `GLOBAL_ADMIN` | ADMIN | every governable module |
-| `EXECUTIVE_BOARD` | VP_EXECUTIVE | command, control-tower, capacity, steerco, reports |
-| `ENGAGEMENT_MANAGER` | PRACTICE_DIRECTOR | + commercial-baseline, financials, schedule, raid, audit |
-| `CLIENT_SPONSOR` | DELIVERY_MANAGER | control-tower, schedule, raid, steerco, reports |
-| `DELIVERY_LEAD` | PROJECT_MANAGER | command, control-tower, commercial-baseline, financials, schedule, raid, audit, steerco, reports |
-| **`OBSERVER`** (v1.16.0) | VIEWER | **control-tower, steerco, reports** only |
+| Persona | Delivery role | Modules reachable | Lands on |
+| --- | --- | --- | --- |
+| `GLOBAL_ADMIN` (Global Admin / A2R Staff) | ADMIN | every governable module | Control Tower |
+| `EXECUTIVE_BOARD` (Executive Board / SteerCo) | VP_EXECUTIVE | control-tower, steerco, financials, reports | SteerCo Briefing |
+| `DELIVERY_EXECUTIVE` (Delivery Executive) | DELIVERY_MANAGER | control-tower, raid, schedule, capacity | Control Tower |
+| `ENGAGEMENT_MANAGER` (Engagement / Practice Manager) | PRACTICE_DIRECTOR | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit | Control Tower |
+| `DELIVERY_LEAD` (Project Manager) | PROJECT_MANAGER | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit | Control Tower |
+| **`OBSERVER`** (v1.16.0, Viewer / Guest) | VIEWER | **control-tower, steerco, reports** only | Control Tower (read-only) |
+
+`ENGAGEMENT_MANAGER` and `PROJECT_MANAGER` end up with the same *module*
+list — both hold real, per-project edit authority via `canEditProject`
+(uniform across commercial-baseline/financials/schedule/raid/audit, not
+differentiated by module), so neither can have any of those five removed
+from nav without creating a page they can edit but can no longer reach.
+What actually differs between them is *row-level* scope (their whole
+practice vs. only their own assignments), enforced separately by
+Role-Based Scoped Filtering (`src/lib/scoping.ts`) — the RBAC matrix and
+the scoping layer are deliberately two different axes.
 
 ---
 

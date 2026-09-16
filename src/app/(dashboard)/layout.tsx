@@ -1,7 +1,5 @@
 import Link from 'next/link';
-import { cookies } from 'next/headers';
 import { requireOrgContext } from '@/lib/session';
-import { LENS_COOKIE, availableLenses, resolveLens } from '@/lib/workspace/lenses';
 import { hiddenHrefs } from '@/lib/governance/config';
 import { personaForDeliveryRole } from '@/lib/governance/rbacMatrix';
 import { getNotificationSummary } from '@/server/queries/notifications';
@@ -21,9 +19,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     await requireOrgContext();
   const isA2rStaff = session.user.isA2rStaff === true;
 
-  const lensCtx = { deliveryRole, isA2rStaff, maskFinancialsForDelivery: governance.maskFinancialsForDelivery };
-  const lenses = availableLenses(lensCtx);
-  const currentLens = resolveLens((await cookies()).get(LENS_COOKIE)?.value ?? null, lensCtx);
   const realRbacPersona = personaForDeliveryRole(deliveryRole);
   // Who may see and use the Persona Preview banner at all: a tenant ADMIN
   // (full delivery authority already — previewing a narrower role can't
@@ -58,8 +53,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             organizationName={organizationName}
             memberships={memberships}
             notifications={notifications}
-            currentLens={currentLens}
-            availableLenses={lenses}
           />
           <main className="flex-1 w-full">
             <Container>{children}</Container>

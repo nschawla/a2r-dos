@@ -20,6 +20,7 @@ import { computeAuditProgress, type AuditProgress } from '@/lib/calculations/aud
 import type { AuditStatus as CalcAuditStatus } from '@/lib/calculations/types';
 import { updateAuditEntry } from '@/server/actions/audit';
 import { ControlGuidanceButton } from '@/components/audit/ControlGuidance';
+import { usePersonaGatedEdit } from '@/components/layout/dashboard-ui-context';
 
 type UiStatus = 'YES' | 'PARTIAL' | 'NO' | 'NA';
 
@@ -49,7 +50,9 @@ export interface AuditChecklistProps {
   entries: AuditEntryEditorInput[];
 }
 
-export function AuditChecklist({ projectId, canEdit, entries }: AuditChecklistProps) {
+export function AuditChecklist({ projectId, canEdit: serverCanEdit, entries }: AuditChecklistProps) {
+  // Write-Gate Alignment — see dashboard-ui-context.tsx#usePersonaGatedEdit.
+  const canEdit = usePersonaGatedEdit(serverCanEdit, 'project:editAudit');
   const [statuses, setStatuses] = useState<Record<string, UiStatus>>(() =>
     Object.fromEntries(entries.map((e) => [e.controlKey, e.status]))
   );

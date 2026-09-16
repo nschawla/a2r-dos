@@ -159,19 +159,26 @@ A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 
 **Checkpoint:** each role lands on its tailored page, no `/login` bounce, no error overlay.
 
-### UAT-3.2 · Perspective switcher (multi-role)
+### UAT-3.2 · Persona Preview banner (all six roles)
 
-Signed in as `admin@a2rventures-demo.test`.
+Signed in as `admin@a2rventures-demo.test`. (The old header "Perspective"
+pill / Workspace Lens switcher was retired — this banner is now the single
+control for previewing another role's view.)
 
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | Header: click the **"Perspective · Delivery ▾"** pill | Menu "Land me on" opens with **four** rows: Executive / SteerCo, Delivery Lead, Finance Controller, Operations — each with a one-line blurb | |
-| 2 | Click **Executive / SteerCo** | Navigates to `/steerco` **instantly** (no reload); pill now reads "Perspective · Executive" | |
-| 3 | In the address bar go to `/launch` | Redirects straight back to `/steerco` (choice persisted) | |
-| 4 | Switch perspective back to **Delivery Lead** | Navigates to `/portfolio` | |
-| 5 | Sign in as `pm@a2rventures-demo.test`, open the Perspective menu | Only **two** rows: Delivery Lead, Operations (PM can't see Executive/Finance) | |
+| 1 | Look at the top of the workspace | A quiet **"Persona Preview: Global Admin ▾"** banner sits above the sidebar/header, distinct from any other control | |
+| 2 | Click it | Menu opens: "Global Admin — your real access" at top, then all 6 personas (Global Admin, Executive Board, Delivery Executive, Engagement / Practice Manager, Project Manager, Viewer / Guest), each with a one-line blurb | |
+| 3 | Pick **Viewer / Guest** | Banner turns solid warning-orange, a pulsing dot appears, copy reads "— simulated view, not your real access", and an **Exit preview** button appears | |
+| 4 | Check the sidebar | Only Control Tower, SteerCo Briefing, Executive Hub remain — Resource & Capacity, Commercial Baseline, Financial Realization, Schedule, RAID, Control Audit, Admin & Org Setup, Compliance Ledger are all gone, not just disabled | |
+| 5 | Open any project's module page (e.g. `/audit/<id>`) | No Lock Baseline / edit controls render anywhere — every write affordance is gone, even though the signed-in Admin's own real edit authority is untouched | |
+| 6 | Click **Exit preview** | Banner returns to quiet/neutral, sidebar and write controls return to the real Admin view | |
+| 7 | Pick **Delivery Executive** | Sidebar shows Control Tower, RAID Cockpit, Schedule & Milestones, Resource & Capacity only — no Commercial Baseline, Financial Realization, Control Audit | |
+| 8 | Sign out, sign in as `pm@a2rventures-demo.test` (a real, non-admin Project Manager) | No Persona Preview banner renders at all — locked into their own real navigation | |
 
-**Checkpoint:** switch is instant, persisted, and role-gated.
+**Checkpoint:** the banner is the only switcher, previewing is unmistakable
+while active, nav and write controls both morph consistently, and only an
+Admin/A2R-staff account sees the control at all.
 
 ### UAT-3.3 · Governance template application
 

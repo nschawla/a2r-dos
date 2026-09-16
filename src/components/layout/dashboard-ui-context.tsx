@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RBAC_MATRIX, type RbacPersona } from '@/lib/governance/rbacMatrix';
 import { useRbacPreview } from '@/lib/client/rbac-preview';
+import { hasPermission, roleCanEverEditProjects, type PermissionAction } from '@/lib/auth/rbac';
 
 export { RBAC_MATRIX };
 export type { RbacPersona };
@@ -109,4 +110,42 @@ export function useDashboardUI(): DashboardUIState {
   const ctx = useContext(DashboardUIContext);
   if (!ctx) throw new Error('useDashboardUI must be used within a DashboardUIProvider');
   return ctx;
+}
+
+/**
+ * Write-Gate Alignment — the one helper every per-project editor
+ * (RaidBoard, ScheduleTracker, DealEditor, EacEditor, AuditChecklist,
+ * ProjectHeader's Lock Baseline) calls to compute its `canEdit` flag.
+ *
+ * `serverCanEdit` is the real, server-computed authority for the signed-in
+ * user on THIS project (`canEditProject`, via each page.tsx) — the actual
+ * security boundary; every mutation re-checks it server-side regardless of
+ * what this returns. `action` is the coarse `PermissionAction` this
+ * editor's writes correspond to (see src/lib/auth/rbac.ts).
+ *
+ * The AND with `hasPermission(RBAC_MATRIX[rbacPersona].deliveryRole,
+ * action)` is what makes an admin's Persona Preview apply consistently to
+ * write affordances, not just nav visibility: previewing Guest, Executive,
+ * or Delivery Executive — none of which ever hold project-edit authority —
+ * strips every edit control even though the previewing admin's own real
+ * `serverCanEdit` is true. When no preview is active, `rbacPersona` is the
+ * viewer's own `realRbacPersona`, so this is a no-op passthrough for every
+ * real signed-in user today.
+ */
+export function usePersonaGatedEdit(serverCanEdit: boolean, action: PermissionAction): boolean {
+  const { rbacPersona } = useDashboardUI();
+  return serverCanEdit && hasPermission(RBAC_MATRIX[rbacPersona].deliveryRole, action);
+}
+
+/**
+ * Sibling to `usePersonaGatedEdit` for the one editor (Commercial Baseline
+ * — DealEditor.tsx) whose real server-side gate is the coarse
+ * `authorizeProjectEdit` (`canEditProject`) rather than a specific
+ * `PermissionAction` — see `roleCanEverEditProjects`'s doc comment in
+ * src/lib/auth/rbac.ts for why `project:editBaseline` would be the wrong
+ * (over-restrictive relative to the real server behavior) check here.
+ */
+export function usePersonaGatedProjectEdit(serverCanEdit: boolean): boolean {
+  const { rbacPersona } = useDashboardUI();
+  return serverCanEdit && roleCanEverEditProjects(RBAC_MATRIX[rbacPersona].deliveryRole);
 }
