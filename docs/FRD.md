@@ -1,6 +1,6 @@
 # Functional Requirements Document — PS-DOS™
 
-_Consolidated current-state, **v1.17.0**. Per-phase functional narratives
+_Consolidated current-state, **v1.18.0**. Per-phase functional narratives
 live in `README.md` (Phases 1–13); this document is the flattened,
 deduplicated view of what the production system does today. Traceability to
 code and tests: `docs/RTM.md`. Security posture: `docs/SECURITY.md` +
@@ -64,6 +64,7 @@ internal operator control plane for the vendor (A2R). Next.js 15 App Router
 | FR-OPS-8 | Impersonation Gateway — a read-only, reason-logged, auto-expiring tenant session for support. |
 | FR-OPS-9 | Read surfaces — Platform Telemetry, Platform Pulse (build / test / DB health), Billing (contract tiers / seats), Audit & Compliance (operator roster + elevation history), Ingestion & Templates, Developer Docs. |
 | FR-OPS-10 | Every operator action that touches a tenant records an `ImmutableAuditLedger` entry (hash-chained) on that tenant's chain; operator-axis events (grants, elevations) are their own audit trail. |
+| FR-OPS-11 | **Read-Only External Integration Adapters** (v1.18.0) — an operator configures a tenant's connection to Jira/Asana/Monday (sprint velocity, issue counts, milestone status), NetSuite/Certinia/Kantata/OpenAir (baseline margin, financial actuals, resource allocation), or Salesforce (pipeline/deal stages) from `/ops/integrations` (`integrations:manage`, elevation-gated). Every driver (`src/lib/integrations/adapters/*.ts`) is READ-ONLY by construction — no write/push method exists on the shared `BaseAdapter` interface. The Connection Health Matrix (`integrations:view`, no elevation) tracks per-connection status, last sync, records ingested, average duration, and rate-limit headroom across every tenant; a categorized, human-readable error log replaces raw stack traces, with a manual Retry Sync action. See `docs/INTEGRATION_ADAPTERS.md`. |
 
 ---
 

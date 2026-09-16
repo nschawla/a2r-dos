@@ -17,6 +17,7 @@ const OPS_NAV: ReadonlyArray<{ href: string; label: string; desc: string; capabi
   { href: '/ops/billing', label: 'Billing', desc: 'Subscriptions · contract tiers', capability: 'billing:view' },
   { href: '/ops/audit', label: 'Audit & Compliance', desc: 'Immutable ledger · elevation history', capability: 'audit:view' },
   { href: '/ops/identity', label: 'Identity Federation', desc: 'Tenant SSO · SAML / OIDC', capability: 'identity:manage' },
+  { href: '/ops/integrations', label: 'External Integrations', desc: 'PSA/CRM adapter health & errors', capability: 'integrations:view' },
   { href: '/ops/staff', label: 'Staff Access', desc: 'Who can reach this console', capability: 'staff:manage' },
   { href: '/ops/access', label: 'Role & Access', desc: 'Operator roles & permissions', capability: 'roles:manage' },
   { href: '/ops/security', label: 'Operator Security', desc: 'Your authenticator (2FA)', capability: 'ops:view' },

@@ -1,6 +1,6 @@
 # Security & Role Access Matrix — PS-DOS
 
-_Current as of **v1.17.0**. Source of truth: `src/lib/ops/operator-roles.ts`
+_Current as of **v1.18.0**. Source of truth: `src/lib/ops/operator-roles.ts`
 (operator axis), `src/lib/auth/rbac.ts` + `src/lib/governance/rbacMatrix.ts`
 (tenant axis). This document is a reader's map onto that code._
 

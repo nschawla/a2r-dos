@@ -1,6 +1,6 @@
 # Test Suite Documentation & Coverage — PS-DOS™
 
-_Current-state, **v1.17.0**. How the automated suites are organised, what
+_Current-state, **v1.18.0**. How the automated suites are organised, what
 each layer guarantees, and how to run them. Requirement-level traceability:
 `docs/RTM.md`._
 
@@ -8,9 +8,9 @@ each layer guarantees, and how to run them. Requirement-level traceability:
 
 ## 1. Layers
 
-| Layer | Runner | Count (v1.17.0) | Target DB | Gate |
+| Layer | Runner | Count (v1.18.0) | Target DB | Gate |
 | --- | --- | --- | --- | --- |
-| Unit + DB-integration | Vitest | **695 tests / 59 files** | staging (`.env.test`) or local Postgres — **never production** | `npm test` |
+| Unit + DB-integration | Vitest | **725 tests / 61 files** | staging (`.env.test`) or local Postgres — **never production** | `npm test` |
 | End-to-end | Playwright (chromium) | **64 tests / 8 spec files** — Suites A–Q | staging (pinned by `playwright.config.ts` + `e2e/global-setup.ts`) | `npm run test:e2e` |
 | Direct-SQL RLS smoke | `tsx` script | 10-check matrix | staging / local (guard refuses prod) | `npm run db:rls:smoke` |
 | Production acceptance | `tsx` script | `pg_catalog` / `information_schema` SELECTs, **zero DML** | production (read-only) | `npm run db:rls:verify` |
@@ -45,12 +45,16 @@ Playwright run whose resolved DB URL is the production project ref
 - `secret-box.test.ts` (8) — AES-256-GCM round-trip, tamper (ciphertext + short tag), malformed, **dedicated `MFA_ENCRYPTION_KEY`**, **rotation** (old-key ciphertext still decrypts + flags for re-seal), **legacy `v1` decrypt**.
 - `cli-io.test.ts` (10) — **NEW v1.15.1**: production-URL detection, `generatePassword` always policy-compliant, `hasFlag`, `assertProdWriteAllowed` (no-op for staging / refuses prod non-TTY / allows with `--yes-prod` / `A2R_ALLOW_PROD_WRITE`), `resolvePassword` (`--generate` / no-TTY refusal).
 
+### Read-Only External Integration Adapters
+- `integrations.test.ts` (24) — **NEW v1.18.0**: the Normalization Layer's runtime shape-guard (accepts well-formed records of all 3 kinds, rejects a missing field / unrecognized `kind` / extra field / out-of-range value), error classification (401→AUTH_EXPIRED, 429→RATE_LIMITED with the Retry-After minutes, 5xx→NETWORK_TIMEOUT, 404→SCHEMA_MISMATCH, a thrown network error incl. **Node/undici's wrapped `fetch failed` with the real cause in `.cause`**), every adapter exposes exactly `testConnection`+`pull` and no write/push/update method, every adapter refuses cleanly with no credential configured, `provider-meta.ts` (client-safe) drift-guarded against the real adapters.
+- `integrations-sync-runner.test.ts` (3) — **NEW v1.18.0**, live DB: a connection with no credential fails cleanly (FAILED status, one AUTH_EXPIRED error row, connection marked ERROR); an unreachable host produces a real NETWORK_TIMEOUT error (not a thrown exception) from an actual failed fetch; an unknown connectionId returns FAILED without writing any rows.
+
 ### Data isolation & integrity
 - `org-scope.test.ts`, `dal.test.ts`, `dal-boundary.test.ts` — the Prisma org-scope extension + DAL fail-closed gate + the ESLint/`@/lib/db` boundary.
 - `security/tenant-isolation.test.ts` — composite-key child models: a row created under A is invisible / immutable / un-creatable from B.
 - `security/rls-policies.test.ts` — `a2r_app` restricted role: empty-GUC connection fail-closed (0 rows).
 - `security/ledger-immutability.test.ts`, `security/ledger-concurrency.test.ts` — `a2r_app` cannot mutate the ledger; the trigger rejects; the GUC opt-in.
-- `security/tenant-model-inventory.test.ts` — schema-drift guard: **38 models** (9 identity + 28 tenant + 1 post-RLS platform `OperatorMfa`); the three tenant-table lists agree.
+- `security/tenant-model-inventory.test.ts` — schema-drift guard: **41 models** (9 identity + 31 tenant + 1 post-RLS platform `OperatorMfa`); the three tenant-table lists (rls-smoke, migration 17 **or 26**, schema) agree.
 - `security/env-isolation.test.ts` — the preview/prod isolation verdict function.
 
 ### Cryptography, calc, observability
@@ -107,14 +111,14 @@ npm run db:rls:verify      # production, read-only
 npm run health:prod        # live deployment
 ```
 
-### v1.17.0 verification result
+### v1.18.0 verification result
 
 | Gate | Result |
 | --- | --- |
 | `tsc --noEmit` | 0 errors |
 | `eslint` | 0 / 0 |
 | `prisma validate` | valid |
-| Vitest | **695 / 695** (59 files) — staging |
+| Vitest | **725 / 725** (61 files) — staging |
 | Playwright | **65 / 65** (Suites A–Q) — staging |
 | `next build` | clean |
 | `db:rls:verify` | passed (production, zero DML) |

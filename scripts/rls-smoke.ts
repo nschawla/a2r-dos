@@ -64,6 +64,7 @@ const TENANT_TABLES = [
   'activity_log_entries', 'api_keys', 'audit_entries', 'audit_logs', 'control_labels',
   'custom_kpis', 'data_import_batches', 'data_import_rows', 'delivery_roles', 'effort_cells',
   'financial_actuals', 'governance_configs', 'identity_providers', 'immutable_audit_ledger',
+  'integration_connections', 'integration_errors', 'integration_sync_runs',
   'organization_holidays', 'org_policies', 'practices', 'projects', 'project_contributors',
   'raid_entries', 'resources', 'role_utilization_policies', 'schedule_phases', 'scope_items',
   'sso_group_mappings', 'steerco_decisions', 'timesheet_entries', 'weekly_assignment_slots',

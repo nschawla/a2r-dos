@@ -6,10 +6,16 @@ import { join } from 'node:path';
  * Phase 2 (v1.12.0) — schema-drift guard for docs/TENANT_MODEL_INVENTORY.md.
  *
  * Parses prisma/schema.prisma and asserts the tenant-model classification
- * still holds: 9 identity/routing models, 28 tenant-owned models, and the
- * three independent lists of tenant tables (rls-smoke, migration 17,
- * schema) agree exactly. A new model with an `organizationId` field that
- * isn't wired into RLS fails this test.
+ * still holds: 9 identity/routing models, 31 tenant-owned models, and the
+ * three independent lists of tenant tables (rls-smoke, migration
+ * 17+26 combined, schema) agree exactly. A new model with an
+ * `organizationId` field that isn't wired into RLS fails this test.
+ *
+ * Migration 17 is applied and frozen — a table added after it (the three
+ * v1.18.0 integration tables, migration 26) gets its tenant_isolation
+ * policy from whichever later migration introduces it instead. `RLS_SOURCES`
+ * is every migration file this test accepts as a valid policy source; a
+ * table just needs to appear in ONE of them.
  */
 const root = process.cwd();
 const schema = readFileSync(join(root, 'prisma/schema.prisma'), 'utf8');
@@ -18,6 +24,12 @@ const mig17 = readFileSync(
   join(root, 'prisma/migrations/00000000000017_rls_tenant_policies/migration.sql'),
   'utf8',
 );
+const mig26 = readFileSync(
+  join(root, 'prisma/migrations/00000000000026_integration_adapters/migration.sql'),
+  'utf8',
+);
+const RLS_SOURCES = [mig17, mig26];
+const rlsSourceContains = (needle: string) => RLS_SOURCES.some((src) => src.includes(needle));
 
 /** Identity / routing models — never tenant-isolated (see the inventory doc). */
 const IDENTITY_MODELS = new Set([
@@ -72,8 +84,8 @@ describe('tenant-model inventory', () => {
   const models = parseModels(schema);
   const tenantTables = smokeTenantTables();
 
-  it('the schema has 38 models: 9 identity + 28 tenant-owned + 1 post-RLS platform', () => {
-    expect(models.length).toBe(38);
+  it('the schema has 41 models: 9 identity + 31 tenant-owned + 1 post-RLS platform', () => {
+    expect(models.length).toBe(41);
     const identity = models.filter((x) => IDENTITY_MODELS.has(x.name));
     expect(identity.length).toBe(9);
     const platform = models.filter((x) => POST_RLS_PLATFORM_MODELS.has(x.name));
@@ -90,8 +102,8 @@ describe('tenant-model inventory', () => {
     expect(unclassified).toEqual([]);
   });
 
-  it('rls-smoke TENANT_TABLES has exactly 28 entries and matches the schema', () => {
-    expect(tenantTables.length).toBe(28);
+  it('rls-smoke TENANT_TABLES has exactly 31 entries and matches the schema', () => {
+    expect(tenantTables.length).toBe(31);
     const schemaTenantTables = models
       .filter((x) => x.hasOrgId && !IDENTITY_MODELS.has(x.name))
       .map((x) => x.table)
@@ -99,9 +111,9 @@ describe('tenant-model inventory', () => {
     expect([...tenantTables].sort()).toEqual(schemaTenantTables);
   });
 
-  it('migration 17 defines tenant_isolation for every tenant table', () => {
+  it('migration 17 or 26 defines tenant_isolation for every tenant table', () => {
     for (const t of tenantTables) {
-      expect(mig17, `migration 17 is missing '${t}'`).toContain(`'${t}'`);
+      expect(rlsSourceContains(`'${t}'`), `no RLS source defines '${t}'`).toBe(true);
     }
   });
 

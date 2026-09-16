@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix — PS-DOS™
 
-_Current-state, **v1.17.0**. Maps each `docs/FRD.md` requirement to its
+_Current-state, **v1.18.0**. Maps each `docs/FRD.md` requirement to its
 implementing code and its automated coverage. Per-phase RTMs (with the
 requirement IDs used at the time) are in `README.md`; this is the flattened
 view. Coverage detail: `docs/TEST_COVERAGE.md`._
@@ -51,6 +51,7 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | FR-OPS-8 | `src/lib/ops/tenant-management.ts` (`startImpersonation`) | E Suite I2 |
 | FR-OPS-9 | `src/app/(admin)/ops/{telemetry,pulse,billing,audit,ingestion,dev-docs}` | E Suite D · M UAT (ops walkthrough) |
 | FR-OPS-10 | `src/lib/audit-ledger.ts` (`recordLedgerEvent` / `verifyLedgerIntegrity`) | A `tests/security/ledger-*.test.ts` · E Suite F2 |
+| FR-OPS-11 | `src/lib/integrations/*` (types, http, errors, normalize, registry, sync-runner, adapters/*), `src/server/actions/integrations.ts`, `src/app/(admin)/ops/integrations`, `src/app/api/internal/integrations-sync` | A `tests/integrations.test.ts` (24 — normalization, error classification, adapter read-only-by-construction, provider-meta drift guard), `tests/integrations-sync-runner.test.ts` (3 — live DB + a real network failure) |
 
 ## Data isolation & integrity
 

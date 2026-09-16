@@ -20,21 +20,27 @@ Trust** segment (`tenant-isolation`, `operator-roles`, `step-up-mfa`,
 re-points the `ops-console` beat at `/ops/telemetry` (bare `/ops` now
 307-redirects to the operator's role landing route).
 
+**Current as of v1.17.0** — adds one beat, `persona-preview` (Admin and
+Security tracks, right after `scoped-practice-view`), showcasing the new
+Persona Preview banner. 16 beats total now; every cue sheet in §4 except
+Executive Lens (which doesn't play this beat) shifts by +18s from this
+point on.
+
 ---
 
 ## 1. Track overview
 
-Four playback tracks share one 15-beat master script — a track is a
+Four playback tracks share one 16-beat master script — a track is a
 persona-filtered *subsequence* of it, in the same order, never a rewrite:
 
 | Track | Persona value | Beats played | Total runtime |
 | --- | --- | --- | --- |
-| **Full Platform Tour** | `'Full Tour'` | All 15, in script order | **3:11** (191s) |
+| **Full Platform Tour** | `'Full Tour'` | All 16, in script order | **3:29** (209s) |
 | **Executive Lens** | `'Executive'` | Welcome → Command Center → Scoped Practice View → SteerCo → Executive Hub → Tenant Isolation → Closing (7 beats) | **1:15** (75s) |
-| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Scoped Practice View → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → Closing (13 beats) | **2:54** (174s) |
-| **Security &amp; Trust** | `'Security'` | Welcome → Scoped Practice View → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → Closing (7 beats) | **1:41** (101s) |
+| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Scoped Practice View → Persona Preview → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → Closing (14 beats) | **3:12** (192s) |
+| **Security &amp; Trust** | `'Security'` | Welcome → Scoped Practice View → Persona Preview → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → Closing (8 beats) | **1:59** (119s) |
 
-Because a beat's line is identical everywhere it appears, **only 15 unique
+Because a beat's line is identical everywhere it appears, **only 16 unique
 voiceover files are ever needed** — not one per track/beat combination.
 Record each beat once; the per-track cue sheets in §4 just tell you which
 recording plays when, on which track.
@@ -42,6 +48,11 @@ recording plays when, on which track.
 - **"Scoped Practice View"** is shared by all three single-persona tracks —
   it's the Role-Based Scoped Filtering capability and reads the same way to
   any audience.
+- **"Persona Preview"** (v1.17.0) plays right after it on the Admin and
+  Security tracks only — never Executive, since only a tenant Admin or A2R
+  staff can see the banner at all, and it's the natural next beat after
+  "every view is role-aware": now show the tool that lets you *become* any
+  role on demand.
 - **"Tenant Isolation"** is the one Security &amp; Trust beat that also plays
   on the Executive and Admin tracks — it's the tenant-facing half of the
   security story (your data is walled off at the database), which every
@@ -82,11 +93,11 @@ recording plays when, on which track.
   comparison — land the emphasis:
   - Beat 3 (`scoped-practice-view`): *"VP or Ops lead"* vs. *"Practice
     Director's seat"*.
-  - Beat 11 (`tenant-isolation`): *"Not a UI rule — a database guarantee."*
+  - Beat 12 (`tenant-isolation`): *"Not a UI rule — a database guarantee."*
     — the last line is the whole point of the beat; let it land flat and
     certain, no lift.
 - **File naming &amp; delivery:** `vo-<beat-id>.mp3`, one file per beat id
-  in §3 (15 files total). Deliver alongside a duration report (actual
+  in §3 (16 files total). Deliver alongside a duration report (actual
   recorded length per file) so it can be checked against §3's on-screen
   budget before anything is wired into the app.
 
@@ -108,7 +119,7 @@ recording plays when, on which track.
 
 ---
 
-## 3. Master script — all 15 beats
+## 3. Master script — all 16 beats
 
 Grouped by act, exactly as `DEMO_SCRIPT` orders them. **Pacing** is words
 in the caption ÷ (`durationMs` ÷ 60000). Every beat sits inside the
@@ -138,14 +149,22 @@ comfortable 150–180 wpm band.
 - **Delivery note:** land the *comparison* — the highlighted line flips between "Tenant-wide — every practice." and "Scoped to your practice — N resources."
 - **Pacing:** 41 words / 15s ≈ **164 wpm**
 
-#### Beat 4 — `steerco`
+#### Beat 4 — `persona-preview`
+- **Route:** `/portfolio` · **Duration:** 18s · **Personas:** Admin, Security, Full Tour
+- **Highlight:** `#persona-preview-bar`
+- **VO:**
+  > Any admin can instantly preview the app as any other role — Executive, Project Manager, even a read-only guest — right from this banner. The sidebar, every module tab, and every write control morph to match exactly, so you can verify access control without creating test accounts or switching who's signed in.
+- **Delivery note:** land on "without creating test accounts" — that's the payoff line.
+- **Pacing:** 50 words / 18s ≈ **167 wpm**
+
+#### Beat 5 — `steerco`
 - **Route:** `/steerco` · **Duration:** 8s · **Personas:** Executive, Full Tour
 - **Highlight:** —
 - **VO:**
   > For the steering committee, the SteerCo Briefing distills the whole portfolio into a lean, board-ready read-out — and prints straight to a clean PDF.
 - **Pacing:** 23 words / 8s ≈ **172 wpm**
 
-#### Beat 5 — `executive-hub`
+#### Beat 6 — `executive-hub`
 - **Route:** `/reports` · **Duration:** 9s · **Personas:** Executive, Full Tour
 - **Highlight:** —
 - **VO:**
@@ -154,7 +173,7 @@ comfortable 150–180 wpm band.
 
 ### ACT II — Ops Console
 
-#### Beat 6 — `admin-setup`
+#### Beat 7 — `admin-setup`
 - **Route:** `/admin` · **Duration:** 10s · **Personas:** Admin, Full Tour
 - **Highlight:** —
 - **VO:**
@@ -162,14 +181,14 @@ comfortable 150–180 wpm band.
 - **Delivery note:** "Now let's step behind the curtain" is the act's turn — a small tonal shift.
 - **Pacing:** 27 words / 10s ≈ **162 wpm**
 
-#### Beat 7 — `admin-ingestion`
+#### Beat 8 — `admin-ingestion`
 - **Route:** `/admin/ingestion?v=batch` · **Duration:** 13s · **Personas:** Admin, Full Tour
 - **Highlight:** `#batch-import-zone`
 - **VO:**
   > And this is brand new: the Self-Service Batch Import Engine. A client's own team drops in a week of actuals, and anything that doesn't check out is quarantined — never silently dropped, never committed until it's clean.
 - **Pacing:** 36 words / 13s ≈ **166 wpm**
 
-#### Beat 8 — `admin-kpis`
+#### Beat 9 — `admin-kpis`
 - **Route:** `/admin/kpis` · **Duration:** 22s · **Personas:** Admin, Full Tour
 - **Highlight:** `#new-kpi-button`
 - **VO:**
@@ -177,7 +196,7 @@ comfortable 150–180 wpm band.
 - **Delivery note:** the *builder* list in one breath group each, then the *payoff* — a small lift on "immediately".
 - **Pacing:** 61 words / 22s ≈ **166 wpm**
 
-#### Beat 9 — `ops-console`
+#### Beat 10 — `ops-console`
 - **Route:** `/ops/telemetry` · **Duration:** 10s · **Personas:** Admin, Full Tour
 - **Highlight:** —
 - **VO:**
@@ -187,7 +206,7 @@ comfortable 150–180 wpm band.
   flash on screen.
 - **Pacing:** 28 words / 10s ≈ **168 wpm**
 
-#### Beat 10 — `ops-pulse`
+#### Beat 11 — `ops-pulse`
 - **Route:** `/ops/pulse` · **Duration:** 8s · **Personas:** Admin, Full Tour
 - **Highlight:** —
 - **VO:**
@@ -196,7 +215,7 @@ comfortable 150–180 wpm band.
 
 ### ACT III — Security &amp; Trust
 
-#### Beat 11 — `tenant-isolation`
+#### Beat 12 — `tenant-isolation`
 - **Route:** `/portfolio` · **Duration:** 16s · **Personas:** Executive, Admin, Security, Full Tour
 - **Highlight:** `#global-header`
 - **VO:**
@@ -204,7 +223,7 @@ comfortable 150–180 wpm band.
 - **Delivery note:** the last sentence is the point of the beat — flat and certain, no lift, small pause before "a database guarantee."
 - **Pacing:** 45 words / 16s ≈ **169 wpm**
 
-#### Beat 12 — `operator-roles`
+#### Beat 13 — `operator-roles`
 - **Route:** `/ops/access` · **Duration:** 21s · **Personas:** Admin, Security, Full Tour
 - **Highlight:** `#operator-capability-matrix`
 - **VO:**
@@ -212,7 +231,7 @@ comfortable 150–180 wpm band.
 - **Delivery note:** the six-role list is a clean, even list — one light beat per role, don't rush it. The three layers ("the edge, the page, and the action itself") is the second list — same treatment.
 - **Pacing:** 53 words / 21s ≈ **151 wpm**
 
-#### Beat 13 — `step-up-mfa`
+#### Beat 14 — `step-up-mfa`
 - **Route:** `/ops/security` · **Duration:** 17s · **Personas:** Admin, Security, Full Tour
 - **Highlight:** `#operator-mfa-panel`
 - **VO:**
@@ -220,7 +239,7 @@ comfortable 150–180 wpm band.
 - **Delivery note:** "no standing admin access" is the headline — land it. The three-part step-up list, then the consequence ("kills every active elevation instantly") clean and final.
 - **Pacing:** 43 words / 17s ≈ **152 wpm**
 
-#### Beat 14 — `audit-ledger`
+#### Beat 15 — `audit-ledger`
 - **Route:** `/ops/audit` · **Duration:** 15s · **Personas:** Admin, Security, Full Tour
 - **Highlight:** `#jit-elevation-log`
 - **VO:**
@@ -230,7 +249,7 @@ comfortable 150–180 wpm band.
 
 ### Closing (all tracks rejoin here)
 
-#### Beat 15 — `closing`
+#### Beat 16 — `closing`
 - **Route:** `/portfolio` · **Duration:** 7s · **Personas:** Executive, Admin, Security, Full Tour
 - **Highlight:** —
 - **VO:**
@@ -247,25 +266,26 @@ the instant `startDemo(persona)` fires) — precise to the second, since
 every beat's duration is a whole number of seconds. Each row's OUT point
 is the next beat's IN point; the route change happens exactly on cue.
 
-### 4.1 Full Platform Tour — 3:11 total, all 15 beats
+### 4.1 Full Platform Tour — 3:29 total, all 16 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
 | 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
-| 0:35–0:43 | 35–43 | `steerco` | `/steerco` | — |
-| 0:43–0:52 | 43–52 | `executive-hub` | `/reports` | — |
-| 0:52–1:02 | 52–62 | `admin-setup` | `/admin` | — |
-| 1:02–1:15 | 62–75 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
-| 1:15–1:37 | 75–97 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
-| 1:37–1:47 | 97–107 | `ops-console` | `/ops/telemetry` | — |
-| 1:47–1:55 | 107–115 | `ops-pulse` | `/ops/pulse` | — |
-| 1:55–2:11 | 115–131 | `tenant-isolation` | `/portfolio` | `#global-header` |
-| 2:11–2:32 | 131–152 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
-| 2:32–2:49 | 152–169 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
-| 2:49–3:04 | 169–184 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
-| 3:04–3:11 | 184–191 | `closing` | `/portfolio` | — |
+| 0:35–0:53 | 35–53 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
+| 0:53–1:01 | 53–61 | `steerco` | `/steerco` | — |
+| 1:01–1:10 | 61–70 | `executive-hub` | `/reports` | — |
+| 1:10–1:20 | 70–80 | `admin-setup` | `/admin` | — |
+| 1:20–1:33 | 80–93 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
+| 1:33–1:55 | 93–115 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
+| 1:55–2:05 | 115–125 | `ops-console` | `/ops/telemetry` | — |
+| 2:05–2:13 | 125–133 | `ops-pulse` | `/ops/pulse` | — |
+| 2:13–2:29 | 133–149 | `tenant-isolation` | `/portfolio` | `#global-header` |
+| 2:29–2:50 | 149–170 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
+| 2:50–3:07 | 170–187 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
+| 3:07–3:22 | 187–202 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
+| 3:22–3:29 | 202–209 | `closing` | `/portfolio` | — |
 
 ### 4.2 Executive Lens — 1:15 total, 7 beats
 
@@ -279,35 +299,37 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 0:52–1:08 | 52–68 | `tenant-isolation` | `/portfolio` | `#global-header` |
 | 1:08–1:15 | 68–75 | `closing` | `/portfolio` | — |
 
-### 4.3 Admin / Ops Lens — 2:54 total, 13 beats
+### 4.3 Admin / Ops Lens — 3:12 total, 14 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
 | 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
-| 0:35–0:45 | 35–45 | `admin-setup` | `/admin` | — |
-| 0:45–0:58 | 45–58 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
-| 0:58–1:20 | 58–80 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
-| 1:20–1:30 | 80–90 | `ops-console` | `/ops/telemetry` | — |
-| 1:30–1:38 | 90–98 | `ops-pulse` | `/ops/pulse` | — |
-| 1:38–1:54 | 98–114 | `tenant-isolation` | `/portfolio` | `#global-header` |
-| 1:54–2:15 | 114–135 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
-| 2:15–2:32 | 135–152 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
-| 2:32–2:47 | 152–167 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
-| 2:47–2:54 | 167–174 | `closing` | `/portfolio` | — |
+| 0:35–0:53 | 35–53 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
+| 0:53–1:03 | 53–63 | `admin-setup` | `/admin` | — |
+| 1:03–1:16 | 63–76 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
+| 1:16–1:38 | 76–98 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
+| 1:38–1:48 | 98–108 | `ops-console` | `/ops/telemetry` | — |
+| 1:48–1:56 | 108–116 | `ops-pulse` | `/ops/pulse` | — |
+| 1:56–2:12 | 116–132 | `tenant-isolation` | `/portfolio` | `#global-header` |
+| 2:12–2:33 | 132–153 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
+| 2:33–2:50 | 153–170 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
+| 2:50–3:05 | 170–185 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
+| 3:05–3:12 | 185–192 | `closing` | `/portfolio` | — |
 
-### 4.4 Security &amp; Trust — 1:41 total, 7 beats
+### 4.4 Security &amp; Trust — 1:59 total, 8 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
 | 0:10–0:25 | 10–25 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
-| 0:25–0:41 | 25–41 | `tenant-isolation` | `/portfolio` | `#global-header` |
-| 0:41–1:02 | 41–62 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
-| 1:02–1:19 | 62–79 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
-| 1:19–1:34 | 79–94 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
-| 1:34–1:41 | 94–101 | `closing` | `/portfolio` | — |
+| 0:25–0:43 | 25–43 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
+| 0:43–0:59 | 43–59 | `tenant-isolation` | `/portfolio` | `#global-header` |
+| 0:59–1:20 | 59–80 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
+| 1:20–1:37 | 80–97 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
+| 1:37–1:52 | 97–112 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
+| 1:52–1:59 | 112–119 | `closing` | `/portfolio` | — |
 
 ---
 
@@ -319,7 +341,7 @@ is the next beat's IN point; the route change happens exactly on cue.
   against the *actual* recorded file length and update this document in
   the same change.
 - **Visual highlight:** `CinematicOverlay` renders a soft pulsing glow
-  ring around `activeStep.highlightSelector`'s element. The seven ids in
+  ring around `activeStep.highlightSelector`'s element. The eight ids in
   use are all real, stable elements already in the DOM (see the
   `highlightSelector` doc comment in `demo-script.ts` for the file map).
   A future beat that wants one just sets `highlightSelector` to a real,

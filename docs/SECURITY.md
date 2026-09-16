@@ -1,6 +1,6 @@
 # PS-DOS — Security & Trust Overview
 
-_Last reviewed: 2026-09-16 · Applies to v1.17.0 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-16 · Applies to v1.18.0 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of PS-DOS™. It is written for the security and

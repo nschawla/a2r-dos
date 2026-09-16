@@ -21,8 +21,10 @@
  *   - 'Executive'   — board-level: portfolio, command, scoped visibility,
  *                     SteerCo, Exec Hub, plus the one tenant-isolation beat.
  *   - 'Admin'       — the delivery-leader / ops walkthrough end to end,
- *                     including the full Security & Trust segment.
+ *                     including the Persona Preview banner and the full
+ *                     Security & Trust segment.
  *   - 'Security'    — the CISO / security-reviewer cut: scoped visibility +
+ *                     Persona Preview (live access-control verification) +
  *                     tenant isolation + least-privilege operator RBAC +
  *                     step-up MFA + the immutable audit ledger.
  *   - 'Full Tour'   — every beat, in order.
@@ -64,6 +66,7 @@ export interface DemoStep {
    *   #operator-capability-matrix  — src/components/ops/OperatorAccessManager.tsx
    *   #operator-mfa-panel          — src/app/(admin)/ops/security/page.tsx
    *   #jit-elevation-log           — src/app/(admin)/ops/audit/page.tsx
+   *   #persona-preview-bar         — src/components/layout/PersonaPreviewBar.tsx
    * Omitted where a step is about the page generally, not one element on it.
    */
   highlightSelector?: string;
@@ -105,6 +108,16 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     highlightSelector: '#capacity-scope-indicator',
     caption:
       'Every view in PS-DOS is role-aware. A VP or Ops lead sees the whole portfolio here — tenant-wide. Switch to a Practice Director’s seat, and the exact same screen scopes itself to just their own practice’s roster and projects, automatically.',
+  },
+  {
+    id: 'persona-preview',
+    route: '/portfolio',
+    durationMs: 18000, // 50 words at ~167 wpm
+    act: 'Introduction',
+    personas: ['Admin', 'Security'],
+    highlightSelector: '#persona-preview-bar',
+    caption:
+      "Any admin can instantly preview the app as any other role — Executive, Project Manager, even a read-only guest — right from this banner. The sidebar, every module tab, and every write control morph to match exactly, so you can verify access control without creating test accounts or switching who's signed in.",
   },
   {
     id: 'steerco',

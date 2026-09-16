@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.18.0',
+    date: '2026-09-16',
+    headline: 'Read-only external integrations, and an Ops Console health dashboard for them',
+    changes: [
+      { type: 'feature', text: "Read-only connectors for the PSA/CRM systems clients already run: Jira, Asana, and Monday.com for sprint velocity, issue counts, and milestone status; NetSuite, Certinia, Kantata, and OpenAir for baseline margins, financial actuals, and resource allocation; Salesforce for pipeline and deal stages. Every connector is strictly read-only — nothing PS-DOS does ever writes back to the external system." },
+      { type: 'feature', text: "New Ops Console page, External Integrations: a Connection Health Matrix across every tenant (status, last sync, records ingested, average sync duration, rate-limit headroom), a plain-language error log in place of raw stack traces (\"Jira API token expired or lacks read scope,\" \"NetSuite rate limit reached; backing off for 15 minutes\"), and a one-click Retry Sync." },
+      { type: 'security', text: "Connection credentials are sealed at rest with the same AES-256-GCM primitive that protects SSO client secrets, and never appear in any query result an operator's browser receives — only a short, non-reversible fingerprint confirms which secret is stored." },
+    ],
+  },
+  {
     version: '1.17.0',
     date: '2026-09-16',
     headline: 'PS-DOS rebrand, an enterprise showcase portfolio, and a real Persona Preview',

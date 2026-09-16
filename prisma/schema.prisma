@@ -416,6 +416,11 @@ model Organization {
   steerCoDecisions    SteerCoDecision[]
   dataImportRows      DataImportRow[]
 
+  // Read-Only External Integration Adapters (v1.18.0).
+  integrationConnections IntegrationConnection[]
+  integrationSyncRuns    IntegrationSyncRun[]
+  integrationErrors      IntegrationError[]
+
   @@map("organizations")
 }
 
@@ -1588,4 +1593,135 @@ model SteerCoDecision {
   @@index([projectId])
   @@index([organizationId])
   @@map("steerco_decisions")
+}
+
+// =========================================================
+// Read-Only External Integration Adapters (v1.18.0)
+// =========================================================
+// Strictly read-only pulls from external PSA/CRM systems into PS-DOS's own
+// staging tables — src/lib/integrations/ never writes back to the external
+// system. Configured by an A2R operator on a tenant's behalf from the Ops
+// Console (/ops/integrations), the same "platform infrastructure, not
+// tenant self-service" model as IdentityProvider. See
+// docs/INTEGRATION_ADAPTERS.md.
+
+enum IntegrationProvider {
+  JIRA
+  ASANA
+  MONDAY
+  NETSUITE
+  CERTINIA
+  KANTATA
+  OPENAIR
+  SALESFORCE
+}
+
+enum IntegrationConnectionStatus {
+  NOT_CONFIGURED
+  CONNECTED
+  SYNCING
+  ERROR
+}
+
+enum IntegrationSyncStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+enum IntegrationErrorCategory {
+  AUTH_EXPIRED
+  RATE_LIMITED
+  NETWORK_TIMEOUT
+  SCHEMA_MISMATCH
+  UNKNOWN
+}
+
+/// A tenant's connection to one external system. `credentialCiphertext` is
+/// AES-256-GCM (src/lib/identity/crypto.ts) — the plaintext API token/key
+/// is never stored and never selected into any client-facing query.
+model IntegrationConnection {
+  id             String                      @id @default(cuid())
+  organizationId String
+  provider       IntegrationProvider
+  displayName    String
+  status         IntegrationConnectionStatus @default(NOT_CONFIGURED)
+
+  // Non-secret settings (base URL, project/board key, account id) — shape
+  // varies per provider; kept as JSON rather than a column per field.
+  config Json @default("{}")
+
+  credentialCiphertext  String? @db.Text
+  // sha256, first 12 hex chars — lets an operator confirm which secret is
+  // stored without ever revealing it (src/lib/identity/crypto.ts#secretFingerprint).
+  credentialFingerprint String?
+
+  // Health telemetry, refreshed after every sync attempt.
+  lastSyncAt          DateTime?
+  lastSyncStatus      IntegrationSyncStatus?
+  lastSyncRecordCount Int?
+  avgSyncDurationMs   Int?
+  rateLimitRemaining  Int?
+  rateLimitResetAt    DateTime?
+  syncIntervalMinutes Int                    @default(60)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  syncRuns     IntegrationSyncRun[]
+  errors       IntegrationError[]
+
+  @@unique([organizationId, provider])
+  @@unique([organizationId, id])
+  @@index([organizationId])
+  @@map("integration_connections")
+}
+
+/// One completed (or failed) pull attempt — the audit trail behind the
+/// Connection Health Matrix's "last sync" / "avg duration" figures.
+model IntegrationSyncRun {
+  id              String                @id @default(cuid())
+  organizationId  String
+  connectionId    String
+  startedAt       DateTime              @default(now())
+  finishedAt      DateTime?
+  status          IntegrationSyncStatus
+  recordsIngested Int                   @default(0)
+  durationMs      Int?
+  // 'manual:<userId>' or 'scheduled'.
+  triggeredBy     String
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connection   IntegrationConnection @relation(fields: [organizationId, connectionId], references: [organizationId, id], onDelete: Cascade)
+
+  @@unique([organizationId, id])
+  @@index([organizationId])
+  @@index([connectionId, startedAt])
+  @@map("integration_sync_runs")
+}
+
+/// A single categorized failure with a human-readable message pre-computed
+/// at write time (src/lib/integrations/errors.ts) so the Ops Console
+/// dashboard never translates a raw stack trace at render time.
+/// `syncRunId` is an informational pointer (no FK) — an error can outlive
+/// the run that produced it without a nullable-composite-FK edge case.
+model IntegrationError {
+  id             String                   @id @default(cuid())
+  organizationId String
+  connectionId   String
+  syncRunId      String?
+  occurredAt     DateTime                 @default(now())
+  category       IntegrationErrorCategory
+  humanMessage   String                   @db.Text
+  rawDetail      String?                  @db.Text
+  resolved       Boolean                  @default(false)
+  resolvedAt     DateTime?
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connection   IntegrationConnection @relation(fields: [organizationId, connectionId], references: [organizationId, id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([connectionId, occurredAt])
+  @@map("integration_errors")
 }

@@ -1,6 +1,6 @@
 # Executive Security &amp; Architecture Summary — PS-DOS™
 
-_Authoritative current-state, **v1.17.0**._
+_Authoritative current-state, **v1.18.0**._
 _Audience: executive sponsors, security review, prospective enterprise clients,
 external audit. Requirement- and code-level detail: `docs/FRD.md` ·
 `docs/RTM.md` · `docs/SECURITY.md` · `docs/ROLE_ACCESS_MATRIX.md` ·
@@ -54,8 +54,8 @@ database ok.
 
 ## 3. Security hardening pedigree
 
-PS-DOS reached v1.17.0 through **eight successive audit-and-hardening
-rounds**, v1.10.0 → v1.17.0. Each round followed the same discipline:
+PS-DOS reached v1.18.0 through **nine successive audit-and-hardening
+rounds**, v1.10.0 → v1.18.0. Each round followed the same discipline:
 
 1. **Independent review** — an AI audit agent (ChatGPT) reviewed the codebase
    and produced prioritized findings.
@@ -78,6 +78,7 @@ rounds**, v1.10.0 → v1.17.0. Each round followed the same discipline:
 | 6 | v1.15.0–v1.15.2 | Rate-limiter fail-closed posture; mandatory operator TOTP MFA; MFA key separation; atomic replay protection; readiness-probe hardening; CLI hardening. |
 | 7 | v1.16.0 | Six-tier operator RBAC with a three-layer capability matrix; Role &amp; Access console; strict read-only tenant Viewer tier. |
 | 8 | v1.17.0 | PS-DOS rebrand; unified data-driven RBAC nav matrix across all six tenant personas (reconciled against real per-project edit authority so no role loses a page it can still edit); Write-Gate Alignment — every per-project editor now hides its controls under an inactive persona, not just the baseline-lock button; explicit Persona Preview banner replaces a legacy, disconnected preview menu that had drifted out of sync with real access. |
+| 9 | v1.18.0 | Read-Only External Integration Adapters — a `BaseAdapter` interface with no write/push method anywhere in the framework (unit-tested, not just documented); credentials sealed at rest under the same primitive protecting SSO client secrets, never selected into any query result; three new tenant tables carry the same composite-FK tenant-isolation closure and RLS policy as every existing tenant table. |
 
 **Compliance alignment.** The platform is **designed and operated in
 alignment with SOC 1 and SOC 2 control objectives** — logical access
@@ -158,14 +159,14 @@ reserved for lawful data-subject erasure.
 
 ---
 
-## 5. Verification (v1.17.0)
+## 5. Verification (v1.18.0)
 
 | Gate | Result |
 | --- | --- |
 | `tsc --noEmit` | 0 errors |
 | `eslint` | 0 warnings / 0 errors |
 | `prisma validate` | valid |
-| Vitest (unit + DB-integration) | **695 / 695** — 59 files, staging DB |
+| Vitest (unit + DB-integration) | **725 / 725** — 61 files, staging DB |
 | Playwright (end-to-end) | **65 / 65** — Suites A–Q, staging DB |
 | `next build` | clean |
 | `db:rls:verify` | passed — production, read-only, zero DML |

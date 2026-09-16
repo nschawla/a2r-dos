@@ -1,16 +1,34 @@
 # Entity Relationship Diagram — PS-DOS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.17.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
+it, current as of **v1.18.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
 full model → tenant-binding → RLS-policy map and `docs/ROLE_ACCESS_MATRIX.md`
 for the role axes.
 
+**v1.18.0** — Read-Only External Integration Adapters (migration
+`00000000000026`, **applied to staging only** — production untouched).
+Three new tenant-owned tables, same composite-FK closure pattern as every
+other tenant table: **`IntegrationConnection`** (`@@unique([organizationId,
+provider])` — one row per tenant per external system; `config` JSON +
+`credentialCiphertext`/`credentialFingerprint` for the sealed API token;
+health fields `lastSyncAt`/`lastSyncStatus`/`lastSyncRecordCount`/
+`avgSyncDurationMs`/`rateLimitRemaining`/`rateLimitResetAt`), **`IntegrationSyncRun`**
+(one row per pull attempt), **`IntegrationError`** (one row per categorized
+failure; `syncRunId` is an informational pointer, no FK, to sidestep a
+nullable-composite-FK edge case). Four new enums:
+`IntegrationProvider`/`IntegrationConnectionStatus`/`IntegrationSyncStatus`/`IntegrationErrorCategory`.
+`tenant_isolation` RLS policies for the 3 new tables are defined in
+migration 26 itself (migration 17 is applied/frozen) —
+`tests/security/tenant-model-inventory.test.ts` now accepts either
+migration as a valid policy source. See `docs/INTEGRATION_ADAPTERS.md`.
+
 **v1.17.0** — no schema changes. Migration 25 (`operator_roles`) remains the
-latest applied migration; the PS-DOS rebrand, the enterprise showcase seed
-data, and the Persona Preview rework (`RbacPersona`'s `CLIENT_SPONSOR` key
-renamed `DELIVERY_EXECUTIVE`) are all application-layer — no new tables,
-columns, or enum values. `CustomKpi.targetPersonas` is a plain `String[]`,
-not a DB enum, and held zero rows referencing the old key at rename time.
+latest applied migration as of that release; the PS-DOS rebrand, the
+enterprise showcase seed data, and the Persona Preview rework
+(`RbacPersona`'s `CLIENT_SPONSOR` key renamed `DELIVERY_EXECUTIVE`) are all
+application-layer — no new tables, columns, or enum values.
+`CustomKpi.targetPersonas` is a plain `String[]`, not a DB enum, and held
+zero rows referencing the old key at rename time.
 
 **v1.16.0** — (a) new `enum OperatorRole { SUPER_ADMIN PROVISIONING SUPPORT
 AUDITOR BILLING VIEWER }`; **`StaffGrant.role OperatorRole @default(SUPER_ADMIN)`**

@@ -55,6 +55,8 @@ export const OPERATOR_CAPABILITIES = [
   'apikeys:manage',
   'identity:manage', //   per-tenant SSO / identity federation
   'ingestion:manage',
+  'integrations:view', //   read-only: the Connection Health Matrix + error log
+  'integrations:manage', // configure a connection, or trigger a retry sync
   'staff:manage', //      grant / revoke operator access
   'roles:manage', //      change an operator's role
   'audit:view', //        the immutable audit ledger + elevation history
@@ -70,15 +72,16 @@ export const ROLE_CAPABILITIES: Record<OperatorRole, ReadonlySet<OperatorCapabil
   PROVISIONING: new Set<OperatorCapability>([
     'ops:view', 'telemetry:view', 'pulse:view', 'devdocs:view',
     'tenants:view', 'tenants:provision', 'tenants:suspend',
-    'identity:manage', 'ingestion:manage',
+    'identity:manage', 'ingestion:manage', 'integrations:view', 'integrations:manage',
   ]),
   SUPPORT: new Set<OperatorCapability>([
     'ops:view', 'telemetry:view', 'pulse:view', 'devdocs:view',
     'tenants:view', 'tenants:impersonate', 'audit:view',
+    'integrations:view', 'integrations:manage', // retrying a stuck sync is a troubleshooting action
   ]),
   AUDITOR: new Set<OperatorCapability>([
     'ops:view', 'telemetry:view', 'pulse:view', 'devdocs:view',
-    'tenants:view', 'tenants:export', 'audit:view', 'billing:view',
+    'tenants:view', 'tenants:export', 'audit:view', 'billing:view', 'integrations:view',
   ]),
   BILLING: new Set<OperatorCapability>([
     'ops:view', 'telemetry:view', 'pulse:view', 'devdocs:view',
@@ -113,6 +116,7 @@ const OPS_ROUTE_CAPABILITY: ReadonlyArray<[prefix: string, capability: OperatorC
   ['/ops/tenants', 'tenants:view'],
   ['/ops/identity', 'identity:manage'],
   ['/ops/ingestion', 'ingestion:manage'],
+  ['/ops/integrations', 'integrations:view'],
   ['/ops/staff', 'staff:manage'],
   ['/ops/access', 'roles:manage'],
   ['/ops/audit', 'audit:view'],

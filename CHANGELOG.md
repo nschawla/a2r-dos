@@ -10,6 +10,62 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.18.0] — 2026-09-16
+
+_Read-only external integrations, and an Ops Console health dashboard for
+them._
+
+### Added
+
+- **Read-Only External Integration Adapter Framework**
+  (`src/lib/integrations/`) — a `BaseAdapter` interface with exactly two
+  methods, `testConnection` and `pull`; no write/push method exists
+  anywhere in the framework, enforced by a unit test that asserts every
+  adapter exposes nothing beyond those two. Eight provider drivers:
+  Jira / Asana / Monday.com (sprint velocity, issue counts, milestone
+  status), NetSuite / Certinia / Kantata / OpenAir (baseline margin,
+  financial actuals, resource allocation), Salesforce (pipeline / deal
+  stages).
+- **Normalization Layer** — each adapter maps its provider's own response
+  into one of three shared shapes; a zod runtime shape-guard
+  (`normalize.ts`) validates every pulled record before it's counted,
+  turning a provider API's silent shape drift into a clean
+  `SCHEMA_MISMATCH` error instead of a downstream crash.
+- **Categorized, human-readable error translation** (`errors.ts`) — every
+  failure (HTTP status, thrown network error, unexpected response shape)
+  becomes a `{ category, humanMessage }` pair instead of a raw stack
+  trace, e.g. *"Jira API token expired or lacks read scope on the
+  configured project/board"*, *"NetSuite rate limit reached; backing off
+  for 15 minutes."*
+- **Ops Console → External Integrations** (`/ops/integrations`) — a
+  Connection Health Matrix across every tenant (status, last sync, records
+  ingested, average sync duration, rate-limit headroom), an expandable
+  error log per connection, and a manual **Retry Sync** action. Same
+  operator-configured trust model as Identity Federation: credentials are
+  sealed at rest (AES-256-GCM, the same primitive protecting SSO client
+  secrets) and never selected into any query result. Two new operator
+  capabilities, `integrations:view` (read, no elevation) and
+  `integrations:manage` (configure / retry, elevation-gated).
+- **Scheduled sync trigger** (`POST /api/internal/integrations-sync`) —
+  mirrors the existing retention-sweep endpoint's shared-token pattern.
+  Built and tested; **not yet registered** in the Vercel cron config — an
+  automatically-firing production schedule is a deliberate follow-up step.
+- Three new tenant-owned tables (migration `00000000000026`,
+  `integration_connections` / `integration_sync_runs` /
+  `integration_errors`) with the same composite-FK tenant-isolation
+  closure and Row-Level Security policy as every other tenant table.
+  **Applied to staging only** — production is untouched pending review.
+
+### Scope note
+
+This release builds and tests the full pull → validate → log pipeline. It
+does not yet write pulled records into a specific project's delivery or
+financial data — that needs a "which internal project does this external
+board/company correspond to" mapping step future work will add. See
+`docs/INTEGRATION_ADAPTERS.md` §5.
+
+---
+
 ## [1.17.0] — 2026-09-16
 
 _PS-DOS rebrand, an enterprise showcase portfolio, and a real Persona

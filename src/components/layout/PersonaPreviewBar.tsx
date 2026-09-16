@@ -85,6 +85,7 @@ export function PersonaPreviewBar({ eligible }: { eligible: boolean }) {
 
   return (
     <div
+      id="persona-preview-bar"
       className={clsx(
         'sticky top-0 z-[105] flex items-center justify-center gap-2.5 px-4 py-1.5 text-[12.5px] font-semibold border-b flex-wrap transition-colors',
         rbacPreviewActive
