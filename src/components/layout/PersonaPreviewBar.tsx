@@ -32,14 +32,24 @@
  * which only changes what Sidebar.tsx and ProjectHeader.tsx render.
  * middleware.ts and every server action/query enforce the signed-in user's
  * REAL session DeliveryRole and never read this value.
+ *
+ * Picking a persona also navigates to its `landing` route
+ * (rbacMatrix.ts) — the same "switch drops you on the tailored page"
+ * convention the old header lens pill used. Without it, switching to
+ * Guest while sitting on /audit/[id] would leave the main pane showing a
+ * module that persona's Sidebar no longer lists at all: a mismatched,
+ * orphaned URL, not a clean preview.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { useDashboardUI } from './dashboard-ui-context';
 import { RBAC_MATRIX, RBAC_PERSONAS, type RbacPersona } from '@/lib/governance/rbacMatrix';
 
 export function PersonaPreviewBar({ eligible }: { eligible: boolean }) {
   const { rbacPersona, realRbacPersona, rbacPreviewActive, setRbacPreview } = useDashboardUI();
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -64,8 +74,13 @@ export function PersonaPreviewBar({ eligible }: { eligible: boolean }) {
   if (!eligible) return null;
 
   function pick(p: RbacPersona | null) {
-    setRbacPreview(p === realRbacPersona ? null : p);
+    const next = p === realRbacPersona ? null : p;
+    setRbacPreview(next);
     setOpen(false);
+    startTransition(() => {
+      router.push(RBAC_MATRIX[next ?? realRbacPersona].landing);
+      router.refresh();
+    });
   }
 
   return (
@@ -94,8 +109,10 @@ export function PersonaPreviewBar({ eligible }: { eligible: boolean }) {
           // that renders both.
           aria-label={`Persona Preview: ${RBAC_MATRIX[rbacPersona].label}`}
           title="Simulate another persona's navigation and module access"
+          disabled={pending}
           className={clsx(
             'flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border font-semibold transition-colors',
+            pending && 'opacity-60',
             rbacPreviewActive
               ? 'border-black/40 bg-black/10 hover:bg-black/15'
               : 'border-border-soft hover:border-ink-faint hover:text-ink'
@@ -176,8 +193,9 @@ export function PersonaPreviewBar({ eligible }: { eligible: boolean }) {
           <span className="text-black/70">— simulated view, not your real access</span>
           <button
             type="button"
-            onClick={() => setRbacPreview(null)}
-            className="rounded-sm border border-black/40 px-2 py-0.5 hover:bg-black/10 transition-colors"
+            onClick={() => pick(realRbacPersona)}
+            className="rounded-sm border border-black/40 px-2 py-0.5 hover:bg-black/10 transition-colors disabled:opacity-60"
+            disabled={pending}
           >
             Exit preview
           </button>

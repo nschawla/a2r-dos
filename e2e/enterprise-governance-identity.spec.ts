@@ -133,12 +133,57 @@ test.describe('Suite J1 — role-based landing resolution', () => {
   });
 });
 
-// J2 (the header "Perspective" pill / LensSwitcher.tsx) was removed — the
-// Persona Preview banner (PersonaPreviewBar.tsx) is now the single,
+// ── J2 · Persona Preview banner — switch navigates to the landing view ──
+//
+// The header "Perspective" pill / LensSwitcher.tsx it replaces is gone —
+// the Persona Preview banner (PersonaPreviewBar.tsx) is the single,
 // explicit control for previewing another role's view. The underlying
-// Workspace Lens redirect logic it used to expose (resolveLens/defaultLens/
-// availableLenses, still driving /launch's post-sign-in landing) keeps its
-// own pure-function coverage in tests/workspace-lens.test.ts.
+// Workspace Lens redirect logic the pill used to expose (resolveLens/
+// defaultLens/availableLenses, still driving /launch's post-sign-in
+// landing) keeps its own pure-function coverage in
+// tests/workspace-lens.test.ts.
+
+test.describe('Suite J2 — Persona Preview banner navigates to each landing view', () => {
+  test('switching persona redirects instead of orphaning the current URL', async () => {
+    await signIn(page, 'admin@a2rventures-demo.test');
+    await expect(page).toHaveURL(/\/portfolio$/); // Global Admin's landing
+
+    // Land on a page Executive Board can't see at all, to prove the
+    // switch actively navigates away rather than leaving it rendered.
+    await page.goto('/admin');
+    await expectNoErrorOverlay(page);
+
+    const trigger = page.getByRole('button', { name: /^Persona Preview:/ });
+    await trigger.click();
+    await page.getByRole('menuitemradio', { name: 'Executive Board' }).click();
+
+    // Executive Board's landing is the SteerCo Briefing — no orphaned /admin.
+    await page.waitForURL(/\/steerco$/, { timeout: 15_000 });
+    await expectNoErrorOverlay(page);
+    await expect(trigger).toHaveAccessibleName('Persona Preview: Executive Board');
+    // The Sidebar morphed with it — Executive Board has no Commercial
+    // Baseline / Admin & Org Setup links at all.
+    await expect(page.getByRole('link', { name: 'Commercial Baseline' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Admin & Org Setup' })).toHaveCount(0);
+
+    // Switch straight to a second persona — Delivery Executive — from a
+    // page Executive Board could see but Delivery Executive can't.
+    await trigger.click();
+    await page.getByRole('menuitemradio', { name: 'Delivery Executive' }).click();
+    await page.waitForURL(/\/portfolio$/, { timeout: 15_000 }); // Delivery Executive's landing
+    await expectNoErrorOverlay(page);
+    await expect(page.getByRole('link', { name: 'Financial Realization' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'RAID Cockpit' })).toBeVisible();
+
+    // Exit preview — back to the real Global Admin, back on Control Tower.
+    await trigger.click();
+    await page.getByRole('menuitemradio', { name: /your real access/ }).click();
+    await page.waitForURL(/\/portfolio$/, { timeout: 15_000 });
+    await expectNoErrorOverlay(page);
+    await expect(trigger).toHaveAccessibleName('Persona Preview: Global Admin');
+    await expect(page.getByRole('link', { name: 'Admin & Org Setup' })).toBeVisible();
+  });
+});
 
 // ── J3 · governance template application ─────────────────────────────
 
