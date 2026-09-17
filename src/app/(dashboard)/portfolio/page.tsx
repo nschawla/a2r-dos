@@ -11,6 +11,7 @@ import { canViewMargins } from '@/lib/security/masking';
 import { MaskedValue } from '@/components/security/Masked';
 import { StatCard } from '@/components/ui/stat-card';
 import { ModuleTabs } from '@/components/ui/module-tabs';
+import { DataTable, TruncatedCell, type DataTableColumn, type DataTableRow } from '@/components/ui/data-table';
 import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
 import { DecisionCenter } from '@/components/portfolio/DecisionCenter';
 import { CreateProjectForm } from './create-project-form';
@@ -158,6 +159,65 @@ export default async function HomePage() {
     </>
   );
 
+  // No-Scroll table discipline: Project / Health / Open RAID / the action
+  // link are core (always shown — the table can't do its job without
+  // them); Client / PM / Model / Methodology are useful but optional, so a
+  // viewer on a laptop-width window can decline them via "Customize
+  // Display" instead of the table quietly overflowing sideways. All four
+  // stay visible by default — this narrows the columns, it doesn't change
+  // what a first-time visitor sees.
+  //
+  // RSC boundary: DataTable is a Client Component, so its columns carry no
+  // render function (a function isn't serializable across a Server->Client
+  // props boundary — Next.js throws at runtime the moment one crosses it).
+  // Each row's cells are rendered right here, in this Server Component,
+  // into plain ReactNode values instead.
+  const projectColumns: DataTableColumn[] = [
+    { key: 'name', header: 'Project', className: 'font-semibold max-w-[26ch]' },
+    { key: 'client', header: 'Client', optional: true, className: 'text-ink-muted max-w-[18ch]' },
+    { key: 'pm', header: 'PM', optional: true, className: 'text-ink-muted max-w-[16ch]' },
+    { key: 'model', header: 'Model', optional: true, className: 'text-ink-muted' },
+    { key: 'methodology', header: 'Methodology', optional: true, className: 'text-ink-muted capitalize' },
+    { key: 'health', header: 'Health', align: 'center' },
+    { key: 'raid', header: 'Open RAID', align: 'right', className: 'tabular-nums' },
+    { key: 'action', header: '' },
+  ];
+  const projectRows: DataTableRow[] = projects.map((p) => {
+    const health = getProjectHealth(p);
+    return {
+      key: p.id,
+      cellTitles: { client: p.client, pm: p.projectManager?.name },
+      cells: {
+        name: (
+          <>
+            <TruncatedCell>{p.name}</TruncatedCell>
+            {health.code !== 'G' && p.narrativeBlockers && (
+              <div className="text-[11px] font-normal text-ink-faint mt-0.5 whitespace-normal leading-snug">
+                {p.narrativeBlockers}
+              </div>
+            )}
+          </>
+        ),
+        client: <TruncatedCell>{p.client || '—'}</TruncatedCell>,
+        pm: <TruncatedCell>{p.projectManager?.name ?? 'Unassigned'}</TruncatedCell>,
+        model: p.commercialModel,
+        methodology: p.methodology.toLowerCase(),
+        health: (
+          <span
+            className={`status-dot ${HEALTH_DOT[health.code]}`}
+            title={health.code !== 'G' && p.narrativeBlockers ? p.narrativeBlockers : undefined}
+          />
+        ),
+        raid: openRaidByProject.get(p.id) ?? 0,
+        action: (
+          <Link href={`/commercial-baseline/${p.id}`} className="text-brand text-xs font-semibold whitespace-nowrap">
+            Open →
+          </Link>
+        ),
+      },
+    };
+  });
+
   const engagementsPanel = (
     <>
       <div className="card card-tint-governance">
@@ -172,61 +232,20 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {projects.length === 0 ? (
-          <p className="text-ink-muted text-sm py-6 text-center">
-            No projects in scope yet. {deliveryRole === 'ADMIN' ? 'Create your first engagement below to seed its scope, schedule, and audit rows.' : 'Ask an Admin to assign you to a project.'}
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                  <th className="py-2 pr-4">Project</th>
-                  <th className="py-2 pr-4">Client</th>
-                  <th className="py-2 pr-4">PM</th>
-                  <th className="py-2 pr-4">Model</th>
-                  <th className="py-2 pr-4">Methodology</th>
-                  <th className="py-2 pr-4">Health</th>
-                  <th className="py-2 pr-4">Open RAID</th>
-                  <th className="py-2 pr-4" />
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((p) => {
-                  const health = getProjectHealth(p);
-                  return (
-                    <tr key={p.id} className="border-b border-border/60 last:border-0">
-                      <td className="py-2.5 pr-4 font-semibold max-w-[26ch]">
-                        {p.name}
-                        {health.code !== 'G' && p.narrativeBlockers && (
-                          <div className="text-[11px] font-normal text-ink-faint mt-0.5 whitespace-normal leading-snug">
-                            {p.narrativeBlockers}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-4 text-ink-muted">{p.client || '—'}</td>
-                      <td className="py-2.5 pr-4 text-ink-muted">{p.projectManager?.name ?? 'Unassigned'}</td>
-                      <td className="py-2.5 pr-4 text-ink-muted">{p.commercialModel}</td>
-                      <td className="py-2.5 pr-4 text-ink-muted capitalize">{p.methodology.toLowerCase()}</td>
-                      <td className="py-2.5 pr-4">
-                        <span
-                          className={`status-dot ${HEALTH_DOT[health.code]}`}
-                          title={health.code !== 'G' && p.narrativeBlockers ? p.narrativeBlockers : undefined}
-                        />
-                      </td>
-                      <td className="py-2.5 pr-4 tabular-nums">{openRaidByProject.get(p.id) ?? 0}</td>
-                      <td className="py-2.5 pr-4">
-                        <Link href={`/commercial-baseline/${p.id}`} className="text-brand text-xs font-semibold">
-                          Open →
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          storageKey="portfolio-active-projects"
+          caption="Active projects in scope"
+          rows={projectRows}
+          emptyMessage={
+            <>
+              No projects in scope yet.{' '}
+              {deliveryRole === 'ADMIN'
+                ? 'Create your first engagement below to seed its scope, schedule, and audit rows.'
+                : 'Ask an Admin to assign you to a project.'}
+            </>
+          }
+          columns={projectColumns}
+        />
       </div>
 
       <div className="card">

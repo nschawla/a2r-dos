@@ -103,6 +103,19 @@ export function ProjectHeader({
 
   return (
     <div className="flex flex-col gap-2 pb-4 mb-1 border-b border-border">
+      {/* No-Scroll / In-Context Hub — a prominent, in-page way back to the
+         portfolio, never a reliance on the browser's own Back button. Every
+         per-module project route (Baseline / Financials / Schedule / RAID /
+         Audit) renders this same header, so the one link covers all five. */}
+      <Link
+        href="/portfolio"
+        className="self-start flex items-center gap-1 text-[12px] font-semibold text-ink-faint hover:text-ink transition-colors"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="h-3 w-3">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+        Back to Portfolio
+      </Link>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex flex-col gap-1">
           <div className="flex items-center gap-2 flex-wrap">
