@@ -52,6 +52,17 @@ export function PersonaPreviewBar({ eligible }: { eligible: boolean }) {
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  // Same "no flash of animated color on the first post-mount state
+  // change" gate as Sidebar.tsx's own `hydrated` flag (the localStorage
+  // restore in useRbacPreview fires a tick after this bar's first paint,
+  // same as Sidebar's collapsed-state restore) — SSR and the client's
+  // pre-effect render already agree (both start with no preview active),
+  // so this isn't fixing a hydration MISMATCH; it's suppressing the
+  // `transition-colors` animation from visibly "fading in" the warning
+  // fill on that first flip, so a restored preview never reads as a
+  // stuck/half-rendered bar.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -77,9 +88,27 @@ export function PersonaPreviewBar({ eligible }: { eligible: boolean }) {
     const next = p === realRbacPersona ? null : p;
     setRbacPreview(next);
     setOpen(false);
+    // `router.push()` alone is the correct, complete fix for the "land on
+    // the previewed persona's own page" requirement — it's a real
+    // navigation, so Next.js fetches and renders that destination route's
+    // Server Component tree fresh regardless of whether the URL happens to
+    // change. The Sidebar / ModuleNav / write-affordance reactions to a
+    // preview change are pure client Context state (useDashboardUI), which
+    // re-renders the instant setRbacPreview above commits — no server
+    // round trip is involved in any of that, on this or any other route.
+    //
+    // A `router.refresh()` immediately after `push()` used to run here too.
+    // It was never load-bearing (nothing it could refresh depends on the
+    // preview — the server never reads it), and it raced against the
+    // push's own navigation/data-fetch inside the same transition: two
+    // concurrent App Router operations against the same layout segment,
+    // interleaving unpredictably under real network timing. That race is
+    // the leading explanation for reports of the trigger button
+    // occasionally going unresponsive until a hard reload — a symptom the
+    // Ops Console's identical control (RbacPersonaSwitcher.tsx, which
+    // never calls the router at all) never exhibited. Removed.
     startTransition(() => {
       router.push(RBAC_MATRIX[next ?? realRbacPersona].landing);
-      router.refresh();
     });
   }
 
@@ -88,6 +117,7 @@ export function PersonaPreviewBar({ eligible }: { eligible: boolean }) {
       id="persona-preview-bar"
       className={clsx(
         'sticky top-0 z-[105] flex items-center justify-center gap-2.5 px-4 py-1.5 text-[12.5px] font-semibold border-b flex-wrap transition-colors',
+        mounted ? 'duration-150' : 'duration-0',
         rbacPreviewActive
           ? 'bg-warning text-black border-warning/60'
           : 'bg-surface-1 text-ink-faint border-border-soft'

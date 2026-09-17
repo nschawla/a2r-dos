@@ -6,9 +6,17 @@
  *  - 5 logins, one per DeliveryAccessRole (Admin, VP Executive, Practice
  *    Director, Delivery Manager, Project Manager). All share the password
  *    below for convenience — this is demo/dev data only.
- *  - A resource roster with a real reporting line: two PMs (Sam, Jordan)
- *    report to the Delivery Manager (Derek); the PM login (Maria) is a
- *    third, separately-scoped PM.
+ *  - A resource roster with a real reporting line, deep enough that the
+ *    Persona Preview's three portfolio-rollup tiers are each visibly
+ *    distinct, not just theoretically so: **two independent delivery
+ *    streams** under the one Practice Director (Priya) — Derek's stream
+ *    (Sam and Jordan report to him; 7 engagements, incl. the ERP
+ *    Modernization program) and a second, Diego's (Nina reports to him;
+ *    2 engagements — Epic EHR, NextGen AMI). The PM login (Maria) is a
+ *    third PM under Derek, scoped to her own 2 engagements only. Priya's
+ *    practice-wide roll-up spans BOTH streams (9 of 10 core-practice
+ *    engagements) — a materially larger portfolio than either delivery
+ *    exec's own view, by construction, not by coincidence.
  *  - 1 Parent Program ("Global ERP Modernization") with 2 Child Waves —
  *    one healthy, one deliberately red (slipped schedule, audit gaps,
  *    margin erosion) so the health/notification/pace-risk UI has
@@ -200,6 +208,30 @@ async function main() {
   const pmResource = await upsertResource('Maria Chen', { userId: pmUser.id, roleKey: 'role-pm', practiceId: corePracticeId, email: pmUser.email, managerId: dmResource.id });
   const samResource = await upsertResource('Sam Rivera', { roleKey: 'role-pm', practiceId: corePracticeId, managerId: dmResource.id });
   const jordanResource = await upsertResource('Jordan Lee', { roleKey: 'role-pm', practiceId: archPracticeId, managerId: dmResource.id });
+  // Hierarchical Seed Data Expansion — a SECOND delivery stream under
+  // Priya's same practice, so the RBAC Persona Preview's three "portfolio
+  // roll-up" tiers are each genuinely distinct in scope and size, not just
+  // in theory:
+  //   Project Manager (Maria)   -> her own 2 projects (Wave 1, CDP)
+  //   Delivery Executive (Derek)-> his own delivery stream (Wave 1/2, CDP,
+  //                                Claims, SAP, Fusion — 7 engagements)
+  //   Delivery Executive (Diego)-> a second, independent stream (Epic EHR,
+  //                                NextGen AMI — 2 engagements)
+  //   Practice Manager (Priya)  -> BOTH streams rolled up (9 of the 10
+  //                                core-practice engagements — everything
+  //                                except the cross-practice negative case,
+  //                                Field Service Mobile App), a materially
+  //                                larger portfolio than either delivery
+  //                                exec alone. See getScopedProjectWhere /
+  //                                isProjectInScope (src/lib/scoping.ts,
+  //                                src/lib/db/scoped-portfolio.ts) — this
+  //                                is query-level scoping already keyed off
+  //                                exactly these ids; the seed data simply
+  //                                hadn't populated a second stream to make
+  //                                the practice-wide roll-up visibly wider
+  //                                than a single delivery exec's view.
+  const dm2Resource = await upsertResource('Diego Salazar', { roleKey: 'role-dm', practiceId: corePracticeId });
+  const ninaResource = await upsertResource('Nina Torres', { roleKey: 'role-pm', practiceId: corePracticeId, managerId: dm2Resource.id });
   const architectResource = await upsertResource('Lena Ortiz', { roleKey: 'role-la', practiceId: archPracticeId });
   const consultantResource = await upsertResource('Omar Haddad', { roleKey: 'role-sc', practiceId: practiceIdMap.get('advisory') ?? null });
 
@@ -621,13 +653,29 @@ async function main() {
       locked: true,
       lockedAt: daysAgo(95),
       practiceDirectorId: pdResource.id,
-      deliveryManagerId: dmResource.id,
-      projectManagerId: samResource.id,
+      // Second delivery stream (Diego / Nina) — see the roster comment
+      // above. Still Priya's practice, so her practice-wide roll-up spans
+      // both streams; Derek's own delivery-exec view no longer includes it.
+      deliveryManagerId: dm2Resource.id,
+      projectManagerId: ninaResource.id,
       practiceId: corePracticeId,
       narrativeBlockers:
         'Field-crew installation capacity is running roughly 40% below the rate needed to hit the meter-swap schedule; a staffing decision is pending SteerCo before Q3 milestones can be re-baselined.',
     },
   });
+  // Converge an already-seeded environment onto the reassigned delivery
+  // stream too — findOrCreateProject deliberately never updates an
+  // existing project's `data` (most fields are meant to evolve through the
+  // app after first seed, not get overwritten every run), so a DB that
+  // already had this project from a prior seed would otherwise keep the
+  // old Derek/Sam assignment forever. Idempotent — a no-op once converged.
+  await db.project.update({
+    where: { id: ami.id },
+    data: { deliveryManagerId: dm2Resource.id, projectManagerId: ninaResource.id },
+  });
+  await db.raidEntry.updateMany({ where: { projectId: ami.id, ownerId: samResource.id }, data: { ownerId: ninaResource.id } });
+  await db.raidEntry.updateMany({ where: { projectId: ami.id, ownerId: dmResource.id }, data: { ownerId: dm2Resource.id } });
+  await db.steerCoDecision.updateMany({ where: { projectId: ami.id, decisionOwnerId: dmResource.id }, data: { decisionOwnerId: dm2Resource.id } });
   if (amiCreated) {
     await seedScope(ami.id);
     // 4 YES + 4 PARTIAL of 8 graded (2 NA) = 75% — locked but under the 80%
@@ -659,7 +707,7 @@ async function main() {
         type: 'RISK',
         description: 'Field crew AMI installation capacity is constrained; current contractor headcount supports ~60% of the required meter-swap rate.',
         severity: 'HIGH',
-        ownerId: samResource.id,
+        ownerId: ninaResource.id,
         status: 'OPEN',
         targetDate: daysFromNow(5),
       },
@@ -668,7 +716,7 @@ async function main() {
         type: 'ISSUE',
         description: 'Meter firmware batch 3 is failing interoperability tests against the head-end system.',
         severity: 'MED',
-        ownerId: samResource.id,
+        ownerId: ninaResource.id,
         status: 'INPROGRESS',
         targetDate: daysFromNow(12),
       },
@@ -677,7 +725,7 @@ async function main() {
         type: 'DEPENDENCY',
         description: 'The utility’s AMI head-end vendor upgrade must complete before firmware batch 4 can be certified.',
         severity: 'HIGH',
-        ownerId: dmResource.id,
+        ownerId: dm2Resource.id,
         status: 'OPEN',
         escalate: true,
         targetDate: daysAgo(3),
@@ -686,7 +734,7 @@ async function main() {
     await seedSteerCo(ami.id, [
       {
         decisionRequired: 'Approve incremental contractor staffing increase to relieve the AMI field-crew capacity constraint.',
-        ownerId: dmResource.id,
+        ownerId: dm2Resource.id,
         targetInDays: 6,
       },
     ]);
@@ -778,11 +826,24 @@ async function main() {
       locked: true,
       lockedAt: daysAgo(130),
       practiceDirectorId: pdResource.id,
-      deliveryManagerId: dmResource.id,
-      projectManagerId: pmResource.id,
+      // Second delivery stream (Diego / Nina) — see the roster comment
+      // by dm2Resource's creation. Keeps Maria (the Project Manager demo
+      // login) clean of a project she'd otherwise sit on but doesn't
+      // manage: her own two engagements (Wave 1, CDP) both stay under
+      // Derek, her actual reporting line.
+      deliveryManagerId: dm2Resource.id,
+      projectManagerId: ninaResource.id,
       practiceId: corePracticeId,
     },
   });
+  // Converge an already-seeded environment too — see the identical comment
+  // on the AMI reassignment above.
+  await db.project.update({
+    where: { id: epic.id },
+    data: { deliveryManagerId: dm2Resource.id, projectManagerId: ninaResource.id },
+  });
+  await db.raidEntry.updateMany({ where: { projectId: epic.id, ownerId: pmResource.id }, data: { ownerId: ninaResource.id } });
+  await db.steerCoDecision.updateMany({ where: { projectId: epic.id, decisionOwnerId: pmResource.id }, data: { decisionOwnerId: ninaResource.id } });
   if (epicCreated) {
     await seedScope(epic.id);
     await seedAudit(epic.id, (i) => (i < 9 ? 'YES' : 'PARTIAL'));
@@ -811,7 +872,7 @@ async function main() {
         type: 'DEPENDENCY',
         description: 'Go-live is contingent on the health information exchange (HIE) vendor completing HL7 interface certification testing — critical path for claims submission.',
         severity: 'CRITICAL',
-        ownerId: pmResource.id,
+        ownerId: ninaResource.id,
         status: 'OPEN',
         targetDate: daysFromNow(20),
       },
@@ -820,7 +881,7 @@ async function main() {
         type: 'RISK',
         description: 'Revenue cycle staff training completion rate is tracking slightly behind plan.',
         severity: 'LOW',
-        ownerId: pmResource.id,
+        ownerId: ninaResource.id,
         status: 'OPEN',
         targetDate: daysFromNow(30),
       },
@@ -835,7 +896,7 @@ async function main() {
       },
       {
         decisionRequired: 'Confirm downtime-procedure sign-off from Nursing Informatics.',
-        ownerId: pmResource.id,
+        ownerId: ninaResource.id,
         targetInDays: 25,
       },
     ]);
