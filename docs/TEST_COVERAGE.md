@@ -1,6 +1,6 @@
 # Test Suite Documentation & Coverage — PS-DOS™
 
-_Current-state, **v1.18.0**. How the automated suites are organised, what
+_Current-state, **v1.19.0**. How the automated suites are organised, what
 each layer guarantees, and how to run them. Requirement-level traceability:
 `docs/RTM.md`._
 
@@ -8,9 +8,9 @@ each layer guarantees, and how to run them. Requirement-level traceability:
 
 ## 1. Layers
 
-| Layer | Runner | Count (v1.18.0) | Target DB | Gate |
+| Layer | Runner | Count (v1.19.0) | Target DB | Gate |
 | --- | --- | --- | --- | --- |
-| Unit + DB-integration | Vitest | **725 tests / 61 files** | staging (`.env.test`) or local Postgres — **never production** | `npm test` |
+| Unit + DB-integration | Vitest | **775 tests / 64 files** | staging (`.env.test`) or local Postgres — **never production** | `npm test` |
 | End-to-end | Playwright (chromium) | **64 tests / 8 spec files** — Suites A–Q | staging (pinned by `playwright.config.ts` + `e2e/global-setup.ts`) | `npm run test:e2e` |
 | Direct-SQL RLS smoke | `tsx` script | 10-check matrix | staging / local (guard refuses prod) | `npm run db:rls:smoke` |
 | Production acceptance | `tsx` script | `pg_catalog` / `information_schema` SELECTs, **zero DML** | production (read-only) | `npm run db:rls:verify` |
@@ -48,6 +48,9 @@ Playwright run whose resolved DB URL is the production project ref
 ### Read-Only External Integration Adapters
 - `integrations.test.ts` (24) — **NEW v1.18.0**: the Normalization Layer's runtime shape-guard (accepts well-formed records of all 3 kinds, rejects a missing field / unrecognized `kind` / extra field / out-of-range value), error classification (401→AUTH_EXPIRED, 429→RATE_LIMITED with the Retry-After minutes, 5xx→NETWORK_TIMEOUT, 404→SCHEMA_MISMATCH, a thrown network error incl. **Node/undici's wrapped `fetch failed` with the real cause in `.cause`**), every adapter exposes exactly `testConnection`+`pull` and no write/push/update method, every adapter refuses cleanly with no credential configured, `provider-meta.ts` (client-safe) drift-guarded against the real adapters.
 - `integrations-sync-runner.test.ts` (3) — **NEW v1.18.0**, live DB: a connection with no credential fails cleanly (FAILED status, one AUTH_EXPIRED error row, connection marked ERROR); an unreachable host produces a real NETWORK_TIMEOUT error (not a thrown exception) from an actual failed fetch; an unknown connectionId returns FAILED without writing any rows.
+- `identity-saml-handshake.test.ts` (8) — **NEW v1.19.0**, live DB + real cryptography (not mocked): generates an actual RSA keypair and self-signed X.509 certificate, hand-signs a SAML assertion, and feeds it through the exact `validatePostResponseAsync` call the live ACS route makes. Covers: a well-formed signed assertion provisions the user via JIT and mints a session; a replayed response is rejected on the second attempt; a post-signature-tampered assertion is rejected (INVALID_SIGNATURE); an assertion past its Conditions window is rejected (EXPIRED_ASSERTION); an assertion issued by a different IdP than the one configured for the tenant is rejected (ISSUER_MISMATCH — this is the test that caught node-saml's `idpIssuer` option being inert for the login path); a response with no matching outstanding request is rejected (REPLAY_DETECTED); every failure writes a human-readable `SsoLoginError` row, never a stack trace.
+- `identity-saml-errors.test.ts` (32) — **NEW v1.19.0**: every distinct message `@node-saml/node-saml` actually throws (verified against its source), correctly classified; every deliberate refusal reason PS-DOS's own ACS handler produces; an unrecognized message classifies as UNKNOWN rather than throwing; a non-`Error` thrown value is handled.
+- `identity-saml-cache-provider.test.ts` (4) — **NEW v1.19.0**, live DB: save → get → remove round-trip; **tenant isolation** — one org's cache provider can neither read nor remove another org's outstanding request (this test caught a real cross-tenant delete bug — see `docs/SAML_SSO_LIVE_HANDSHAKE.md` §3.2); a request past its TTL reads back as absent; `saveAsync` opportunistically prunes the calling tenant's own expired rows.
 
 ### Data isolation & integrity
 - `org-scope.test.ts`, `dal.test.ts`, `dal-boundary.test.ts` — the Prisma org-scope extension + DAL fail-closed gate + the ESLint/`@/lib/db` boundary.
@@ -111,21 +114,24 @@ npm run db:rls:verify      # production, read-only
 npm run health:prod        # live deployment
 ```
 
-### v1.18.0 verification result
+### v1.19.0 verification result
 
 | Gate | Result |
 | --- | --- |
 | `tsc --noEmit` | 0 errors |
 | `eslint` | 0 / 0 |
 | `prisma validate` | valid |
-| Vitest | **725 / 725** (61 files) — staging |
-| Playwright | **65 / 65** (Suites A–Q) — staging |
+| Vitest | **775 / 775** (64 files) — staging |
+| Playwright | Suite J5 (Ops Console SSO configuration, exercises the modified `IdentityFederationPanel`) + Suites J1–J2 (login-page-dependent) — staging, all green. Full A–Q sweep not re-run this release; nothing outside `docs/RTM.md`'s FR-AUTH-8 row touches this feature. |
 | `next build` | clean |
 | `db:rls:verify` | passed (production, zero DML) |
 | `health:prod` | ready · database ok |
-| Migrations | no new migration this release; 21–25 remain rehearsed (`BEGIN … ROLLBACK`) then applied to production + staging |
+| Migrations | migration 27 (`saml_auth_requests`, `sso_login_errors` + RLS) rehearsed (`BEGIN … ROLLBACK`) then applied to **staging only**; production untouched |
 
-Suite J3 and up to 10 Vitest DB-integration tests intermittently exceed
-their timeout under this week's elevated staging-pooler latency —
-reproducibly 100% green on an isolated re-run at a longer timeout. Known
+Suite J3 (unrelated to this release — tenant governance template
+application) and up to 10 Vitest DB-integration tests intermittently
+exceed their timeout under elevated staging-pooler latency — reproducibly
+100% green on an isolated re-run at a longer timeout (confirmed again this
+release: `tests/staff-elevation.test.ts` and `tests/security/
+ledger-concurrency.test.ts`, both 100% green at a 20s timeout). Known
 environmental flake, confirmed unrelated to this release's changes.

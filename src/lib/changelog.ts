@@ -36,6 +36,18 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.19.0',
+    date: '2026-09-16',
+    headline: 'Enterprise SAML SSO: a live IdP handshake, not just configuration',
+    changes: [
+      { type: 'feature', text: "A real SAML 2.0 sign-in — not just the connection settings. The corporate identity provider's signed response is cryptographically verified (XML digital signature against the certificate on file, exact-match audience and issuer, replay protection on every request), then handed to PS-DOS's existing Just-In-Time provisioning: a first-time federated sign-in creates the user and their membership automatically, mapping the IdP's security-group claims onto the same six-tier role matrix (Global Admin through Viewer / Guest) every account in PS-DOS already uses." },
+      { type: 'feature', text: "The Ops Console's Identity Federation panel now shows the exact three values an IdP admin needs to finish trust setup (SP Entity ID, ACS URL, SP metadata URL, each one-click copyable), and a Recent Sign-In Failures log in the same plain-language style as the External Integrations dashboard — \"the IdP rotated its signing certificate,\" not a raw exception." },
+      { type: 'improvement', text: "The sign-in page offers a Continue with single sign-on button once an email's domain is recognized as federated, and every SSO failure path — an expired assertion, a replayed sign-in link, a misconfigured tenant — now shows a specific, actionable message instead of a generic error." },
+      { type: 'fix', text: "The identity-federation role picker (both the IdP's default-role setting and each security-group mapping) was missing the Viewer / Guest tier — one of the platform's six real roles was silently unreachable from SSO group mapping. All six are selectable now." },
+      { type: 'security', text: "Replay protection is enforced at the database, not in memory — each SP-initiated sign-in request is tracked in a tenant-isolated table and consumed exactly once, so a resubmitted SAML response is rejected on the second attempt regardless of which serverless instance handled the first. A cross-tenant edge case in that same replay cache — where knowing another tenant's request identifier could delete their in-flight sign-in — was caught by this release's own test suite and closed before shipping." },
+    ],
+  },
+  {
     version: '1.18.0',
     date: '2026-09-16',
     headline: 'Read-only external integrations, and an Ops Console health dashboard for them',

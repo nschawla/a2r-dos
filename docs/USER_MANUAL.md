@@ -1,6 +1,6 @@
 # PS-DOS™ — User Manual & Operator's Guide
 
-_Applies to v1.18.0 · Last updated 2026-09-16_
+_Applies to v1.19.0 · Last updated 2026-09-16_
 
 PS-DOS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
@@ -427,9 +427,26 @@ have a membership can sign in through SSO.
   domains — those users must come through the identity provider. Requires
   federation enabled and at least one email domain.
 
-> The browser redirect to your IdP and assertion validation are part of a
-> later release; this version lands the full configuration, verification,
-> mapping and JIT engine plus enforcement of password-login lockout.
+**6 — Give your IdP admin the PS-DOS side of the trust (SAML).** Once a
+SAML connection is created, the panel shows three values to hand to
+whoever administers your identity provider — the **SP Entity ID**, the
+**ACS URL**, and the **SP metadata URL**, each one click to copy. Most
+SAML setup wizards (Entra ID's Enterprise Application, Okta's SAML app)
+ask for exactly these.
+
+**7 — Signing in (SAML, live as of v1.19.0).** Once enabled, anyone at a
+federated email domain sees a **Continue with single sign-on** button on
+the sign-in page after typing their email — it redirects to your identity
+provider, and returns them signed in with no password prompt. If a
+sign-in fails, the page shows a specific reason (an expired attempt, a
+sign-in link already used, a configuration mismatch) rather than a generic
+error, and every failure is also logged — in the same plain language — to
+your **Recent federated sign-in failures** list in the Ops Console panel,
+for your platform contact to troubleshoot.
+
+> OIDC's browser redirect and token exchange are the remaining follow-on;
+> OIDC connections still complete configuration, verification, mapping,
+> JIT, and password-lockout enforcement, same as SAML.
 
 ### 8.3 Custom KPIs — build your own metric cards
 

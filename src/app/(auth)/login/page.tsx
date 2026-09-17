@@ -1,10 +1,29 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { Suspense, useEffect, useState, type FormEvent } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AuthShell } from '@/components/layout/AuthShell';
+
+/** ?ssoError=<code> — set by /api/auth/saml/{login,acs} redirects back here.
+ * Deliberately generic for the pre-flight lookup codes (matches
+ * initiateSamlLogin's own vagueness about which domains are federated);
+ * specific for a genuine post-handshake failure, whose full detail is
+ * already in the tenant's Ops Console sign-in failure log. */
+const SSO_ERROR_MESSAGE: Record<string, string> = {
+  'not-configured': 'Single sign-on is not configured for that email address.',
+  'invalid-email': 'Enter a valid email address to sign in with SSO.',
+  'invalid-signature': 'Your identity provider’s response could not be verified. Please try again or contact your administrator.',
+  expired: 'That sign-in attempt expired before it completed. Please try again.',
+  replay: 'That sign-in link was already used. Please start a new sign-in.',
+  'issuer-mismatch': 'Your identity provider’s response did not match this organization’s configuration. Contact your administrator.',
+  disabled: 'Single sign-on is not currently enabled for your organization. Contact your administrator.',
+  'access-denied': 'Your account is not provisioned for this workspace. Contact your administrator.',
+  malformed: 'Your identity provider’s response could not be read. Contact your administrator.',
+  session: 'Your identity was verified, but we couldn’t start your session. Please try signing in with your password.',
+  failed: 'Single sign-on failed. Please try again or contact your administrator.',
+};
 
 function EyeIcon() {
   return (
@@ -28,12 +47,45 @@ function EyeOffIcon() {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <AuthShell title="Sign in to PS-DOS" subtitle="Loading">
+          <div />
+        </AuthShell>
+      }
+    >
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // True once a signal says this email's domain needs SSO — either a
+  // credentials attempt came back AccessDenied, or the login page was
+  // reached via a redirect from a prior SSO attempt. Shows the "Continue
+  // with SSO" button instead of (not in addition to) hiding the password
+  // form, since a tenant admin/A2R staff account on the same domain may
+  // still need password login even when the domain has SSO configured.
+  const [ssoAvailable, setSsoAvailable] = useState(false);
+  const [ssoRedirecting, setSsoRedirecting] = useState(false);
+
+  useEffect(() => {
+    const code = searchParams.get('ssoError');
+    if (!code) return;
+    setError(SSO_ERROR_MESSAGE[code] ?? SSO_ERROR_MESSAGE.failed!);
+    // A real post-handshake failure (not just "not configured") still means
+    // SSO IS set up for this org — keep offering the button so the user can
+    // retry without re-typing their email.
+    if (code !== 'not-configured' && code !== 'invalid-email') setSsoAvailable(true);
+  }, [searchParams]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -46,7 +98,8 @@ export default function LoginPage() {
         return;
       }
       if (result?.error === 'AccessDenied') {
-        setError('Single sign-on is required for your organization. Please sign in through your identity provider.');
+        setError('Single sign-on is required for your organization. Continue below to sign in through your identity provider.');
+        setSsoAvailable(true);
         return;
       }
       if (result?.error) {
@@ -60,6 +113,15 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function continueWithSso() {
+    if (!email.includes('@')) {
+      setError('Enter your email address first.');
+      return;
+    }
+    setSsoRedirecting(true);
+    window.location.href = `/api/auth/saml/login?email=${encodeURIComponent(email)}`;
   }
 
   return (
@@ -106,6 +168,16 @@ export default function LoginPage() {
         <button type="submit" disabled={submitting} className="btn-primary mt-2">
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>
+        {ssoAvailable && (
+          <button
+            type="button"
+            disabled={ssoRedirecting}
+            onClick={continueWithSso}
+            className="btn-secondary"
+          >
+            {ssoRedirecting ? 'Redirecting to your identity provider…' : 'Continue with single sign-on'}
+          </button>
+        )}
       </form>
       <p className="text-ink-faint text-xs mt-6">
         No account yet?{' '}

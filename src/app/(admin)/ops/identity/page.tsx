@@ -1,7 +1,8 @@
 import { requireOpsCapability } from '@/lib/ops-auth';
-import { loadOpsIdentityPractices } from '@/server/queries/pages/admin';
+import { loadOpsIdentityPractices, loadSsoLoginErrors } from '@/server/queries/pages/admin';
 import { listTenants } from '@/server/queries/ops-telemetry';
 import { getIdentityProvider } from '@/lib/identity/service';
+import { spEntityId, acsUrl } from '@/lib/identity/saml-config';
 import { OpsTenantSelect } from '@/components/ops/OpsTenantSelect';
 import { IdentityFederationPanel } from '@/components/ops/IdentityFederationPanel';
 
@@ -24,9 +25,13 @@ export default async function OpsIdentityPage({
   const orgId = (await searchParams).org ?? null;
   const selected = orgId ? tenants.find((t) => t.id === orgId) ?? null : null;
 
-  const [idp, practices] = selected
-    ? await Promise.all([getIdentityProvider(selected.id), loadOpsIdentityPractices(selected.id)])
-    : [null, [] as { id: string; name: string }[]];
+  const [idp, practices, loginErrors] = selected
+    ? await Promise.all([
+        getIdentityProvider(selected.id),
+        loadOpsIdentityPractices(selected.id),
+        loadSsoLoginErrors(selected.id),
+      ])
+    : [null, [] as { id: string; name: string }[], [] as Awaited<ReturnType<typeof loadSsoLoginErrors>>];
 
   return (
     <>
@@ -77,6 +82,9 @@ export default async function OpsIdentityPage({
           tenantName={selected.name}
           idp={idp}
           practices={practices}
+          loginErrors={loginErrors}
+          spEntityId={spEntityId()}
+          spAcsUrl={acsUrl()}
         />
       )}
     </>

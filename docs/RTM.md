@@ -21,6 +21,7 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | FR-AUTH-5 | `src/lib/auth.ts` jwt callback (fresh-login pin) | A `tests/security/password-rotation-flow.test.ts` ("fresh login pins the new token to the account epoch") |
 | FR-AUTH-6 | `src/lib/auth.ts` `sessionLookupTimeoutMs`, `src/lib/util/with-timeout.ts` | A `tests/with-timeout.test.ts`, `tests/security/password-rotation-flow.test.ts` (timeout → REVOKED) |
 | FR-AUTH-7 | `src/lib/identity/*`, `src/lib/auth.ts` `signIn` callback | A `tests/identity-*.test.ts` · E Suite J5 |
+| FR-AUTH-8 | `src/lib/identity/saml-config.ts`, `saml-cache-provider.ts`, `saml-errors.ts`, `lookup.ts`; `src/server/services/saml-sso.ts`; `src/app/api/auth/saml/{login,acs,metadata}` | A `tests/identity-saml-handshake.test.ts` (8 — live keypair + signed assertion, real `validatePostResponseAsync` calls: happy path, replay, tamper, expiry, issuer mismatch, never-issued request, error logging), `tests/identity-saml-errors.test.ts` (32 — classifier coverage), `tests/identity-saml-cache-provider.test.ts` (4 — tenant isolation, TTL, opportunistic prune) |
 
 ## Tenant workspace & RBAC
 

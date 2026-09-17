@@ -13,7 +13,7 @@ import { db } from '@/lib/db';
 import { runUnscoped } from '@/lib/db/org-scope';
 import { activeOperatorRole } from '@/lib/ops/staff-grants';
 import type { OperatorRole } from '@/lib/ops/operator-roles';
-import { isSsoEnforcedForEmail } from '@/lib/identity/service';
+import { isSsoEnforcedForEmail } from '@/lib/identity/lookup';
 import {
   deriveSessionState,
   assertTransition,

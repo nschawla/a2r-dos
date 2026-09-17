@@ -10,6 +10,69 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.19.0] — 2026-09-16
+
+_Enterprise SAML SSO: a live IdP handshake, not just configuration._
+
+### Added
+
+- **Live SAML 2.0 SP-initiated handshake** — `/api/auth/saml/login` (builds
+  a signed AuthnRequest and redirects to the tenant's IdP),
+  `/api/auth/saml/acs` (validates the IdP's POSTed SAMLResponse), and
+  `/api/auth/saml/metadata` (the SP's own EntityDescriptor, for an IdP
+  admin's trust setup). Built on `@node-saml/node-saml` — no hand-rolled
+  XML signature validation.
+- **Database-backed replay protection** (`src/lib/identity/
+  saml-cache-provider.ts`) — implements node-saml's `CacheProvider`
+  against a new `SamlAuthRequest` table (not the library's in-memory
+  default, which does not survive across serverless instances). Every
+  SP-initiated request is consumed exactly once.
+- **Human-readable SAML error classification** (`src/lib/identity/
+  saml-errors.ts`) — every node-saml exception and every deliberate
+  refusal this app's own ACS handler makes is translated into a specific,
+  actionable message and logged to a new `SsoLoginError` table, surfaced
+  in the Ops Console's Identity Federation panel as "Recent federated
+  sign-in failures."
+- **Ops Console: PS-DOS Service Provider details** — the Identity
+  Federation panel now shows the SP Entity ID, ACS URL, and metadata URL
+  an IdP admin needs, each one-click copyable.
+- **Sign-in page: Continue with single sign-on** — once an email's domain
+  resolves to a configured, enabled SAML IdP, a button starts the
+  SP-initiated redirect; every SSO failure path renders a specific message
+  instead of a generic error.
+
+### Fixed
+
+- The identity-federation role picker (`src/server/actions/identity.ts`'s
+  `DELIVERY_ROLES`, and the Ops Console panel's matching label map) was
+  missing `VIEWER` — one of the platform's six real `DeliveryAccessRole`
+  tiers (the read-only Viewer / Guest tier added in v1.16.0) was silently
+  unreachable from an IdP's default role or any security-group mapping.
+
+### Security
+
+- A live cryptographic round-trip test (`tests/identity-saml-handshake.
+  test.ts`) generates a real RSA keypair and X.509 certificate, hand-signs
+  a SAML assertion, and feeds it through the exact `validatePostResponseAsync`
+  call the ACS route makes — not a mock. That test caught a real
+  cross-tenant bug before it shipped: `saml-cache-provider.ts`'s
+  `removeAsync` originally deleted a cached request by `requestId` alone
+  and checked tenant ownership only *after* deleting, so a caller scoped to
+  the wrong tenant could still delete another tenant's outstanding SSO
+  request (a cross-tenant denial-of-service on their in-flight sign-in).
+  Fixed to scope the delete itself to `(requestId, organizationId)` — now
+  covered by a dedicated regression test.
+- Two new tenant tables (`saml_auth_requests`, `sso_login_errors`) carry
+  the same composite tenant-isolation closure and Row-Level Security policy
+  as every existing tenant table (migration 27, applied to staging).
+- `node-saml`'s `idpIssuer` config option was found, during this release's
+  own testing, to guard only the SAML logout flow — not the ordinary
+  sign-in path it appears to protect. The Issuer cross-check a login
+  actually needs is now performed explicitly in
+  `src/server/services/saml-sso.ts`, after signature validation.
+
+---
+
 ## [1.18.0] — 2026-09-16
 
 _Read-only external integrations, and an Ops Console health dashboard for

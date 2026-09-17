@@ -47,6 +47,12 @@ export const RATE_LIMITS = {
   BATCH_INGEST: rule('BATCH_INGEST', 20, MINUTE),
   /** Workspace snapshot export / restore — heavy, whole-tenant operations. */
   WORKSPACE_SNAPSHOT: rule('WORKSPACE_SNAPSHOT', 5, 10 * MINUTE),
+  /** SAML SP-initiated login — public, unauthenticated; each call does a
+   * DB lookup by email domain. Guards against domain-enumeration probing. */
+  SSO_LOGIN: rule('SSO_LOGIN', 15, MINUTE),
+  /** SAML ACS callback — public POST; each call does real XML-signature
+   * cryptography, so it's the more expensive of the two SSO boundaries. */
+  SSO_ACS: rule('SSO_ACS', 20, MINUTE),
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;

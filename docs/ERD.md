@@ -1,9 +1,23 @@
 # Entity Relationship Diagram — PS-DOS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.18.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
+it, current as of **v1.19.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
 full model → tenant-binding → RLS-policy map and `docs/ROLE_ACCESS_MATRIX.md`
 for the role axes.
+
+**v1.19.0** — Enterprise SAML SSO live handshake (migration
+`00000000000027`, **applied to staging only** — production untouched).
+Two new tenant-owned tables, same simple-FK pattern as the v1.18.0
+integration tables (`organizationId -> organizations.id`; neither is the
+parent of a composite-keyed child): **`SamlAuthRequest`** (`requestId`
+`@unique` — the DB-backed replay-protection cache backing node-saml's
+`CacheProvider` interface; short-lived, `expiresAt`-pruned) and
+**`SsoLoginError`** (categorized, human-readable federated sign-in failure
+log for the Ops Console — same shape as `IntegrationError`). One new enum:
+`SsoErrorCategory`. `tenant_isolation` RLS policies for both new tables are
+defined in migration 27 itself; `tests/security/tenant-model-inventory.test.ts`
+now accepts migration 17, 26, or 27 as a valid policy source. See
+`docs/SAML_SSO_LIVE_HANDSHAKE.md`.
 
 **v1.18.0** — Read-Only External Integration Adapters (migration
 `00000000000026`, **applied to staging only** — production untouched).

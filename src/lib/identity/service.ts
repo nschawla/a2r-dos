@@ -1,15 +1,22 @@
 /**
  * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
- * Server-only identity-federation reads. `getIdentityProvider` returns a
- * SECRET-FREE view (only the OIDC client-secret fingerprint) for the Admin
- * panel; `isSsoEnforcedForEmail` is the enforcement check the NextAuth
- * signIn callback runs on every password login.
+ * Server-only identity-federation read for the Ops Console federation
+ * panel. `getIdentityProvider` returns a SECRET-FREE view (only the OIDC
+ * client-secret fingerprint).
+ *
+ * `React.cache()`-wrapped for RSC request-level memoization — which is why
+ * this file holds ONLY that one function. The plain lookups used outside a
+ * React render tree (NextAuth's signIn callback, the SAML SP-initiated
+ * route, vitest) live in ./lookup.ts instead: `cache()` throws when this
+ * module is imported from a non-React runtime (v1.19.0 — discovered when a
+ * DB-integration test transitively imported this file and hit
+ * `TypeError: cache is not a function`), so nothing that needs to work
+ * outside Next.js's request scope may share a module with it.
  */
 import { cache } from 'react';
 import { db } from '@/lib/db';
-import { isEncryptedSecret, secretFingerprint } from './crypto';
-import { validateOidcDiscovery } from './metadata';
+import { isEncryptedSecret } from './crypto';
 import type { DeliveryAccessRole, IdpProtocol, IdpVendor, MembershipRole } from '@prisma/client';
 
 export interface GroupMappingView {
@@ -96,43 +103,3 @@ export const getIdentityProvider = cache(
     };
   }
 );
-
-/**
- * True when the email's domain belongs to an IdP that has SSO ENFORCED —
- * password login for that user must be refused. Fails open only on a DB
- * error (logged), never silently.
- */
-export async function isSsoEnforcedForEmail(email: string): Promise<boolean> {
-  const at = (email ?? '').lastIndexOf('@');
-  if (at === -1) return false;
-  const domain = email.slice(at + 1).toLowerCase().trim();
-  if (!domain) return false;
-  try {
-    const hit = await db.identityProvider.findFirst({
-      where: { enabled: true, enforced: true, emailDomains: { has: domain } },
-      select: { id: true },
-    });
-    return hit !== null;
-  } catch (err) {
-    console.error('[identity] isSsoEnforcedForEmail failed', err);
-    return false;
-  }
-}
-
-/** Fetch + validate an OIDC discovery document. Network call — server only. */
-export async function fetchOidcDiscovery(discoveryUrl: string) {
-  let res: Response;
-  try {
-    res = await fetch(discoveryUrl, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(6000) });
-  } catch {
-    return { ok: false as const, error: 'Could not reach the discovery URL' };
-  }
-  if (!res.ok) return { ok: false as const, error: `Discovery URL returned HTTP ${res.status}` };
-  let json: unknown;
-  try {
-    json = await res.json();
-  } catch {
-    return { ok: false as const, error: 'Discovery URL did not return JSON' };
-  }
-  return validateOidcDiscovery(json);
-}

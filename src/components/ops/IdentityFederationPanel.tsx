@@ -15,6 +15,7 @@ import clsx from 'clsx';
 import { useBusyAction, PanelHead, Field } from '@/components/ui/panel-kit';
 import { VENDOR_PRESETS } from '@/lib/identity/vendors';
 import type { IdentityProviderView } from '@/lib/identity/service';
+import type { SsoLoginErrorView } from '@/server/queries/pages/admin';
 import {
   upsertIdentityProvider,
   verifyIdpMetadata,
@@ -29,15 +30,18 @@ type VerifyResult = { ok: true; summary: Record<string, string> } | { ok: false;
 
 type Protocol = 'SAML' | 'OIDC';
 type Vendor = 'AZURE_AD' | 'OKTA' | 'GOOGLE_WORKSPACE' | 'GENERIC';
-type DeliveryRole = 'ADMIN' | 'VP_EXECUTIVE' | 'PRACTICE_DIRECTOR' | 'DELIVERY_MANAGER' | 'PROJECT_MANAGER';
+type DeliveryRole = 'ADMIN' | 'VP_EXECUTIVE' | 'PRACTICE_DIRECTOR' | 'DELIVERY_MANAGER' | 'PROJECT_MANAGER' | 'VIEWER';
 type MembershipRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
 
+// All six real DeliveryAccessRole tiers — the six RBAC Master Matrix
+// personas (src/lib/governance/rbacMatrix.ts) map 1:1 onto these.
 const DELIVERY_ROLE_LABELS: Record<DeliveryRole, string> = {
-  ADMIN: 'Admin',
-  VP_EXECUTIVE: 'VP / Executive',
-  PRACTICE_DIRECTOR: 'Practice Director',
-  DELIVERY_MANAGER: 'Delivery Manager',
+  ADMIN: 'Admin (Global Admin)',
+  VP_EXECUTIVE: 'VP / Executive (Executive Board)',
+  PRACTICE_DIRECTOR: 'Practice Director (Engagement / Practice Manager)',
+  DELIVERY_MANAGER: 'Delivery Manager (Delivery Executive)',
   PROJECT_MANAGER: 'Project Manager',
+  VIEWER: 'Viewer / Guest',
 };
 
 const VENDOR_LABELS: Record<Vendor, string> = {
@@ -52,11 +56,17 @@ export function IdentityFederationPanel({
   tenantName,
   idp,
   practices,
+  loginErrors,
+  spEntityId,
+  spAcsUrl,
 }: {
   organizationId: string;
   tenantName: string;
   idp: IdentityProviderView | null;
   practices: { id: string; name: string }[];
+  loginErrors: SsoLoginErrorView[];
+  spEntityId: string;
+  spAcsUrl: string;
 }) {
   const { busy, error, run } = useBusyAction();
 
@@ -128,6 +138,20 @@ export function IdentityFederationPanel({
       />
 
       {idp && <StatusRow idp={idp} />}
+
+      {protocol === 'SAML' && (
+        <div className="rounded-md border border-border bg-surface-2 p-3 mb-3 text-[11.5px]">
+          <div className="font-semibold text-[12px] mb-1.5">PS-DOS Service Provider details</div>
+          <p className="text-ink-faint mb-2">
+            Give these three values to the IdP admin — most SAML setup wizards ask for exactly this. One SP
+            identity is shared across every PS-DOS tenant; what makes this connection tenant-specific is the
+            IdP metadata configured below.
+          </p>
+          <CopyRow label="SP Entity ID / Audience" value={spEntityId} />
+          <CopyRow label="ACS URL (Assertion Consumer Service)" value={spAcsUrl} />
+          <CopyRow label="SP metadata URL" value={`${spAcsUrl.replace(/\/acs$/, '/metadata')}`} />
+        </div>
+      )}
 
       {/* connection config */}
       <form onSubmit={saveConfig} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
@@ -352,8 +376,100 @@ export function IdentityFederationPanel({
         </div>
       )}
 
+      {/* sign-in failure log */}
+      {idp?.protocol === 'SAML' && <SsoLoginFailuresLog errors={loginErrors} />}
+
       {error && <p className="text-critical text-xs mt-2">{error}</p>}
     </section>
+  );
+}
+
+function CopyRow({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <span className="text-ink-faint w-56 flex-none">{label}</span>
+      <span className="font-mono text-[11px] break-all text-ink-muted flex-1">{value}</span>
+      <button
+        type="button"
+        className="text-brand font-semibold flex-none"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(value);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          } catch {
+            /* clipboard permission denied — the value is still selectable text */
+          }
+        }}
+      >
+        {copied ? 'Copied' : 'Copy'}
+      </button>
+    </div>
+  );
+}
+
+const SSO_ERROR_CATEGORY_LABEL: Record<string, string> = {
+  INVALID_SIGNATURE: 'Invalid signature',
+  EXPIRED_ASSERTION: 'Expired assertion',
+  REPLAY_DETECTED: 'Replay detected',
+  ISSUER_MISMATCH: 'Issuer mismatch',
+  NO_IDP_CONFIGURED: 'Not configured',
+  IDP_DISABLED: 'Federation disabled',
+  MAPPING_DENIED: 'Access denied',
+  MALFORMED_RESPONSE: 'Malformed response',
+  UNKNOWN: 'Unknown',
+};
+
+function SsoLoginFailuresLog({ errors }: { errors: SsoLoginErrorView[] }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  return (
+    <div className="border-t border-border pt-4 mt-4">
+      <div className="text-[12px] font-semibold mb-1">Recent federated sign-in failures</div>
+      <p className="text-[11.5px] text-ink-faint mb-2">
+        Every failed SAML handshake attempt for this tenant, most recent first — signature and replay checks,
+        provisioning refusals, and configuration mismatches. Never a raw stack trace.
+      </p>
+      {errors.length === 0 ? (
+        <p className="text-ink-muted text-sm py-2">No sign-in failures logged for this tenant.</p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-border/60">
+          {errors.map((e) => (
+            <li key={e.id} className="py-2">
+              <button
+                type="button"
+                className="w-full flex items-start justify-between gap-3 text-left"
+                onClick={() => setExpanded((cur) => (cur === e.id ? null : e.id))}
+              >
+                <span className="flex-1 min-w-0">
+                  <span className="badge !py-0.5 !px-2 !text-[10.5px] !text-critical !border-critical/40 mr-2">
+                    {SSO_ERROR_CATEGORY_LABEL[e.category] ?? e.category}
+                  </span>
+                  <span className="text-[12.5px]">{e.humanMessage}</span>
+                </span>
+                <span className="text-ink-faint text-[11px] flex-none tabular-nums">
+                  {new Date(e.occurredAt).toLocaleString()}
+                </span>
+              </button>
+              {expanded === e.id && (
+                <div className="mt-1.5 ml-1 text-[11px] text-ink-muted flex flex-col gap-0.5">
+                  {e.emailAttempted && (
+                    <span>
+                      <span className="text-ink-faint">Email attempted:</span> {e.emailAttempted}
+                    </span>
+                  )}
+                  {e.rawDetail && (
+                    <span className="font-mono break-all">
+                      <span className="text-ink-faint font-sans">Detail:</span> {e.rawDetail}
+                    </span>
+                  )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

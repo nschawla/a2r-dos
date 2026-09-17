@@ -19,10 +19,14 @@ import { requireElevatedOps } from '@/lib/ops-auth';
 import { recordLedgerEvent } from '@/lib/audit-ledger';
 import { encryptSecret, secretFingerprint } from '@/lib/identity/crypto';
 import { parseSamlMetadata, parseEmailDomainList } from '@/lib/identity/metadata';
-import { fetchOidcDiscovery } from '@/lib/identity/service';
+import { fetchOidcDiscovery } from '@/lib/identity/lookup';
 import type { ActionResult } from './auth';
 
-const DELIVERY_ROLES = ['ADMIN', 'VP_EXECUTIVE', 'PRACTICE_DIRECTOR', 'DELIVERY_MANAGER', 'PROJECT_MANAGER'] as const;
+// All six real DeliveryAccessRole tiers (src/lib/governance/rbacMatrix.ts's
+// six personas map 1:1 onto these) — VIEWER (the v1.16.0 read-only Guest
+// tier) was missing here until v1.19.0, which meant an admin could never
+// map an SSO group, or set the IdP default role, to Viewer / Guest.
+const DELIVERY_ROLES = ['ADMIN', 'VP_EXECUTIVE', 'PRACTICE_DIRECTOR', 'DELIVERY_MANAGER', 'PROJECT_MANAGER', 'VIEWER'] as const;
 const MEMBERSHIP_ROLES = ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'] as const;
 
 /**

@@ -421,6 +421,10 @@ model Organization {
   integrationSyncRuns    IntegrationSyncRun[]
   integrationErrors      IntegrationError[]
 
+  // Enterprise SAML SSO — live handshake (v1.19.0).
+  samlAuthRequests SamlAuthRequest[]
+  ssoLoginErrors   SsoLoginError[]
+
   @@map("organizations")
 }
 
@@ -614,6 +618,63 @@ model SsoGroupMapping {
   @@unique([identityProviderId, claimValue])
   @@index([organizationId])
   @@map("sso_group_mappings")
+}
+
+// Live SAML handshake — v1.19.0. Replay-protection store backing the
+// node-saml `CacheProvider` interface (src/lib/identity/saml-cache-provider.ts):
+// one row per outstanding SP-initiated AuthnRequest, keyed by the request
+// ID we generated. The ACS endpoint validates the IdP's `InResponseTo`
+// against this table and removes the row on first use — a replayed
+// SAMLResponse (same assertion POSTed twice) fails validation the second
+// time because its InResponseTo no longer resolves. Rows are short-lived
+// (createdAt + ~10 min) and self-pruned opportunistically by the cache
+// provider; there is no admin UI for this table.
+model SamlAuthRequest {
+  id             String   @id @default(cuid())
+  organizationId String
+  requestId      String   @unique // the AuthnRequest ID node-saml generated
+  value          String   @db.Text // node-saml's cache payload (an ISO timestamp)
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([expiresAt])
+  @@map("saml_auth_requests")
+}
+
+// Live SAML handshake — v1.19.0. Why a federated sign-in attempt failed,
+// classified into a small vocabulary and rendered in plain language — the
+// Ops Console troubleshooting log (IdentityFederationPanel), same shape as
+// IntegrationError for the adapter framework.
+enum SsoErrorCategory {
+  INVALID_SIGNATURE
+  EXPIRED_ASSERTION
+  REPLAY_DETECTED
+  ISSUER_MISMATCH
+  NO_IDP_CONFIGURED
+  IDP_DISABLED
+  MAPPING_DENIED
+  MALFORMED_RESPONSE
+  UNKNOWN
+}
+
+model SsoLoginError {
+  id             String           @id @default(cuid())
+  organizationId String
+  occurredAt     DateTime         @default(now())
+  category       SsoErrorCategory
+  humanMessage   String           @db.Text
+  rawDetail      String?          @db.Text // classifier's raw match text — never a stack trace
+  emailAttempted String?
+  resolved       Boolean          @default(false)
+  resolvedAt     DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, occurredAt])
+  @@map("sso_login_errors")
 }
 
 // Org-level display-label override for one of the 10 Minimum Controls.

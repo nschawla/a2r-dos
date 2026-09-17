@@ -73,3 +73,31 @@ export async function loadOpsIdentityPractices(organizationId: string) {
     select: { id: true, name: true },
   });
 }
+
+export interface SsoLoginErrorView {
+  id: string;
+  occurredAt: string;
+  category: string;
+  humanMessage: string;
+  rawDetail: string | null;
+  emailAttempted: string | null;
+}
+
+/** Live SAML handshake (v1.19.0) — the Ops Console's federated sign-in
+ * troubleshooting log, most recent first. Same shape/intent as
+ * loadConnectionErrors for the integration adapters' health matrix. */
+export async function loadSsoLoginErrors(organizationId: string, take = 25): Promise<SsoLoginErrorView[]> {
+  const rows = await tenantDb.ssoLoginError.findMany({
+    where: { organizationId },
+    orderBy: { occurredAt: 'desc' },
+    take,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    occurredAt: r.occurredAt.toISOString(),
+    category: r.category,
+    humanMessage: r.humanMessage,
+    rawDetail: r.rawDetail,
+    emailAttempted: r.emailAttempted,
+  }));
+}

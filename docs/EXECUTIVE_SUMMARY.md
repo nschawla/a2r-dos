@@ -1,6 +1,6 @@
 # Executive Security &amp; Architecture Summary — PS-DOS™
 
-_Authoritative current-state, **v1.18.0**._
+_Authoritative current-state, **v1.19.0**._
 _Audience: executive sponsors, security review, prospective enterprise clients,
 external audit. Requirement- and code-level detail: `docs/FRD.md` ·
 `docs/RTM.md` · `docs/SECURITY.md` · `docs/ROLE_ACCESS_MATRIX.md` ·
@@ -54,8 +54,8 @@ database ok.
 
 ## 3. Security hardening pedigree
 
-PS-DOS reached v1.18.0 through **nine successive audit-and-hardening
-rounds**, v1.10.0 → v1.18.0. Each round followed the same discipline:
+PS-DOS reached v1.19.0 through **ten successive audit-and-hardening
+rounds**, v1.10.0 → v1.19.0. Each round followed the same discipline:
 
 1. **Independent review** — an AI audit agent (ChatGPT) reviewed the codebase
    and produced prioritized findings.
@@ -79,6 +79,7 @@ rounds**, v1.10.0 → v1.18.0. Each round followed the same discipline:
 | 7 | v1.16.0 | Six-tier operator RBAC with a three-layer capability matrix; Role &amp; Access console; strict read-only tenant Viewer tier. |
 | 8 | v1.17.0 | PS-DOS rebrand; unified data-driven RBAC nav matrix across all six tenant personas (reconciled against real per-project edit authority so no role loses a page it can still edit); Write-Gate Alignment — every per-project editor now hides its controls under an inactive persona, not just the baseline-lock button; explicit Persona Preview banner replaces a legacy, disconnected preview menu that had drifted out of sync with real access. |
 | 9 | v1.18.0 | Read-Only External Integration Adapters — a `BaseAdapter` interface with no write/push method anywhere in the framework (unit-tested, not just documented); credentials sealed at rest under the same primitive protecting SSO client secrets, never selected into any query result; three new tenant tables carry the same composite-FK tenant-isolation closure and RLS policy as every existing tenant table. |
+| 10 | v1.19.0 | Enterprise SAML SSO — a live IdP handshake, not just configuration: XML signature validation via a maintained library (`@node-saml/node-saml`, never hand-rolled), database-backed replay protection, and an explicit Issuer cross-check the library itself does not perform for the login path (found and closed during this round's own testing). A live cryptographic round-trip test — a real generated keypair, a real signed assertion, no mocking — caught a genuine cross-tenant bug in the replay-protection cache before it shipped (§4.1 detail). |
 
 **Compliance alignment.** The platform is **designed and operated in
 alignment with SOC 1 and SOC 2 control objectives** — logical access
@@ -98,8 +99,21 @@ attestation has been performed**, and this summary makes no claim of one.
 | --- | --- |
 | **Application (ORM)** | A Prisma `$extends` extension auto-scopes every tenant query by `organizationId` and injects it on create. `runUnscoped` is the single audited exception for the cross-tenant operator path. |
 | **Referential (composite FKs)** | Every intra-tenant relationship is `(organizationId, col) → parent(organizationId, id)`; the database itself rejects a row that references another tenant's parent. |
-| **Database (Row-Level Security)** | Per-transaction `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org`; `tenant_isolation` policies on 28 tenant tables, hard `rls_deny_app` on the 9 identity tables. The runtime role `a2r_app` is `NOLOGIN`, non-superuser, and cannot bypass RLS. Enforced on staging; applied and structurally verified on production. |
+| **Database (Row-Level Security)** | Per-transaction `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org`; `tenant_isolation` policies on 33 tenant tables, hard `rls_deny_app` on the 9 identity tables. The runtime role `a2r_app` is `NOLOGIN`, non-superuser, and cannot bypass RLS. Enforced on staging; applied and structurally verified on production. |
 | **Environment** | Build, server boot, and Prisma-client instantiation all hard-fail if a non-production deployment's database URL resolves to the production project. |
+
+**v1.19.0 case study — a live test catching a real gap before it shipped.**
+The SAML SSO handshake's replay-protection cache (`SamlAuthRequest`) is
+scoped by `organizationId` like every other tenant table, but its *first*
+implementation had a delete-then-check ordering bug: `removeAsync` deleted
+a cached request by its id alone and only checked which tenant owned it
+*after* the row was already gone — so a caller scoped to the wrong tenant
+could still delete another tenant's outstanding SSO request. A dedicated
+tenant-isolation test (built specifically to prove this boundary, not
+assume it) caught the bug on its first run; the fix scopes the delete
+itself to `(requestId, organizationId)`. Documented in full in
+`docs/SAML_SSO_LIVE_HANDSHAKE.md` §3.2 — the fix and its regression test
+shipped in the same release as the bug, never separately.
 
 ### 4.2 MFA secret-box encryption separation
 
@@ -159,19 +173,19 @@ reserved for lawful data-subject erasure.
 
 ---
 
-## 5. Verification (v1.18.0)
+## 5. Verification (v1.19.0)
 
 | Gate | Result |
 | --- | --- |
 | `tsc --noEmit` | 0 errors |
 | `eslint` | 0 warnings / 0 errors |
 | `prisma validate` | valid |
-| Vitest (unit + DB-integration) | **725 / 725** — 61 files, staging DB |
-| Playwright (end-to-end) | **65 / 65** — Suites A–Q, staging DB |
+| Vitest (unit + DB-integration) | **775 / 775** — 64 files, staging DB |
+| Playwright (end-to-end) | Suite J5 (Ops Console SSO panel) + J1–J2 (login-dependent) green; full A–Q sweep not re-run this release |
 | `next build` | clean |
 | `db:rls:verify` | passed — production, read-only, zero DML |
 | `health:prod` | ready · database ok |
-| Migrations 0–25 | no new migration this release; 0–25 remain rehearsed (`BEGIN … ROLLBACK`) then applied to production and staging |
+| Migration 27 | `saml_auth_requests` / `sso_login_errors` + RLS — rehearsed (`BEGIN … ROLLBACK`) then applied to **staging only**; production untouched |
 
 The automated suites **cannot** run against the production database — a hard
 guard aborts any run whose resolved URL is the production project. Every
@@ -212,4 +226,6 @@ Full detail and sequencing in `docs/ROADMAP.md`. Headline themes:
 | Legacy operator accounts unenrolled in MFA | Operator action — the hard cut-over means they must enroll before they can elevate. |
 | `FORCE ROW LEVEL SECURITY` on production (post-soak) | Roadmap — RLS is applied and enforced; the `FORCE` hardening follows the soak window. |
 | Dedicated `a2r_ops` database role for the cross-tenant admin path | Phase-3 residual — the path currently runs as `postgres` via audited `runUnscoped`. |
+| OIDC live handshake (SAML's is live as of v1.19.0) | Tracked — the OIDC configuration layer and `applyFederatedLogin`'s JIT seam are already protocol-agnostic; the authorization-code redirect + token exchange + JWKS verification is additive, not a rework. |
+| SAML Single Logout (SLO) | Tracked — node-saml supports it; only the login path is wired as of v1.19.0. |
 | Third-party SOC 1 / SOC 2 attestation | Not started — the platform is control-aligned; formal attestation is a business decision. |

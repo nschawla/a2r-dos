@@ -1,6 +1,6 @@
 # Product Roadmap &amp; PM Pulse — PS-DOS™
 
-_Current production baseline: **v1.18.0**. This document is the
+_Current production baseline: **v1.19.0**. This document is the
 forward plan; it does not describe shipped behaviour (see `docs/FRD.md` for
 that). Target audience: beta clients and internal PM._
 

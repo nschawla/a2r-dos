@@ -63,7 +63,14 @@ describe('DEMO_SCRIPT', () => {
   it('carries a Security & Trust segment: tenant isolation, operator RBAC, step-up MFA, immutable ledger', () => {
     const security = DEMO_SCRIPT.filter((s) => s.act === 'Security & Trust');
     const ids = security.map((s) => s.id);
-    expect(ids).toEqual(['tenant-isolation', 'operator-roles', 'step-up-mfa', 'audit-ledger', 'external-integrations']);
+    expect(ids).toEqual([
+      'tenant-isolation',
+      'operator-roles',
+      'step-up-mfa',
+      'audit-ledger',
+      'external-integrations',
+      'saml-sso-handshake',
+    ]);
 
     const isolation = DEMO_SCRIPT.find((s) => s.id === 'tenant-isolation')!;
     expect(isolation.personas).toEqual(expect.arrayContaining(['Executive', 'Admin', 'Security']));
@@ -88,9 +95,13 @@ describe('DEMO_SCRIPT', () => {
     expect(integrations.highlightSelector).toBe('#integration-health-matrix');
     expect(integrations.caption).toMatch(/read-only/i);
 
+    const saml = DEMO_SCRIPT.find((s) => s.id === 'saml-sso-handshake')!;
+    expect(saml.route).toBe('/ops/identity');
+    expect(saml.caption).toMatch(/SAML|single sign-on/i);
+
     // the deep operator beats are for the Admin and Security tracks only —
     // never the board-level Executive track.
-    for (const id of ['operator-roles', 'step-up-mfa', 'audit-ledger', 'external-integrations']) {
+    for (const id of ['operator-roles', 'step-up-mfa', 'audit-ledger', 'external-integrations', 'saml-sso-handshake']) {
       const step = DEMO_SCRIPT.find((s) => s.id === id)!;
       expect(step.personas).toEqual(expect.arrayContaining(['Admin', 'Security']));
       expect(step.personas).not.toContain('Executive');
@@ -154,6 +165,7 @@ describe('getStepsForPersona', () => {
       'step-up-mfa',
       'audit-ledger',
       'external-integrations',
+      'saml-sso-handshake',
     ]);
     expect(trustActs(getStepsForPersona('Security'))).toEqual([
       'tenant-isolation',
@@ -161,6 +173,7 @@ describe('getStepsForPersona', () => {
       'step-up-mfa',
       'audit-ledger',
       'external-integrations',
+      'saml-sso-handshake',
     ]);
     // the Executive track gets only the one tenant-facing trust beat.
     expect(trustActs(getStepsForPersona('Executive'))).toEqual(['tenant-isolation']);

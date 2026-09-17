@@ -1,6 +1,6 @@
 # PS-DOS — Security & Trust Overview
 
-_Last reviewed: 2026-09-16 · Applies to v1.18.0 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-16 · Applies to v1.19.0 · Owner: A2R Ventures Engineering_
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of PS-DOS™. It is written for the security and
@@ -278,9 +278,9 @@ Staff status is unrelated to any tenant membership role.
 
 **Roadmap:** HMAC (keyed with a server-side pepper) for API-key hashes;
 application-level (column) encryption for the most sensitive fields (contractor
-cost rates, resource PII) via a managed KMS; the live SSO (SAML/OIDC) IdP
-handshake (configuration, verification and JIT ship in v1.2.0 — §8) and SCIM
-provisioning; MFA.
+cost rates, resource PII) via a managed KMS; the live OIDC handshake (SAML's
+shipped in v1.19.0 — §8; configuration, verification and JIT provisioning
+have been live since v1.2.0) and SCIM provisioning; MFA.
 _(Server-side session revocation / "sign out everywhere" shipped in v1.7.0 —
 see the `sessionVersion` bullet above.)_
 
@@ -591,8 +591,16 @@ retention window and never edits a row**, and it **never touches**:
   delivery + console role (case-insensitive, lowest-priority-wins);
   **admin-assigned roles are never overwritten by JIT**, and every
   provisioning event is ledgered (`SSO_CONFIG_CHANGE`, `SSO_JIT_PROVISION`).
-  The live IdP handshake (redirect, assertion signature validation) is a
-  follow-on; `applyFederatedLogin()` is the integration seam.
+  **The live SAML 2.0 handshake shipped in v1.19.0**
+  (`docs/SAML_SSO_LIVE_HANDSHAKE.md`): SP-initiated redirect
+  (`/api/auth/saml/login`), XML signature validation against the tenant's
+  stored certificate via `@node-saml/node-saml` (not hand-rolled),
+  database-backed replay protection (a request id is consumed exactly
+  once — the in-memory default a library like this ships with does not
+  survive across serverless instances), and an explicit post-validation
+  Issuer cross-check the library itself does not perform for the login
+  path. `applyFederatedLogin()` remains the protocol-agnostic integration
+  seam; the OIDC live handshake is the remaining follow-on.
 
 ---
 
@@ -767,7 +775,7 @@ retention window and never edits a row**, and it **never touches**:
 | Audited, read-only support access | **Implemented** (§5) |
 | SOC 2 Type II attestation | **Roadmap** — the controls above are designed toward it |
 | Formal DPA, sub-processor list, RoPA | **Roadmap** |
-| Enterprise SSO configuration (SAML/OIDC) + JIT provisioning | **Implemented** (§8) — live IdP handshake follow-on |
+| Enterprise SSO configuration (SAML/OIDC) + JIT provisioning | **Implemented** (§8) — SAML live handshake shipped v1.19.0; OIDC live handshake is the remaining follow-on |
 | Per-tenant governance framework (compliance templates + masking) | **Implemented** (§8) |
 | SCIM / MFA | **Roadmap** |
 | Penetration test | **Roadmap** — this document reflects internal review only |

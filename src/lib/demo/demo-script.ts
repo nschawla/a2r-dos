@@ -27,7 +27,8 @@
  *                     Persona Preview (live access-control verification) +
  *                     tenant isolation + least-privilege operator RBAC +
  *                     step-up MFA + the immutable audit ledger + read-only
- *                     external integration adapters.
+ *                     external integration adapters + the live SAML SSO
+ *                     handshake.
  *   - 'Full Tour'   — every beat, in order.
  */
 
@@ -250,6 +251,19 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     highlightSelector: '#integration-health-matrix',
     caption:
       'And one more layer of trust: when PS-DOS pulls telemetry from a client’s Jira, Salesforce, or NetSuite, every connector is read-only by construction — there is no write method in the code to misuse. Credentials are sealed with the same encryption protecting single sign-on secrets, and every failure is logged here in plain language, never a raw stack trace.',
+  },
+  {
+    // /ops/identity shows a tenant picker until ?org= names one — this
+    // pure, no-DB module can't inject a live organizationId into the
+    // route, so (like command-center / steerco / admin-setup / ops-console
+    // / ops-pulse before it) this beat has no highlightSelector.
+    id: 'saml-sso-handshake',
+    route: '/ops/identity',
+    durationMs: 26000, // 70 words at ~162 wpm
+    act: 'Security & Trust',
+    personas: ['Admin', 'Security'],
+    caption:
+      'One more piece of that trust story: SAML single sign-on is a live handshake now, not just a saved configuration. The browser redirect, the signature check, the replay protection — all real, all covered by tests that generate an actual signed certificate and try to break it. A tenant’s IT team gets three values to paste into their identity provider, and their users get one button: Continue with single sign-on.',
   },
   {
     id: 'closing',

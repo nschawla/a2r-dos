@@ -66,8 +66,9 @@ const TENANT_TABLES = [
   'financial_actuals', 'governance_configs', 'identity_providers', 'immutable_audit_ledger',
   'integration_connections', 'integration_errors', 'integration_sync_runs',
   'organization_holidays', 'org_policies', 'practices', 'projects', 'project_contributors',
-  'raid_entries', 'resources', 'role_utilization_policies', 'schedule_phases', 'scope_items',
-  'sso_group_mappings', 'steerco_decisions', 'timesheet_entries', 'weekly_assignment_slots',
+  'raid_entries', 'resources', 'role_utilization_policies', 'saml_auth_requests', 'schedule_phases',
+  'scope_items', 'sso_group_mappings', 'sso_login_errors', 'steerco_decisions', 'timesheet_entries',
+  'weekly_assignment_slots',
 ] as const;
 
 /** Run `body` in a tx scoped to `orgId` as the a2r_app role (RLS enforced). */

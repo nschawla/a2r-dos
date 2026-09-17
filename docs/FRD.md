@@ -30,6 +30,7 @@ internal operator control plane for the vendor (A2R). Next.js 15 App Router
 | FR-AUTH-5 | A fresh credential login pins `token.sessionVersion` to the account's current epoch before the state check, so an account whose epoch was previously bumped can still sign in (fixed v1.15.1, `2db2ab7`). |
 | FR-AUTH-6 | `SESSION_LOOKUP_TIMEOUT_MS` (prod: 8000) bounds the per-request session-state DB read; a timeout fails closed. |
 | FR-AUTH-7 | SSO (SAML / OIDC) per tenant with metadata verification, JIT provisioning, and security-group → role mapping. Password login is refused for an SSO-enforced email domain. |
+| FR-AUTH-8 | **Live SAML 2.0 handshake** (v1.19.0) — SP-initiated: `/api/auth/saml/login` builds a signed AuthnRequest and redirects to the tenant's IdP; `/api/auth/saml/acs` validates the returned SAMLResponse (XML signature against the tenant's stored certificate, Conditions window, Audience, InResponseTo replay check via a DB-backed cache, explicit Issuer cross-check) and hands the verified identity to the existing JIT provisioning seam (`applyFederatedLogin`), then mints a normal session. Every failure is classified and logged to the tenant's Ops Console (`SsoLoginError`). See `docs/SAML_SSO_LIVE_HANDSHAKE.md`. |
 
 ---
 
