@@ -20,7 +20,7 @@
  * entries in it and, when clicked, filters the list below to exactly that
  * cell (click again, or the ✕ pill, to clear).
  */
-import { useMemo, useRef, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { createRaidEntry, updateRaidEntry, updateRaidStatus, toggleRaidEscalation } from '@/server/actions/raid';
@@ -33,6 +33,8 @@ import {
   SEVERITY_LABEL,
   SEVERITY_RANK,
 } from '@/lib/ui/severity';
+import { PillSelectorRow } from '@/components/ui/pill-selector';
+import { IconTriangleAlert, IconHelpCircle, IconAlertCircle, IconLink } from '@/components/ui/pill-icons';
 
 type RaidType = 'RISK' | 'ASSUMPTION' | 'ISSUE' | 'DEPENDENCY';
 type RaidLikelihood = 'RARE' | 'POSSIBLE' | 'LIKELY' | 'ALMOST_CERTAIN';
@@ -62,6 +64,12 @@ export interface RaidBoardProps {
 }
 
 const TYPE_LABEL: Record<RaidType, string> = { RISK: 'Risk', ASSUMPTION: 'Assumption', ISSUE: 'Issue', DEPENDENCY: 'Dependency' };
+const TYPE_ICON: Record<RaidType, ReactNode> = {
+  RISK: <IconTriangleAlert />,
+  ASSUMPTION: <IconHelpCircle />,
+  ISSUE: <IconAlertCircle />,
+  DEPENDENCY: <IconLink />,
+};
 
 const ALL_TYPES: RaidType[] = ['RISK', 'ASSUMPTION', 'ISSUE', 'DEPENDENCY'];
 
@@ -231,38 +239,26 @@ export function RaidBoard({ projectId, canEdit: serverCanEdit, entries, resource
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        {ALL_TYPES.map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => toggleType(t)}
-            className={clsx(
-              'text-xs font-semibold rounded-full px-3 py-1 border transition-colors',
-              !matrixCell && typeFilter.has(t)
-                ? 'border-brand/40 bg-brand/10 text-brand'
-                : 'border-border-soft text-ink-faint hover:text-ink'
-            )}
-          >
-            {TYPE_LABEL[t]}
-          </button>
-        ))}
-        <span className="w-px h-4 bg-border mx-1" />
-        <button
-          type="button"
-          onClick={() => {
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Icon & Pill Selector Hub — a zero-refresh client-side filter:
+            clicking a pill only recomputes `filtered` (a useMemo above),
+            nothing else on the page moves (docs/UI_DESIGN_SYSTEM.md §5). */}
+        <PillSelectorRow
+          aria-label="Filter RAID items by type"
+          options={ALL_TYPES.map((t) => ({ key: t, label: TYPE_LABEL[t], icon: TYPE_ICON[t] }))}
+          isActive={(k) => !matrixCell && typeFilter.has(k as RaidType)}
+          onSelect={(k) => toggleType(k as RaidType)}
+        />
+        <span className="w-px h-6 bg-border" />
+        <PillSelectorRow
+          aria-label="Filter to SteerCo-escalated items only"
+          options={[{ key: 'escalated', label: 'SteerCo escalated only' }]}
+          isActive={() => !matrixCell && escalatedOnly}
+          onSelect={() => {
             setMatrixCell(null);
             setEscalatedOnly((v) => !v);
           }}
-          className={clsx(
-            'text-xs font-semibold rounded-full px-3 py-1 border transition-colors',
-            !matrixCell && escalatedOnly
-              ? 'border-warning/40 bg-warning-soft text-warning'
-              : 'border-border-soft text-ink-faint hover:text-ink'
-          )}
-        >
-          SteerCo escalated only
-        </button>
+        />
       </div>
 
       <div className="card card-tint-delivery">

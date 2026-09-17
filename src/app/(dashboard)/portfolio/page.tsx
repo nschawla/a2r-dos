@@ -11,9 +11,10 @@ import { canViewMargins } from '@/lib/security/masking';
 import { MaskedValue } from '@/components/security/Masked';
 import { StatCard } from '@/components/ui/stat-card';
 import { ModuleTabs } from '@/components/ui/module-tabs';
-import { DataTable, TruncatedCell, type DataTableColumn, type DataTableRow } from '@/components/ui/data-table';
+import { TruncatedCell, type DataTableColumn } from '@/components/ui/data-table';
 import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
 import { DecisionCenter } from '@/components/portfolio/DecisionCenter';
+import { ProjectsExplorer, type ProjectExplorerRow } from '@/components/portfolio/ProjectsExplorer';
 import { CreateProjectForm } from './create-project-form';
 
 const HEALTH_DOT: Record<string, string> = { G: 'bg-success', Y: 'bg-warning', R: 'bg-critical' };
@@ -182,10 +183,11 @@ export default async function HomePage() {
     { key: 'raid', header: 'Open RAID', align: 'right', className: 'tabular-nums' },
     { key: 'action', header: '' },
   ];
-  const projectRows: DataTableRow[] = projects.map((p) => {
+  const projectRows: ProjectExplorerRow[] = projects.map((p) => {
     const health = getProjectHealth(p);
     return {
       key: p.id,
+      healthCode: health.code,
       cellTitles: { client: p.client, pm: p.projectManager?.name },
       cells: {
         name: (
@@ -232,7 +234,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <DataTable
+        <ProjectsExplorer
           storageKey="portfolio-active-projects"
           caption="Active projects in scope"
           rows={projectRows}

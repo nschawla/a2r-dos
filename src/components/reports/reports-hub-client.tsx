@@ -15,7 +15,7 @@
  * (attachment for the CSV, inline HTML for the two print views), so this
  * component doesn't need to know which behavior each one has.
  */
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import {
@@ -26,6 +26,8 @@ import {
 } from '@/server/actions/steerco';
 import type { HealthCode } from '@/lib/calculations/types';
 import { dueStatusFor, DUE_STATUS_LABEL, DUE_STATUS_BADGE_CLASS } from '@/lib/due-status';
+import { PillSelectorRow } from '@/components/ui/pill-selector';
+import { IconDot } from '@/components/ui/pill-icons';
 
 export interface ReportsProjectView {
   id: string;
@@ -60,35 +62,75 @@ export function ReportsHubClient({
   resources,
 }: ReportsHubClientProps) {
   const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const selectedProject = projects.find((p) => p.id === selectedProjectId) ?? null;
 
+  // Verified-fallback navigation: a same-pathname, search-param-only
+  // client navigation (`/reports` → `/reports?project=X`) has a confirmed
+  // platform-level failure mode in this environment where the client
+  // router never commits it — reproduced identically with router.push,
+  // router.replace, and a plain next/link <Link>, on both `next dev` and
+  // a production build (docs/UI_DESIGN_SYSTEM.md §5.1). A different-
+  // pathname navigation (e.g. the command palette) is unaffected, so this
+  // isn't "navigation is broken" generally — just this one shape.
+  //
+  // Rather than silently leave the pill unresponsive, or default to a
+  // hard `window.location` reload on every click (which the No-Refresh
+  // mandate this pattern exists for explicitly rules out), this tries the
+  // normal soft navigation first and only falls back to a real one if the
+  // props genuinely never update — confirmed via the effect below, not a
+  // URL-string guess, so a merely slow (not stuck) navigation is never
+  // second-guessed.
+  const fallback = useRef<{ id: string | null; timer: ReturnType<typeof setTimeout> } | null>(null);
+  useEffect(() => {
+    if (fallback.current) {
+      clearTimeout(fallback.current.timer);
+      fallback.current = null;
+    }
+    // selectedProjectId changing is exactly the signal that the
+    // navigation this effect is guarding against landed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProjectId]);
+
   function handleSelect(id: string) {
-    router.push(id ? `/reports?project=${id}` : '/reports');
+    const target = id ? `/reports?project=${id}` : '/reports';
+    startTransition(() => router.push(target));
+    if (fallback.current) clearTimeout(fallback.current.timer);
+    fallback.current = {
+      id,
+      timer: setTimeout(() => window.location.assign(target), 2500),
+    };
   }
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="card !p-4 flex items-center gap-4 flex-wrap">
-        <div className="min-w-[220px]">
-          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Engagement</div>
-          {projects.length === 0 ? (
-            <p className="text-ink-muted text-sm">No engagements in your scope yet.</p>
-          ) : (
-            <select className="input !w-auto min-w-[260px]" value={selectedProjectId ?? ''} onChange={(e) => handleSelect(e.target.value)}>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                  {p.client ? ` — ${p.client}` : ''}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        {selectedProject && (
-          <div className="flex items-center gap-1.5 text-sm text-ink-muted">
-            <span className={clsx('status-dot', HEALTH_DOT[selectedProject.healthCode])} />
-            {selectedProjectLocked ? 'Baseline locked' : 'Baseline not locked'}
-          </div>
+      <div className="card !p-4 flex flex-col gap-3">
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">Engagement</div>
+        {projects.length === 0 ? (
+          <p className="text-ink-muted text-sm">No engagements in your scope yet.</p>
+        ) : (
+          <>
+            {/* Icon & Pill Selector Hub (docs/UI_DESIGN_SYSTEM.md §5) — each
+                pill's "icon" is the engagement's own live health dot, so the
+                selector doubles as an at-a-glance portfolio health strip. */}
+            <PillSelectorRow
+              aria-label="Choose an engagement"
+              pending={pending}
+              options={projects.map((p) => ({
+                key: p.id,
+                label: p.client ? `${p.name} — ${p.client}` : p.name,
+                icon: <IconDot className={HEALTH_DOT[p.healthCode]} />,
+              }))}
+              isActive={(k) => selectedProjectId === k}
+              onSelect={handleSelect}
+            />
+            {selectedProject && (
+              <div className="flex items-center gap-1.5 text-sm text-ink-muted">
+                <span className={clsx('status-dot', HEALTH_DOT[selectedProject.healthCode])} />
+                {selectedProjectLocked ? 'Baseline locked' : 'Baseline not locked'}
+              </div>
+            )}
+          </>
         )}
       </div>
 

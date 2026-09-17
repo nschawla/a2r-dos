@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { pctLabel, CONCURRENCY_OVERLOAD_THRESHOLD, type BlendedCapacitySummary, type ResourceCapacityRow } from '@/lib/capacity-engine';
@@ -9,6 +9,8 @@ import { useSafeAction } from '@/lib/client/safe-action';
 import { useToast } from '@/components/ui/toast';
 import { StatCard } from '@/components/ui/stat-card';
 import { ModuleTabs } from '@/components/ui/module-tabs';
+import { PillSelectorRow } from '@/components/ui/pill-selector';
+import { IconGrid, IconBriefcase } from '@/components/ui/pill-icons';
 
 interface PracticeGroup {
   practice: string;
@@ -84,11 +86,21 @@ export function CapacityCockpit(props: CapacityCockpitProps) {
 // ───────────────────────────────────────────── Tab 1 — Utilization & Attainment
 
 function UtilizationTab({ periodLabel, orgSummary, practices, resourceRows }: CapacityCockpitProps) {
+  // Practice area filter — Icon & Pill Selector Hub (docs/UI_DESIGN_SYSTEM.md
+  // §5): a pure client-side narrow of the roster already on the page, zero
+  // network, the rest of the tab untouched. 'all' is the default (today's
+  // unfiltered behavior).
+  const [practiceFilter, setPracticeFilter] = useState('all');
+  const filteredRows = useMemo(
+    () => (practiceFilter === 'all' ? resourceRows : resourceRows.filter((r) => r.psPractice === practiceFilter)),
+    [resourceRows, practiceFilter]
+  );
+
   // The roster mixes billable and non-billable rows (the latter show "—"
-  // for target/actual), so its total is a direct sum of every row
-  // currently on screen — not orgSummary, which is billable-only and
-  // wouldn't tie out against a table that includes non-billable people.
-  const rosterTotals = resourceRows.reduce(
+  // for target/actual), so its total is a direct sum of the rows currently
+  // on screen (post-filter) — not orgSummary, which is billable-only,
+  // tenant-wide, and wouldn't tie out against a filtered table.
+  const rosterTotals = filteredRows.reduce(
     (acc, r) => ({
       fte: acc.fte + r.fte,
       availableHours: acc.availableHours + r.availableHours,
@@ -180,7 +192,27 @@ function UtilizationTab({ periodLabel, orgSummary, practices, resourceRows }: Ca
 
       <div className="card">
         <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Roster</div>
-        <h2 className="text-[15.5px] font-bold mb-4">Per-Resource Utilization</h2>
+        <h2 className="text-[15.5px] font-bold mb-3">Per-Resource Utilization</h2>
+
+        {/* Icon & Pill Selector Hub — a practice-area filter over the roster
+            below. Purely client-side (useState + useMemo above): no
+            request, no scroll jump, no change anywhere else on the tab. */}
+        <PillSelectorRow
+          aria-label="Filter the roster by practice"
+          className="mb-4"
+          options={[
+            { key: 'all', label: 'All Practices', icon: <IconGrid />, count: resourceRows.length },
+            ...practices.map((g) => ({
+              key: g.practice,
+              label: g.practice,
+              icon: <IconBriefcase />,
+              count: g.rows.length,
+            })),
+          ]}
+          isActive={(k) => practiceFilter === k}
+          onSelect={setPracticeFilter}
+        />
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -196,7 +228,14 @@ function UtilizationTab({ periodLabel, orgSummary, practices, resourceRows }: Ca
               </tr>
             </thead>
             <tbody>
-              {resourceRows.map((r) => (
+              {filteredRows.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-6 text-center text-ink-muted text-sm">
+                    No resources in this practice.
+                  </td>
+                </tr>
+              )}
+              {filteredRows.map((r) => (
                 <tr key={r.id} className="border-b border-border/60 last:border-0">
                   <td className="py-2.5 pr-4 font-semibold">
                     {r.name}
@@ -222,7 +261,7 @@ function UtilizationTab({ periodLabel, orgSummary, practices, resourceRows }: Ca
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border text-[13px] font-bold">
-                <td className="py-2.5 pr-4">Total ({resourceRows.length})</td>
+                <td className="py-2.5 pr-4">Total ({filteredRows.length})</td>
                 <td className="py-2.5 pr-4" />
                 <td className="py-2.5 pr-4 text-right tabular-nums">{rosterTotals.fte.toFixed(1)}</td>
                 <td className="py-2.5 pr-4 text-right tabular-nums text-ink-muted">

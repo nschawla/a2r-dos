@@ -254,3 +254,80 @@ semantic — state, not severity — and aren't part of this ladder.
 `warning`/`critical`) and `RaidBoard.tsx`'s exposure-score heatmap tint are
 each their own established, internally-consistent scale — not a
 Critical/High/Medium/Low badge, so not migrated onto this map.
+
+---
+
+## 5. Icon & Pill Selector Hub — the Apple-style category/filter row
+
+`src/components/ui/pill-selector.tsx`'s `<PillSelectorRow>` is a row of
+rounded, icon-led selector cards for category and filter controls —
+distinct from `<ModuleTabs>` (§1.4/1.6). The two solve different problems
+and neither replaces the other:
+
+| | `<ModuleTabs>` | `<PillSelectorRow>` |
+| --- | --- | --- |
+| Switches between | whole panels (different content trees) | a filtered slice of one dataset already on the page |
+| ARIA | `role="tablist"` / `role="tab"` | `role="group"` of ordinary toggle buttons |
+| Who does the filtering | the panel that's shown/hidden | the caller — this component only renders the row and reports clicks |
+| Visual | a compact rounded-lg bar, text-only | larger `rounded-2xl` cards, icon + label + optional count, accent border **and** ring on the active card |
+
+**Active state**: a solid `border-brand` plus a soft `shadow` ring
+(`shadow-[0_0_0_3px_rgba(11,95,209,0.14)]`) — never a plain color swap, so
+the active pill reads at a glance. This is the one visual treatment for
+every pill row in the app; a filter's semantic color (amber for "escalated
+only," a health dot inside a pill) still comes through via the pill's
+*icon*, not the active-state border, so two different pill rows never
+compete for the viewer's attention with two different "active" languages.
+
+### 5.1 Zero-refresh — and the one place it can't be, honestly
+
+The mandate is real client-side reactivity, not a network request per
+click. Three of the four rollout surfaces are **pure client-side filters**
+— a `useState` + `useMemo` over data the server already sent, zero
+network, scroll position untouched:
+
+- RAID Cockpit's type filter (`RaidBoard.tsx`) — restyled from plain text
+  chips to icon pills; same `typeFilter` state as before.
+- Capacity Cockpit's roster **practice filter** (`CapacityCockpit.tsx`,
+  new) — narrows the Per-Resource Utilization table by practice.
+- Portfolio Control Tower's **health-category filter**
+  (`src/components/portfolio/ProjectsExplorer.tsx`, new) — narrows the
+  Active Projects `<DataTable>` by Green/Amber/Red, wrapping it so the
+  filter and the table share one client component.
+
+The fourth — the **Reports Hub's engagement picker**
+(`reports-hub-client.tsx`) — is structurally different: choosing a
+different engagement needs a **fresh server fetch** (its own SteerCo
+decisions, RBAC-scoped `canEdit`, …), so it can't be a client-only filter
+over already-loaded data the way the other three are. It uses
+`router.push` — the App Router's standard soft client-side navigation, the
+same mechanism the rest of the app already relies on — wrapped in a
+`useTransition` for a visible pending state instead of the page going
+inert.
+
+**A genuine, pre-existing platform bug surfaced while building this**: a
+same-pathname, search-param-only client navigation (`/reports` →
+`/reports?project=X`) sometimes never commits in this environment — the
+server computes and returns the exactly correct RSC payload (verified by
+inspecting it directly), but the client router doesn't apply it. Confirmed
+**not** caused by this rollout: reproduced against the original,
+pre-existing `<select>` this replaced, and against an unrelated pre-
+existing control (`OpsTenantSelect.tsx` on `/ops/identity`) — and
+reproduced identically with `router.push`, `router.replace`, and a plain
+`next/link` `<Link>`, in both `next dev` and a production build. A
+different-*pathname* navigation (e.g. the command palette) is unaffected —
+this is narrowly about same-page search-param-only navigations. Filed as a
+platform issue to chase separately; out of scope for a UI-pattern pass to
+fix at the framework level.
+
+The engagement picker's `handleSelect` works around it honestly rather
+than either shipping a silently-broken pill or defaulting to a hard reload
+on every click (which the whole point of this pattern rules out): it
+starts the normal soft navigation, and arms a fallback timer that only
+fires `window.location.assign` if `selectedProjectId` genuinely never
+updates within 2.5s — checked via the actual prop change in a `useEffect`,
+not a guessed URL string, so a merely slow navigation (this environment's
+staging DB pooler has its own latency issues, documented elsewhere) is
+never second-guessed into an unnecessary hard reload. The common case is
+still a true zero-refresh soft navigation; the fallback is a safety net
+for a real platform defect, not the primary mechanism.
