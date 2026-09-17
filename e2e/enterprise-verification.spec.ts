@@ -286,7 +286,7 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
     // True EAC Margin card shows a % value
     await expect(page.locator('.card', { hasText: 'True EAC Margin' }).locator('.text-2xl').first()).toContainText('%');
     // hourly breakdown table
-    for (const col of ['Baseline Hrs', 'Actual Hrs', 'Forecast Hrs Remaining', 'Open RR Hrs', 'EAC']) {
+    for (const col of ['Baseline Hrs', 'Actual Hrs', 'Fcst Hrs Remaining', 'Open RR Hrs', 'EAC']) {
       await expect(page.getByRole('columnheader', { name: col, exact: true })).toBeVisible();
     }
 

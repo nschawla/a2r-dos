@@ -124,11 +124,16 @@ export function OperatorAccessManager({
           The capability matrix (`src/lib/ops/operator-roles.ts`). A mutating action also requires a live
           Just-In-Time elevation regardless of role.
         </p>
+        {/* No-Scroll exception: a genuine Capability x Role matrix — every
+           role column is meaningful for the comparison, so there's no
+           natural "optional" subset to hide (docs/UI_DESIGN_SYSTEM.md
+           §1.1). overflow-x-auto + a sticky Capability column is the
+           correct pattern here. */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="text-left text-ink-faint uppercase tracking-wide border-b border-border">
-                <th className="py-2 pr-3 font-mono">Capability</th>
+                <th className="sticky left-0 z-10 bg-surface-1 py-2 pr-3 font-mono">Capability</th>
                 {OPERATOR_ROLES.map((r) => (
                   <th key={r} className="py-2 px-2 text-center whitespace-nowrap" title={OPERATOR_ROLE_DESCRIPTION[r]}>
                     {OPERATOR_ROLE_LABEL[r].split(' / ')[0]}
@@ -139,7 +144,7 @@ export function OperatorAccessManager({
             <tbody>
               {OPERATOR_CAPABILITIES.map((cap) => (
                 <tr key={cap} className="border-b border-border/50 last:border-0">
-                  <td className="py-1.5 pr-3 font-mono text-ink-muted">{cap}</td>
+                  <td className="sticky left-0 z-10 bg-surface-1 py-1.5 pr-3 font-mono text-ink-muted">{cap}</td>
                   {OPERATOR_ROLES.map((r) => (
                     <td key={r} className="py-1.5 px-2 text-center">
                       {ROLE_CAPABILITIES[r].has(cap) ? (

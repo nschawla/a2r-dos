@@ -136,18 +136,24 @@ export function ConnectionHealthMatrix({
         {connections.length === 0 ? (
           <p className="text-sm text-ink-muted">No external connections configured yet.</p>
         ) : (
+          // No-Scroll exception: a dense per-row-actionable monitoring grid
+          // with an expandable detail row (colSpan) — every column is a
+          // distinct live signal an operator is watching, and the expand
+          // interaction isn't something <DataTable> supports today, so this
+          // gets the sticky-first-column + tightened-spacing treatment
+          // instead (docs/UI_DESIGN_SYSTEM.md §1.1).
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-ink-faint font-semibold border-b border-border">
-                  <th className="py-2 pr-4">Tenant</th>
-                  <th className="py-2 pr-4">Provider</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Last sync</th>
-                  <th className="py-2 pr-4">Records</th>
-                  <th className="py-2 pr-4">Avg duration</th>
-                  <th className="py-2 pr-4">Rate limit</th>
-                  <th className="py-2 pr-4">Errors</th>
+                  <th className="sticky left-0 z-10 bg-surface-1 py-2 pr-3">Tenant</th>
+                  <th className="py-2 pr-3">Provider</th>
+                  <th className="py-2 pr-3">Status</th>
+                  <th className="py-2 pr-3">Last sync</th>
+                  <th className="py-2 pr-3">Records</th>
+                  <th className="py-2 pr-3">Avg duration</th>
+                  <th className="py-2 pr-3">Rate limit</th>
+                  <th className="py-2 pr-3">Errors</th>
                   <th className="py-2" />
                 </tr>
               </thead>
@@ -157,20 +163,20 @@ export function ConnectionHealthMatrix({
                   return (
                     <>
                       <tr key={row.id} className="border-b border-border/60">
-                        <td className="py-2.5 pr-4 font-medium">{row.organizationName}</td>
-                        <td className="py-2.5 pr-4">{row.providerLabel}</td>
-                        <td className="py-2.5 pr-4">
+                        <td className="sticky left-0 z-10 bg-surface-1 py-2.5 pr-3 font-medium">{row.organizationName}</td>
+                        <td className="py-2.5 pr-3">{row.providerLabel}</td>
+                        <td className="py-2.5 pr-3">
                           <span className={clsx('rounded-full px-2 py-0.5 text-[11px] font-semibold', status.className)}>
                             {status.label}
                           </span>
                         </td>
-                        <td className="py-2.5 pr-4 text-ink-muted">{relativeTime(row.lastSyncAt)}</td>
-                        <td className="py-2.5 pr-4 tabular-nums">{row.lastSyncRecordCount ?? '—'}</td>
-                        <td className="py-2.5 pr-4 tabular-nums text-ink-muted">
+                        <td className="py-2.5 pr-3 text-ink-muted">{relativeTime(row.lastSyncAt)}</td>
+                        <td className="py-2.5 pr-3 tabular-nums">{row.lastSyncRecordCount ?? '—'}</td>
+                        <td className="py-2.5 pr-3 tabular-nums text-ink-muted">
                           {row.avgSyncDurationMs ? `${(row.avgSyncDurationMs / 1000).toFixed(1)}s` : '—'}
                         </td>
-                        <td className="py-2.5 pr-4 tabular-nums text-ink-muted">{row.rateLimitRemaining ?? '—'}</td>
-                        <td className="py-2.5 pr-4">
+                        <td className="py-2.5 pr-3 tabular-nums text-ink-muted">{row.rateLimitRemaining ?? '—'}</td>
+                        <td className="py-2.5 pr-3">
                           {row.openErrorCount > 0 ? (
                             <button
                               type="button"

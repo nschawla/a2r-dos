@@ -198,19 +198,24 @@ export function EacEditor({
         {eac.rows.length === 0 ? (
           <p className="text-ink-muted text-sm">No rate-card roles configured for this org yet.</p>
         ) : (
+          // No-Scroll: a dense, per-row-stateful editing grid (four numeric
+          // inputs + Save/Discard per role, all needed at once) — not a
+          // DataTable candidate (docs/UI_DESIGN_SYSTEM.md §1.1). Role stays
+          // sticky, same pattern as ScheduleTracker and the Capacity
+          // Cockpit's 52-week matrix, so scrolling never loses row context.
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                  <th className="py-2 pr-4 whitespace-nowrap">Role</th>
-                  <th className="py-2 pr-4 text-right whitespace-nowrap">Baseline Hrs</th>
-                  <th className="py-2 pr-4 text-right whitespace-nowrap">Baseline Rate</th>
-                  <th className="py-2 pr-4 text-right whitespace-nowrap">Actual Hrs</th>
-                  <th className="py-2 pr-4 text-right whitespace-nowrap">Actual Cost</th>
-                  <th className="py-2 pr-4 text-right whitespace-nowrap">Forecast Hrs Remaining</th>
-                  <th className="py-2 pr-4 text-right whitespace-nowrap">Open RR Hrs</th>
-                  <th className="py-2 pr-4 text-right whitespace-nowrap">EAC</th>
-                  {canEdit && <th className="py-2 pr-4" />}
+                  <th className="sticky left-0 z-10 bg-surface-1 py-2 pr-3 whitespace-nowrap">Role</th>
+                  <th className="py-2 pr-3 text-right whitespace-nowrap">Baseline Hrs</th>
+                  <th className="py-2 pr-3 text-right whitespace-nowrap">Baseline Rate</th>
+                  <th className="py-2 pr-3 text-right whitespace-nowrap">Actual Hrs</th>
+                  <th className="py-2 pr-3 text-right whitespace-nowrap">Actual Cost</th>
+                  <th className="py-2 pr-3 text-right whitespace-nowrap">Fcst Hrs Remaining</th>
+                  <th className="py-2 pr-3 text-right whitespace-nowrap">Open RR Hrs</th>
+                  <th className="py-2 pr-3 text-right whitespace-nowrap">EAC</th>
+                  {canEdit && <th className="py-2 pr-3" />}
                 </tr>
               </thead>
               <tbody>
@@ -334,7 +339,7 @@ function EacRowEditor({
 
   return (
     <tr className="border-b border-border/60 last:border-0 align-top">
-      <td className="py-2 pr-4 font-semibold whitespace-nowrap">
+      <td className="sticky left-0 z-10 bg-surface-1 py-2 pr-3 font-semibold whitespace-nowrap">
         <span className="inline-flex items-center gap-1.5">
           {row.label}
           {row.employmentType && (
@@ -349,26 +354,26 @@ function EacRowEditor({
           )}
         </span>
       </td>
-      <td className="py-2 pr-4 text-right tabular-nums text-ink-muted">{row.baselineHours.toLocaleString('en-US')}</td>
-      <td className="py-2 pr-4 text-right tabular-nums text-ink-muted">
+      <td className="py-2 pr-3 text-right tabular-nums text-ink-muted">{row.baselineHours.toLocaleString('en-US')}</td>
+      <td className="py-2 pr-3 text-right tabular-nums text-ink-muted">
         <MaskedValue canView={canCost} value={`$${row.costRate.toFixed(2)}/hr`} />
       </td>
-      <td className="py-1.5 pr-4">
+      <td className="py-1.5 pr-3">
         <input
           type="number"
           min={0}
-          className="input !w-24 text-right tabular-nums"
+          className="input !w-20 text-right tabular-nums"
           value={draft.hours}
           disabled={!canEdit}
           onChange={(e) => onChange({ hours: Math.max(0, Number(e.target.value) || 0) })}
         />
       </td>
-      <td className="py-1.5 pr-4 text-right">
+      <td className="py-1.5 pr-3 text-right">
         {canCost ? (
           <input
             type="number"
             min={0}
-            className="input !w-28 text-right tabular-nums"
+            className="input !w-24 text-right tabular-nums"
             value={draft.cost}
             disabled={!canEdit}
             onChange={(e) => onChange({ cost: Math.max(0, Number(e.target.value) || 0) })}
@@ -377,31 +382,31 @@ function EacRowEditor({
           <MaskedValue canView={false} value={MASK} className="tabular-nums" />
         )}
       </td>
-      <td className="py-1.5 pr-4">
+      <td className="py-1.5 pr-3">
         <input
           type="number"
           min={0}
-          className="input !w-28 text-right tabular-nums"
+          className="input !w-24 text-right tabular-nums"
           value={draft.forecastHours}
           disabled={!canEdit}
           onChange={(e) => onChange({ forecastHours: Math.max(0, Number(e.target.value) || 0) })}
         />
       </td>
-      <td className="py-1.5 pr-4">
+      <td className="py-1.5 pr-3">
         <input
           type="number"
           min={0}
-          className="input !w-24 text-right tabular-nums"
+          className="input !w-20 text-right tabular-nums"
           value={draft.openRRHours}
           disabled={!canEdit}
           onChange={(e) => onChange({ openRRHours: Math.max(0, Number(e.target.value) || 0) })}
         />
       </td>
-      <td className="py-2 pr-4 text-right tabular-nums font-semibold">
+      <td className="py-2 pr-3 text-right tabular-nums font-semibold">
         <MaskedValue canView={canCost} value={money(row.eacCost)} />
       </td>
       {canEdit && (
-        <td className="py-1.5 pr-4">
+        <td className="py-1.5 pr-3">
           {dirty && (
             <div className="flex items-center gap-2 justify-end">
               <button type="button" className="btn-secondary !w-auto !py-1.5 px-3 text-xs" disabled={busy} onClick={handleSave}>

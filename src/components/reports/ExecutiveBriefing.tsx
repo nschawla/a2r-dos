@@ -244,6 +244,13 @@ export function ExecutiveBriefing({
                   <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
                     <th className="py-1.5 pr-3">Severity</th>
                     <th className="py-1.5 pr-3">Type</th>
+                    {/* No-Scroll: Item + Engagement are the two genuinely
+                        variable-length columns here — truncated with a
+                        title tooltip rather than left to force the whole
+                        register wider (this is a print document; a
+                        customize-columns control, DataTable's usual fix,
+                        makes no sense on a static printed page — see
+                        docs/UI_DESIGN_SYSTEM.md). */}
                     <th className="py-1.5 pr-3">Item</th>
                     <th className="py-1.5 pr-3">Engagement</th>
                     <th className="py-1.5 pr-3">Owner</th>
@@ -265,14 +272,18 @@ export function ExecutiveBriefing({
                         </span>
                       </td>
                       <td className="py-2 pr-3 text-ink-muted capitalize">{r.type.toLowerCase()}</td>
-                      <td className="py-2 pr-3 font-semibold">
-                        {r.title}
-                        {r.escalated && <span className="ml-2 badge !py-0.5 !px-1.5 text-[10px]">SteerCo</span>}
+                      <td className="py-2 pr-3 font-semibold max-w-[24ch]">
+                        <span className="block truncate" title={r.title}>
+                          {r.title}
+                        </span>
+                        {r.escalated && <span className="mr-2 badge !py-0.5 !px-1.5 text-[10px] mt-0.5">SteerCo</span>}
                         {r.likelihood && r.type === 'RISK' && (
-                          <span className="ml-2 text-ink-faint text-xs">· {r.likelihood}</span>
+                          <span className="text-ink-faint text-xs">{r.escalated ? '' : ' '}· {r.likelihood}</span>
                         )}
                       </td>
-                      <td className="py-2 pr-3 text-ink-muted">{r.projectName}</td>
+                      <td className="py-2 pr-3 text-ink-muted max-w-[16ch] truncate" title={r.projectName}>
+                        {r.projectName}
+                      </td>
                       <td className="py-2 pr-3 text-ink-muted">{r.ownerName ?? 'Unassigned'}</td>
                       <td className="py-2 pr-3 tabular-nums text-ink-muted">
                         {r.targetDate ? new Date(r.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}

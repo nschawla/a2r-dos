@@ -282,13 +282,19 @@ export function DealEditor({
           {roles.length === 0 ? (
             <p className="text-ink-muted text-sm">No rate-card roles configured for this org yet.</p>
           ) : (
+            // No-Scroll exception: a genuine Phase x Role matrix — one
+            // column per rate-card role, a count that scales with the
+            // tenant's own rate card and has no natural "optional" subset
+            // (docs/UI_DESIGN_SYSTEM.md §1.1, same category as the Capacity
+            // Cockpit's 52-week forecast). overflow-x-auto + a sticky
+            // Phase column is the correct pattern here, not a gap to close.
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                    <th className="py-2 pr-4 whitespace-nowrap">Phase</th>
+                    <th className="sticky left-0 z-10 bg-surface-1 py-2 pr-3 whitespace-nowrap">Phase</th>
                     {roles.map((r) => (
-                      <th key={r.id} className="py-2 pr-4 text-right whitespace-nowrap">
+                      <th key={r.id} className="py-2 pr-3 text-right whitespace-nowrap">
                         <span className="inline-flex items-center gap-1.5 justify-end">
                           {r.name}
                           <span
@@ -302,26 +308,26 @@ export function DealEditor({
                         </span>
                       </th>
                     ))}
-                    <th className="py-2 pr-4 text-right whitespace-nowrap">Phase Total</th>
+                    <th className="py-2 pr-3 text-right whitespace-nowrap">Phase Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {PHASES.map((p) => (
                     <tr key={p.key} className="border-b border-border/60 last:border-0">
-                      <td className="py-2 pr-4 font-semibold whitespace-nowrap">{p.name}</td>
+                      <td className="sticky left-0 z-10 bg-surface-1 py-2 pr-3 font-semibold whitespace-nowrap">{p.name}</td>
                       {roles.map((r) => {
                         const key = cellKey(p.key, r.id);
                         const busy = savingCells.has(key);
                         const err = cellErrors[key];
                         return (
-                          <td key={r.id} className="py-1.5 pr-4">
+                          <td key={r.id} className="py-1.5 pr-3">
                             <input
                               type="number"
                               min={0}
                               step={1}
                               inputMode="decimal"
                               className={clsx(
-                                'input !w-24 text-right tabular-nums',
+                                'input !w-20 text-right tabular-nums',
                                 busy && 'opacity-60',
                                 err && '!border-critical'
                               )}
@@ -334,7 +340,7 @@ export function DealEditor({
                           </td>
                         );
                       })}
-                      <td className="py-2 pr-4 text-right tabular-nums font-semibold">
+                      <td className="py-2 pr-3 text-right tabular-nums font-semibold">
                         {(totals.phaseTotals[p.key] ?? 0).toLocaleString('en-US')}
                       </td>
                     </tr>
@@ -342,13 +348,13 @@ export function DealEditor({
                 </tbody>
                 <tfoot>
                   <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-t border-border">
-                    <th className="py-2 pr-4 whitespace-nowrap">Role Total</th>
+                    <th className="sticky left-0 z-10 bg-surface-1 py-2 pr-3 whitespace-nowrap">Role Total</th>
                     {roles.map((r) => (
-                      <th key={r.id} className="py-2 pr-4 text-right tabular-nums font-semibold text-ink whitespace-nowrap">
+                      <th key={r.id} className="py-2 pr-3 text-right tabular-nums font-semibold text-ink whitespace-nowrap">
                         {(totals.roleTotals[r.id] ?? 0).toLocaleString('en-US')}
                       </th>
                     ))}
-                    <th className="py-2 pr-4 text-right tabular-nums font-semibold text-ink whitespace-nowrap">
+                    <th className="py-2 pr-3 text-right tabular-nums font-semibold text-ink whitespace-nowrap">
                       {totals.totalHours.toLocaleString('en-US')}
                     </th>
                   </tr>

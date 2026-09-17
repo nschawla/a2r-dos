@@ -442,6 +442,13 @@ export function DevDocs({ build, releases }: { build: BuildInfo; releases: Relea
           </p>
         </div>
 
+        {/* No-Scroll scope note: the four reference tables on this page
+           (Authorization axes, Subsystem map, Environment & credentials,
+           Canonical docs) are an internal engineering wiki, not a command
+           center / portfolio / dashboard surface — every column holds prose
+           reference content with no natural optional subset, so
+           overflow-x-auto + a min-w is the deliberate, correct pattern here
+           (docs/UI_DESIGN_SYSTEM.md §1.1), not a gap to fix. */}
         <h3 className="text-[13px] font-semibold text-ink-muted">Authorization — three independent axes</h3>
         <div className="overflow-x-auto border border-border-soft rounded-sm">
           <table className="w-full text-[12px] min-w-[640px]">

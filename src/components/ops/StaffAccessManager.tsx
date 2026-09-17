@@ -142,7 +142,9 @@ export function StaffAccessManager({
                         {g.userName ?? g.userEmail}
                         <span className="block font-mono text-[10px] text-ink-faint">{g.userEmail}</span>
                       </td>
-                      <td className="py-2.5 pr-4 text-ink-muted">{g.reason}</td>
+                      <td className="py-2.5 pr-4 text-ink-muted max-w-[28ch] truncate" title={g.reason}>
+                        {g.reason}
+                      </td>
                       <td className="py-2.5 pr-4 text-ink-muted font-mono text-[11px]">
                         {g.grantedByEmail ?? 'system / seed'}
                       </td>

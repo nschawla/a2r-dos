@@ -49,6 +49,11 @@ export default async function OpsStaffAccessPage() {
         {elevations.length === 0 ? (
           <p className="text-ink-muted text-sm">No elevations recorded yet.</p>
         ) : (
+          // No-Scroll exception: a short 5-column audit-trail log — every
+          // column (who, why, when, expires, state) is essential to a
+          // reviewer, so there's no natural optional subset to hide behind
+          // "Customize Display" (docs/UI_DESIGN_SYSTEM.md §1.1). Already
+          // narrow; the one long-content column (Reason) is truncated.
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

@@ -77,20 +77,29 @@ export function ScheduleTracker({ projectId, canEdit: serverCanEdit, phases, tol
 
   return (
     <div className="card card-tint-delivery">
+      {/* No-Scroll: this is a dense, per-row-stateful editing grid (four
+         date pickers + a slider + a status select + Save/Discard, all
+         needed at once to edit a phase) — not a DataTable candidate (see
+         docs/UI_DESIGN_SYSTEM.md §1.1's "dense editing grid" exception).
+         Column widths and padding are tightened as far as the date-picker
+         inputs reasonably allow, and the Phase column stays sticky (same
+         pattern as the Capacity Cockpit's 52-week matrix) so a viewer who
+         does still need to scroll never loses track of which row they're
+         editing. */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-              <th className="py-2 pr-4">Phase</th>
-              <th className="py-2 pr-4">Planned Start</th>
-              <th className="py-2 pr-4">Planned End</th>
-              <th className="py-2 pr-4">Actual/Forecast Start</th>
-              <th className="py-2 pr-4">Actual/Forecast End</th>
-              <th className="py-2 pr-4">% Complete</th>
-              <th className="py-2 pr-4">Status</th>
-              <th className="py-2 pr-4">Slip</th>
-              <th className="py-2 pr-4">Pace Risk</th>
-              {canEdit && <th className="py-2 pr-4" />}
+              <th className="sticky left-0 z-10 bg-surface-1 py-2 pr-3">Phase</th>
+              <th className="py-2 pr-3">Planned Start</th>
+              <th className="py-2 pr-3">Planned End</th>
+              <th className="py-2 pr-3">Actual/Fcst Start</th>
+              <th className="py-2 pr-3">Actual/Fcst End</th>
+              <th className="py-2 pr-3">% Complete</th>
+              <th className="py-2 pr-3">Status</th>
+              <th className="py-2 pr-3">Slip</th>
+              <th className="py-2 pr-3">Pace Risk</th>
+              {canEdit && <th className="py-2 pr-3" />}
             </tr>
           </thead>
           <tbody>
@@ -176,45 +185,45 @@ function PhaseRow({
 
   return (
     <tr className="border-b border-border/60 last:border-0 align-top">
-      <td className="py-2.5 pr-4 font-semibold whitespace-nowrap">{label}</td>
-      <td className="py-1.5 pr-4">
+      <td className="sticky left-0 z-10 bg-surface-1 py-2.5 pr-3 font-semibold whitespace-nowrap">{label}</td>
+      <td className="py-1.5 pr-3">
         <input
           type="date"
-          className="input !w-36"
+          className="input !w-32"
           value={draft.plannedStart}
           disabled={!canEdit}
           onChange={(e) => patch({ plannedStart: e.target.value })}
         />
       </td>
-      <td className="py-1.5 pr-4">
+      <td className="py-1.5 pr-3">
         <input
           type="date"
-          className="input !w-36"
+          className="input !w-32"
           value={draft.plannedEnd}
           disabled={!canEdit}
           onChange={(e) => patch({ plannedEnd: e.target.value })}
         />
       </td>
-      <td className="py-1.5 pr-4">
+      <td className="py-1.5 pr-3">
         <input
           type="date"
-          className="input !w-36"
+          className="input !w-32"
           value={draft.actualStart}
           disabled={!canEdit}
           onChange={(e) => patch({ actualStart: e.target.value })}
         />
       </td>
-      <td className="py-1.5 pr-4">
+      <td className="py-1.5 pr-3">
         <input
           type="date"
-          className="input !w-36"
+          className="input !w-32"
           value={draft.actualEnd}
           disabled={!canEdit}
           onChange={(e) => patch({ actualEnd: e.target.value })}
         />
       </td>
-      <td className="py-1.5 pr-4">
-        <div className="flex items-center gap-2 w-44">
+      <td className="py-1.5 pr-3">
+        <div className="flex items-center gap-1.5 w-36">
           <input
             type="range"
             min={0}
@@ -240,13 +249,13 @@ function PhaseRow({
               const raw = e.target.value === '' ? 0 : Number(e.target.value);
               patch({ pctComplete: Math.min(100, Math.max(0, Math.round(raw))) });
             }}
-            className="input !w-14 !px-1.5 !py-1 text-xs text-right tabular-nums"
+            className="input !w-11 !px-1 !py-1 text-xs text-right tabular-nums"
             aria-label="% Complete (exact)"
           />
           <span className="text-xs text-ink-faint">%</span>
         </div>
       </td>
-      <td className="py-1.5 pr-4">
+      <td className="py-1.5 pr-3">
         <select
           className={clsx('text-xs font-semibold rounded-full px-2.5 py-1 border-0 outline-none', STATUS_COLOR[draft.status])}
           value={draft.status}
@@ -259,15 +268,17 @@ function PhaseRow({
           <option value="DELAYED">Delayed</option>
         </select>
       </td>
-      <td className={clsx('py-2.5 pr-4 tabular-nums font-semibold', SLIP_TONE[slip.severity])}>
+      <td className={clsx('py-2.5 pr-3 tabular-nums font-semibold', SLIP_TONE[slip.severity])}>
         {slip.slipDays === null ? '—' : `${slip.slipDays}d`}
       </td>
-      <td className={clsx('py-2.5 pr-4 font-semibold', paceMeta.tone)}>
+      <td
+        className={clsx('py-2.5 pr-3 font-semibold whitespace-nowrap', paceMeta.tone)}
+        title={pace.elapsedPct !== null ? `${Math.round(pace.elapsedPct)}% of the planned window elapsed` : undefined}
+      >
         {paceMeta.label}
-        {pace.elapsedPct !== null ? <span className="text-ink-faint font-normal"> · {Math.round(pace.elapsedPct)}% elapsed</span> : null}
       </td>
       {canEdit && (
-        <td className="py-1.5 pr-4">
+        <td className="py-1.5 pr-3">
           {dirty && (
             <div className="flex items-center gap-2">
               <button type="button" className="btn-secondary !w-auto !py-1.5 px-3 text-xs" disabled={busy} onClick={handleSave}>

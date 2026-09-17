@@ -144,12 +144,22 @@ suite before shipping, not by a user.
 | Portfolio Control Tower — Active Projects table | **Done** — `<DataTable>`, 4 optional columns (Client/PM/Model/Methodology) |
 | `ProjectHeader` — Back to Portfolio | **Done** — reaches Commercial Baseline, Financials, Schedule, RAID, Control Audit at once |
 | Command Center — above-the-fold discipline | **Already conformant**, verified, no change needed |
-| RAID Cockpit | **Not applicable** — already a card-list layout (`RaidBoard.tsx`), not a table; no horizontal-scroll risk to begin with |
-| Schedule & Milestones phase table | **Queued** — a dense editing grid (see §1.1's second exception); needs tightened column widths, not `<DataTable>` |
+| RAID Cockpit, Control Audit checklist | **Not applicable** — already card/list layouts (`RaidBoard.tsx`, `AuditChecklist.tsx`), not tables; no horizontal-scroll risk to begin with |
+| Schedule & Milestones phase table (`ScheduleTracker.tsx`) | **Done** — a dense editing grid (§1.1's second exception): sticky "Phase" column, tightened input widths/padding, Pace Risk's elapsed-% moved to a `title` tooltip |
+| Financial Realization — EAC table (`EacEditor.tsx`) | **Done** — same dense-grid treatment: sticky "Role" column, tightened input widths |
+| Commercial Baseline — Phase × Role sizing matrix (`DealEditor.tsx`) | **Done** — genuinely wide matrix (§1.1's first exception): sticky "Phase" column + "Role Total" footer, tightened input widths |
 | Capacity Cockpit — Practice Breakdown / Per-Resource Utilization | **Queued** — KPI-dense, no natural optional column (see §1.1's third exception); likely fine as-is on a standard viewport given short numeric content, worth a visual pass |
 | Capacity Cockpit — 52-week forecast matrix | **Not applicable** — genuinely wide timeline data; `overflow-x-auto` + sticky first column is the correct pattern, not a gap |
-| Financial Realization (EAC) table, Control Audit checklist, Commercial Baseline sizing matrix | **Not yet reviewed** — next candidates for the `<DataTable>` treatment where they have a genuine core/optional column split |
-| Reports / Executive Hub tables, Admin & Ops Console tables | **Not yet reviewed** |
+| Reports Hub — Executive Briefing (`ExecutiveBriefing.tsx`) | **Done** — Health Lens / Practice Utilization tables left as-is (KPI-dense, matches the third exception); Critical Risk Register's Item/Engagement cells now truncate with a `title` tooltip (print document — no interactive "Customize Display" control; see §2's print-CSS note) |
+| Ops Console — Tenants (`ops/tenants/page.tsx`) | **Done** — `<DataTable>`, optional columns (Tier/Active Users/Engagements/Created) |
+| Ops Console — Billing (`ops/billing/page.tsx`) | **Done** — `<DataTable>`, optional columns (Tier/Seats/Since) |
+| Ops Console — Platform Telemetry (`ops/telemetry/page.tsx`) | **Done** — `<DataTable>`, optional columns (Tier/Users/Engagements) |
+| Ops Console — Operator capability matrix (`OperatorAccessManager.tsx`) | **Not applicable** — genuine Capability × Role matrix (§1.1's first exception); sticky "Capability" column is correct |
+| Ops Console — Staff Access elevations, Audit & Compliance grants/elevations (`ops/staff`, `ops/audit`) | **Not applicable** — short, essential-column audit-trail logs (§1.1's third exception); already narrow, Reason already truncated |
+| Ops Console — Connection Health Matrix (`ConnectionHealthMatrix.tsx`) | **Done** — dense per-row-actionable monitoring grid with an expandable detail row (not yet a `<DataTable>`-supported shape): sticky "Tenant" column, tightened padding |
+| Ops Console — Staff Access grant list (`StaffAccessManager.tsx`) | **Done** — Reason column now truncates with a `title` tooltip; already narrow otherwise |
+| Ops Console — Identity Federation group mappings (`IdentityFederationPanel.tsx`), tenant API keys modal (`TenantActionsMenu.tsx`) | **Not applicable** — short, already-tight tables (the API-keys table also lives inside a fixed-width modal, not a page-level surface) |
+| Ops Console — Developer Documentation reference tables (`DevDocs.tsx`) | **Not applicable** — an internal engineering wiki, not a command center/portfolio/dashboard; every column holds prose reference content with no optional subset, so `overflow-x-auto` + `min-w` is deliberate |
 
 Extend this table as further surfaces are converted or explicitly ruled
 out, the same way this section documents the first pass's decisions.

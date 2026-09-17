@@ -31,6 +31,9 @@ export default async function OpsAuditPage() {
 
       <section className="card">
         <h2 className="text-[15.5px] font-bold mb-1">Operators with active access ({grants.length})</h2>
+        {/* No-Scroll exception: a short 5-column audit log — every column is
+           essential to a compliance reviewer, so there's no natural optional
+           subset (docs/UI_DESIGN_SYSTEM.md §1.1); Reason is already truncated. */}
         <div className="overflow-x-auto mt-3">
           <table className="w-full text-sm">
             <thead>
@@ -65,6 +68,8 @@ export default async function OpsAuditPage() {
         {elevations.length === 0 ? (
           <p className="text-ink-muted text-sm">No elevations recorded yet.</p>
         ) : (
+          // No-Scroll exception: same rationale as the operator-access table
+          // above — a short, essential-columns audit log (docs/UI_DESIGN_SYSTEM.md §1.1).
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

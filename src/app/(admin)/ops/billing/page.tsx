@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { requireOpsCapability } from '@/lib/ops-auth';
 import { listTenants } from '@/server/queries/ops-telemetry';
+import { DataTable, type DataTableColumn, type DataTableRow } from '@/components/ui/data-table';
 
 export const metadata: Metadata = { title: 'Billing · A2R Ops' };
 
@@ -55,38 +56,44 @@ export default async function OpsBillingPage() {
       </div>
 
       <section className="card">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                <th className="py-2 pr-4">Tenant</th>
-                <th className="py-2 pr-4">Tier</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Seats</th>
-                <th className="py-2 pr-4">Since</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tenants.map((t) => (
-                <tr key={t.id} className="border-b border-border/60 last:border-0">
-                  <td className="py-2 pr-4 font-semibold">
-                    {t.name}
-                    <span className="text-ink-faint font-normal"> · {t.slug}</span>
-                  </td>
-                  <td className="py-2 pr-4">
-                    <span className={`badge !py-0.5 !px-2 border ${TIER_CLS[t.contractTier]}`}>
-                      {TIER_LABEL[t.contractTier]}
-                    </span>
-                  </td>
-                  <td className="py-2 pr-4 text-ink-muted">{t.status.replace('_', ' ').toLowerCase()}</td>
-                  <td className="py-2 pr-4 tabular-nums">{t.activeUsers}</td>
-                  <td className="py-2 pr-4 text-ink-muted tabular-nums">{t.createdAt.toISOString().slice(0, 10)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          storageKey="ops-billing-tenants"
+          caption="Subscription tier and seat count per tenant"
+          columns={billingColumns}
+          rows={billingRows(tenants)}
+        />
       </section>
     </>
   );
+}
+
+// No-Scroll table discipline: Tenant / Status are core; Tier, Seats, and
+// Since are useful at a glance but optional — hideable via "Customize Display".
+const billingColumns: DataTableColumn[] = [
+  { key: 'tenant', header: 'Tenant', className: 'font-semibold' },
+  { key: 'tier', header: 'Tier', optional: true },
+  { key: 'status', header: 'Status', className: 'text-ink-muted' },
+  { key: 'seats', header: 'Seats', optional: true, align: 'right', className: 'tabular-nums' },
+  { key: 'since', header: 'Since', optional: true, align: 'right', className: 'text-ink-muted tabular-nums' },
+];
+
+function billingRows(tenants: Awaited<ReturnType<typeof listTenants>>): DataTableRow[] {
+  return tenants.map((t) => ({
+    key: t.id,
+    cellTitles: { tenant: t.name },
+    cells: {
+      tenant: (
+        <>
+          {t.name}
+          <span className="text-ink-faint font-normal"> · {t.slug}</span>
+        </>
+      ),
+      tier: (
+        <span className={`badge !py-0.5 !px-2 border ${TIER_CLS[t.contractTier]}`}>{TIER_LABEL[t.contractTier]}</span>
+      ),
+      status: t.status.replace('_', ' ').toLowerCase(),
+      seats: t.activeUsers,
+      since: t.createdAt.toISOString().slice(0, 10),
+    },
+  }));
 }

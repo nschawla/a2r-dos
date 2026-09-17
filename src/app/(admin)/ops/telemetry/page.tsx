@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireOpsCapability } from '@/lib/ops-auth';
 import { getPlatformTelemetry } from '@/server/queries/ops-telemetry';
 import { StatCard } from '@/components/ui/stat-card';
+import { DataTable, type DataTableColumn, type DataTableRow } from '@/components/ui/data-table';
 
 const TIER_LABEL: Record<string, string> = { TRIAL: 'Trial', STANDARD: 'Standard', ENTERPRISE: 'Enterprise' };
 
@@ -64,42 +65,45 @@ export default async function OpsTelemetryPage() {
           </Link>
         </div>
 
-        {t.tenants.length === 0 ? (
-          <p className="text-ink-muted text-sm py-6 text-center">No tenants provisioned yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                  <th className="py-2 pr-4">Tenant</th>
-                  <th className="py-2 pr-4">Tier</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Users</th>
-                  <th className="py-2 pr-4">Engagements</th>
-                </tr>
-              </thead>
-              <tbody>
-                {t.tenants.map((row) => (
-                  <tr key={row.id} className="border-b border-border/60 last:border-0">
-                    <td className="py-2.5 pr-4 font-semibold">
-                      {row.name}
-                      <span className="block font-mono text-[10px] text-ink-faint">{row.slug}</span>
-                    </td>
-                    <td className="py-2.5 pr-4 text-ink-muted">{TIER_LABEL[row.contractTier] ?? row.contractTier}</td>
-                    <td className="py-2.5 pr-4">
-                      <StatusPill status={row.status} />
-                    </td>
-                    <td className="py-2.5 pr-4 tabular-nums">{row.activeUsers}</td>
-                    <td className="py-2.5 pr-4 tabular-nums">{row.engagements}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          storageKey="ops-telemetry-tenants"
+          caption="Per-tenant health breakdown"
+          columns={telemetryColumns}
+          rows={telemetryRows(t.tenants)}
+          emptyMessage="No tenants provisioned yet."
+        />
       </div>
     </>
   );
+}
+
+// No-Scroll table discipline: Tenant / Status are core; Tier, Users, and
+// Engagements are useful at a glance but optional — hideable via "Customize Display".
+const telemetryColumns: DataTableColumn[] = [
+  { key: 'tenant', header: 'Tenant', className: 'font-semibold' },
+  { key: 'tier', header: 'Tier', optional: true, className: 'text-ink-muted' },
+  { key: 'status', header: 'Status' },
+  { key: 'users', header: 'Users', optional: true, align: 'right', className: 'tabular-nums' },
+  { key: 'engagements', header: 'Engagements', optional: true, align: 'right', className: 'tabular-nums' },
+];
+
+function telemetryRows(tenants: Awaited<ReturnType<typeof getPlatformTelemetry>>['tenants']): DataTableRow[] {
+  return tenants.map((row) => ({
+    key: row.id,
+    cellTitles: { tenant: row.name },
+    cells: {
+      tenant: (
+        <>
+          {row.name}
+          <span className="block font-mono text-[10px] text-ink-faint">{row.slug}</span>
+        </>
+      ),
+      tier: TIER_LABEL[row.contractTier] ?? row.contractTier,
+      status: <StatusPill status={row.status} />,
+      users: row.activeUsers,
+      engagements: row.engagements,
+    },
+  }));
 }
 
 
