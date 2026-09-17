@@ -3,6 +3,8 @@
 import clsx from 'clsx';
 import type { ExecutiveBriefing as Briefing } from '@/server/queries/executive-briefing';
 import { MaskedValue, RestrictedBadge } from '@/components/security/Masked';
+import { SEVERITY_CLASS } from '@/lib/ui/severity';
+import { ModuleTabs } from '@/components/ui/module-tabs';
 
 function money(n: number): string {
   return `$${Math.round(n).toLocaleString('en-US')}`;
@@ -13,12 +15,6 @@ function pct(fraction: number): string {
 function pts(n: number): string {
   return `${n >= 0 ? '+' : ''}${n.toFixed(1)} pts`;
 }
-
-const BAND_CLASS = {
-  green: 'exec-band-green bg-success-soft text-success',
-  amber: 'exec-band-amber bg-warning-soft text-warning',
-  red: 'exec-band-red bg-critical-soft text-critical',
-} as const;
 
 export function ExecutiveBriefing({
   briefing,
@@ -62,241 +58,262 @@ export function ExecutiveBriefing({
         </p>
       </header>
 
-      {/* ── Section 1 ── */}
-      <section className="exec-section flex flex-col gap-3">
-        <SectionTitle n={1} title="Executive Summary & Macro KPIs" />
-        {!showFinancials && (
-          <div className="flex items-center gap-2 text-[11.5px] text-ink-faint">
-            <RestrictedBadge />
-            Cost, margin and financial-variance figures on this briefing are restricted to Partners and Finance / Ops leads.
-          </div>
-        )}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Kpi label="Total Contract Value" value={money(macro.totalTcv)} />
-          <Kpi label="Aggregate BAC" value={money(macro.aggregateBac)} masked={!showFinancials} />
-          <Kpi label="Baseline Sold Margin" value={`${macro.baselineMarginPct.toFixed(1)}%`} masked={!showFinancials} />
-          <Kpi
-            label="Blended EAC Margin"
-            value={`${macro.blendedEacMarginPct.toFixed(1)}%`}
-            masked={!showFinancials}
-            tone={macro.blendedEacMarginPct < macro.baselineMarginPct - 1 ? 'text-critical' : 'text-success'}
-            note={`${pts(-macro.marginDriftPts)} drift`}
-          />
-          <Kpi
-            label="Blended Billable Utilization"
-            value={pct(utilization.utilizationPct)}
-            note={`${pct(utilization.attainmentPct)} of ${pct(utilization.targetUtilPct)} plan`}
-            tone={utilization.attainmentPct >= 0.98 ? 'text-success' : utilization.attainmentPct >= 0.85 ? 'text-warning' : 'text-critical'}
-          />
-          <Kpi label="Avg. Governance Compliance" value={`${macro.avgCompliancePct.toFixed(0)}%`} />
-        </div>
+      {/* No-Scroll / Command Center: the 4 thematic blocks below live behind
+          on-screen pills instead of one long stacked scroll — the blueprint
+          the rest of the app's multi-section pages follow
+          (docs/UI_DESIGN_SYSTEM.md §1). `printAll` keeps every section in
+          the printed PDF regardless of which pill is active on screen —
+          this is still a one-page-per-section board deck on paper. A
+          distinct `param="section"` keeps this nested tab state out of the
+          outer /reports page's own `?v=` ModuleTabs. */}
+      <ModuleTabs
+        param="section"
+        printAll
+        tabs={[
+          { key: 'summary', label: 'Summary' },
+          { key: 'resources', label: 'Resources' },
+          { key: 'financials', label: 'Financials' },
+          { key: 'risks', label: 'Risks' },
+        ]}
+        panels={{
+          summary: (
+            <section className="exec-section flex flex-col gap-3">
+              <SectionTitle n={1} title="Executive Summary & Macro KPIs" />
+              {!showFinancials && (
+                <div className="flex items-center gap-2 text-[11.5px] text-ink-faint">
+                  <RestrictedBadge />
+                  Cost, margin and financial-variance figures on this briefing are restricted to Partners and Finance / Ops leads.
+                </div>
+              )}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <Kpi label="Total Contract Value" value={money(macro.totalTcv)} />
+                <Kpi label="Aggregate BAC" value={money(macro.aggregateBac)} masked={!showFinancials} />
+                <Kpi label="Baseline Sold Margin" value={`${macro.baselineMarginPct.toFixed(1)}%`} masked={!showFinancials} />
+                <Kpi
+                  label="Blended EAC Margin"
+                  value={`${macro.blendedEacMarginPct.toFixed(1)}%`}
+                  masked={!showFinancials}
+                  tone={macro.blendedEacMarginPct < macro.baselineMarginPct - 1 ? 'text-critical' : 'text-success'}
+                  note={`${pts(-macro.marginDriftPts)} drift`}
+                />
+                <Kpi
+                  label="Blended Billable Utilization"
+                  value={pct(utilization.utilizationPct)}
+                  note={`${pct(utilization.attainmentPct)} of ${pct(utilization.targetUtilPct)} plan`}
+                  tone={utilization.attainmentPct >= 0.98 ? 'text-success' : utilization.attainmentPct >= 0.85 ? 'text-warning' : 'text-critical'}
+                />
+                <Kpi label="Avg. Governance Compliance" value={`${macro.avgCompliancePct.toFixed(0)}%`} />
+              </div>
 
-        <div className="exec-card card">
-          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-2">Delivery Risk Distribution</div>
-          <HealthBar band={healthDistribution.overall} label="Overall engagement health" />
-          <table className="w-full text-sm mt-3">
-            <thead>
-              <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                <th className="py-1.5 pr-4">Health lens</th>
-                <th className="py-1.5 pr-4 text-right">Green</th>
-                <th className="py-1.5 pr-4 text-right">Amber</th>
-                <th className="py-1.5 pr-4 text-right">Red</th>
-                <th className="py-1.5 pr-4">Spread</th>
-              </tr>
-            </thead>
-            <tbody>
-              {healthDistribution.lenses.map((l) => (
-                <tr key={l.lens} className="border-b border-border/60 last:border-0">
-                  <td className="py-1.5 pr-4 font-semibold">{l.lens}</td>
-                  <td className="py-1.5 pr-4 text-right tabular-nums">{l.green}</td>
-                  <td className="py-1.5 pr-4 text-right tabular-nums">{l.amber}</td>
-                  <td className="py-1.5 pr-4 text-right tabular-nums">{l.red}</td>
-                  <td className="py-1.5 pr-4 w-40">
-                    <HealthBar band={l} compact />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              <div className="exec-card card">
+                <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-2">Delivery Risk Distribution</div>
+                <HealthBar band={healthDistribution.overall} label="Overall engagement health" />
+                <table className="w-full text-sm mt-3">
+                  <thead>
+                    <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
+                      <th className="py-1.5 pr-4">Health lens</th>
+                      <th className="py-1.5 pr-4 text-right">Green</th>
+                      <th className="py-1.5 pr-4 text-right">Amber</th>
+                      <th className="py-1.5 pr-4 text-right">Red</th>
+                      <th className="py-1.5 pr-4">Spread</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {healthDistribution.lenses.map((l) => (
+                      <tr key={l.lens} className="border-b border-border/60 last:border-0">
+                        <td className="py-1.5 pr-4 font-semibold">{l.lens}</td>
+                        <td className="py-1.5 pr-4 text-right tabular-nums">{l.green}</td>
+                        <td className="py-1.5 pr-4 text-right tabular-nums">{l.amber}</td>
+                        <td className="py-1.5 pr-4 text-right tabular-nums">{l.red}</td>
+                        <td className="py-1.5 pr-4 w-40">
+                          <HealthBar band={l} compact />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ),
+          resources: (
+            <section className="exec-section flex flex-col gap-3">
+              <SectionTitle n={2} title="Resource Economics & Concurrency Risk" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Kpi label="Billable Heads (FTE)" value={utilization.headcountFte.toFixed(1)} />
+                <Kpi label="Avg. Concurrency" value={concurrency.avgConcurrency.toFixed(1)} note="engagements / person" />
+                <Kpi label="On the Bench" value={String(concurrency.benchCount)} tone={concurrency.benchCount > 0 ? 'text-warning' : undefined} />
+                <Kpi
+                  label="Concurrency Overload"
+                  value={String(concurrency.overloadedCount)}
+                  note="> 5 active engagements"
+                  tone={concurrency.overloadedCount > 0 ? 'text-critical' : 'text-success'}
+                />
+              </div>
 
-      {/* ── Section 2 ── */}
-      <section className="exec-section flex flex-col gap-3">
-        <SectionTitle n={2} title="Resource Economics & Concurrency Risk" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Kpi label="Billable Heads (FTE)" value={utilization.headcountFte.toFixed(1)} />
-          <Kpi label="Avg. Concurrency" value={concurrency.avgConcurrency.toFixed(1)} note="engagements / person" />
-          <Kpi label="On the Bench" value={String(concurrency.benchCount)} tone={concurrency.benchCount > 0 ? 'text-warning' : undefined} />
-          <Kpi
-            label="Concurrency Overload"
-            value={String(concurrency.overloadedCount)}
-            note="> 5 active engagements"
-            tone={concurrency.overloadedCount > 0 ? 'text-critical' : 'text-success'}
-          />
-        </div>
-
-        <div className="exec-card card">
-          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-2">Practice Utilization Attainment</div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                <th className="py-1.5 pr-4">Practice</th>
-                <th className="py-1.5 pr-4 text-right">Heads</th>
-                <th className="py-1.5 pr-4 text-right">Target</th>
-                <th className="py-1.5 pr-4 text-right">Actual</th>
-                <th className="py-1.5 pr-4 text-right">Attainment</th>
-                <th className="py-1.5 pr-4">Plan vs. Actual</th>
-              </tr>
-            </thead>
-            <tbody>
-              {utilization.practices.map((p) => (
-                <tr key={p.practice} className="border-b border-border/60 last:border-0">
-                  <td className="py-1.5 pr-4 font-semibold">{p.practice}</td>
-                  <td className="py-1.5 pr-4 text-right tabular-nums">{p.headcountFte.toFixed(1)}</td>
-                  <td className="py-1.5 pr-4 text-right tabular-nums text-ink-muted">{pct(p.targetUtilPct)}</td>
-                  <td className="py-1.5 pr-4 text-right tabular-nums font-semibold">{pct(p.utilizationPct)}</td>
-                  <td
-                    className={clsx(
-                      'py-1.5 pr-4 text-right tabular-nums font-semibold',
-                      p.attainmentPct >= 0.98 ? 'text-success' : p.attainmentPct >= 0.85 ? 'text-warning' : 'text-critical'
-                    )}
-                  >
-                    {pct(p.attainmentPct)}
-                  </td>
-                  <td className="py-1.5 pr-4 w-36">
-                    <PlanBar target={p.targetUtilPct} actual={p.utilizationPct} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="exec-card card">
-          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-2">Top Overloaded Staff</div>
-          {concurrency.top.length === 0 ? (
-            <p className="text-sm text-ink-muted">No resource is flagged above the 5-engagement concurrency threshold.</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {concurrency.top.map((r) => (
-                <li key={r.id} className="text-sm">
-                  <span className="font-semibold">{r.name}</span>{' '}
-                  <span className="text-ink-faint">· {r.psPractice} · {r.projectCount} engagements</span>
-                  <div className="text-ink-muted text-xs mt-0.5">{r.engagements.join(' · ') || '—'}</div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
-
-      {/* ── Section 3 ── */}
-      <section className="exec-section flex flex-col gap-3">
-        <SectionTitle n={3} title="Financial Realization & Burn Health" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Kpi label="Aggregate BAC" value={money(macro.aggregateBac)} masked={!showFinancials} />
-          <Kpi label="Actual Cost to Date" value={money(macro.aggregateActualsCost)} masked={!showFinancials} />
-          <Kpi
-            label="Forecast EAC Cost"
-            value={money(macro.aggregateEacCost)}
-            masked={!showFinancials}
-            tone={macro.aggregateEacCost > macro.aggregateBac ? 'text-critical' : undefined}
-          />
-          <Kpi
-            label="Blended Margin Drift"
-            value={pts(-macro.marginDriftPts)}
-            masked={!showFinancials}
-            tone={macro.marginDriftPts > 1 ? 'text-critical' : 'text-success'}
-          />
-        </div>
-        <div className="exec-card card">
-          <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
-            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">
-              Aggregated Planned vs. Actual Burn
-            </div>
-            <div className="text-xs exec-muted text-ink-faint">
-              {Math.round(burn.actualToDateHours).toLocaleString('en-US')} h actual vs{' '}
-              {Math.round(burn.plannedToDateHours).toLocaleString('en-US')} h planned to date ·{' '}
-              <span className={burn.variancePct > 5 ? 'text-critical' : burn.variancePct < -5 ? 'text-success' : ''}>
-                {burn.variancePct >= 0 ? '+' : ''}
-                {burn.variancePct.toFixed(1)}%
-              </span>
-            </div>
-          </div>
-          <BurnChart weekly={burn.weekly} plannedTotal={burn.plannedTotalHours} />
-        </div>
-      </section>
-
-      {/* ── Section 4 ── */}
-      <section className="exec-section exec-page-break flex flex-col gap-3">
-        <SectionTitle n={4} title="Critical Risk Register" />
-        <p className="text-[12.5px] exec-muted text-ink-muted -mt-1">
-          Open items across all engagements flagged CRITICAL or escalated for steering-committee attention.
-        </p>
-        <div className="exec-card card">
-          {criticalRaid.length === 0 ? (
-            <p className="text-sm text-ink-muted">No critical or escalated items are currently open.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                    <th className="py-1.5 pr-3">Severity</th>
-                    <th className="py-1.5 pr-3">Type</th>
-                    {/* No-Scroll: Item + Engagement are the two genuinely
-                        variable-length columns here — truncated with a
-                        title tooltip rather than left to force the whole
-                        register wider (this is a print document; a
-                        customize-columns control, DataTable's usual fix,
-                        makes no sense on a static printed page — see
-                        docs/UI_DESIGN_SYSTEM.md). */}
-                    <th className="py-1.5 pr-3">Item</th>
-                    <th className="py-1.5 pr-3">Engagement</th>
-                    <th className="py-1.5 pr-3">Owner</th>
-                    <th className="py-1.5 pr-3">Target</th>
-                    <th className="py-1.5 pr-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {criticalRaid.map((r) => (
-                    <tr key={r.id} className="border-b border-border/60 last:border-0 align-top">
-                      <td className="py-2 pr-3">
-                        <span
+              <div className="exec-card card">
+                <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-2">Practice Utilization Attainment</div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
+                      <th className="py-1.5 pr-4">Practice</th>
+                      <th className="py-1.5 pr-4 text-right">Heads</th>
+                      <th className="py-1.5 pr-4 text-right">Target</th>
+                      <th className="py-1.5 pr-4 text-right">Actual</th>
+                      <th className="py-1.5 pr-4 text-right">Attainment</th>
+                      <th className="py-1.5 pr-4">Plan vs. Actual</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {utilization.practices.map((p) => (
+                      <tr key={p.practice} className="border-b border-border/60 last:border-0">
+                        <td className="py-1.5 pr-4 font-semibold">{p.practice}</td>
+                        <td className="py-1.5 pr-4 text-right tabular-nums">{p.headcountFte.toFixed(1)}</td>
+                        <td className="py-1.5 pr-4 text-right tabular-nums text-ink-muted">{pct(p.targetUtilPct)}</td>
+                        <td className="py-1.5 pr-4 text-right tabular-nums font-semibold">{pct(p.utilizationPct)}</td>
+                        <td
                           className={clsx(
-                            'badge !py-0.5 !px-2 text-[10px]',
-                            r.severity === 'CRITICAL' ? BAND_CLASS.red : BAND_CLASS.amber
+                            'py-1.5 pr-4 text-right tabular-nums font-semibold',
+                            p.attainmentPct >= 0.98 ? 'text-success' : p.attainmentPct >= 0.85 ? 'text-warning' : 'text-critical'
                           )}
                         >
-                          {r.severity}
-                        </span>
-                      </td>
-                      <td className="py-2 pr-3 text-ink-muted capitalize">{r.type.toLowerCase()}</td>
-                      <td className="py-2 pr-3 font-semibold max-w-[24ch]">
-                        <span className="block truncate" title={r.title}>
-                          {r.title}
-                        </span>
-                        {r.escalated && <span className="mr-2 badge !py-0.5 !px-1.5 text-[10px] mt-0.5">SteerCo</span>}
-                        {r.likelihood && r.type === 'RISK' && (
-                          <span className="text-ink-faint text-xs">{r.escalated ? '' : ' '}· {r.likelihood}</span>
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 text-ink-muted max-w-[16ch] truncate" title={r.projectName}>
-                        {r.projectName}
-                      </td>
-                      <td className="py-2 pr-3 text-ink-muted">{r.ownerName ?? 'Unassigned'}</td>
-                      <td className="py-2 pr-3 tabular-nums text-ink-muted">
-                        {r.targetDate ? new Date(r.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
-                      </td>
-                      <td className="py-2 pr-3 text-ink-muted capitalize">{r.status.toLowerCase().replace('inprogress', 'in progress')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </section>
+                          {pct(p.attainmentPct)}
+                        </td>
+                        <td className="py-1.5 pr-4 w-36">
+                          <PlanBar target={p.targetUtilPct} actual={p.utilizationPct} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="exec-card card">
+                <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-2">Top Overloaded Staff</div>
+                {concurrency.top.length === 0 ? (
+                  <p className="text-sm text-ink-muted">No resource is flagged above the 5-engagement concurrency threshold.</p>
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    {concurrency.top.map((r) => (
+                      <li key={r.id} className="text-sm">
+                        <span className="font-semibold">{r.name}</span>{' '}
+                        <span className="text-ink-faint">· {r.psPractice} · {r.projectCount} engagements</span>
+                        <div className="text-ink-muted text-xs mt-0.5">{r.engagements.join(' · ') || '—'}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+          ),
+          financials: (
+            <section className="exec-section flex flex-col gap-3">
+              <SectionTitle n={3} title="Financial Realization & Burn Health" />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Kpi label="Aggregate BAC" value={money(macro.aggregateBac)} masked={!showFinancials} />
+                <Kpi label="Actual Cost to Date" value={money(macro.aggregateActualsCost)} masked={!showFinancials} />
+                <Kpi
+                  label="Forecast EAC Cost"
+                  value={money(macro.aggregateEacCost)}
+                  masked={!showFinancials}
+                  tone={macro.aggregateEacCost > macro.aggregateBac ? 'text-critical' : undefined}
+                />
+                <Kpi
+                  label="Blended Margin Drift"
+                  value={pts(-macro.marginDriftPts)}
+                  masked={!showFinancials}
+                  tone={macro.marginDriftPts > 1 ? 'text-critical' : 'text-success'}
+                />
+              </div>
+              <div className="exec-card card">
+                <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
+                  <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">
+                    Aggregated Planned vs. Actual Burn
+                  </div>
+                  <div className="text-xs exec-muted text-ink-faint">
+                    {Math.round(burn.actualToDateHours).toLocaleString('en-US')} h actual vs{' '}
+                    {Math.round(burn.plannedToDateHours).toLocaleString('en-US')} h planned to date ·{' '}
+                    <span className={burn.variancePct > 5 ? 'text-critical' : burn.variancePct < -5 ? 'text-success' : ''}>
+                      {burn.variancePct >= 0 ? '+' : ''}
+                      {burn.variancePct.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+                <BurnChart weekly={burn.weekly} plannedTotal={burn.plannedTotalHours} />
+              </div>
+            </section>
+          ),
+          risks: (
+            <section className="exec-section flex flex-col gap-3">
+              <SectionTitle n={4} title="Critical Risk Register" />
+              <p className="text-[12.5px] exec-muted text-ink-muted -mt-1">
+                Open items across all engagements flagged CRITICAL or escalated for steering-committee attention.
+              </p>
+              <div className="exec-card card">
+                {criticalRaid.length === 0 ? (
+                  <p className="text-sm text-ink-muted">No critical or escalated items are currently open.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
+                          <th className="py-1.5 pr-3">Severity</th>
+                          <th className="py-1.5 pr-3">Type</th>
+                          {/* No-Scroll: Item + Engagement are the two genuinely
+                              variable-length columns here — truncated with a
+                              title tooltip rather than left to force the whole
+                              register wider (this is a print document; a
+                              customize-columns control, DataTable's usual fix,
+                              makes no sense on a static printed page — see
+                              docs/UI_DESIGN_SYSTEM.md). */}
+                          <th className="py-1.5 pr-3">Item</th>
+                          <th className="py-1.5 pr-3">Engagement</th>
+                          <th className="py-1.5 pr-3">Owner</th>
+                          <th className="py-1.5 pr-3">Target</th>
+                          <th className="py-1.5 pr-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {criticalRaid.map((r) => (
+                          <tr key={r.id} className="border-b border-border/60 last:border-0 align-top">
+                            <td className="py-2 pr-3">
+                              {/* This register also carries escalated items of any
+                                  severity (not only CRITICAL) — the full 4-way
+                                  Critical/High/Medium/Low map keeps an escalated
+                                  Medium or Low item from reading as High
+                                  (src/lib/ui/severity.ts). */}
+                              <span className={clsx('badge !py-0.5 !px-2 !border-0 text-[10px]', SEVERITY_CLASS[r.severity])}>
+                                {r.severity}
+                              </span>
+                            </td>
+                            <td className="py-2 pr-3 text-ink-muted capitalize">{r.type.toLowerCase()}</td>
+                            <td className="py-2 pr-3 font-semibold max-w-[24ch]">
+                              <span className="block truncate" title={r.title}>
+                                {r.title}
+                              </span>
+                              {r.escalated && <span className="mr-2 badge !py-0.5 !px-1.5 text-[10px] mt-0.5">SteerCo</span>}
+                              {r.likelihood && r.type === 'RISK' && (
+                                <span className="text-ink-faint text-xs">{r.escalated ? '' : ' '}· {r.likelihood}</span>
+                              )}
+                            </td>
+                            <td className="py-2 pr-3 text-ink-muted max-w-[16ch] truncate" title={r.projectName}>
+                              {r.projectName}
+                            </td>
+                            <td className="py-2 pr-3 text-ink-muted">{r.ownerName ?? 'Unassigned'}</td>
+                            <td className="py-2 pr-3 tabular-nums text-ink-muted">
+                              {r.targetDate ? new Date(r.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                            </td>
+                            <td className="py-2 pr-3 text-ink-muted capitalize">{r.status.toLowerCase().replace('inprogress', 'in progress')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+          ),
+        }}
+      />
 
       <footer className="exec-section text-[10px] exec-muted text-ink-faint border-t border-border pt-2">
         Confidential &amp; Proprietary — © {generated.getFullYear()} A2R Ventures LLC. Every figure is computed live from the

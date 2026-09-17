@@ -67,6 +67,13 @@ const config: Config = {
         success: { DEFAULT: '#166534', soft: 'rgba(22,101,52,0.10)' }, // green-800, ~6:1
         warning: { DEFAULT: '#B45309', soft: 'rgba(180,83,9,0.10)' }, // amber-700, ~5.9:1 (AAA large)
         critical: { DEFAULT: '#B91C1C', soft: 'rgba(185,28,28,0.10)' }, // red-700, ~6.4:1
+        // `medium` is the 4th rung of the severity/priority ladder
+        // (Critical/High/Medium/Low — src/lib/ui/severity.ts) — a muted
+        // gold/yellow distinct from both `warning`'s orange-amber and
+        // `na`'s neutral grey, so Medium never visually collapses into
+        // High or Low. Deliberately NOT blue: `brand` above is already the
+        // app's one reserved interactive-blue, never a status color.
+        medium: { DEFAULT: '#A16207', soft: 'rgba(161,98,7,0.10)' }, // yellow-700, ~5.6:1
         na: { DEFAULT: '#52525B', soft: 'rgba(82,82,91,0.10)' },
 
         // ── Sidebar functional-area accents (narrow, deliberate use) ──

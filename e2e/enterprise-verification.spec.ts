@@ -312,15 +312,28 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
     await page.goto('/reports');
     await expect(page.getByRole('heading', { name: 'Executive Briefing Hub', level: 1 })).toBeVisible();
 
-    // the print-optimised portfolio briefing
+    // the print-optimised portfolio briefing — its 4 sections (Summary/
+    // Resources/Financials/Risks) sit behind on-screen pills (No-Scroll /
+    // Command Center, docs/UI_DESIGN_SYSTEM.md §1); each becomes visible in
+    // turn as its pill is clicked, and every section still prints together
+    // regardless of which is active on screen (ModuleTabs' `printAll`).
     await expect(page.getByRole('button', { name: 'Print / Export Executive Briefing' })).toBeVisible();
     await expect(page.getByRole('heading', { name: /1 · Executive Summary & Macro KPIs/ })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /2 · Resource Economics & Concurrency Risk/ })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /3 · Financial Realization & Burn Health/ })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /4 · Critical Risk Register/ })).toBeVisible();
     await expect(page.locator('.exec-briefing').getByText('Total Contract Value')).toBeVisible();
     await expect(page.locator('.exec-briefing').getByText('Delivery Risk Distribution')).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Resources' }).click();
+    await expect(page.getByRole('heading', { name: /2 · Resource Economics & Concurrency Risk/ })).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Financials' }).click();
+    await expect(page.getByRole('heading', { name: /3 · Financial Realization & Burn Health/ })).toBeVisible();
     await expect(page.locator('.exec-briefing svg[aria-label*="burn"]')).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Risks' }).click();
+    await expect(page.getByRole('heading', { name: /4 · Critical Risk Register/ })).toBeVisible();
+    await expectNoErrorOverlay(page);
+
+    await page.getByRole('tab', { name: 'Summary' }).click();
 
     // per-engagement tooling lives under the "Engagement Reports" pill
     await page.getByRole('tab', { name: /Engagement Reports/ }).click();
@@ -410,7 +423,7 @@ test.describe('Suite E — Resource & Capacity Cockpit', () => {
   test('E2 · Tab 1 Utilization & Attainment — blended KPI + practice breakdown', async () => {
     await page.goto('/capacity');
     for (const t of ['Utilization & Attainment', 'Concurrency Radar', '52-Week Forecast', 'Policy & Holiday Controls']) {
-      await expect(page.getByRole('button', { name: t })).toBeVisible();
+      await expect(page.getByRole('tab', { name: t })).toBeVisible();
     }
     await expect(page.locator('.card', { hasText: 'Blended Billable Utilization' }).locator('.text-2xl').first()).toContainText('%');
     await expect(page.getByRole('heading', { name: 'Plan vs. Actual by Practice' })).toBeVisible();
@@ -423,11 +436,11 @@ test.describe('Suite E — Resource & Capacity Cockpit', () => {
 
   test('E3 · Concurrency Radar + 52-Week Forecast tabs render their data', async () => {
     await page.goto('/capacity');
-    await page.getByRole('button', { name: 'Concurrency Radar' }).click();
+    await page.getByRole('tab', { name: 'Concurrency Radar' }).click();
     await expect(page.getByRole('heading', { name: 'Active Engagements per Resource' })).toBeVisible();
     await expect(page.getByText(/Overloaded \( > 5 \)/)).toBeVisible();
 
-    await page.getByRole('button', { name: '52-Week Forecast' }).click();
+    await page.getByRole('tab', { name: '52-Week Forecast' }).click();
     await expect(page.getByRole('heading', { name: '52-Week Staffing Forecast' })).toBeVisible();
     // horizontally-scrolling weekly matrix: many column headers
     expect(await page.locator('table thead th').count()).toBeGreaterThan(40);
@@ -436,7 +449,7 @@ test.describe('Suite E — Resource & Capacity Cockpit', () => {
 
   test('E4 · Policy & Holiday Controls lists role targets and the 2026 holiday calendar', async () => {
     await page.goto('/capacity');
-    await page.getByRole('button', { name: 'Policy & Holiday Controls' }).click();
+    await page.getByRole('tab', { name: 'Policy & Holiday Controls' }).click();
     await expect(page.getByRole('heading', { name: 'Utilization Policy' })).toBeVisible();
     for (const role of ['Solution Architect', 'Delivery Staff', 'Director']) {
       await expect(page.getByRole('cell', { name: role, exact: true })).toBeVisible();
@@ -576,9 +589,12 @@ test.describe('Suite H — Role-Based Data Masking', () => {
     await expect(page.getByRole('heading', { name: 'Executive Briefing Hub', level: 1 })).toBeVisible();
     await expect(page.locator('.exec-briefing').getByText(/restricted to Partners/i)).toBeVisible();
     await expect(page.locator('.exec-card', { hasText: 'Blended EAC Margin' })).toContainText('••••');
-    // non-financial sections still fully visible
-    await expect(page.getByRole('heading', { name: /4 · Critical Risk Register/ })).toBeVisible();
+    // non-financial sections still fully visible (Delivery Risk
+    // Distribution lives on the default-active Summary pill; Critical Risk
+    // Register is a click away on the Risks pill — see docs/UI_DESIGN_SYSTEM.md §1.6)
     await expect(page.locator('.exec-briefing').getByText('Delivery Risk Distribution')).toBeVisible();
+    await page.getByRole('tab', { name: 'Risks' }).click();
+    await expect(page.getByRole('heading', { name: /4 · Critical Risk Register/ })).toBeVisible();
     await expectNoErrorOverlay(page);
   });
 });

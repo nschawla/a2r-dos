@@ -92,6 +92,33 @@ hand-rolled tables used before it) — comfortable without being loose.
 (`p-6`) and a soft shadow; `<Container>` already gives every page generous
 responsive gutters. Neither needed to change.
 
+### 1.6 Universal pill/tab navigation for multi-section pages
+
+_A further v1.19.0 follow-up._ Any page built from several distinct, substantial
+thematic blocks — the kind a viewer wants to jump between rather than
+scroll past — gets `<ModuleTabs>` (§1.4) instead of stacking every section
+top to bottom. The Executive Briefing Hub's own briefing document
+(`ExecutiveBriefing.tsx`: Summary / Resources / Financials / Risks) and the
+SteerCo Briefing (`SteerCoBriefingView.tsx`: Pulse / Margin Health / What
+Moved / Watchlist) are the reference implementations — both are print
+documents, which is exactly why `<ModuleTabs>` gained a `printAll` prop:
+every panel still prints one after another regardless of which pill is
+active on screen, so the on-screen pills never cost the PDF anything. The
+Capacity Cockpit's four tabs were migrated from a bespoke underline-style
+tab bar to the same `<ModuleTabs>` pill component for visual consistency —
+one tab pattern app-wide, not two.
+
+**Not every multi-`<section>` page qualifies.** A short reference drawer
+whose sections are a few lines each (`ControlGuidance.tsx`'s Objective /
+Guidance / Evidence fields) reads faster scrolled than clicked through — a
+pill bar there would add clicks, not remove scrolling. A linear
+step-by-step flow (`OperatorMfaPanel.tsx`'s enrollment wizard, where step 2
+doesn't exist until step 1 completes) must stay linear; tabs imply the
+sections are independently reachable in any order, which a wizard's steps
+are not. Apply this pattern to substantial, independently-meaningful,
+simultaneously-relevant blocks — not to every `<section>` tag in the
+codebase.
+
 ---
 
 ## 2. `<DataTable>` — the primitive, and the one rule that matters
@@ -163,3 +190,67 @@ suite before shipping, not by a user.
 
 Extend this table as further surfaces are converted or explicitly ruled
 out, the same way this section documents the first pass's decisions.
+
+### 3.1 Pill/tab navigation rollout (§1.6)
+
+| Surface | Status |
+| --- | --- |
+| Executive Briefing (`ExecutiveBriefing.tsx`) | **Done** — Summary / Resources / Financials / Risks pills; `printAll` keeps the printed PDF a one-section-after-another board deck |
+| SteerCo Briefing (`SteerCoBriefingView.tsx`) | **Done** — Pulse / Margin Health / What Moved / Watchlist pills; same `printAll` treatment |
+| Capacity Cockpit (`CapacityCockpit.tsx`) | **Done** — migrated from a bespoke underline-style tab bar to `<ModuleTabs>` for one pill pattern app-wide (functionally unchanged: still instant client-side switching, now also gets `?v=` deep-linking for free) |
+| Admin & Org Setup (`admin/page.tsx`) | **Already conformant** — Roster / Governance / Data & Compliance pills predate this pass |
+| Portfolio Control Tower, Reports Hub outer shell, Reports Hub batch-detail page | **Already conformant** — existing `<ModuleTabs>` usage |
+| `ControlGuidance.tsx` (audit drawer) | **Not applicable** — a handful of short reference fields (Objective/Guidance/Evidence), faster scrolled than clicked through (§1.6) |
+| `OperatorMfaPanel.tsx` (2FA enrollment) | **Not applicable** — a linear step-by-step wizard; its steps aren't independently reachable, so tabs would misrepresent the flow (§1.6) |
+| Ops Console single-table pages (`ops/staff`, `ops/billing`, `ops/telemetry`, `ops/audit`, `ops/tenants`) | **Not applicable** — one primary surface each, nothing to switch between |
+
+---
+
+## 4. Severity/priority badge standard — Critical / High / Medium / Low
+
+**`src/lib/ui/severity.ts`** is the single source of truth: `SEVERITY_CLASS`
+maps the `RaidSeverity` enum (`CRITICAL`/`HIGH`/`MED`/`LOW` — the Prisma
+wire values; `SEVERITY_LABEL` spells `MED` out as "Medium") to four
+**distinct, never-doubled-up** tones —
+
+| Severity | Tone | Tailwind classes |
+| --- | --- | --- |
+| Critical | bold red | `bg-critical-soft text-critical` |
+| High | warm amber/orange | `bg-warning-soft text-warning` |
+| Medium | muted gold/yellow | `bg-medium-soft text-medium` |
+| Low | neutral grey | `bg-na-soft text-na` |
+
+`medium` (`tailwind.config.ts`) is a new token — deliberately **not** blue,
+since `brand` is already the app's one reserved interactive-blue and
+several sidebar zone accents (indigo/teal/violet) are already spoken for;
+a muted gold reads clearly as "between High and Low" without competing
+with either. `<SeverityBadge severity={...} />`
+(`src/components/ui/severity-badge.tsx`) is the ready-made chip for new
+call sites; existing badges that already render their own markup (a
+table cell, a list-item chip) can import `SEVERITY_CLASS`/`SEVERITY_LABEL`
+directly instead of adopting the component wholesale.
+
+**Why this needed a pass:** before it, `RaidBoard.tsx`, `ExecutiveBriefing.tsx`,
+`SteerCoBriefingView.tsx`, and the standalone `SteerCoReportView.tsx` HTML
+generator each hand-rolled their own CRITICAL/HIGH/MED/LOW → color map, and
+every one of them mapped **Medium and Low to the exact same grey** — a
+real instance of the "never blended" rule being silently violated. Fixed
+by routing every one of them through the shared map (`SteerCoReportView.tsx`
+can't import it directly — no Tailwind pipeline, see its file header — so
+it hand-keys the same hex values with a comment pointing back here).
+`ExecutiveBriefing.tsx`'s Critical Risk Register also had a **second**,
+independent bug: it only ever painted CRITICAL red vs. everything else
+amber, but the register carries *any* severity that's been escalated for
+SteerCo attention — an escalated Medium or Low item was reading as High.
+The shared 4-way map fixed that too.
+
+**Out of scope, deliberately:** `DecisionCenter.tsx`'s "High-severity RAID"
+alert list only ever shows CRITICAL/HIGH items by construction (its own
+query excludes Medium/Low), so its 2-tone `critical`/`warning` badge isn't
+a bug. Lifecycle/status badges (tenant ACTIVE/SUSPENDED/GRACE_PERIOD,
+elevation Active/Expired, connection Connected/Error) are a different
+semantic — state, not severity — and aren't part of this ladder.
+`ScheduleTracker.tsx`'s pace-risk coloring (`unknown`/`onTrack`/`slip`/
+`warning`/`critical`) and `RaidBoard.tsx`'s exposure-score heatmap tint are
+each their own established, internally-consistent scale — not a
+Critical/High/Medium/Low badge, so not migrated onto this map.

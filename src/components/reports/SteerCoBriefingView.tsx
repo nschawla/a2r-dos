@@ -7,6 +7,8 @@ import { PulseStrip } from '@/components/command-center/PulseStrip';
 import { RestrictedBadge } from '@/components/security/Masked';
 import type { SteerCoBriefing } from '@/server/queries/steerco-briefing';
 import type { StreamTone } from '@/server/queries/active-stream';
+import { SEVERITY_CLASS, SEVERITY_LABEL } from '@/lib/ui/severity';
+import { ModuleTabs } from '@/components/ui/module-tabs';
 
 const DOT: Record<StreamTone, string> = {
   default: 'bg-ink-faint',
@@ -14,13 +16,19 @@ const DOT: Record<StreamTone, string> = {
   warn: 'bg-warning',
   critical: 'bg-critical',
 };
+// Watchlist severity chips read the shared Critical/High/Medium/Low map
+// (src/lib/ui/severity.ts) — `exec-band-*` classes are print-only color
+// overrides (globals.css @media print) layered on top of the same tones.
 const BAND: Record<string, string> = {
-  CRITICAL: 'exec-band-red bg-critical-soft text-critical',
-  HIGH: 'exec-band-amber bg-warning-soft text-warning',
-  MED: 'bg-surface-2 text-ink-muted',
-  LOW: 'bg-surface-2 text-ink-muted',
+  CRITICAL: `exec-band-red ${SEVERITY_CLASS.CRITICAL}`,
+  HIGH: `exec-band-amber ${SEVERITY_CLASS.HIGH}`,
+  MED: `exec-band-medium ${SEVERITY_CLASS.MED}`,
+  LOW: SEVERITY_CLASS.LOW,
 };
-const SEV_LABEL: Record<string, string> = { CRITICAL: 'Critical', HIGH: 'High', MED: 'Medium', LOW: 'Low' };
+// Loosely typed (not `Record<Severity, string>`) — `w.severity` comes off
+// the wire as `string`, and the `?? w.severity` fallback below is
+// deliberate defensive rendering for a value outside the known 4.
+const SEV_LABEL: Record<string, string> = SEVERITY_LABEL;
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
@@ -82,121 +90,140 @@ export function SteerCoBriefingView({ briefing }: { briefing: SteerCoBriefing })
         </div>
       </section>
 
-      {/* pulse */}
-      <section className="exec-section flex flex-col gap-3">
-        <Eyebrow>Portfolio Pulse</Eyebrow>
-        <PulseStrip vitals={briefing.vitals} />
-      </section>
-
-      {/* margin health */}
-      <section className="exec-section flex flex-col gap-3">
-        <Eyebrow>Margin Health</Eyebrow>
-        <div className="card exec-card">
-          {margin.showFinancials ? (
-            <div className="flex flex-col gap-5">
-              <div className="grid grid-cols-3 gap-6">
-                <Figure label="Baseline Margin" value={pctFromNumber(margin.baselineMarginPct)} />
-                <Figure
-                  label="EAC Margin"
-                  value={pctFromNumber(margin.eacMarginPct)}
-                  tone={margin.eacMarginPct >= 30 ? 'good' : margin.eacMarginPct >= 15 ? 'warn' : 'critical'}
-                />
-                <Figure
-                  label="Drift vs Plan"
-                  value={pointsDelta(margin.deltaPts)}
-                  tone={margin.deltaPts >= 0 ? 'good' : margin.deltaPts >= -3 ? 'warn' : 'critical'}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2 no-print">
-                <MarginBar label="Baseline" pct={margin.baselineMarginPct} max={scaleMax} tone="neutral" />
-                <MarginBar
-                  label="EAC"
-                  pct={margin.eacMarginPct}
-                  max={scaleMax}
-                  tone={margin.eacMarginPct >= 30 ? 'good' : margin.eacMarginPct >= 15 ? 'warn' : 'critical'}
-                />
-              </div>
-
-              <p className="text-[12px] text-ink-faint exec-muted tabular-nums">
-                TCV {compactMoney(margin.tcv)} · EAC cost {compactMoney(margin.eacCost)} · BAC {compactMoney(margin.bac)}
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <RestrictedBadge />
-              <p className="text-sm text-ink-muted">
-                Portfolio margin figures are restricted to Partners and authorized Finance / Ops leads.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* what moved */}
-      <section className="exec-section flex flex-col gap-3">
-        <Eyebrow>What Moved Since the Last Review</Eyebrow>
-        <div className="card exec-card !p-0 overflow-hidden">
-          {briefing.highlights.length === 0 ? (
-            <p className="px-5 py-8 text-sm text-ink-muted text-center">
-              No governance events or new escalations in the window.
-            </p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {briefing.highlights.map((h) => (
-                <li key={h.id} className="flex gap-3.5 px-5 py-3">
-                  <span className={clsx('mt-1.5 w-1.5 h-1.5 rounded-full flex-none', DOT[h.tone])} aria-hidden />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[13px] text-ink font-medium truncate">{h.label}</span>
-                      <span className="ml-auto flex-none text-[11px] text-ink-faint tabular-nums">
-                        {relativeTime(h.at)}
-                      </span>
+      {/* No-Scroll / Command Center: Pulse/Margin/Moved/Watchlist sit behind
+          on-screen pills rather than one long stacked scroll — same
+          blueprint as the Executive Briefing Hub (docs/UI_DESIGN_SYSTEM.md
+          §1). `printAll` still prints every section, one after another, as
+          the lean board deck this is. `param="section"` keeps this nested
+          tab state distinct from any outer page's own ModuleTabs. */}
+      <ModuleTabs
+        param="section"
+        printAll
+        tabs={[
+          { key: 'pulse', label: 'Pulse' },
+          { key: 'margin', label: 'Margin Health' },
+          { key: 'moved', label: 'What Moved' },
+          { key: 'watchlist', label: 'Watchlist' },
+        ]}
+        panels={{
+          pulse: (
+            <section className="exec-section flex flex-col gap-3">
+              <Eyebrow>Portfolio Pulse</Eyebrow>
+              <PulseStrip vitals={briefing.vitals} />
+            </section>
+          ),
+          margin: (
+            <section className="exec-section flex flex-col gap-3">
+              <Eyebrow>Margin Health</Eyebrow>
+              <div className="card exec-card">
+                {margin.showFinancials ? (
+                  <div className="flex flex-col gap-5">
+                    <div className="grid grid-cols-3 gap-6">
+                      <Figure label="Baseline Margin" value={pctFromNumber(margin.baselineMarginPct)} />
+                      <Figure
+                        label="EAC Margin"
+                        value={pctFromNumber(margin.eacMarginPct)}
+                        tone={margin.eacMarginPct >= 30 ? 'good' : margin.eacMarginPct >= 15 ? 'warn' : 'critical'}
+                      />
+                      <Figure
+                        label="Drift vs Plan"
+                        value={pointsDelta(margin.deltaPts)}
+                        tone={margin.deltaPts >= 0 ? 'good' : margin.deltaPts >= -3 ? 'warn' : 'critical'}
+                      />
                     </div>
-                    {(h.detail || h.context) && (
-                      <div className="text-[11.5px] text-ink-muted exec-muted truncate mt-0.5">
-                        {[h.detail, h.context].filter(Boolean).join(' · ')}
-                      </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
 
-      {/* watchlist */}
-      <section className="exec-section flex flex-col gap-3">
-        <Eyebrow>Watchlist — Escalated &amp; Critical Risk</Eyebrow>
-        <div className="card exec-card !p-0 overflow-hidden">
-          {briefing.watchlist.length === 0 ? (
-            <p className="px-5 py-8 text-sm text-ink-muted text-center">No escalated or critical risks open.</p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {briefing.watchlist.map((w) => (
-                <li key={w.id} className="flex items-start gap-3.5 px-5 py-3">
-                  <span
-                    className={clsx(
-                      'flex-none mt-0.5 text-[9.5px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5',
-                      BAND[w.severity] ?? BAND.MED
-                    )}
-                  >
-                    {SEV_LABEL[w.severity] ?? w.severity}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] text-ink font-medium truncate">{w.title}</div>
-                    <div className="text-[11.5px] text-ink-muted exec-muted truncate mt-0.5">
-                      {w.context}
-                      {w.owner && <> · owner {w.owner}</>}
+                    <div className="flex flex-col gap-2 no-print">
+                      <MarginBar label="Baseline" pct={margin.baselineMarginPct} max={scaleMax} tone="neutral" />
+                      <MarginBar
+                        label="EAC"
+                        pct={margin.eacMarginPct}
+                        max={scaleMax}
+                        tone={margin.eacMarginPct >= 30 ? 'good' : margin.eacMarginPct >= 15 ? 'warn' : 'critical'}
+                      />
                     </div>
+
+                    <p className="text-[12px] text-ink-faint exec-muted tabular-nums">
+                      TCV {compactMoney(margin.tcv)} · EAC cost {compactMoney(margin.eacCost)} · BAC {compactMoney(margin.bac)}
+                    </p>
                   </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <RestrictedBadge />
+                    <p className="text-sm text-ink-muted">
+                      Portfolio margin figures are restricted to Partners and authorized Finance / Ops leads.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+          ),
+          moved: (
+            <section className="exec-section flex flex-col gap-3">
+              <Eyebrow>What Moved Since the Last Review</Eyebrow>
+              <div className="card exec-card !p-0 overflow-hidden">
+                {briefing.highlights.length === 0 ? (
+                  <p className="px-5 py-8 text-sm text-ink-muted text-center">
+                    No governance events or new escalations in the window.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {briefing.highlights.map((h) => (
+                      <li key={h.id} className="flex gap-3.5 px-5 py-3">
+                        <span className={clsx('mt-1.5 w-1.5 h-1.5 rounded-full flex-none', DOT[h.tone])} aria-hidden />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-[13px] text-ink font-medium truncate">{h.label}</span>
+                            <span className="ml-auto flex-none text-[11px] text-ink-faint tabular-nums">
+                              {relativeTime(h.at)}
+                            </span>
+                          </div>
+                          {(h.detail || h.context) && (
+                            <div className="text-[11.5px] text-ink-muted exec-muted truncate mt-0.5">
+                              {[h.detail, h.context].filter(Boolean).join(' · ')}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+          ),
+          watchlist: (
+            <section className="exec-section flex flex-col gap-3">
+              <Eyebrow>Watchlist — Escalated &amp; Critical Risk</Eyebrow>
+              <div className="card exec-card !p-0 overflow-hidden">
+                {briefing.watchlist.length === 0 ? (
+                  <p className="px-5 py-8 text-sm text-ink-muted text-center">No escalated or critical risks open.</p>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {briefing.watchlist.map((w) => (
+                      <li key={w.id} className="flex items-start gap-3.5 px-5 py-3">
+                        <span
+                          className={clsx(
+                            'flex-none mt-0.5 text-[9.5px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5',
+                            BAND[w.severity] ?? BAND.MED
+                          )}
+                        >
+                          {SEV_LABEL[w.severity] ?? w.severity}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[13px] text-ink font-medium truncate">{w.title}</div>
+                          <div className="text-[11.5px] text-ink-muted exec-muted truncate mt-0.5">
+                            {w.context}
+                            {w.owner && <> · owner {w.owner}</>}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+          ),
+        }}
+      />
 
       <p className="text-[11px] text-ink-faint exec-muted pt-2">
         Generated {generated.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })} · every figure is drawn

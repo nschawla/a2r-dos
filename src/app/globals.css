@@ -204,6 +204,12 @@
     background: #fde6e5 !important;
     color: #a5322e !important;
   }
+  /* Medium — the 4th severity rung (Critical/High/Medium/Low,
+     src/lib/ui/severity.ts), a muted gold distinct from High's amber. */
+  .exec-briefing .exec-band-medium {
+    background: #f7f0d0 !important;
+    color: #7d5c07 !important;
+  }
   .exec-briefing table {
     width: 100% !important;
     border-collapse: collapse !important;
@@ -229,6 +235,7 @@
   .exec-briefing .text-success { color: #1c7a4f !important; }
   .exec-briefing .text-warning { color: #96631a !important; }
   .exec-briefing .text-critical { color: #a5322e !important; }
+  .exec-briefing .text-medium { color: #7d5c07 !important; }
   .exec-section {
     break-inside: avoid;
   }

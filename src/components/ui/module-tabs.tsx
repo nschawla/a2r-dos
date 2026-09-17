@@ -24,6 +24,7 @@ export function ModuleTabs({
   param = 'v',
   className,
   printKey,
+  printAll,
 }: {
   tabs: ModuleTab[];
   panels: Record<string, ReactNode>;
@@ -32,6 +33,11 @@ export function ModuleTabs({
   /** Key of the panel that must still render when the page is printed even
    * if it isn't the active tab (e.g. a print-to-PDF board briefing). */
   printKey?: string;
+  /** Every panel prints, regardless of which is active on screen — for a
+   * board deck split into on-screen pills (Summary/Resources/Financials/
+   * Risks-style) where the printed PDF is still the whole document, one
+   * section after another. Takes precedence over `printKey`. */
+  printAll?: boolean;
 }) {
   const first = tabs[0]?.key ?? '';
   const [active, setActive] = useState(first);
@@ -97,7 +103,7 @@ export function ModuleTabs({
           key={t.key}
           role="tabpanel"
           hidden={t.key !== active}
-          data-print-keep={printKey && t.key === printKey ? '' : undefined}
+          data-print-keep={printAll || (printKey && t.key === printKey) ? '' : undefined}
           className="flex flex-col gap-5"
         >
           {panels[t.key]}

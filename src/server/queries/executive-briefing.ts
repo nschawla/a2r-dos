@@ -15,6 +15,7 @@ import { d, money } from '@/lib/calculations/money';
 import { toRateRoles, toSizingInput, toFinancialActuals, toAuditEntries } from '@/server/queries/calc-adapters';
 import { mondayOf } from '@/lib/capacity-engine';
 import { getPortfolioCapacity, type PortfolioCapacity } from '@/server/queries/capacity';
+import type { Severity } from '@/lib/ui/severity';
 
 const HEALTH_LENSES = [
   { key: 'healthCost', label: 'Cost' },
@@ -61,7 +62,7 @@ export interface CriticalRaidItem {
   projectName: string;
   type: string;
   title: string;
-  severity: string;
+  severity: Severity;
   likelihood: string | null;
   ownerName: string | null;
   targetDate: string | null;

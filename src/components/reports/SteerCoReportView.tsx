@@ -74,6 +74,11 @@ export interface SteerCoReportProps {
   generatedAt: string; // pre-formatted display string
 }
 
+// This file has no Tailwind pipeline (see the file header) so it hand-keys
+// hex values rather than importing Tailwind classes — `medium` here is
+// kept byte-for-byte in sync with the `medium` token in tailwind.config.ts
+// (src/lib/ui/severity.ts is the canonical Critical/High/Medium/Low map
+// everywhere else; this is the one place that can't consume it directly).
 const PALETTE = {
   bg: '#FFFFFF',
   surface1: '#FFFFFF',
@@ -88,6 +93,7 @@ const PALETTE = {
   success: '#15803D',
   warning: '#B45309',
   critical: '#C81E1E',
+  medium: '#A16207',
   na: '#52525B',
 } as const;
 
@@ -95,7 +101,7 @@ const HEALTH_COLOR: Record<'G' | 'Y' | 'R', string> = { G: PALETTE.success, Y: P
 const SEVERITY_COLOR: Record<TopRaidRiskViewData['severity'], string> = {
   CRITICAL: PALETTE.critical,
   HIGH: PALETTE.warning,
-  MED: PALETTE.na,
+  MED: PALETTE.medium,
   LOW: PALETTE.na,
 };
 const PACE_COLOR: Record<'onTrack' | 'warning' | 'critical', string> = {

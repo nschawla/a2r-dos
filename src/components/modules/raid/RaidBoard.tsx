@@ -27,9 +27,14 @@ import { createRaidEntry, updateRaidEntry, updateRaidStatus, toggleRaidEscalatio
 import { CsvImportModal } from '@/components/ingestion/CsvImportModal';
 import { dueStatusFor, DUE_STATUS_LABEL, DUE_STATUS_BADGE_CLASS } from '@/lib/due-status';
 import { usePersonaGatedEdit } from '@/components/layout/dashboard-ui-context';
+import {
+  type Severity as RaidSeverity,
+  SEVERITY_CLASS as SEVERITY_COLOR,
+  SEVERITY_LABEL,
+  SEVERITY_RANK,
+} from '@/lib/ui/severity';
 
 type RaidType = 'RISK' | 'ASSUMPTION' | 'ISSUE' | 'DEPENDENCY';
-type RaidSeverity = 'CRITICAL' | 'HIGH' | 'MED' | 'LOW';
 type RaidLikelihood = 'RARE' | 'POSSIBLE' | 'LIKELY' | 'ALMOST_CERTAIN';
 type RaidStatus = 'OPEN' | 'INPROGRESS' | 'CLOSED';
 
@@ -57,12 +62,6 @@ export interface RaidBoardProps {
 }
 
 const TYPE_LABEL: Record<RaidType, string> = { RISK: 'Risk', ASSUMPTION: 'Assumption', ISSUE: 'Issue', DEPENDENCY: 'Dependency' };
-const SEVERITY_COLOR: Record<RaidSeverity, string> = {
-  CRITICAL: 'bg-critical-soft text-critical',
-  HIGH: 'bg-warning-soft text-warning',
-  MED: 'bg-na-soft text-na',
-  LOW: 'bg-na-soft text-na',
-};
 
 const ALL_TYPES: RaidType[] = ['RISK', 'ASSUMPTION', 'ISSUE', 'DEPENDENCY'];
 
@@ -70,14 +69,12 @@ const ALL_TYPES: RaidType[] = ['RISK', 'ASSUMPTION', 'ISSUE', 'DEPENDENCY'];
 // columns run least→most likely (left to right) — standard heatmap layout.
 const IMPACT_ROWS: RaidSeverity[] = ['CRITICAL', 'HIGH', 'MED', 'LOW'];
 const LIKELIHOOD_COLS: RaidLikelihood[] = ['RARE', 'POSSIBLE', 'LIKELY', 'ALMOST_CERTAIN'];
-const SEVERITY_LABEL: Record<RaidSeverity, string> = { CRITICAL: 'Critical', HIGH: 'High', MED: 'Medium', LOW: 'Low' };
 const LIKELIHOOD_LABEL: Record<RaidLikelihood, string> = {
   RARE: 'Rare',
   POSSIBLE: 'Possible',
   LIKELY: 'Likely',
   ALMOST_CERTAIN: 'Almost certain',
 };
-const SEVERITY_RANK: Record<RaidSeverity, number> = { LOW: 1, MED: 2, HIGH: 3, CRITICAL: 4 };
 const LIKELIHOOD_RANK: Record<RaidLikelihood, number> = { RARE: 1, POSSIBLE: 2, LIKELY: 3, ALMOST_CERTAIN: 4 };
 
 /** 1..16 exposure score → cell tint. */

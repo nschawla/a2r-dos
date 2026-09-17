@@ -8,6 +8,7 @@ import { createHoliday, deleteHoliday, updateRolePolicy, createRolePolicy } from
 import { useSafeAction } from '@/lib/client/safe-action';
 import { useToast } from '@/components/ui/toast';
 import { StatCard } from '@/components/ui/stat-card';
+import { ModuleTabs } from '@/components/ui/module-tabs';
 
 interface PracticeGroup {
   practice: string;
@@ -55,14 +56,6 @@ export interface CapacityCockpitProps {
   policies: PolicyRow[];
 }
 
-type TabKey = 'utilization' | 'concurrency' | 'forecast' | 'controls';
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'utilization', label: 'Utilization & Attainment' },
-  { key: 'concurrency', label: 'Concurrency Radar' },
-  { key: 'forecast', label: '52-Week Forecast' },
-  { key: 'controls', label: 'Policy & Holiday Controls' },
-];
-
 function attainmentTone(a: number): string {
   if (a >= 0.98) return 'text-success';
   if (a >= 0.85) return 'text-warning';
@@ -70,31 +63,21 @@ function attainmentTone(a: number): string {
 }
 
 export function CapacityCockpit(props: CapacityCockpitProps) {
-  const [tab, setTab] = useState<TabKey>('utilization');
-
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-1 border-b border-border flex-wrap">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            className={clsx(
-              'px-3.5 py-2 text-[13px] font-semibold border-b-2 -mb-px transition-colors',
-              tab === t.key ? 'border-brand text-ink' : 'border-transparent text-ink-muted hover:text-ink'
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'utilization' && <UtilizationTab {...props} />}
-      {tab === 'concurrency' && <ConcurrencyTab rows={props.concurrencyRows} />}
-      {tab === 'forecast' && <ForecastTab weeks={props.forecastWeeks} rows={props.forecastRows} />}
-      {tab === 'controls' && <ControlsTab isAdmin={props.isAdmin} holidays={props.holidays} policies={props.policies} />}
-    </div>
+    <ModuleTabs
+      tabs={[
+        { key: 'utilization', label: 'Utilization & Attainment' },
+        { key: 'concurrency', label: 'Concurrency Radar' },
+        { key: 'forecast', label: '52-Week Forecast' },
+        { key: 'controls', label: 'Policy & Holiday Controls' },
+      ]}
+      panels={{
+        utilization: <UtilizationTab {...props} />,
+        concurrency: <ConcurrencyTab rows={props.concurrencyRows} />,
+        forecast: <ForecastTab weeks={props.forecastWeeks} rows={props.forecastRows} />,
+        controls: <ControlsTab isAdmin={props.isAdmin} holidays={props.holidays} policies={props.policies} />,
+      }}
+    />
   );
 }
 
