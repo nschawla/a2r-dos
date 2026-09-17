@@ -27,8 +27,8 @@
  *                     Persona Preview (live access-control verification) +
  *                     tenant isolation + least-privilege operator RBAC +
  *                     step-up MFA + the immutable audit ledger + read-only
- *                     external integration adapters + the live SAML SSO
- *                     handshake.
+ *                     external integration adapters + Enterprise SSO /
+ *                     Identity Federation.
  *   - 'Full Tour'   — every beat, in order.
  */
 
@@ -70,6 +70,7 @@ export interface DemoStep {
    *   #jit-elevation-log           — src/app/(admin)/ops/audit/page.tsx
    *   #persona-preview-bar         — src/components/layout/PersonaPreviewBar.tsx
    *   #integration-health-matrix   — src/components/ops/ConnectionHealthMatrix.tsx
+   *   #identity-federation-console — src/app/(admin)/ops/identity/page.tsx
    * Omitted where a step is about the page generally, not one element on it.
    */
   highlightSelector?: string;
@@ -253,17 +254,21 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
       'And one more layer of trust: when PS-DOS pulls telemetry from a client’s Jira, Salesforce, or NetSuite, every connector is read-only by construction — there is no write method in the code to misuse. Credentials are sealed with the same encryption protecting single sign-on secrets, and every failure is logged here in plain language, never a raw stack trace.',
   },
   {
-    // /ops/identity shows a tenant picker until ?org= names one — this
-    // pure, no-DB module can't inject a live organizationId into the
-    // route, so (like command-center / steerco / admin-setup / ops-console
-    // / ops-pulse before it) this beat has no highlightSelector.
-    id: 'saml-sso-handshake',
+    // Routes to the real Identity Federation panel, /ops/identity — not
+    // /ops/security (that's the operator step-up-mfa page, already the
+    // step-up-mfa beat above; a different feature entirely). #identity-
+    // federation-console sits on the page's always-rendered header, so it
+    // highlights correctly whether or not a tenant is selected (the panel
+    // itself is per-tenant and needs ?org=, which this pure, no-DB module
+    // can't inject into a route).
+    id: 'sso-federation',
     route: '/ops/identity',
-    durationMs: 26000, // 70 words at ~162 wpm
+    durationMs: 21000, // 58 words at ~166 wpm
     act: 'Security & Trust',
     personas: ['Admin', 'Security'],
+    highlightSelector: '#identity-federation-console',
     caption:
-      'One more piece of that trust story: SAML single sign-on is a live handshake now, not just a saved configuration. The browser redirect, the signature check, the replay protection — all real, all covered by tests that generate an actual signed certificate and try to break it. A tenant’s IT team gets three values to paste into their identity provider, and their users get one button: Continue with single sign-on.',
+      'Enterprise customers don’t just want SSO configured — they want to see it actually work. This is Identity Federation: a real SAML 2.0 handshake, with database-backed replay protection so a captured sign-in link can’t be reused, and every failure logged here in plain language, not a raw stack trace, so a client’s IT team can self-serve the fix.',
   },
   {
     id: 'closing',

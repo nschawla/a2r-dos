@@ -31,16 +31,18 @@ Adapters and the Ops Console's Connection Health Matrix. 17 beats total
 now; every cue sheet in §4 except Executive Lens (which doesn't play
 either new beat) shifts again from this point on.
 
-**Current as of v1.19.0** — adds one beat, `saml-sso-handshake` (Admin and
+**Current as of v1.19.0** — adds one beat, `sso-federation` (Admin and
 Security tracks, the new last beat of the Security &amp; Trust segment,
-right before `closing`), showcasing the live SAML SP-initiated handshake —
-signature validation, replay protection, and the Ops Console's Identity
-Federation panel. 18 beats total now; unlike every other beat this one has
-no `highlightSelector` (`/ops/identity` shows a tenant picker until `?org=`
-names one, and this pure, no-DB script can't inject a live
-`organizationId` into a route — see the beat's own code comment). Every
-cue sheet in §4 except Executive Lens (which doesn't play either new beat)
-shifts again from this point on.
+right before `closing`), showcasing the live SAML 2.0 handshake —
+signature validation, database-backed replay protection, and the plain-
+language failure log — on the Ops Console's Identity Federation panel
+(`/ops/identity`). Its highlight, `#identity-federation-console`, sits on
+that page's always-rendered header rather than a field inside the panel
+itself, since the panel is per-tenant (`?org=`) and this pure, no-DB
+script can't inject a live `organizationId` into a route — see the beat's
+own code comment. 18 beats total now; every cue sheet in §4 except
+Executive Lens (which doesn't play either new beat) shifts again from
+this point on.
 
 ---
 
@@ -51,10 +53,10 @@ persona-filtered *subsequence* of it, in the same order, never a rewrite:
 
 | Track | Persona value | Beats played | Total runtime |
 | --- | --- | --- | --- |
-| **Full Platform Tour** | `'Full Tour'` | All 18, in script order | **4:16** (256s) |
+| **Full Platform Tour** | `'Full Tour'` | All 18, in script order | **4:11** (251s) |
 | **Executive Lens** | `'Executive'` | Welcome → Command Center → Scoped Practice View → SteerCo → Executive Hub → Tenant Isolation → Closing (7 beats) | **1:15** (75s) |
-| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Scoped Practice View → Persona Preview → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → SAML SSO Handshake → Closing (16 beats) | **3:59** (239s) |
-| **Security &amp; Trust** | `'Security'` | Welcome → Scoped Practice View → Persona Preview → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → SAML SSO Handshake → Closing (10 beats) | **2:46** (166s) |
+| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Scoped Practice View → Persona Preview → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Identity Federation → Closing (16 beats) | **3:54** (234s) |
+| **Security &amp; Trust** | `'Security'` | Welcome → Scoped Practice View → Persona Preview → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Identity Federation → Closing (10 beats) | **2:41** (161s) |
 
 Because a beat's line is identical everywhere it appears, **only 18 unique
 voiceover files are ever needed** — not one per track/beat combination.
@@ -74,13 +76,14 @@ recording plays when, on which track.
   security story (your data is walled off at the database), which every
   audience should hear.
 - **"Operator Roles / Step-Up MFA / Audit Ledger / External Integrations /
-  SAML SSO Handshake"** are the deep operator beats — Admin and Security
+  Identity Federation"** are the deep operator beats — Admin and Security
   tracks only, never the board-level Executive track. **"External
-  Integrations"** (v1.18.0) and **"SAML SSO Handshake"** (v1.19.0) close
-  the segment back to back: read-only-by-construction PSA/CRM connectors,
-  then a live, cryptographically-verified identity-provider handshake —
-  the two follow-on capabilities that turn last year's *configuration*
-  screens into this year's *working* integrations.
+  Integrations"** (v1.18.0) and **"Identity Federation"** (`sso-federation`,
+  v1.19.0) close the segment back to back: read-only-by-construction
+  PSA/CRM connectors, then a live, cryptographically-verified SAML 2.0
+  handshake with database-backed replay protection — the two follow-on
+  capabilities that turn last year's *configuration* screens into this
+  year's *working* integrations.
 
 ---
 
@@ -279,13 +282,13 @@ comfortable 150–180 wpm band.
 - **Delivery note:** "read-only by construction" is the headline claim — land it plainly, not defensively. The closing line ("never a raw stack trace") is the payoff, same treatment as the audit-ledger beat before it.
 - **Pacing:** 58 words / 21s ≈ **166 wpm**
 
-#### Beat 17 — `saml-sso-handshake`
-- **Route:** `/ops/identity` · **Duration:** 26s · **Personas:** Admin, Security, Full Tour
-- **Highlight:** — (none — `/ops/identity` shows a tenant picker until `?org=` names one, and this pure, no-DB script can't inject a live `organizationId` into a route)
+#### Beat 17 — `sso-federation`
+- **Route:** `/ops/identity` · **Duration:** 21s · **Personas:** Admin, Security, Full Tour
+- **Highlight:** `#identity-federation-console` — the page's header region (always rendered, tenant-picker or panel view alike; the panel itself needs `?org=`, which this pure, no-DB script can't inject into a route — see the beat's own code comment in `demo-script.ts`)
 - **VO:**
-  > One more piece of that trust story: SAML single sign-on is a live handshake now, not just a saved configuration. The browser redirect, the signature check, the replay protection — all real, all covered by tests that generate an actual signed certificate and try to break it. A tenant's IT team gets three values to paste into their identity provider, and their users get one button: Continue with single sign-on.
-- **Delivery note:** the callback to "External Integrations" is deliberate — "not just a saved configuration" mirrors that beat's "not just... configuration" framing; read it as the second half of one thought, not a new topic. "Continue with single sign-on" is the literal button label — read it as the product's own words, not paraphrased.
-- **Pacing:** 70 words / 26s ≈ **162 wpm**
+  > Enterprise customers don't just want SSO configured — they want to see it actually work. This is Identity Federation: a real SAML 2.0 handshake, with database-backed replay protection so a captured sign-in link can't be reused, and every failure logged here in plain language, not a raw stack trace, so a client's IT team can self-serve the fix.
+- **Delivery note:** structurally the same beat shape as "External Integrations" right before it (a capability's headline claim, then the trust mechanism behind it, then the plain-language failure log payoff) — read the two as a matched pair closing the segment, same register, same confidence.
+- **Pacing:** 58 words / 21s ≈ **166 wpm**
 
 ### Closing (all tracks rejoin here)
 
@@ -306,7 +309,7 @@ the instant `startDemo(persona)` fires) — precise to the second, since
 every beat's duration is a whole number of seconds. Each row's OUT point
 is the next beat's IN point; the route change happens exactly on cue.
 
-### 4.1 Full Platform Tour — 4:16 total, all 18 beats
+### 4.1 Full Platform Tour — 4:11 total, all 18 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
@@ -326,8 +329,8 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 2:50–3:07 | 170–187 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
 | 3:07–3:22 | 187–202 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
 | 3:22–3:43 | 202–223 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
-| 3:43–4:09 | 223–249 | `saml-sso-handshake` | `/ops/identity` | — |
-| 4:09–4:16 | 249–256 | `closing` | `/portfolio` | — |
+| 3:43–4:04 | 223–244 | `sso-federation` | `/ops/identity` | `#identity-federation-console` |
+| 4:04–4:11 | 244–251 | `closing` | `/portfolio` | — |
 
 ### 4.2 Executive Lens — 1:15 total, 7 beats
 
@@ -341,7 +344,7 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 0:52–1:08 | 52–68 | `tenant-isolation` | `/portfolio` | `#global-header` |
 | 1:08–1:15 | 68–75 | `closing` | `/portfolio` | — |
 
-### 4.3 Admin / Ops Lens — 3:59 total, 16 beats
+### 4.3 Admin / Ops Lens — 3:54 total, 16 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
@@ -359,10 +362,10 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 2:33–2:50 | 153–170 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
 | 2:50–3:05 | 170–185 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
 | 3:05–3:26 | 185–206 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
-| 3:26–3:52 | 206–232 | `saml-sso-handshake` | `/ops/identity` | — |
-| 3:52–3:59 | 232–239 | `closing` | `/portfolio` | — |
+| 3:26–3:47 | 206–227 | `sso-federation` | `/ops/identity` | `#identity-federation-console` |
+| 3:47–3:54 | 227–234 | `closing` | `/portfolio` | — |
 
-### 4.4 Security &amp; Trust — 2:46 total, 10 beats
+### 4.4 Security &amp; Trust — 2:41 total, 10 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
@@ -374,8 +377,8 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 1:20–1:37 | 80–97 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
 | 1:37–1:52 | 97–112 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
 | 1:52–2:13 | 112–133 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
-| 2:13–2:39 | 133–159 | `saml-sso-handshake` | `/ops/identity` | — |
-| 2:39–2:46 | 159–166 | `closing` | `/portfolio` | — |
+| 2:13–2:34 | 133–154 | `sso-federation` | `/ops/identity` | `#identity-federation-console` |
+| 2:34–2:41 | 154–161 | `closing` | `/portfolio` | — |
 
 ---
 
@@ -387,7 +390,7 @@ is the next beat's IN point; the route change happens exactly on cue.
   against the *actual* recorded file length and update this document in
   the same change.
 - **Visual highlight:** `CinematicOverlay` renders a soft pulsing glow
-  ring around `activeStep.highlightSelector`'s element. The nine ids in
+  ring around `activeStep.highlightSelector`'s element. The ten ids in
   use are all real, stable elements already in the DOM (see the
   `highlightSelector` doc comment in `demo-script.ts` for the file map).
   A future beat that wants one just sets `highlightSelector` to a real,

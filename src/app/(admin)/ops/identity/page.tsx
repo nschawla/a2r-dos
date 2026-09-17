@@ -35,7 +35,7 @@ export default async function OpsIdentityPage({
 
   return (
     <>
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div id="identity-federation-console" className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-display font-bold">Identity Federation</h1>
           <p className="text-ink-muted text-sm mt-1">
