@@ -209,8 +209,8 @@ export function SteerCoBriefingView({ briefing }: { briefing: SteerCoBriefing })
                           {SEV_LABEL[w.severity] ?? w.severity}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="text-[13px] text-ink font-medium truncate">{w.title}</div>
-                          <div className="text-[11.5px] text-ink-muted exec-muted truncate mt-0.5">
+                          <div className="text-[13px] text-ink font-medium leading-snug">{w.title}</div>
+                          <div className="text-[11.5px] text-ink-muted exec-muted mt-0.5 line-clamp-2">
                             {w.context}
                             {w.owner && <> · owner {w.owner}</>}
                           </div>

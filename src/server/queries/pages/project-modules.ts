@@ -13,13 +13,24 @@ import { getScopedProjectWhere } from '@/lib/scoping';
 import type { OrgContext } from '@/lib/session';
 
 /** Shared "pick an engagement" list — role-scoped, same boundary the
- * module detail pages enforce on write (see project-picker.tsx). */
+ * module detail pages enforce on write (see project-picker.tsx). Carries
+ * `locked` + `auditEntries` so the picker can show the same Green/Amber/Red
+ * health dot as the Portfolio table (getProjectHealth) — before this, five
+ * separate module landings (RAID, Schedule, Audit, Financials, Commercial
+ * Baseline) made a viewer open a project blind to know whether it needed
+ * attention. */
 export async function loadProjectPickerList(context: OrgContext) {
   assertTenantContext(context);
   return tenantDb.project.findMany({
     where: await getScopedProjectWhere(context),
     orderBy: { createdAt: 'desc' },
-    select: { id: true, name: true, client: true },
+    select: {
+      id: true,
+      name: true,
+      client: true,
+      locked: true,
+      auditEntries: { select: { controlKey: true, status: true } },
+    },
   });
 }
 

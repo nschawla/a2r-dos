@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireOrgContext } from '@/lib/session';
 import { getScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
 import { loadPortfolioDashboardExtras, loadDecisionCenterAlerts } from '@/server/queries/pages/dashboards';
+import { getExecutiveTriage } from '@/server/queries/executive-triage';
 import { getProjectHealth } from '@/server/queries/health';
 import { getBlendedUtilization } from '@/server/queries/capacity';
 import { getVisibleCustomKpis, getKpiMetricValues } from '@/server/queries/kpi-data';
@@ -28,7 +29,8 @@ export default async function HomePage() {
   // PRACTICE_DIRECTOR their practice, and so on (see
   // src/lib/db/scoped-portfolio.ts). ADMIN/VP_EXECUTIVE see the full
   // tenant, same as before this WP.
-  const { projects, summary, programRollups } = await getScopedPortfolioSummary(context);
+  const portfolioSummary = await getScopedPortfolioSummary(context);
+  const { projects, summary, programRollups } = portfolioSummary;
   const scopedProjectIds = projects.map((p) => p.id);
   const showMargins = canViewMargins(deliveryRole, governance);
 
@@ -36,22 +38,22 @@ export default async function HomePage() {
   // boundary data, same as the project list. `practiceCount` stays
   // tenant-wide deliberately: a structural fact about the org (how many
   // practice buckets exist), not a roster. See loadPortfolioDashboardExtras.
-  const [{ recentActivity, resourceCount, practiceCount, raidCounts }, utilization, decisionCenterAlerts] =
+  //
+  // Decision Center — the exception-driven "needs attention today" panel.
+  // `getExecutiveTriage` reuses the already-loaded `portfolioSummary` (no
+  // duplicate query) and is the exact same engine + scope as the Command
+  // Center's Executive Action Triage feed, so whichever page a viewer
+  // lands on, "what's flagged and why" never disagrees. Pending decisions
+  // and high-severity RAID are a separate exception type (not every
+  // critical RAID item sits on a Red/over-budget project) — its own query.
+  const [{ recentActivity, resourceCount, practiceCount, raidCounts }, utilization, decisionCenterAlerts, { items: triageItems }] =
     await Promise.all([
       loadPortfolioDashboardExtras(context, scopedProjectIds),
       getBlendedUtilization(organizationId),
       loadDecisionCenterAlerts(context, scopedProjectIds),
+      getExecutiveTriage(context, portfolioSummary),
     ]);
   const openRaidByProject = new Map(raidCounts.map((r) => [r.projectId, r._count._all]));
-
-  // Decision Center — the exception-driven "needs attention today" panel.
-  // Red-health projects come free from the list this page already loaded
-  // (each carries the auditEntries getProjectHealth needs); the decisions
-  // and RAID exceptions are the dedicated query above. All three are
-  // already scoped to this viewer's portfolio.
-  const redProjects = projects
-    .filter((p) => getProjectHealth(p).code === 'R')
-    .map((p) => ({ id: p.id, name: p.name, narrativeBlockers: p.narrativeBlockers }));
 
   // Custom KPI Definition Engine — skip the extra schedule/RAID/capacity
   // queries entirely when the tenant hasn't defined any KPIs, the common
@@ -295,7 +297,7 @@ export default async function HomePage() {
       </div>
 
       <DecisionCenter
-        redProjects={redProjects}
+        triageItems={triageItems}
         pendingDecisions={decisionCenterAlerts.pendingDecisions}
         criticalRaid={decisionCenterAlerts.criticalRaid}
       />

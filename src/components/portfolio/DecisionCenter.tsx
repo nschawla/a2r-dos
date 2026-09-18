@@ -12,15 +12,20 @@
  */
 import Link from 'next/link';
 import type { DecisionAlert, RaidAlert } from '@/server/queries/pages/dashboards';
+import type { TriageItem, TriageDriver } from '@/lib/executive-triage';
 
-export interface RedProject {
-  id: string;
-  name: string;
-  narrativeBlockers: string | null;
-}
+const DRIVER_LABEL: Record<TriageDriver, string> = {
+  'Governance Red': 'Governance',
+  'Over Budget': 'Over Budget',
+  'Behind Schedule': 'Behind Sched.',
+};
 
 export interface DecisionCenterProps {
-  redProjects: RedProject[];
+  /** Red / over-budget / behind-schedule engagements, same engine and
+   * scope as the Command Center's Executive Action Triage feed
+   * (docs/UI_DESIGN_SYSTEM.md §6) — the two pages always agree on which
+   * engagements are flagged and why, whichever one a viewer lands on. */
+  triageItems: TriageItem[];
   pendingDecisions: DecisionAlert[];
   criticalRaid: RaidAlert[];
 }
@@ -81,8 +86,8 @@ function AlertRow({
   );
 }
 
-export function DecisionCenter({ redProjects, pendingDecisions, criticalRaid }: DecisionCenterProps) {
-  const total = redProjects.length + pendingDecisions.length + criticalRaid.length;
+export function DecisionCenter({ triageItems, pendingDecisions, criticalRaid }: DecisionCenterProps) {
+  const total = triageItems.length + pendingDecisions.length + criticalRaid.length;
 
   return (
     <div className="card !border-l-[3px] !border-l-brand">
@@ -104,19 +109,20 @@ export function DecisionCenter({ redProjects, pendingDecisions, criticalRaid }: 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-4 mt-3">
           <div>
             <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
-              Governance behind ({redProjects.length})
+              Red or over budget ({triageItems.length})
             </div>
-            {redProjects.length === 0 ? (
-              <EmptyColumn text="No red engagements." />
+            {triageItems.length === 0 ? (
+              <EmptyColumn text="No red or over-budget engagements." />
             ) : (
               <div>
-                {redProjects.map((p) => (
+                {triageItems.map((item) => (
                   <AlertRow
-                    key={p.id}
-                    href={`/audit/${p.id}`}
-                    title={p.name}
-                    meta={p.narrativeBlockers || 'Review the audit checklist →'}
+                    key={item.projectId}
+                    href={item.driverHref}
+                    title={item.projectName}
+                    meta={[item.cause, item.financialImpact ?? item.scheduleImpact].filter(Boolean).join(' · ')}
                     dot="bg-critical"
+                    badge={{ label: DRIVER_LABEL[item.drivers[0]!], tone: 'critical' }}
                   />
                 ))}
               </div>
