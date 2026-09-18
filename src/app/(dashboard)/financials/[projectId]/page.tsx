@@ -13,6 +13,7 @@ import {
   restrictedNoticeFor,
 } from '@/lib/security/masking';
 import { RestrictedNotice } from '@/components/security/Masked';
+import { ProvenanceStamp } from '@/components/ui/provenance-stamp';
 
 export default async function FinancialsProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { organizationId, deliveryRole, governance, resourceId, resourcePracticeId } = await requireOrgContext();
@@ -64,8 +65,13 @@ export default async function FinancialsProjectPage({ params }: { params: Promis
       />
 
       <div>
-        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
-          Financial Realization · {project.name}
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
+          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">
+            Financial Realization · {project.name}
+          </div>
+          {/* Data Provenance Stamp — minimalist trust signal on a major
+             financial summary (docs/UI_DESIGN_SYSTEM.md §6). */}
+          <ProvenanceStamp at={project.updatedAt} />
         </div>
         <h1 className="text-2xl font-display font-bold">Estimate at Completion (EAC)</h1>
         <p className="text-ink-muted text-sm mt-1 max-w-2xl">

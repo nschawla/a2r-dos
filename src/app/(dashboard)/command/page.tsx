@@ -3,16 +3,19 @@ import { getScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
 import { getBlendedUtilization } from '@/server/queries/capacity';
 import { getNotificationSummary } from '@/server/queries/notifications';
 import { getActiveStream } from '@/server/queries/active-stream';
+import { getExecutiveTriage } from '@/server/queries/executive-triage';
 import { canViewMargins } from '@/lib/security/masking';
 import { compactMoney } from '@/lib/format';
 import { PulseStrip, type PulseVital } from '@/components/command-center/PulseStrip';
 import { ActiveStream } from '@/components/command-center/ActiveStream';
 import { CommandBar } from '@/components/command-center/CommandBar';
+import { ActionTriageFeed } from '@/components/command-center/ActionTriageFeed';
 
 /**
- * The Single-Pane Command Center — venture vitals up top (Pulse), the live
- * chronological stream in the middle, and the universal Command Bar pinned
- * to the bottom. One page, one column, zero board clutter.
+ * The Single-Pane Command Center — the Executive Action Triage feed leads
+ * (docs/UI_DESIGN_SYSTEM.md §6), then venture vitals, the live
+ * chronological stream, and the universal Command Bar pinned to the
+ * bottom. One page, one column, zero board clutter.
  */
 export default async function CommandCenterPage() {
   const context = await requireOrgContext();
@@ -20,12 +23,18 @@ export default async function CommandCenterPage() {
   const isStaff = context.session.user.isA2rStaff === true;
   const showMargins = canViewMargins(deliveryRole, governance);
 
-  const [{ projects, summary }, util, notif, stream] = await Promise.all([
+  const [portfolioSummary, util, notif, stream] = await Promise.all([
     getScopedPortfolioSummary(context),
     getBlendedUtilization(organizationId),
     getNotificationSummary(organizationId),
     getActiveStream(organizationId),
   ]);
+  const { projects, summary } = portfolioSummary;
+
+  // Executive Action Triage (src/lib/executive-triage.ts via
+  // src/server/queries/executive-triage.ts) — reuses the portfolio summary
+  // this page already loaded rather than fetching it twice.
+  const { items: triageItems } = await getExecutiveTriage(context, portfolioSummary);
 
   const attain = util.attainmentPct;
   const riskFlags = notif.raidAlerts.length + notif.paceAlerts.length;
@@ -68,10 +77,11 @@ export default async function CommandCenterPage() {
       <div>
         <h1 className="text-2xl font-display font-bold">Command Center</h1>
         <p className="text-ink-muted text-sm mt-1">
-          Venture vitals, one bar to run the room, and the live stream.
+          What needs a decision today, venture vitals, one bar to run the room, and the live stream.
         </p>
       </div>
 
+      <ActionTriageFeed items={triageItems} />
       <PulseStrip vitals={vitals} />
       <CommandBar projects={projects.map((p) => ({ id: p.id, name: p.name }))} isStaff={isStaff} />
       <ActiveStream events={stream} />

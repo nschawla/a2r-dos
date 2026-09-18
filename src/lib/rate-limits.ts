@@ -37,6 +37,9 @@ export const RATE_LIMITS = {
   PASSWORD_CHANGE: rule('PASSWORD_CHANGE', 5, 10 * MINUTE),
   /** AI document parser — each call is a paid LLM round-trip. */
   DOC_PARSE: rule('DOC_PARSE', 10, MINUTE),
+  /** Executive Agent Q&A — also a paid LLM round-trip; a little more
+   * headroom than DOC_PARSE since it's meant for quick back-and-forth. */
+  EXEC_AGENT: rule('EXEC_AGENT', 15, MINUTE),
   /** Bulk data exports — the portfolio CSV and the per-project JSON snapshot. */
   BULK_EXPORT: rule('BULK_EXPORT', 30, 5 * MINUTE),
   /** Print-ready document generation — SteerCo status deck, audit certificate. */

@@ -331,3 +331,70 @@ staging DB pooler has its own latency issues, documented elsewhere) is
 never second-guessed into an unnecessary hard reload. The common case is
 still a true zero-refresh soft navigation; the fallback is a safety net
 for a real platform defect, not the primary mechanism.
+
+---
+
+## 6. Executive Actionability — Triage Feed, Persona-Aware Agent, Provenance
+
+_A further follow-up, addressing stakeholder feedback on executive
+actionability, persona-driven workflow, and continuous navigation._
+
+### 6.1 The Executive Action Triage feed (`/command`)
+
+`src/lib/executive-triage.ts` is the pure engine: `selectTriageProjects`
+picks every Red-governance or over-budget/behind-schedule project from
+data the Command Center already loaded (no extra query), worst first,
+capped at `TRIAGE_LIMIT`; `buildExecutiveTriage` then synthesizes one
+narrative card per project — Cause / Impact / Owner & Deadline / Required
+Action — from data that **already existed**, not a new schema field:
+
+| Field | Source, in priority order |
+| --- | --- |
+| Cause | `Project.narrativeBlockers` (already a hand-authored red-engagement note) → the top open RAID item's own description → a templated fallback naming the failing dimension |
+| Impact | `actualsCost − bac` (a dollar variance) and/or `computeScheduleSummary(...).worstSlipDays` (schedule engine, `src/lib/calculations/schedule.ts`) — never both invented, only whichever actually applies |
+| Owner & Deadline | The driving RAID item's owner/`targetDate`, falling back to the project's Delivery Manager / Project Manager when no RAID item exists |
+| Required Action | The driving RAID item's own `mitigationPlan` → a templated action naming what an executive needs to do (approve a budget adjustment, approve a timeline extension, review the audit checklist) |
+
+`src/server/queries/executive-triage.ts` is the one place that assembles
+this end to end (scoped project load → flag selection → a *second*, small
+query for schedule phases + open RAID items only for the flagged IDs →
+synthesis) — shared by the Command Center page and the Executive Agent
+(§6.2) below, so both are always reading the exact same computed reality.
+
+### 6.2 The Persona-Aware Executive Agent
+
+A global floating widget (`src/components/assistant/ExecutiveAgentWidget.tsx`,
+mounted once in `(dashboard)/layout.tsx`) → `POST /api/assistant/ask` →
+`src/lib/executive-agent.ts`. Mirrors `src/lib/ai-parser.ts`'s contract
+exactly (same model, same graceful `not-configured` 503 when
+`ANTHROPIC_API_KEY` is unset, same never-throws shape) — the second
+consumer of that pattern, not a new one.
+
+**Grounded, not delegated**: the model never touches the database. Every
+fact it can cite is pre-assembled server-side from the *signed-in user's
+own* RBAC-scoped triage + portfolio summary (§6.1) — the same scoping
+every other portfolio view uses, never a client-supplied scope — and a
+restricted viewer's margin figures are stripped from the context before
+it ever reaches the model, the same masking boundary
+(`src/lib/security/masking.ts`) the rest of the app enforces. The system
+prompt forbids answering from anything else, and the response is a forced
+tool call (`answer_executive_question`), not free text — a citation the
+model returns is only trusted if its `projectId` actually appears in the
+context handed to it; the app supplies the real link itself rather than
+trusting a model-generated href.
+
+### 6.3 Continuous context & navigation
+
+Already solved before this pass, not rebuilt: `ProjectHeader.tsx`'s
+`ModuleNav` (§1.4) already lets a viewer switch between a project's
+Financials / Schedule / RAID / Control Audit / Commercial Baseline
+dimensions without ever bouncing back to the global sidebar. Verified
+unregressed, not reimplemented.
+
+### 6.4 Data Provenance Stamps
+
+`src/components/ui/provenance-stamp.tsx` — a minimalist, honest freshness
+label ("Updated · 14m ago") on the Triage feed's cards and the Financials
+page's summary header. Deliberately reads the real underlying record's
+`updatedAt` rather than fabricating a "synced via connector" event this
+app doesn't actually have.

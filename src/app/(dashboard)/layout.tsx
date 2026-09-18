@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requireOrgContext } from '@/lib/session';
 import { hiddenHrefs } from '@/lib/governance/config';
-import { personaForDeliveryRole } from '@/lib/governance/rbacMatrix';
+import { personaForDeliveryRole, RBAC_MATRIX } from '@/lib/governance/rbacMatrix';
 import { getNotificationSummary } from '@/server/queries/notifications';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -13,6 +13,7 @@ import { PersonaPreviewBar } from '@/components/layout/PersonaPreviewBar';
 import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner';
 import { GraceperiodBanner } from '@/components/layout/GraceperiodBanner';
 import { Container } from '@/components/ui/container';
+import { ExecutiveAgentWidget } from '@/components/assistant/ExecutiveAgentWidget';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { session, organizationId, organizationName, role, deliveryRole, governance, memberships, impersonation } =
@@ -61,6 +62,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </div>
       <HelpDrawer />
+      <ExecutiveAgentWidget personaLabel={RBAC_MATRIX[realRbacPersona].label} />
       <SupportTicketModal
         userName={session.user.name ?? session.user.email ?? 'You'}
         userEmail={session.user.email ?? null}

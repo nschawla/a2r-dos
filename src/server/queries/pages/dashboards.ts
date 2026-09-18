@@ -210,6 +210,45 @@ export async function loadCapacityCockpitData(context: OrgContext, now = new Dat
   return { window: win, resources, holidays, policies, actualsByResource, forecastSlots, activeProjects };
 }
 
+// ── /command — Executive Action Triage feed ──────────────────────────
+//
+// Two-step by design (src/lib/executive-triage.ts#selectTriageProjects
+// picks the flagged project IDs first, pure, from data the page already
+// loaded): this only ever fetches schedule phases and open RAID items for
+// that short flagged list, never the whole scoped portfolio.
+
+export async function loadTriageDrivers(
+  { organizationId }: TenantScoped,
+  projectIds: string[]
+) {
+  assertTenantContext({ organizationId });
+  if (projectIds.length === 0) return { phases: [], raid: [] };
+
+  const [phases, raid] = await Promise.all([
+    tenantDb.schedulePhase.findMany({
+      where: { organizationId, projectId: { in: projectIds } },
+      select: { projectId: true, phaseKey: true, plannedStart: true, plannedEnd: true, actualStart: true, actualEnd: true, pctComplete: true, status: true },
+    }),
+    tenantDb.raidEntry.findMany({
+      where: { organizationId, projectId: { in: projectIds }, status: { not: 'CLOSED' } },
+      select: {
+        projectId: true,
+        title: true,
+        description: true,
+        impact: true,
+        mitigationPlan: true,
+        severity: true,
+        escalate: true,
+        targetDate: true,
+        updatedAt: true,
+        owner: { select: { name: true } },
+      },
+    }),
+  ]);
+
+  return { phases, raid };
+}
+
 // ── /reports (Executive Briefing Hub) ────────────────────────────────
 
 export async function loadReportsHubRows({ organizationId }: TenantScoped) {
