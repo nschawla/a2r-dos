@@ -222,7 +222,12 @@ export const updateControlLabel = withAction('updateControlLabel', async (input:
 async function persistGovernance(
   organizationId: string,
   actorId: string,
-  next: { template: GovernanceTemplateKey; hiddenModules: string[]; maskFinancialsForDelivery: boolean },
+  next: {
+    template: GovernanceTemplateKey;
+    hiddenModules: string[];
+    maskFinancialsForDelivery: boolean;
+    interventionApprovalThresholdUsd: number;
+  },
   op: string
 ): Promise<void> {
   const before = resolveStoredGovernance(
@@ -235,12 +240,14 @@ async function persistGovernance(
       template: next.template,
       hiddenModules: next.hiddenModules,
       maskFinancialsForDelivery: next.maskFinancialsForDelivery,
+      interventionApprovalThresholdUsd: next.interventionApprovalThresholdUsd,
     },
     create: {
       organizationId,
       template: next.template,
       hiddenModules: next.hiddenModules,
       maskFinancialsForDelivery: next.maskFinancialsForDelivery,
+      interventionApprovalThresholdUsd: next.interventionApprovalThresholdUsd,
     },
   });
 
@@ -255,6 +262,7 @@ async function persistGovernance(
         template: before.template,
         hiddenModules: before.hiddenModules,
         maskFinancialsForDelivery: before.maskFinancialsForDelivery,
+        interventionApprovalThresholdUsd: before.interventionApprovalThresholdUsd,
       },
       after: next,
     },
@@ -273,7 +281,13 @@ export const applyGovernanceTemplate = withAction('applyGovernanceTemplate', asy
     return { ok: false, error: 'Unknown compliance template' };
   }
 
-  const resolved = applyTemplate(parsed.data.template);
+  // The intervention-approval threshold is an orthogonal, tenant-set risk
+  // figure — applying a compliance template preserves the tenant's own
+  // current value rather than resetting it.
+  const currentThreshold = resolveStoredGovernance(
+    await db.governanceConfig.findUnique({ where: { organizationId } })
+  ).interventionApprovalThresholdUsd;
+  const resolved = applyTemplate(parsed.data.template, currentThreshold);
   await persistGovernance(
     organizationId,
     userId,
@@ -281,6 +295,7 @@ export const applyGovernanceTemplate = withAction('applyGovernanceTemplate', asy
       template: resolved.template,
       hiddenModules: resolved.hiddenModules,
       maskFinancialsForDelivery: resolved.maskFinancialsForDelivery,
+      interventionApprovalThresholdUsd: resolved.interventionApprovalThresholdUsd,
     },
     `apply-template:${GOVERNANCE_TEMPLATES[parsed.data.template].label}`
   );
@@ -290,6 +305,9 @@ export const applyGovernanceTemplate = withAction('applyGovernanceTemplate', asy
 const governanceOverrideSchema = z.strictObject({
   hiddenModules: z.array(z.string()).max(HIDEABLE_MODULES.length),
   maskFinancialsForDelivery: z.boolean(),
+  // Sanity-bounded: never negative, never so large it becomes a de facto
+  // "approval never required" bypass.
+  interventionApprovalThresholdUsd: z.number().min(0).max(10_000_000),
 });
 
 export const updateGovernanceConfig = withAction('updateGovernanceConfig', async (input: unknown): Promise<ActionResult> => {
@@ -309,6 +327,7 @@ export const updateGovernanceConfig = withAction('updateGovernanceConfig', async
       template: next.template,
       hiddenModules: next.hiddenModules,
       maskFinancialsForDelivery: next.maskFinancialsForDelivery,
+      interventionApprovalThresholdUsd: next.interventionApprovalThresholdUsd,
     },
     'edit-overrides'
   );

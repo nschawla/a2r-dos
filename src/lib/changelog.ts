@@ -36,6 +36,17 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.20.0',
+    date: '2026-09-22',
+    headline: 'PS Orchestration & Decision Engine — Impact-Aware Decision Cards and governed execution',
+    changes: [
+      { type: 'feature', text: 'Every Red or over-budget engagement on the Command Center and the Control Tower\'s Decision Center now shows 2-3 real, commercially viable response options — a Change Order draft, Resource Re-leveling / Skill Swap, Internal Margin Absorption, a Timeline Extension request, or a Governance Remediation Plan, chosen by what actually flagged the engagement — each with its Client Strategic Context and a Portfolio Domino & Trade-off preview: the real margin impact, which other project loses staffing, and the team velocity risk.' },
+      { type: 'feature', text: 'A governance drawer opens on any option: a compliance/guardrail check (SOW type, baseline lock state, approval authority) runs before you can act, and "Submit for Governance Approval & Execute" records the decision, logs it to the Audit Trail and the Immutable Compliance Ledger, and tags the engagement "Intervention Applied" for longitudinal accountability — in one governed step, no separate approval queue.' },
+      { type: 'feature', text: 'The Executive Agent is now a proactive orchestration co-pilot: it leads with how many decisions need your authority, names the real response options for a flagged engagement, and points you to the Decision Card to act — it never executes a decision itself, only guides you to where you can.' },
+      { type: 'improvement', text: 'A new tenant-level Decision Card approval threshold (Admin → Enterprise Governance, default $25,000) decides which options a Project Manager can execute alone versus which need Practice Director, Delivery Manager, or Admin sign-off.' },
+    ],
+  },
+  {
     version: '1.19.0',
     date: '2026-09-16',
     headline: 'Enterprise SAML SSO: a live IdP handshake, not just configuration',

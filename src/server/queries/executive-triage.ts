@@ -18,11 +18,16 @@ import {
   type TriageItem,
   type TriageProjectInput,
   type TriageRaidInput,
+  type FlaggedProject,
 } from '@/lib/executive-triage';
 
 export interface ExecutiveTriageResult {
   items: TriageItem[];
   portfolio: ScopedPortfolioSummary;
+  /** The pre-narrative flagged set — exposed so a caller building the PS
+   * Orchestration decision context (src/server/queries/decision-context.ts)
+   * doesn't have to re-run `selectTriageProjects` itself. */
+  flagged: FlaggedProject[];
 }
 
 /**
@@ -80,5 +85,5 @@ export async function getExecutiveTriage(
   }
 
   const items = buildExecutiveTriage(flagged, phasesByProject, raidByProject);
-  return { items, portfolio };
+  return { items, portfolio, flagged };
 }

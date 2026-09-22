@@ -398,3 +398,29 @@ label ("Updated · 14m ago") on the Triage feed's cards and the Financials
 page's summary header. Deliberately reads the real underlying record's
 `updatedAt` rather than fabricating a "synced via connector" event this
 app doesn't actually have.
+
+## 7. PS Orchestration & Decision Engine — Decision Cards, governed execution
+
+Full detail: `docs/PORTFOLIO_ORCHESTRATION.md`. In UI-system terms:
+
+- `DecisionCard` (`src/components/command-center/DecisionCard.tsx`) is the
+  one card component the Command Center's `ActionTriageFeed` and the
+  Portfolio's `DecisionCenter` both render for the same flagged engagement
+  — upgraded from §6's plain narrative card with a Client Strategic
+  Context badge and a row of 2-3 pill-styled option buttons (rounded-2xl
+  border-2, the same visual language as §5's `PillSelectorRow`, though
+  these are Links-to-an-action rather than a filter toggle so they don't
+  reuse that component directly).
+- Clicking an option opens `InterventionDrawer` — a controlled slide-over
+  following the exact same backdrop/aside structure as
+  `AuditTrailDrawer` (`fixed inset-0 z-[100]`), so the app has exactly one
+  drawer idiom, not two.
+- Portfolio's Decision Center gave its "Red or over budget" column the
+  full `DecisionCard` treatment (not the compact `AlertRow` list every
+  other column still uses) — the richest, most actionable content earns
+  the space; "no cramming" is served by keeping it capped at the existing
+  `TRIAGE_LIMIT` (6), the same cap the Command Center feed already uses.
+- Once an intervention is executed, the card shows a one-line
+  "Intervention Applied · {option} · {who}" stamp with a
+  `ProvenanceStamp` — the same honest-freshness convention as §6.4, not a
+  new one.

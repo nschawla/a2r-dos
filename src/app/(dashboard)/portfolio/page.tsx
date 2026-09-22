@@ -3,8 +3,10 @@ import { requireOrgContext } from '@/lib/session';
 import { getScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
 import { loadPortfolioDashboardExtras, loadDecisionCenterAlerts } from '@/server/queries/pages/dashboards';
 import { getExecutiveTriage } from '@/server/queries/executive-triage';
+import { loadDecisionContext } from '@/server/queries/decision-context';
 import { getProjectHealth } from '@/server/queries/health';
-import { getBlendedUtilization } from '@/server/queries/capacity';
+import { loadCapacityRows } from '@/server/queries/capacity';
+import { blendedSummary } from '@/lib/capacity-engine';
 import { getVisibleCustomKpis, getKpiMetricValues } from '@/server/queries/kpi-data';
 import { personaForDeliveryRole } from '@/lib/governance/rbacMatrix';
 import { DELIVERY_ROLE_LABEL } from '@/lib/auth/rbac';
@@ -46,14 +48,19 @@ export default async function HomePage() {
   // lands on, "what's flagged and why" never disagrees. Pending decisions
   // and high-severity RAID are a separate exception type (not every
   // critical RAID item sits on a Red/over-budget project) — its own query.
-  const [{ recentActivity, resourceCount, practiceCount, raidCounts }, utilization, decisionCenterAlerts, { items: triageItems }] =
+  const [{ recentActivity, resourceCount, practiceCount, raidCounts }, capacityRows, decisionCenterAlerts, { items: triageItems, flagged }] =
     await Promise.all([
       loadPortfolioDashboardExtras(context, scopedProjectIds),
-      getBlendedUtilization(organizationId),
+      loadCapacityRows(organizationId),
       loadDecisionCenterAlerts(context, scopedProjectIds),
       getExecutiveTriage(context, portfolioSummary),
     ]);
+  const utilization = blendedSummary(capacityRows);
   const openRaidByProject = new Map(raidCounts.map((r) => [r.projectId, r._count._all]));
+  // PS Orchestration & Decision Engine — 2-3 real response options + the
+  // portfolio domino preview per flagged engagement. Reuses `capacityRows`
+  // above rather than recomputing them.
+  const decisionContext = await loadDecisionContext(context, flagged, capacityRows);
 
   // Custom KPI Definition Engine — skip the extra schedule/RAID/capacity
   // queries entirely when the tenant hasn't defined any KPIs, the common
@@ -298,6 +305,8 @@ export default async function HomePage() {
 
       <DecisionCenter
         triageItems={triageItems}
+        decisionContext={decisionContext}
+        viewer={{ deliveryRole, approvalThresholdUsd: governance.interventionApprovalThresholdUsd }}
         pendingDecisions={decisionCenterAlerts.pendingDecisions}
         criticalRaid={decisionCenterAlerts.criticalRaid}
       />

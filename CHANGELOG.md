@@ -10,6 +10,37 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.20.0] — 2026-09-22
+
+_PS Orchestration & Decision Engine — Impact-Aware Decision Cards and governed execution._
+
+### Added
+
+- **Impact-Aware Decision Cards** — every Red or over-budget engagement on the Command Center and the Control
+  Tower's Decision Center shows 2-3 real, commercially viable response options (Change Order draft, Resource
+  Re-leveling / Skill Swap, Internal Margin Absorption, Timeline Extension, Scope Descope, or Governance
+  Remediation — chosen by what actually flagged the engagement), each with its Client Strategic Context and a
+  Portfolio Domino & Trade-off preview computed from real data (real headroom, real donor-project hours, real
+  $ variance) — never fabricated. See `docs/PORTFOLIO_ORCHESTRATION.md`.
+- **Governed, single-step execution** — a new drawer runs a compliance/guardrail check (SOW type, baseline lock
+  state, tenant-configurable approval threshold) before any option can be executed. Submitting records a
+  `PortfolioIntervention`, logs it to the Audit Trail and the Immutable Compliance Ledger, and tags the
+  engagement "Intervention Applied."
+- **Orchestration Co-Pilot** — the Executive Agent now leads with how many decisions need the reader's
+  authority and names real response options, but never executes one itself — only the guardrail-checked
+  drawer can change state.
+- New tenant-level **Decision Card approval threshold** (Admin → Enterprise Governance, default $25,000).
+
+### Changed
+
+- Five module landing pages (RAID, Schedule, Audit, Financials, Commercial Baseline) now show a health dot and
+  sort Red-first, so a viewer can tell which engagement needs them before opening it.
+- The Portfolio Decision Center's "Red or over budget" column runs on the same triage engine as the Command
+  Center (Governance Red / Over Budget / Behind Schedule, not audit-health alone) so the two pages never
+  disagree about what's flagged.
+
+---
+
 ## [1.19.0] — 2026-09-16
 
 _Enterprise SAML SSO: a live IdP handshake, not just configuration._

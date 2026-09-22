@@ -71,12 +71,18 @@ export interface ResolvedGovernanceConfig {
   /** Layer-2 tightening: scrub margins / EAC for Practice Director and
    * below, on top of the standard role-based masking. */
   maskFinancialsForDelivery: boolean;
+  /** PS Orchestration & Decision Engine (v1.20.0) — a Decision Card option
+   * whose financial impact exceeds this figure needs `project:approve`
+   * authority to execute (src/lib/decision-governance.ts). Tenant-set, not
+   * a hardcoded constant, so a tenant's own risk appetite governs it. */
+  interventionApprovalThresholdUsd: number;
 }
 
 export const DEFAULT_GOVERNANCE: ResolvedGovernanceConfig = {
   template: 'STANDARD',
   hiddenModules: [],
   maskFinancialsForDelivery: false,
+  interventionApprovalThresholdUsd: 25_000,
 };
 
 // ───────────────────────────────────────────────────────── templates
@@ -176,12 +182,16 @@ export function detectTemplate(input: {
 }
 
 /** The full resolved config for a template. */
-export function applyTemplate(key: Exclude<GovernanceTemplateKey, 'CUSTOM'>): ResolvedGovernanceConfig {
+export function applyTemplate(
+  key: Exclude<GovernanceTemplateKey, 'CUSTOM'>,
+  interventionApprovalThresholdUsd = DEFAULT_GOVERNANCE.interventionApprovalThresholdUsd
+): ResolvedGovernanceConfig {
   const t = GOVERNANCE_TEMPLATES[key];
   return {
     template: key,
     hiddenModules: sanitizeHidden(t.hiddenModules),
     maskFinancialsForDelivery: t.maskFinancialsForDelivery,
+    interventionApprovalThresholdUsd,
   };
 }
 
@@ -196,6 +206,9 @@ export function resolveStoredGovernance(
         template?: string | null;
         hiddenModules?: readonly string[] | null;
         maskFinancialsForDelivery?: boolean | null;
+        /** Prisma Decimal, a numeric string, or a plain number — accepted
+         * loosely so callers don't have to pre-convert the DB's Decimal. */
+        interventionApprovalThresholdUsd?: { toString(): string } | number | string | null;
       }
     | null
     | undefined
@@ -203,10 +216,18 @@ export function resolveStoredGovernance(
   if (!row) return DEFAULT_GOVERNANCE;
   const hiddenModules = sanitizeHidden(row.hiddenModules);
   const maskFinancialsForDelivery = row.maskFinancialsForDelivery === true;
+  const parsedThreshold =
+    row.interventionApprovalThresholdUsd !== null && row.interventionApprovalThresholdUsd !== undefined
+      ? Number(row.interventionApprovalThresholdUsd)
+      : NaN;
+  const interventionApprovalThresholdUsd = Number.isFinite(parsedThreshold)
+    ? parsedThreshold
+    : DEFAULT_GOVERNANCE.interventionApprovalThresholdUsd;
   return {
     template: detectTemplate({ hiddenModules, maskFinancialsForDelivery }),
     hiddenModules,
     maskFinancialsForDelivery,
+    interventionApprovalThresholdUsd,
   };
 }
 
@@ -214,15 +235,22 @@ export function resolveStoredGovernance(
  * template label. Core keys / unknown keys in `hiddenModules` are dropped. */
 export function withOverrides(
   base: ResolvedGovernanceConfig,
-  patch: { hiddenModules?: readonly string[]; maskFinancialsForDelivery?: boolean }
+  patch: {
+    hiddenModules?: readonly string[];
+    maskFinancialsForDelivery?: boolean;
+    interventionApprovalThresholdUsd?: number;
+  }
 ): ResolvedGovernanceConfig {
   const hiddenModules = sanitizeHidden(patch.hiddenModules ?? base.hiddenModules);
   const maskFinancialsForDelivery =
     patch.maskFinancialsForDelivery ?? base.maskFinancialsForDelivery;
+  const interventionApprovalThresholdUsd =
+    patch.interventionApprovalThresholdUsd ?? base.interventionApprovalThresholdUsd;
   return {
     template: detectTemplate({ hiddenModules, maskFinancialsForDelivery }),
     hiddenModules,
     maskFinancialsForDelivery,
+    interventionApprovalThresholdUsd,
   };
 }
 

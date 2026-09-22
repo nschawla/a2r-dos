@@ -41,7 +41,10 @@ export type AuditAction =
   // batch is itself an operational signal worth having in the trail.
   | 'BATCH_IMPORT_STAGED'
   | 'BATCH_IMPORT_COMMITTED'
-  | 'BATCH_IMPORT_DISCARDED';
+  | 'BATCH_IMPORT_DISCARDED'
+  // PS Orchestration & Decision Engine (v1.20.0) — a Decision Card option
+  // was submitted and passed its guardrail check.
+  | 'INTERVENTION_EXECUTED';
 
 export type AuditEntityType = 'PROJECT' | 'FINANCIAL_ACTUAL' | 'RAID_ENTRY' | 'AUDIT_ENTRY' | 'INGESTION' | 'WORKSPACE' | 'DATA_IMPORT_BATCH';
 

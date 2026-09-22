@@ -425,6 +425,9 @@ model Organization {
   samlAuthRequests SamlAuthRequest[]
   ssoLoginErrors   SsoLoginError[]
 
+  // PS Orchestration & Decision Engine (v1.20.0).
+  portfolioInterventions PortfolioIntervention[]
+
   @@map("organizations")
 }
 
@@ -514,6 +517,12 @@ model GovernanceConfig {
   // Practice Director / Delivery Manager / Project Manager), on top of the
   // standard role-based masking in src/lib/security/masking.ts.
   maskFinancialsForDelivery Boolean            @default(false)
+  // PS Orchestration & Decision Engine (v1.20.0) — a Decision Card option
+  // whose financial impact exceeds this figure requires `project:approve`
+  // authority (VP Executive/Admin) to execute, not just base project-edit
+  // authority. Tenant-configurable per the org's own risk appetite rather
+  // than a hardcoded constant. See src/lib/decision-governance.ts.
+  interventionApprovalThresholdUsd Decimal     @default(25000) @db.Decimal(14, 2)
   updatedAt                 DateTime           @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -822,6 +831,9 @@ model Resource {
   // Capacity foundation — weekly forecast/actual assignment slots.
   weeklySlots      WeeklyAssignmentSlot[]
   timesheetEntries TimesheetEntry[]
+  // PS Orchestration & Decision Engine (v1.20.0) — interventions this
+  // resource personally executed.
+  decidedInterventions PortfolioIntervention[]
 
   @@unique([organizationId, userId])
   @@unique([organizationId, id])
@@ -960,6 +972,13 @@ enum GovProfile {
   MARQUEE
 }
 
+// PS Orchestration & Decision Engine (v1.20.0) — the account's strategic
+// weight, an explicit business call rather than a $-derived heuristic.
+enum ClientTier {
+  STRATEGIC
+  STANDARD
+}
+
 enum EstimationMode {
   MATRIX
   DIRECT
@@ -977,6 +996,11 @@ model Project {
   name           String
   client         String?
   externalId     String?
+  // PS Orchestration & Decision Engine (v1.20.0) — an explicit business
+  // classification (who the account is, not a derived $ threshold), set by
+  // an Admin/PD the same way govProfile is — surfaces as the "Client
+  // Strategic Context" on a Decision Card.
+  clientTier     ClientTier      @default(STANDARD)
 
   commercialModel CommercialModel @default(FF)
   methodology     Methodology     @default(WATERFALL)
@@ -1065,6 +1089,9 @@ model Project {
   // Capacity foundation — weekly forecast/actual assignment slots.
   weeklySlots      WeeklyAssignmentSlot[]
   timesheetEntries TimesheetEntry[]
+  // PS Orchestration & Decision Engine (v1.20.0) — executed Decision Card
+  // options for this project.
+  portfolioInterventions PortfolioIntervention[]
 
   // P0-3 — composite-FK target. Lets every project-scoped child model carry
   // a FOREIGN KEY (organizationId, projectId) → projects(organizationId, id),
@@ -1654,6 +1681,54 @@ model SteerCoDecision {
   @@index([projectId])
   @@index([organizationId])
   @@map("steerco_decisions")
+}
+
+// =========================================================
+// PS Orchestration & Decision Engine (v1.20.0)
+// =========================================================
+// One executed Decision Card option (src/lib/decision-options.ts) for a
+// flagged (Red/over-budget/behind-schedule) engagement. There is no
+// "pending" status here by design — the governance action button is a
+// single-step execute (guardrail + RBAC/$-threshold check, then commit):
+// a row is only ever written once src/server/actions/portfolio-interventions.ts
+// has re-verified the guardrail server-side, so a row's mere existence *is*
+// "an intervention was applied." `domino` is a plain-data snapshot of the
+// trade-off preview the deciding user actually saw, kept for audit replay
+// even if the live capacity picture later changes.
+model PortfolioIntervention {
+  id             String  @id @default(cuid())
+  organizationId String
+  projectId      String
+  // Snapshot of the TriageDriver(s) active on the project at decision time
+  // (src/lib/executive-triage.ts) — comma-joined, e.g. "Over Budget".
+  driver         String
+  // One of src/lib/decision-options.ts's OptionKey values.
+  optionKey      String
+  optionLabel    String
+  // The option's summary plus any free-text note the deciding user added.
+  rationale      String  @db.Text
+  // Plain-data snapshot of the DecisionOption's DominoImpact shown at
+  // decision time (margin delta, affected project, velocity risk).
+  domino         Json
+  guardrailPassed Boolean
+  guardrailNotes  String  @db.Text
+  // Financial precision (v1.11.0 convention) — null when the driver carried
+  // no dollar figure (e.g. a pure Governance Red / schedule-only decision).
+  financialImpactUsd Decimal? @db.Decimal(14, 2)
+  decidedById    String?
+  // Snapshotted so the record stays legible even if the resource is later
+  // removed from the roster (decidedById is NoAction/nullable on delete).
+  decidedByName  String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project      Project      @relation(fields: [organizationId, projectId], references: [organizationId, id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  decidedBy    Resource?    @relation(fields: [organizationId, decidedById], references: [organizationId, id], onDelete: NoAction)
+
+  @@index([projectId])
+  @@index([organizationId])
+  @@map("portfolio_interventions")
 }
 
 // =========================================================

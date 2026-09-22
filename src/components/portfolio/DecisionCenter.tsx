@@ -9,16 +9,21 @@
  * — a Project Manager's card is short because their scope is small, a
  * Practice Director's or Admin's reflects their wider one. Nothing here
  * gates access; it is a curated read on data the viewer can already see.
+ *
+ * PS Orchestration & Decision Engine (docs/PORTFOLIO_ORCHESTRATION.md) — the
+ * Red/over-budget/behind-schedule set now renders as full Impact-Aware
+ * Decision Cards (the same component the Command Center uses), not a
+ * one-line alert row: this is the richest, most actionable content in the
+ * panel and earns the space. Pending decisions and high-severity RAID —
+ * a different, narrower exception type not every one of which sits on a
+ * flagged project — stay in their existing compact strip beneath it.
  */
 import Link from 'next/link';
+import { DecisionCard } from '@/components/command-center/DecisionCard';
+import type { InterventionDrawerContext } from '@/components/command-center/InterventionDrawer';
 import type { DecisionAlert, RaidAlert } from '@/server/queries/pages/dashboards';
-import type { TriageItem, TriageDriver } from '@/lib/executive-triage';
-
-const DRIVER_LABEL: Record<TriageDriver, string> = {
-  'Governance Red': 'Governance',
-  'Over Budget': 'Over Budget',
-  'Behind Schedule': 'Behind Sched.',
-};
+import type { TriageItem } from '@/lib/executive-triage';
+import type { DecisionContextEntry } from '@/server/queries/decision-context';
 
 export interface DecisionCenterProps {
   /** Red / over-budget / behind-schedule engagements, same engine and
@@ -26,6 +31,8 @@ export interface DecisionCenterProps {
    * (docs/UI_DESIGN_SYSTEM.md §6) — the two pages always agree on which
    * engagements are flagged and why, whichever one a viewer lands on. */
   triageItems: TriageItem[];
+  decisionContext: Map<string, DecisionContextEntry>;
+  viewer: Pick<InterventionDrawerContext, 'deliveryRole' | 'approvalThresholdUsd'>;
   pendingDecisions: DecisionAlert[];
   criticalRaid: RaidAlert[];
 }
@@ -46,32 +53,23 @@ function AlertRow({
   meta,
   overdue,
   badge,
-  dot,
 }: {
   href: string;
   title: string;
   meta: string | null;
   overdue?: boolean;
   badge?: { label: string; tone: 'critical' | 'warning' };
-  /** A status dot before the title, matching the health-dot convention
-   * used everywhere else in the Control Tower (bg-critical/bg-warning). */
-  dot?: string;
 }) {
   return (
     <Link
       href={href}
       className="flex items-start justify-between gap-3 py-2 border-b border-border/60 last:border-0 hover:bg-surface-2 -mx-1 px-1 rounded-sm transition-colors"
     >
-      <div className="min-w-0 flex items-start gap-2">
-        {dot && <span className={`status-dot ${dot} mt-1.5 flex-none`} />}
-        <div className="min-w-0">
-          <div className="text-[13px] font-semibold text-ink leading-snug truncate">{title}</div>
-          {meta && (
-            <div className={`text-[11px] mt-0.5 ${overdue ? 'text-critical font-semibold' : 'text-ink-faint'}`}>
-              {meta}
-            </div>
-          )}
-        </div>
+      <div className="min-w-0">
+        <div className="text-[13px] font-semibold text-ink leading-snug truncate">{title}</div>
+        {meta && (
+          <div className={`text-[11px] mt-0.5 ${overdue ? 'text-critical font-semibold' : 'text-ink-faint'}`}>{meta}</div>
+        )}
       </div>
       {badge && (
         <span
@@ -86,49 +84,34 @@ function AlertRow({
   );
 }
 
-export function DecisionCenter({ triageItems, pendingDecisions, criticalRaid }: DecisionCenterProps) {
+export function DecisionCenter({ triageItems, decisionContext, viewer, pendingDecisions, criticalRaid }: DecisionCenterProps) {
   const total = triageItems.length + pendingDecisions.length + criticalRaid.length;
 
   return (
-    <div className="card !border-l-[3px] !border-l-brand">
-      <div className="flex items-start justify-between gap-3 flex-wrap mb-1">
-        <div>
-          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Decision Center</div>
-          <h2 className="text-[16.5px] font-bold leading-tight">
-            {total === 0 ? 'Nothing needs your attention right now' : `${total} item${total === 1 ? '' : 's'} need your attention today`}
-          </h2>
-        </div>
+    <div className="flex flex-col gap-4">
+      <div className="card !border-l-[3px] !border-l-brand">
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Decision Center</div>
+        <h2 className="text-[16.5px] font-bold leading-tight">
+          {total === 0 ? 'Nothing needs your attention right now' : `${total} item${total === 1 ? '' : 's'} need your attention today`}
+        </h2>
+        {total === 0 && (
+          <p className="text-[12.5px] text-ink-muted mt-2">
+            No red engagements, no open decisions, and no high-severity RAID open in your scope. The full portfolio is
+            below.
+          </p>
+        )}
       </div>
 
-      {total === 0 ? (
-        <p className="text-[12.5px] text-ink-muted mt-2">
-          No red engagements, no open decisions, and no high-severity RAID open in your scope. The full portfolio is
-          below.
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6 gap-y-4 mt-3">
-          <div>
-            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
-              Red or over budget ({triageItems.length})
-            </div>
-            {triageItems.length === 0 ? (
-              <EmptyColumn text="No red or over-budget engagements." />
-            ) : (
-              <div>
-                {triageItems.map((item) => (
-                  <AlertRow
-                    key={item.projectId}
-                    href={item.driverHref}
-                    title={item.projectName}
-                    meta={[item.cause, item.financialImpact ?? item.scheduleImpact].filter(Boolean).join(' · ')}
-                    dot="bg-critical"
-                    badge={{ label: DRIVER_LABEL[item.drivers[0]!], tone: 'critical' }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+      {triageItems.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {triageItems.map((item) => (
+            <DecisionCard key={item.projectId} item={item} decision={decisionContext.get(item.projectId)} viewer={viewer} />
+          ))}
+        </div>
+      )}
 
+      {(pendingDecisions.length > 0 || criticalRaid.length > 0) && (
+        <div className="card grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
           <div>
             <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">
               Pending decisions ({pendingDecisions.length})

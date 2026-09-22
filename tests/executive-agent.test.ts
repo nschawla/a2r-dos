@@ -19,6 +19,7 @@ import {
   ASK_AGENT_TOOL,
   type AgentPersonaContext,
   type AgentPortfolioContext,
+  type AgentDecisionSummary,
   type AskAgentInput,
 } from '../src/lib/executive-agent';
 import type { TriageItem } from '../src/lib/executive-triage';
@@ -53,12 +54,22 @@ const triageItem: TriageItem = {
   lastUpdated: '2026-09-15T00:00:00.000Z',
 };
 
+const decisionSummary: AgentDecisionSummary = {
+  projectId: 'proj-1',
+  options: [
+    { label: 'Generate Change Order Draft', summary: 'Draft a change order to recover $45,000 from the client.' },
+    { label: 'Internal Margin Absorption', summary: 'Absorb $45,000 into delivery margin.' },
+  ],
+  lastIntervention: null,
+};
+
 function baseInput(overrides: Partial<AskAgentInput> = {}): AskAgentInput {
   return {
     question: 'Why is Claims Automation Pilot over budget?',
     persona,
     portfolio,
     triage: [triageItem],
+    decisions: [decisionSummary],
     otherProjectNames: ['Field Service Mobile App'],
     ...overrides,
   };
@@ -100,6 +111,35 @@ describe('buildAgentUserPrompt', () => {
     expect(prompt).toContain('$45,000 over budget');
     expect(prompt).toContain('Sarah M.');
     expect(prompt).toContain('Approve a budget adjustment.');
+  });
+
+  it('names a flagged item\'s real decision options when it has none applied yet', () => {
+    const prompt = buildAgentUserPrompt(baseInput());
+    expect(prompt).toContain('Generate Change Order Draft');
+    expect(prompt).toContain('Internal Margin Absorption');
+  });
+
+  it('states an already-decided item\'s outcome instead of its options', () => {
+    const decided: AgentDecisionSummary = {
+      ...decisionSummary,
+      lastIntervention: { optionLabel: 'Generate Change Order Draft', when: '2026-09-16T00:00:00.000Z' },
+    };
+    const prompt = buildAgentUserPrompt(baseInput({ decisions: [decided] }));
+    expect(prompt).toMatch(/Already decided.*Generate Change Order Draft/);
+  });
+
+  it('counts flagged-but-undecided items into a pending-authority headline', () => {
+    const prompt = buildAgentUserPrompt(baseInput());
+    expect(prompt).toContain('1 decision(s) currently require your authority');
+  });
+
+  it('does not count an already-decided item toward the pending-authority headline', () => {
+    const decided: AgentDecisionSummary = {
+      ...decisionSummary,
+      lastIntervention: { optionLabel: 'Generate Change Order Draft', when: '2026-09-16T00:00:00.000Z' },
+    };
+    const prompt = buildAgentUserPrompt(baseInput({ decisions: [decided] }));
+    expect(prompt).toContain('0 decision(s) currently require your authority');
   });
 
   it('lists other in-scope engagements so a question about a healthy project is still grounded', () => {

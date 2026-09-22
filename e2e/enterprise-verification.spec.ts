@@ -349,6 +349,55 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
+// Suite K — PS Orchestration & Decision Engine
+// ────────────────────────────────────────────────────────────────────────────
+test.describe('Suite K — PS Orchestration & Decision Engine', () => {
+  test('K1 · a Decision Card option opens the governance drawer, shows the guardrail + domino preview, and executes', async () => {
+    await page.goto('/command');
+    await expectNoErrorOverlay(page);
+
+    const cards = page.locator('.card:has-text("Commercially Viable Options"), .card:has-text("Take another action")');
+    const cardCount = await cards.count();
+    test.skip(cardCount === 0, 'No Red/over-budget engagement with a real response option in this seed state.');
+
+    const card = cards.first();
+    // Avoid the Change Order option — it's guardrail-blocked on an unlocked
+    // baseline, which this test can't guarantee either way for whichever
+    // project happens to be flagged; every other option is unconditionally
+    // executable for the master admin (full project:approve authority).
+    const optionButtons = card.locator('button');
+    const optionCount = await optionButtons.count();
+    let target = optionButtons.first();
+    for (let i = 0; i < optionCount; i++) {
+      const label = (await optionButtons.nth(i).textContent()) ?? '';
+      if (!/change order/i.test(label)) {
+        target = optionButtons.nth(i);
+        break;
+      }
+    }
+    const optionLabel = ((await target.textContent()) ?? '').trim();
+    await target.click();
+
+    const drawer = page.getByRole('dialog', { name: 'Governance decision' });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText('Compliance / Guardrail Check')).toBeVisible();
+    await expect(drawer.getByText('Portfolio Domino & Trade-off')).toBeVisible();
+
+    const executeButton = drawer.getByRole('button', { name: 'Submit for Governance Approval & Execute' });
+    await expect(executeButton).toBeEnabled();
+    await executeButton.click();
+
+    await expect(drawer.getByText('Intervention executed')).toBeVisible({ timeout: 15_000 });
+    await expectNoErrorOverlay(page);
+
+    // Close and reload — the card now carries the "Intervention Applied" badge.
+    await drawer.getByRole('button', { name: 'Close' }).click();
+    await page.reload();
+    await expect(page.getByText(new RegExp(`Intervention Applied.*${optionLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))).toBeVisible();
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
 // Suite D — A2R Ops Console
 // ────────────────────────────────────────────────────────────────────────────
 test.describe('Suite D — A2R Ops Console', () => {

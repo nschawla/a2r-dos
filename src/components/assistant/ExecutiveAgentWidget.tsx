@@ -34,8 +34,9 @@ interface AskResponse {
 }
 
 const PROMPT_CHIPS = [
-  'What needs my attention today?',
+  'What needs my authority today?',
   'Why is my most at-risk engagement over budget?',
+  'What are my options for fixing it?',
   'Show me the evidence / audit trail.',
 ];
 

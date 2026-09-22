@@ -1,9 +1,11 @@
 import { requireOrgContext } from '@/lib/session';
 import { getScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
-import { getBlendedUtilization } from '@/server/queries/capacity';
+import { loadCapacityRows } from '@/server/queries/capacity';
+import { blendedSummary } from '@/lib/capacity-engine';
 import { getNotificationSummary } from '@/server/queries/notifications';
 import { getActiveStream } from '@/server/queries/active-stream';
 import { getExecutiveTriage } from '@/server/queries/executive-triage';
+import { loadDecisionContext } from '@/server/queries/decision-context';
 import { canViewMargins } from '@/lib/security/masking';
 import { compactMoney } from '@/lib/format';
 import { PulseStrip, type PulseVital } from '@/components/command-center/PulseStrip';
@@ -23,18 +25,27 @@ export default async function CommandCenterPage() {
   const isStaff = context.session.user.isA2rStaff === true;
   const showMargins = canViewMargins(deliveryRole, governance);
 
-  const [portfolioSummary, util, notif, stream] = await Promise.all([
+  // `loadCapacityRows` (not the higher-level getBlendedUtilization) so the
+  // PS Orchestration & Decision Engine's resource-swap search below can
+  // reuse the exact same rows instead of the org's capacity being computed
+  // twice in one request.
+  const [portfolioSummary, capacityRows, notif, stream] = await Promise.all([
     getScopedPortfolioSummary(context),
-    getBlendedUtilization(organizationId),
+    loadCapacityRows(organizationId),
     getNotificationSummary(organizationId),
     getActiveStream(organizationId),
   ]);
+  const util = blendedSummary(capacityRows);
   const { projects, summary } = portfolioSummary;
 
   // Executive Action Triage (src/lib/executive-triage.ts via
   // src/server/queries/executive-triage.ts) — reuses the portfolio summary
   // this page already loaded rather than fetching it twice.
-  const { items: triageItems } = await getExecutiveTriage(context, portfolioSummary);
+  const { items: triageItems, flagged } = await getExecutiveTriage(context, portfolioSummary);
+  // PS Orchestration & Decision Engine — 2-3 real response options + the
+  // portfolio domino preview per flagged engagement. Reuses `capacityRows`
+  // above rather than recomputing them.
+  const decisionContext = await loadDecisionContext(context, flagged, capacityRows);
 
   const attain = util.attainmentPct;
   const riskFlags = notif.raidAlerts.length + notif.paceAlerts.length;
@@ -81,7 +92,11 @@ export default async function CommandCenterPage() {
         </p>
       </div>
 
-      <ActionTriageFeed items={triageItems} />
+      <ActionTriageFeed
+        items={triageItems}
+        decisionContext={decisionContext}
+        viewer={{ deliveryRole, approvalThresholdUsd: governance.interventionApprovalThresholdUsd }}
+      />
       <PulseStrip vitals={vitals} />
       <CommandBar projects={projects.map((p) => ({ id: p.id, name: p.name }))} isStaff={isStaff} />
       <ActiveStream events={stream} />

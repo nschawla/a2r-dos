@@ -543,12 +543,18 @@ export function GovernancePanel({
   const { busy, error, run } = useBusyAction();
   const [hidden, setHidden] = useState<string[]>(config.hiddenModules);
   const [maskDelivery, setMaskDelivery] = useState(config.maskFinancialsForDelivery);
+  // PS Orchestration & Decision Engine — kept as a string while editing so a
+  // user can clear the field mid-edit without it snapping to 0.
+  const [thresholdInput, setThresholdInput] = useState(String(config.interventionApprovalThresholdUsd));
+  const parsedThreshold = Number(thresholdInput);
+  const thresholdValid = thresholdInput.trim() !== '' && Number.isFinite(parsedThreshold) && parsedThreshold >= 0;
 
   const detected = detectTemplate({ hiddenModules: hidden, maskFinancialsForDelivery: maskDelivery });
   const dirty =
     maskDelivery !== config.maskFinancialsForDelivery ||
     hidden.length !== config.hiddenModules.length ||
-    hidden.some((k) => !config.hiddenModules.includes(k));
+    hidden.some((k) => !config.hiddenModules.includes(k)) ||
+    (thresholdValid && parsedThreshold !== config.interventionApprovalThresholdUsd);
 
   function toggleModule(key: string) {
     if (!canEdit) return;
@@ -571,8 +577,14 @@ export function GovernancePanel({
   }
 
   async function saveOverrides() {
+    if (!thresholdValid) return;
     await run(
-      () => updateGovernanceConfig({ hiddenModules: hidden, maskFinancialsForDelivery: maskDelivery }),
+      () =>
+        updateGovernanceConfig({
+          hiddenModules: hidden,
+          maskFinancialsForDelivery: maskDelivery,
+          interventionApprovalThresholdUsd: parsedThreshold,
+        }),
       { success: 'Governance configuration saved', errorTitle: 'Couldn’t save configuration' }
     );
   }
@@ -703,12 +715,36 @@ export function GovernancePanel({
           </button>
         </div>
 
+        <div className="mt-4">
+          <div className="text-[12px] font-semibold mb-1.5">Decision Card approval threshold</div>
+          <p className="text-[11.5px] text-ink-faint leading-snug mb-2">
+            A Decision Card option (docs/PORTFOLIO_ORCHESTRATION.md) whose financial impact exceeds this figure
+            requires Practice Director, Delivery Manager, or Admin approval authority to execute — a Project
+            Manager can self-execute anything under it.
+          </p>
+          <div className="flex items-center gap-2 max-w-xs">
+            <span className="text-ink-faint text-sm">$</span>
+            <input
+              type="number"
+              min={0}
+              step={1000}
+              disabled={!canEdit || busy}
+              value={thresholdInput}
+              onChange={(e) => setThresholdInput(e.target.value)}
+              className="w-full rounded-sm border border-border bg-surface-1 px-3 py-2 text-sm tabular-nums disabled:opacity-60"
+            />
+          </div>
+          {!thresholdValid && (
+            <p className="text-[11.5px] text-critical mt-1">Enter a threshold of $0 or more.</p>
+          )}
+        </div>
+
         {canEdit && (
           <div className="mt-4 flex items-center gap-3">
             <button
               type="button"
               className="btn-secondary !w-auto px-5"
-              disabled={busy || !dirty}
+              disabled={busy || !dirty || !thresholdValid}
               onClick={saveOverrides}
             >
               {busy ? 'Saving…' : 'Save configuration'}

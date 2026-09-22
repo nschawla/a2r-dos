@@ -27,10 +27,18 @@ import { RATE_LIMITS } from '@/lib/rate-limits';
 import { captureException } from '@/lib/observability';
 import { withRouteHandler } from '@/lib/observability/route-wrapper';
 import { getExecutiveTriage } from '@/server/queries/executive-triage';
+import { loadDecisionContext } from '@/server/queries/decision-context';
 import { getBlendedUtilization } from '@/server/queries/capacity';
 import { canViewMargins } from '@/lib/security/masking';
 import { personaForDeliveryRole, RBAC_MATRIX } from '@/lib/governance/rbacMatrix';
-import { askExecutiveAgent, type AskAgentErrorCode } from '@/lib/executive-agent';
+import { askExecutiveAgent, type AskAgentErrorCode, type AgentDecisionSummary } from '@/lib/executive-agent';
+
+/** Dollar-bearing options — omitted from the agent's context for a viewer
+ * who can't see margins, the same boundary canViewMargins already enforces
+ * on the triage narrative's own `financialImpact` field below. Non-dollar
+ * options (a resource swap in hours, a timeline ask, governance
+ * remediation) carry no restricted figure and stay in either way. */
+const DOLLAR_OPTION_KEYS = new Set(['change_order', 'margin_absorption']);
 
 /** LLM round-trips can take a while — lift the platform's default. */
 export const maxDuration = 30;
@@ -110,12 +118,30 @@ export const POST = withRouteHandler('assistant-ask', async (request: Request) =
     const { deliveryRole, governance, organizationName, organizationId } = context;
     const showMargins = canViewMargins(deliveryRole, governance);
 
-    const [{ items: triage, portfolio }, util] = await Promise.all([
+    const [{ items: triage, portfolio, flagged }, util] = await Promise.all([
       getExecutiveTriage(context),
       getBlendedUtilization(organizationId),
     ]);
     const flaggedIds = new Set(triage.map((t) => t.projectId));
     const otherProjectNames = portfolio.projects.filter((p) => !flaggedIds.has(p.id)).map((p) => p.name);
+
+    // PS Orchestration & Decision Engine — the same real options + domino
+    // preview each item's Decision Card shows, so the agent can name and
+    // guide toward them rather than inventing generic advice.
+    const decisionContextMap = await loadDecisionContext(context, flagged);
+    const decisions: AgentDecisionSummary[] = triage.map((item) => {
+      const decision = decisionContextMap.get(item.projectId);
+      const options = (decision?.options ?? [])
+        .filter((o) => showMargins || !DOLLAR_OPTION_KEYS.has(o.key))
+        .map((o) => ({ label: o.label, summary: o.summary }));
+      return {
+        projectId: item.projectId,
+        options,
+        lastIntervention: decision?.lastIntervention
+          ? { optionLabel: decision.lastIntervention.optionLabel, when: decision.lastIntervention.createdAt }
+          : null,
+      };
+    });
 
     const persona = RBAC_MATRIX[personaForDeliveryRole(deliveryRole)];
 
@@ -138,6 +164,7 @@ export const POST = withRouteHandler('assistant-ask', async (request: Request) =
       // way every other view masks them — the model never sees what the
       // signed-in user can't.
       triage: showMargins ? triage : triage.map((t) => ({ ...t, financialImpact: t.financialImpact ? 'restricted' : null })),
+      decisions,
       otherProjectNames,
     });
 

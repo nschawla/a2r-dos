@@ -43,7 +43,11 @@ export type LedgerActionType =
   | 'API_KEY_REVOKED'
   | 'API_BULK_INGEST'
   | 'BATCH_IMPORT_COMMITTED'
-  | 'INTEGRATION_CONFIG_CHANGE';
+  | 'INTEGRATION_CONFIG_CHANGE'
+  // PS Orchestration & Decision Engine (v1.20.0) — a governed Decision
+  // Card option was executed against a Red/over-budget/behind-schedule
+  // engagement (src/server/actions/portfolio-interventions.ts).
+  | 'PORTFOLIO_INTERVENTION_EXECUTED';
 
 export const LEDGER_ACTION_LABEL: Record<string, string> = {
   BASELINE_OVERRIDE: 'Baseline override',
@@ -64,6 +68,7 @@ export const LEDGER_ACTION_LABEL: Record<string, string> = {
   API_BULK_INGEST: 'API bulk ingest',
   BATCH_IMPORT_COMMITTED: 'Self-service batch import committed',
   INTEGRATION_CONFIG_CHANGE: 'External integration config change',
+  PORTFOLIO_INTERVENTION_EXECUTED: 'Portfolio decision executed',
 };
 
 export interface RecordLedgerEventInput {
