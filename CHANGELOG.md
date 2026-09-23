@@ -10,6 +10,33 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.27.0] — 2026-09-23
+
+_Documentation & Schema/RLS Alignment Sweep._
+
+### Security
+
+- Fixed a real gap surfaced while auditing documentation accuracy: `PortfolioIntervention` (added v1.20.0) was missing
+  its Row-Level Security `tenant_isolation` policy and was never registered in the ORM auto-scope guardrail —
+  migration 29 closes it. No application query was ever affected; every existing call site already filtered by
+  `organizationId` explicitly. Verified live against staging (`db:rls:smoke`: all 34 tenant tables enforce
+  isolation).
+
+### Added
+
+- `docs/EXECUTIVE_TRIAGE_STANDARD.md` — the cross-cutting architecture doc for the five Executive Triage modules
+  (RAID, Financial Realization, Schedule, Resource & Capacity, Commercial Baseline), with a classification-mechanism
+  comparison table and the shared design principles behind them.
+
+### Changed
+
+- Synchronized `docs/ERD.md`, `TENANT_MODEL_INVENTORY.md`, `RTM.md`, `FRD.md`, `TEST_COVERAGE.md`,
+  `EXECUTIVE_SUMMARY.md`, and `QUICK_REFERENCE.md` with the current v1.20.0–v1.26.0 schema and feature state.
+- Renamed a colliding Playwright suite label (`e2e/enterprise-verification.spec.ts`'s "Suite K" → "Suite L") — it
+  collided with `e2e/enterprise-scoping-kpi.spec.ts`'s unrelated Suite K1–K3; label-only, no behavior change.
+
+---
+
 ## [1.26.0] — 2026-09-23
 
 _Control Tower UX Refactor — Bento Grid & the Decisions Tab._

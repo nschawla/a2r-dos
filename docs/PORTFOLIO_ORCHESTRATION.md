@@ -165,6 +165,8 @@ their triage narrative already masks `financialImpact`.
   `submitPortfolioIntervention` — matching this codebase's own existing
   convention for project-scoped mutation actions (e.g. the RAID actions in
   `src/server/actions/raid.ts` have no dedicated vitest DB test either);
-  coverage is the pure engines (fully unit-tested) plus e2e Suite K
-  (`e2e/enterprise-verification.spec.ts`), which exercises the real
-  click-through-execute-verify flow end to end.
+  coverage is the pure engines (fully unit-tested) plus e2e Suite L
+  (`e2e/enterprise-verification.spec.ts` — renamed from "K" during the
+  executive-triage documentation sync to remove a collision with
+  `e2e/enterprise-scoping-kpi.spec.ts`'s unrelated Suite K1–K3), which
+  exercises the real click-through-execute-verify flow end to end.

@@ -193,6 +193,7 @@ export const DIRECT_ORG_MODELS: ReadonlySet<string> = new Set([
   'OrganizationHoliday',
   'OrgPolicy',
   'Practice',
+  'PortfolioIntervention',
   'Project',
   'ProjectContributor',
   'RaidEntry',

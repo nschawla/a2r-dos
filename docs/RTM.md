@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix — PS-DOS™
 
-_Current-state, **v1.18.0**. Maps each `docs/FRD.md` requirement to its
+_Current-state, **v1.27.0**. Maps each `docs/FRD.md` requirement to its
 implementing code and its automated coverage. Per-phase RTMs (with the
 requirement IDs used at the time) are in `README.md`; this is the flattened
 view. Coverage detail: `docs/TEST_COVERAGE.md`._
@@ -83,6 +83,31 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | FR-OBS-3 | `src/lib/observability/action-wrapper.ts`, `route-wrapper.ts` | A `tests/observability.test.ts`, `tests/security/error-sanitization.test.ts` (every route wrapped or allowlisted; no raw error in any body) |
 | FR-OBS-4 | `src/app/api/health/route.ts`, `src/app/api/health/ready/route.ts` | A `tests/security/health-endpoint.test.ts` (7 — public body = `{ status }` only; token unlocks detail; no error-string leak) · `npm run health:prod` |
 | FR-OBS-5 | `next.config.mjs` `securityHeaders` | A `tests/security/security-headers.test.ts` |
+
+## Executive governance & triage modules
+
+Enterprise-PMO traceability: each of the five delivery modules FR-TEN-6
+names now has its own portfolio-wide executive read, plus the governed-
+execution engine acting on what they flag — the concrete answer to "does
+this system surface what a PMO/delivery leader needs to act on today."
+Full architecture: `docs/EXECUTIVE_TRIAGE_STANDARD.md`.
+
+| Req | Primary code | Coverage |
+| --- | --- | --- |
+| FR-GOV-1 | `src/lib/decision-options.ts`, `src/lib/decision-governance.ts`, `src/server/queries/decision-context.ts`, `src/server/actions/portfolio-interventions.ts`, `src/components/command-center/{DecisionCard,InterventionDrawer}.tsx` | A `tests/decision-options.test.ts` (13), `tests/decision-governance.test.ts` (8) · M manual probe (docs/PORTFOLIO_ORCHESTRATION.md §Verification) |
+| FR-GOV-2 | `src/lib/{raid,financial,schedule,resource,commercial}-triage.ts` (shared dual-tile/classifier pattern) | A see FR-GOV-3–7 below (83 tests across the five engines) |
+| FR-GOV-3 | `src/lib/raid-triage.ts`, `src/server/queries/raid-triage.ts`, `src/components/modules/raid/RaidTriageHeader.tsx` | A `tests/raid-triage.test.ts` (15) |
+| FR-GOV-4 | `src/lib/financial-triage.ts`, `src/server/queries/financial-triage.ts`, `src/components/modules/financials/FinancialTriageHeader.tsx` | A `tests/financial-triage.test.ts` (16) |
+| FR-GOV-5 | `src/lib/schedule-triage.ts`, `src/server/queries/schedule-triage.ts`, `src/components/modules/schedule/ScheduleTriageHeader.tsx` | A `tests/schedule-triage.test.ts` (18) |
+| FR-GOV-6 | `src/lib/resource-triage.ts`, `src/server/queries/resource-triage.ts`, `src/components/modules/capacity/ResourceTriageHeader.tsx` | A `tests/resource-triage.test.ts` (19) |
+| FR-GOV-7 | `src/lib/commercial-triage.ts`, `src/server/queries/commercial-triage.ts`, `src/components/modules/commercial-baseline/CommercialTriageHeader.tsx` | A `tests/commercial-triage.test.ts` (17) |
+| FR-GOV-8 | `src/app/(dashboard)/portfolio/page.tsx` (Bento Grid Overview tab, Decisions tab, `cache()`-deduped Decision Center data), `src/components/portfolio/DecisionCenter.tsx` (`DecisionCenterSummary`) | A `tests/executive-triage.test.ts` (16, unchanged by the layout refactor) · manually verified against every pre-existing `/portfolio` E2E assertion (see the v1.26.0 commit message) — no dedicated new E2E spec, since this is a layout-only change over already-covered content |
+
+The Persona-Aware Executive Agent's own awareness of pending decisions
+(`src/lib/executive-agent.ts` — "you have N decisions requiring your
+authority," names real options, never executes one itself) is covered by
+`tests/executive-agent.test.ts` (21) and traces to FR-GOV-1, not a
+separate requirement.
 
 ## Operational tooling
 

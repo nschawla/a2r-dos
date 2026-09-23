@@ -45,6 +45,37 @@ matters — get it wrong and a preview URL becomes a backdoor into prod data.
 warm serverless instance keeps its own pool; `src/lib/db.ts`'s
 `assertServerlessPooling()` warns in the build/runtime logs if it's absent.
 
+## Verifying a `git push origin main` actually deployed
+
+The project's Vercel integration deploys on every push to `main`
+(`link.productionBranch: "main"`, confirmed via the API — no manual
+`vercel --prod` step needed in the normal case). To confirm a specific
+push went out and matches what you expect:
+
+```bash
+npx vercel ls a2r-dos                 # newest deployment, Status column
+npx vercel inspect <deployment-url>   # readyState, build duration, aliases
+```
+
+**Gotcha**: `vercel inspect <url>` (plain or `--json`) does **not** surface
+the deployment's git commit SHA in its output — an empty/absent commit
+field there is not evidence the push didn't deploy, and a build that
+finished a few minutes before you'd expect isn't necessarily stale (this
+session mistook exactly that for a possible failed deploy once). To
+confirm which commit a deployment is actually running, hit the
+deployments-list API directly, which does carry `meta.githubCommitSha`:
+
+```bash
+TOKEN=$(python3 -c "import json;print(json.load(open('$HOME/Library/Application Support/com.vercel.cli/auth.json'))['token'])")
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://api.vercel.com/v6/deployments?projectId=<projectId>&teamId=<orgId>&limit=5" \
+  | python3 -m json.tool
+```
+
+(`projectId`/`teamId` are in `.vercel/project.json`, gitignored, present
+in any checkout that's been linked once via `vercel link`.) Cross-check
+the newest entry's `meta.githubCommitSha` against `git rev-parse HEAD`.
+
 ## The "Ignored Build Step"
 
 `vercel.json` sets `ignoreCommand`, which takes precedence over the

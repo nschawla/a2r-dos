@@ -105,6 +105,10 @@ npm run build          # production build (what Vercel runs)
 | How a specific screen works, end to end | `docs/USER_MANUAL.md` |
 | The UI design rules ("no cramming," pills, etc.) | `docs/UI_DESIGN_SYSTEM.md` |
 | The new Decision Cards / governance workflow | `docs/PORTFOLIO_ORCHESTRATION.md` |
+| The dual-tile Executive Triage pattern (RAID/Financials/Schedule/Capacity/Commercial) | `docs/EXECUTIVE_TRIAGE_STANDARD.md` (overview) → each module's own `docs/*_TRIAGE.md` for detail |
+| The Control Tower's Bento Grid / Decisions tab layout | `docs/UI_DESIGN_SYSTEM.md` §8 |
 | Security posture / compliance | `docs/SECURITY.md` |
 | Deploying / Vercel environment variables | `docs/VERCEL_DEPLOYMENT.md` |
 | Full data model | `docs/ERD.md`, `docs/TENANT_MODEL_INVENTORY.md` |
+| What's traced to what (requirements ↔ code ↔ tests) | `docs/RTM.md`, `docs/FRD.md` |
+| Test suite layout / how to run everything | `docs/TEST_COVERAGE.md` |

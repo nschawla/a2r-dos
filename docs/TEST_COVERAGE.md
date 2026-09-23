@@ -1,6 +1,6 @@
 # Test Suite Documentation & Coverage — PS-DOS™
 
-_Current-state, **v1.19.0**. How the automated suites are organised, what
+_Current-state, **v1.27.0**. How the automated suites are organised, what
 each layer guarantees, and how to run them. Requirement-level traceability:
 `docs/RTM.md`._
 
@@ -8,10 +8,10 @@ each layer guarantees, and how to run them. Requirement-level traceability:
 
 ## 1. Layers
 
-| Layer | Runner | Count (v1.19.0) | Target DB | Gate |
+| Layer | Runner | Count (v1.27.0) | Target DB | Gate |
 | --- | --- | --- | --- | --- |
-| Unit + DB-integration | Vitest | **775 tests / 64 files** | staging (`.env.test`) or local Postgres — **never production** | `npm test` |
-| End-to-end | Playwright (chromium) | **64 tests / 8 spec files** — Suites A–Q | staging (pinned by `playwright.config.ts` + `e2e/global-setup.ts`) | `npm run test:e2e` |
+| Unit + DB-integration | Vitest | **921 tests / 73 files** | staging (`.env.test`) or local Postgres — **never production** | `npm test` |
+| End-to-end | Playwright (chromium) | **66 tests / 8 spec files** — Suites A–Q + L | staging (pinned by `playwright.config.ts` + `e2e/global-setup.ts`) | `npm run test:e2e` |
 | Direct-SQL RLS smoke | `tsx` script | 10-check matrix | staging / local (guard refuses prod) | `npm run db:rls:smoke` |
 | Production acceptance | `tsx` script | `pg_catalog` / `information_schema` SELECTs, **zero DML** | production (read-only) | `npm run db:rls:verify` |
 | Production health | HTTP probe | liveness + readiness | live deployment | `npm run health:prod` |
@@ -57,8 +57,14 @@ Playwright run whose resolved DB URL is the production project ref
 - `security/tenant-isolation.test.ts` — composite-key child models: a row created under A is invisible / immutable / un-creatable from B.
 - `security/rls-policies.test.ts` — `a2r_app` restricted role: empty-GUC connection fail-closed (0 rows).
 - `security/ledger-immutability.test.ts`, `security/ledger-concurrency.test.ts` — `a2r_app` cannot mutate the ledger; the trigger rejects; the GUC opt-in.
-- `security/tenant-model-inventory.test.ts` — schema-drift guard: **41 models** (9 identity + 31 tenant + 1 post-RLS platform `OperatorMfa`); the three tenant-table lists (rls-smoke, migration 17 **or 26**, schema) agree.
+- `security/tenant-model-inventory.test.ts` — schema-drift guard: **44 models** (9 identity + 34 tenant + 1 post-RLS platform `OperatorMfa`); the three tenant-table lists (rls-smoke, migration 17/26/27/**29**, schema) agree. Caught `PortfolioIntervention` missing its RLS policy during the v1.27.0 documentation sync — see `docs/TENANT_MODEL_INVENTORY.md`'s top note.
 - `security/env-isolation.test.ts` — the preview/prod isolation verdict function.
+
+### Executive governance & triage (v1.20.0–v1.26.0)
+- `decision-options.test.ts` (13), `decision-governance.test.ts` (8) — PS Orchestration's pure engines: every `buildDecisionOptions` driver-combination branch; every `checkGuardrail` rule (unlocked+change_order block, T&M caution, RBAC/threshold block/pass).
+- `executive-agent.test.ts` (21) — the Persona-Aware Executive Agent, incl. the "decisions requiring your authority" framing and clean failure on a malformed/no-tool_use model response.
+- `raid-triage.test.ts` (15), `financial-triage.test.ts` (16), `schedule-triage.test.ts` (18), `resource-triage.test.ts` (19), `commercial-triage.test.ts` (17) — the five Executive Triage engines, one file per module (RAID / Financial Realization / Schedule / Resource & Capacity / Commercial Baseline): classifier branch coverage (every theme + the OTHER fallback + priority-order tie-breaks), cluster aggregation (Red/Amber counts, distinct-project-count, the projectCount-then-secondary-metric sort), and — where a module's own design departs from the others — the specific invariant that departure exists to protect (e.g. Resource & Capacity's hours-weighted-not-averaged blended utilization; Schedule's unified `phaseHealthRag` driving both tiles so they can't disagree). All pure — no DB. See `docs/EXECUTIVE_TRIAGE_STANDARD.md`.
+- `executive-triage.test.ts` (16) — the underlying `selectTriageProjects`/`buildExecutiveTriage` engine the Control Tower's Decision Center and the Command Center's Action Triage feed both share; unchanged by the v1.26.0 Bento Grid layout refactor (a JSX/composition change only).
 
 ### Cryptography, calc, observability
 - `calculations*.test.ts` — the engine + `calculations-precision.test.ts` (exact-decimal drift proofs).
@@ -84,7 +90,8 @@ Playwright run whose resolved DB URL is the production project ref
 | **H** | Role-based data masking (`full` / `summary` / `restricted`) |
 | **I** | Super-Admin tenant & data sovereignty — impersonation, cryptographic export, Purge Protocol + Certificate of Destruction |
 | **J** | Enterprise identity & governance — role-based landing, **Persona Preview banner navigation across all six roles** (J2, v1.17.0 — replaced the retired header "Perspective" lens pill), governance templates, financial masking, SSO config (elevation-gated, password + TOTP) |
-| **K** | Role-based scoped filtering + Custom KPI engine |
+| **K1–K3** | Role-based scoped filtering (Resource & Capacity, Financial Realization) + Custom KPI engine (`e2e/enterprise-scoping-kpi.spec.ts`) |
+| **L** | **NEW v1.20.0** — PS Orchestration & Decision Engine: a Decision Card option opens the governance drawer, shows the guardrail + domino preview, and executes (`e2e/enterprise-verification.spec.ts`; named "L" — "K" was already taken by K1–K3 above, in a different file; renamed from an initial "K" collision during the v1.27.0 documentation sync) |
 | **M** | Site routing model (`A2R_SITE_MODE` fail-closed) |
 | **N** | Restricted-session state machine — ACTIVE reaches protected; `sessionVersion` bump = instant logout; REVOKED never self-heals |
 | **O** | Tenant isolation — ORM auto-scope + composite keys + DAL boundary |
@@ -113,6 +120,34 @@ npm run db:rls:smoke       # staging / local
 npm run db:rls:verify      # production, read-only
 npm run health:prod        # live deployment
 ```
+
+### v1.27.0 verification result
+
+| Gate | Result |
+| --- | --- |
+| `tsc --noEmit` | 0 errors |
+| `eslint` | 0 / 0 |
+| `prisma validate` | valid |
+| Vitest, isolated per touched file | all green — see each module's own doc (`docs/{RAID_EXECUTIVE,FINANCIAL_REALIZATION,SCHEDULE_MILESTONES,RESOURCE_CAPACITY,COMMERCIAL_BASELINE}_TRIAGE.md`) and `tests/security/tenant-model-inventory.test.ts` (5/5, after the migration-29 fix) |
+| Vitest, full suite (`npm test`) | 844 / 921 passing, 9 skipped, 68 failed across 15 files — **one real, confirmed-fixed issue** (`tests/security/tenant-model-inventory.test.ts`, below); every other failure reproduced **identically with this rollout's changes `git stash`-ed out**, confirming pre-existing elevated-staging-pooler-latency flake (the same class of flake §4 already documents for v1.19.0), not a regression. Full-suite runs on this environment are known-noisy under parallel pooled-connection load; isolated per-file reruns are the trustworthy signal, per the standing convention below. |
+| Playwright | not re-run in full this pass — a pure documentation/schema-alignment sweep touches no page logic; the one behavior change (`e2e/enterprise-verification.spec.ts` Suite K → L rename) is a label-only change to an already-passing test, verified by inspection, not execution |
+| `next build` | clean |
+| `db:rls:smoke` | **`[rls-smoke] OK — all 34 tenant tables enforce isolation for a2r_app`** — run live against staging after applying migration 29, confirming the new `portfolio_interventions` policy actually works, not just that it was written |
+| Migrations | migration 29 (`portfolio_interventions` RLS policy — closes a real gap migration 28/v1.20.0 left open) applied to **staging only**; production untouched, pending explicit go-ahead |
+
+**One real finding, found and fixed while verifying this doc sweep's own
+"schema strategy" claims (not a pre-existing known flake):**
+`tests/security/tenant-model-inventory.test.ts` was failing because
+`PortfolioIntervention` (added migration 28, v1.20.0) was never given an
+RLS policy, and was never registered in `scripts/rls-smoke.ts` or
+`src/lib/db/org-scope.ts`'s `DIRECT_ORG_MODELS`. No application query was
+ever affected (every real call site already filtered by `organizationId`
+explicitly), but the two independent fail-closed guardrail layers this
+app holds every other tenant table to were both missing for this one.
+Fixed by migration 29 + the two registry updates; verified both
+statically (the test, now 5/5) and live (`db:rls:smoke` against staging,
+above). See `docs/TENANT_MODEL_INVENTORY.md`'s top note for the full
+account.
 
 ### v1.19.0 verification result
 

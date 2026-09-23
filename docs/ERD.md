@@ -1,9 +1,40 @@
 # Entity Relationship Diagram — PS-DOS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.19.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
+it, current as of **v1.27.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
 full model → tenant-binding → RLS-policy map and `docs/ROLE_ACCESS_MATRIX.md`
 for the role axes.
+
+**v1.27.0** — Documentation & Schema/RLS Alignment Sweep. One schema
+change: migration `00000000000029` gives `PortfolioIntervention` the
+`tenant_isolation` RLS policy migration 28 (v1.20.0, below) never added —
+a real gap found while auditing this doc's own accuracy, not a new
+feature. See `docs/TENANT_MODEL_INVENTORY.md`'s top note for the full
+story and `docs/EXECUTIVE_TRIAGE_STANDARD.md` for the triage-module
+architecture doc this sweep also added.
+
+**v1.21.0 – v1.26.0** — the Executive Triage & Thematic Clustering rollout
+(RAID, Financial Realization, Schedule, Resource & Capacity, Commercial
+Baseline) and the Control Tower Bento Grid refactor. **No schema changes
+across all six releases** — every module reads existing tenant-owned
+models already in this ERD (`Project`'s denormalized EVM snapshot columns,
+`RaidEntry`, `SchedulePhase`, `Resource`/`DeliveryRole`,
+`PortfolioIntervention`) rather than adding new tables or columns; see
+`docs/EXECUTIVE_TRIAGE_STANDARD.md` for the full per-module data-source
+breakdown.
+
+**v1.20.0** — PS Orchestration & Decision Engine (migration
+`00000000000028`). One new enum (`ClientTier`: `STRATEGIC`/`STANDARD`),
+two new columns (`Project.clientTier` — explicit account-strategic-weight
+flag, default `STANDARD`; `GovernanceConfig.interventionApprovalThresholdUsd`
+— the tenant-configurable $ threshold above which a Decision Card option
+needs `project:approve` authority to execute), and one new tenant-owned
+table: **`PortfolioIntervention`** (composite FK to `Project`, composite
+FK to `Resource` for `decidedById`) — one row per executed Decision Card
+option, the permanent record a project had a governed intervention
+applied (never a row for a guardrail-blocked attempt). See
+`docs/PORTFOLIO_ORCHESTRATION.md`. (Its RLS policy was missed at the time
+— see the v1.27.0 note above.)
 
 **v1.19.0** — Enterprise SAML SSO live handshake (migration
 `00000000000027`, **applied to staging only** — production untouched).
@@ -322,6 +353,9 @@ DB-free authorization check and the Prisma query so the two can't drift.
 | `ProjectContributor`, `ScopeItem` | Project-level contributor tagging and scope-item breakdown. |
 | `OrganizationHoliday`, `RoleUtilizationPolicy` | Capacity & Concurrency inputs — holiday calendars and per-role utilization targets. |
 | `TimesheetEntry` | Raw rows ingested via the Bearer-token `/api/v1` Data Ingestion API Bridge (machine-to-machine), rolled into `WeeklyAssignmentSlot`. Distinct from `DataImportBatch`, which is the human, browser-driven self-service path. |
+| `PortfolioIntervention` | v1.20.0 — one row per executed Decision Card option (`src/lib/decision-options.ts`): a snapshot of the driver, the option chosen, the guardrail result, and the domino/trade-off preview shown at decision time. Existence of a row (not a status enum) is the "Intervention Applied" badge's source of truth — the server never persists a row for a guardrail-blocked attempt. Read by the Commercial Baseline triage's Change Order Exposure theme (`docs/COMMERCIAL_BASELINE_TRIAGE.md`). |
+| `IntegrationConnection`, `IntegrationSyncRun`, `IntegrationError` | v1.18.0 — the Read-Only External Integration Adapters' per-tenant external-system config, sync-run history, and categorized failure log. See `docs/INTEGRATION_ADAPTERS.md`. |
+| `SamlAuthRequest`, `SsoLoginError` | v1.19.0 — the SAML SSO live handshake's replay-protection cache and federated sign-in failure log. See `docs/SAML_SSO_LIVE_HANDSHAKE.md`. |
 
 ## Diagram conventions
 

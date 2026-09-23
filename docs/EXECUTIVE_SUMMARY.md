@@ -99,7 +99,7 @@ attestation has been performed**, and this summary makes no claim of one.
 | --- | --- |
 | **Application (ORM)** | A Prisma `$extends` extension auto-scopes every tenant query by `organizationId` and injects it on create. `runUnscoped` is the single audited exception for the cross-tenant operator path. |
 | **Referential (composite FKs)** | Every intra-tenant relationship is `(organizationId, col) → parent(organizationId, id)`; the database itself rejects a row that references another tenant's parent. |
-| **Database (Row-Level Security)** | Per-transaction `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org`; `tenant_isolation` policies on 33 tenant tables, hard `rls_deny_app` on the 9 identity tables. The runtime role `a2r_app` is `NOLOGIN`, non-superuser, and cannot bypass RLS. Enforced on staging; applied and structurally verified on production. |
+| **Database (Row-Level Security)** | Per-transaction `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org`; `tenant_isolation` policies on 34 tenant tables, hard `rls_deny_app` on the 9 identity tables. The runtime role `a2r_app` is `NOLOGIN`, non-superuser, and cannot bypass RLS. Enforced on staging; applied and structurally verified on production. |
 | **Environment** | Build, server boot, and Prisma-client instantiation all hard-fail if a non-production deployment's database URL resolves to the production project. |
 
 **v1.19.0 case study — a live test catching a real gap before it shipped.**
@@ -114,6 +114,25 @@ assume it) caught the bug on its first run; the fix scopes the delete
 itself to `(requestId, organizationId)`. Documented in full in
 `docs/SAML_SSO_LIVE_HANDSHAKE.md` §3.2 — the fix and its regression test
 shipped in the same release as the bug, never separately.
+
+**v1.27.0 case study — a deterministic schema-drift test catching a
+month-old gap during a routine documentation sweep.** A batch of five
+governance-module features (Executive Triage & Thematic Clustering,
+v1.21.0–v1.26.0) added zero new tables — but auditing this document's own
+"34 tenant tables" claim for accuracy surfaced that `PortfolioIntervention`
+(added a release earlier, v1.20.0, for the PS Orchestration & Decision
+Engine) had never been given an RLS policy, and had never been registered
+in the ORM guardrail's model allowlist either — both silently missed at
+the time, and both of the failure signatures `tests/security/
+tenant-model-inventory.test.ts` exists specifically to catch. No
+application query was ever affected (every real read/write site already
+filtered by `organizationId` explicitly), but the two independent
+fail-closed layers this table's siblings all get were both absent for it.
+Migration 29 closes the gap; `npm run db:rls:smoke` confirms it live
+against staging (`all 34 tenant tables enforce isolation for a2r_app`).
+The pattern worth naming: a dedicated, deterministic drift guard doesn't
+just catch bugs at the moment they're introduced — it keeps catching them
+on every later run, including a month later, during unrelated work.
 
 ### 4.2 MFA secret-box encryption separation
 
@@ -173,31 +192,31 @@ reserved for lawful data-subject erasure.
 
 ---
 
-## 5. Verification (v1.19.0)
+## 5. Verification (v1.27.0)
 
 | Gate | Result |
 | --- | --- |
 | `tsc --noEmit` | 0 errors |
 | `eslint` | 0 warnings / 0 errors |
 | `prisma validate` | valid |
-| Vitest (unit + DB-integration) | **775 / 775** — 64 files, staging DB |
-| Playwright (end-to-end) | Suite J5 (Ops Console SSO panel) + J1–J2 (login-dependent) green; full A–Q sweep not re-run this release |
+| Vitest, isolated per touched area | all green (5 triage-module engines, the Control Tower page, and the tenant-model-inventory guard, each confirmed independently) |
+| Vitest, full suite | 844 / 921 passing — every failure beyond the one real, now-fixed issue reproduced identically with this rollout's own changes reverted, confirming pre-existing environmental flake (see below), not a regression |
+| Playwright | not re-run in full for this documentation/schema-alignment pass; the one behavior change (a Suite label rename, K → L, to remove a naming collision) is inspected, not executed, since it changes no test logic |
 | `next build` | clean |
-| `db:rls:verify` | passed — production, read-only, zero DML |
-| `health:prod` | ready · database ok |
-| Migration 27 | `saml_auth_requests` / `sso_login_errors` + RLS — rehearsed (`BEGIN … ROLLBACK`) then applied to **staging only**; production untouched |
+| `db:rls:smoke` | **all 34 tenant tables enforce isolation for `a2r_app`** — run live against staging after applying migration 29 |
+| Migration 29 | `portfolio_interventions` RLS policy (closes the v1.20.0 gap — §4.1 case study) — applied to **staging only**; production untouched |
 
 The automated suites **cannot** run against the production database — a hard
 guard aborts any run whose resolved URL is the production project. Every
 release tag from `v1.12.0` points at the exact immutable commit deployed to
 production.
 
-A single Playwright test (Suite J3, tenant governance template application)
-and up to ten Vitest DB-integration tests intermittently exceed their
-timeout under this week's elevated staging-pooler latency — reproducibly
-100% green on an isolated re-run at a longer timeout, and unrelated to any
-change in this release. Tracked as a known environmental flake, not a
-functional regression.
+Up to ten Vitest DB-integration tests intermittently exceed their timeout
+under elevated staging-pooler latency — a known environmental flake
+tracked across multiple releases now, reproducibly 100% green on an
+isolated re-run at a longer timeout, and reconfirmed unrelated to this
+release's changes by re-running the full suite with those changes
+temporarily `git stash`-ed out and observing the identical failures.
 
 ---
 

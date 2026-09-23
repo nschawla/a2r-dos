@@ -1,6 +1,6 @@
 # Functional Requirements Document — PS-DOS™
 
-_Consolidated current-state, **v1.18.0**. Per-phase functional narratives
+_Consolidated current-state, **v1.27.0**. Per-phase functional narratives
 live in `README.md` (Phases 1–13); this document is the flattened,
 deduplicated view of what the production system does today. Traceability to
 code and tests: `docs/RTM.md`. Security posture: `docs/SECURITY.md` +
@@ -114,3 +114,24 @@ internal operator control plane for the vendor (A2R). Next.js 15 App Router
 | FR-CLI-3 | `user:password:set` / `operator:create` default to `mustChangePassword = true` (`--no-force-change` to opt out) and always bump `sessionVersion`. |
 | FR-CLI-4 | Any mutating CLI run against the **production** database requires `--yes-prod` / `A2R_ALLOW_PROD_WRITE=1` or a typed project-ref confirmation; a non-interactive prod run is refused. |
 | FR-CLI-5 | The automated test suites (Vitest DB-integration, Playwright) refuse to run against the production database (`tests/helpers/db-target.ts`); production is verified only by read-only `db:rls:verify`. |
+
+---
+
+## 9. Executive governance — triage & orchestration
+
+FR-TEN-6 (§3) names the delivery modules; the requirements below are the
+governance layer built on top of them since v1.20.0 — turning each module
+from a per-project tool into a portfolio-wide executive read, plus the
+governed-execution engine that acts on what they flag. Full architecture:
+`docs/EXECUTIVE_TRIAGE_STANDARD.md`.
+
+| # | Requirement |
+| --- | --- |
+| FR-GOV-1 | **PS Orchestration & Decision Engine** (v1.20.0) — every Red or over-budget/behind-schedule engagement surfaces 2-3 real, commercially viable response options (Change Order, Resource Re-leveling, Margin Absorption, Timeline Extension, Scope Descope, Governance Remediation), each with a real domino/trade-off preview computed from actual data, never fabricated. A governance drawer runs a compliance/guardrail check (SOW type, baseline lock state, RBAC/$-threshold approval authority) before any option can execute; execution is single-step (no separate approval queue), immutable-ledger-logged, and tags the engagement "Intervention Applied" for longitudinal accountability. |
+| FR-GOV-2 | **Executive Triage & Thematic Clustering** (v1.21.0–v1.25.0) — the RAID, Financial Realization, Schedule, Resource & Capacity, and Commercial Baseline modules each open on a portfolio-wide dual-tile macro summary (an aggregate/RAG-split Tile 1, a thematic-cluster Tile 2) instead of going straight to a per-project picker, with the existing per-project drill-down still one click away. Every classifier is deterministic and instant — never a live LLM call — so the page renders identically regardless of `ANTHROPIC_API_KEY` configuration; a theme this app has no real data for is honestly substituted or omitted rather than fabricated (see `docs/RESOURCE_CAPACITY_TRIAGE.md` §2 and `docs/COMMERCIAL_BASELINE_TRIAGE.md` §2). |
+| FR-GOV-3 | RAID Cockpit triage (`docs/RAID_EXECUTIVE_TRIAGE.md`) — every open Critical/High/Medium RAID item in scope, clustered by root cause (Resource Bottlenecks, Integration/Data Failures, Scope Creep, Vendor Delays) via keyword scoring against each item's own text. |
+| FR-GOV-4 | Financial Realization triage (`docs/FINANCIAL_REALIZATION_TRIAGE.md`) — portfolio BAC/Actuals/EAC-variance rollup, clustered by root cause (Unbilled Milestone Delays, Scope Creep Overruns, Subcontractor Rate Variances, Labor Burn Accelerations) via a fixed-priority rule list over structured signals. |
+| FR-GOV-5 | Schedule & Milestones triage (`docs/SCHEDULE_MILESTONES_TRIAGE.md`) — active-milestone count, upcoming go-lives, and a Red/Amber/on-track split, clustered by root cause (Third-Party Dependency Cascades, UAT Sign-off Lags, Resource Contention on Deployment Windows, Scope Expansion Slippage). |
+| FR-GOV-6 | Resource & Capacity triage (`docs/RESOURCE_CAPACITY_TRIAGE.md`) — blended utilization, unassigned headcount, a severely-over-allocated (>110%) count, clustered by root cause (Senior/Architect Over-allocation, Cross-Project Contention for Lead PMs, Junior/Analyst Under-utilization, Bench/Unassigned Capacity). |
+| FR-GOV-7 | Commercial Baseline triage (`docs/COMMERCIAL_BASELINE_TRIAGE.md`) — total contracted value, a locked-vs-draft baseline split, clustered by root cause (Change Order Exposure, Margin Squeeze on Fixed-Fee Deliverables, Blended Rate Erosion, Exceeded Baseline Scope Caps). |
+| FR-GOV-8 | **Control Tower Bento Grid** (v1.26.0) — `/portfolio`'s default "Overview" tab lays every top-line signal (KPI strip, Decision Center summary, utilization, roster counts, program rollups) out as a responsive multi-column grid, scannable above the fold; the full Decision Center (Impact-Aware Decision Cards, pending decisions, high-severity RAID) moved into a dedicated "Decisions" tab reached in one click, eliminating the page's prior single-column scroll-fatigue layout. |

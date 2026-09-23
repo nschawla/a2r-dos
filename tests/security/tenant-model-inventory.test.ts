@@ -13,10 +13,17 @@ import { join } from 'node:path';
  *
  * Migration 17 is applied and frozen — a table added after it (the three
  * v1.18.0 integration tables in migration 26, the two v1.19.0 SAML SSO
- * tables in migration 27) gets its tenant_isolation policy from whichever
- * later migration introduces it instead. `RLS_SOURCES` is every migration
- * file this test accepts as a valid policy source; a table just needs to
- * appear in ONE of them.
+ * tables in migration 27, `portfolio_interventions` in migration 29) gets
+ * its tenant_isolation policy from whichever later migration introduces
+ * it instead. `RLS_SOURCES` is every migration file this test accepts as
+ * a valid policy source; a table just needs to appear in ONE of them.
+ *
+ * Migration 29 backfills a gap migration 28 (PS Orchestration & Decision
+ * Engine, v1.20.0) left open: it added `portfolio_interventions` with its
+ * own organizationId but never gave it an RLS policy or registered it
+ * here / in scripts/rls-smoke.ts / src/lib/db/org-scope.ts's
+ * DIRECT_ORG_MODELS — caught by this very test while auditing schema/RLS
+ * documentation accuracy.
  */
 const root = process.cwd();
 const schema = readFileSync(join(root, 'prisma/schema.prisma'), 'utf8');
@@ -33,7 +40,11 @@ const mig27 = readFileSync(
   join(root, 'prisma/migrations/00000000000027_saml_sso_handshake/migration.sql'),
   'utf8',
 );
-const RLS_SOURCES = [mig17, mig26, mig27];
+const mig29 = readFileSync(
+  join(root, 'prisma/migrations/00000000000029_portfolio_interventions_rls/migration.sql'),
+  'utf8',
+);
+const RLS_SOURCES = [mig17, mig26, mig27, mig29];
 const rlsSourceContains = (needle: string) => RLS_SOURCES.some((src) => src.includes(needle));
 
 /** Identity / routing models — never tenant-isolated (see the inventory doc). */
@@ -89,8 +100,8 @@ describe('tenant-model inventory', () => {
   const models = parseModels(schema);
   const tenantTables = smokeTenantTables();
 
-  it('the schema has 43 models: 9 identity + 33 tenant-owned + 1 post-RLS platform', () => {
-    expect(models.length).toBe(43);
+  it('the schema has 44 models: 9 identity + 34 tenant-owned + 1 post-RLS platform', () => {
+    expect(models.length).toBe(44);
     const identity = models.filter((x) => IDENTITY_MODELS.has(x.name));
     expect(identity.length).toBe(9);
     const platform = models.filter((x) => POST_RLS_PLATFORM_MODELS.has(x.name));
@@ -107,8 +118,8 @@ describe('tenant-model inventory', () => {
     expect(unclassified).toEqual([]);
   });
 
-  it('rls-smoke TENANT_TABLES has exactly 33 entries and matches the schema', () => {
-    expect(tenantTables.length).toBe(33);
+  it('rls-smoke TENANT_TABLES has exactly 34 entries and matches the schema', () => {
+    expect(tenantTables.length).toBe(34);
     const schemaTenantTables = models
       .filter((x) => x.hasOrgId && !IDENTITY_MODELS.has(x.name))
       .map((x) => x.table)

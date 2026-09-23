@@ -349,9 +349,12 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// Suite K — PS Orchestration & Decision Engine
+// Suite L — PS Orchestration & Decision Engine
+// (was mislabeled "Suite K" at introduction — e2e/enterprise-scoping-kpi.spec.ts
+// already owns K1–K3 for an unrelated feature; renamed during the executive-
+// triage documentation sync to remove the collision, not a behavior change.)
 // ────────────────────────────────────────────────────────────────────────────
-test.describe('Suite K — PS Orchestration & Decision Engine', () => {
+test.describe('Suite L — PS Orchestration & Decision Engine', () => {
   test('K1 · a Decision Card option opens the governance drawer, shows the guardrail + domino preview, and executes', async () => {
     await page.goto('/command');
     await expectNoErrorOverlay(page);

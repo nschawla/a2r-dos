@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.27.0',
+    date: '2026-09-23',
+    headline: 'Documentation & Schema/RLS Alignment Sweep',
+    changes: [
+      { type: 'security', text: 'Fixed a real gap the documentation sweep surfaced: PortfolioIntervention (added v1.20.0) was missing its Row-Level Security tenant_isolation policy and was never registered in the ORM auto-scope guardrail — both silently missed at the time. Migration 29 closes it; no application query was ever affected, since every existing read/write already filtered by organizationId explicitly.' },
+      { type: 'improvement', text: 'Added docs/EXECUTIVE_TRIAGE_STANDARD.md — the cross-cutting architecture doc for the five Executive Triage modules shipped in v1.21.0–v1.25.0, with a full classification-mechanism comparison table and the shared design principles behind them.' },
+      { type: 'improvement', text: 'Synchronized docs/ERD.md, TENANT_MODEL_INVENTORY.md, RTM.md, FRD.md, TEST_COVERAGE.md, EXECUTIVE_SUMMARY.md, and QUICK_REFERENCE.md with the current v1.20.0–v1.26.0 schema and feature state; renamed a colliding Playwright suite label (K → L) for clarity.' },
+    ],
+  },
+  {
     version: '1.26.0',
     date: '2026-09-23',
     headline: 'Control Tower UX Refactor — Bento Grid & the Decisions Tab',
