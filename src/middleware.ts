@@ -122,6 +122,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/((?!api/auth|api/v1|api/health|api/internal|login|register|onboarding|terms|privacy|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api/auth|api/v1|api/health|api/internal|login|register|onboarding|terms|privacy|_next/static|_next/image|favicon.ico|icon.svg).*)',
   ],
 };

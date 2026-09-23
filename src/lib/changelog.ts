@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.34.0',
+    date: '2026-09-23',
+    headline: 'Logo Refresh — Red Base Accent',
+    changes: [
+      { type: 'improvement', text: 'The "Ascent Vector" logo mark — final approved branding — gains a solid red accent bar embedded at the base of the triangle, on its own dedicated logo-accent design token (deliberately separate from the RAID/health "critical" red and the one interactive brand blue, so none of the three can ever silently recolor another). Renders everywhere the mark already does: the app Sidebar, the header, every auth screen, and the public marketing site.' },
+      { type: 'feature', text: 'Added a browser tab favicon (src/app/icon.svg) for the first time — the app had none before. A hand-synced static copy of the same mark.' },
+    ],
+  },
+  {
     version: '1.33.0',
     date: '2026-09-23',
     headline: 'Global Rebrand — PS Delivery OS',

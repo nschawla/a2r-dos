@@ -62,6 +62,18 @@ const config: Config = {
 
         // ── The logo's own ink — Gunmetal Gray, independent of `brand` ──
         logo: { DEFAULT: '#545A61' },
+        // The mark's own base accent (v1.34.0) — deliberately its OWN
+        // token too, not `critical`: `critical` is a single-purpose RAG
+        // status color (RAID/health severity), and the logo's red is pure
+        // branding, never a status signal. Sharing one variable between
+        // "the logo has a red stripe" and "this RAID item is critical"
+        // would let a future status-color tune silently redecorate the
+        // logo, or a future logo refresh silently soften every critical
+        // indicator in the app — same coupling risk `logo` above already
+        // guards against for `brand`. Same hex as `critical` today only
+        // because it was already accessibility-vetted (~6.4:1); the two
+        // are free to diverge going forward.
+        'logo-accent': { DEFAULT: '#B91C1C' },
 
         // ── Single-purpose status (deep — legible as text on white) ──
         success: { DEFAULT: '#166534', soft: 'rgba(22,101,52,0.10)' }, // green-800, ~6:1
