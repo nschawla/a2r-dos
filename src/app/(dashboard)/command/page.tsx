@@ -1,13 +1,15 @@
-import { requireOrgContext } from '@/lib/session';
-import { getScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
+import { Suspense } from 'react';
+import { requireOrgContext, type OrgContext } from '@/lib/session';
+import { getScopedPortfolioSummary, type ScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
 import { loadCapacityRows } from '@/server/queries/capacity';
-import { blendedSummary } from '@/lib/capacity-engine';
+import { blendedSummary, type ResourceCapacityRow } from '@/lib/capacity-engine';
 import { getNotificationSummary } from '@/server/queries/notifications';
 import { getActiveStream } from '@/server/queries/active-stream';
 import { getExecutiveTriage } from '@/server/queries/executive-triage';
 import { loadDecisionContext } from '@/server/queries/decision-context';
 import { canViewMargins } from '@/lib/security/masking';
 import { compactMoney } from '@/lib/format';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import { PulseStrip, type PulseVital } from '@/components/command-center/PulseStrip';
 import { ActiveStream } from '@/components/command-center/ActiveStream';
 import { CommandBar } from '@/components/command-center/CommandBar';
@@ -29,6 +31,16 @@ export default async function CommandCenterPage() {
   // PS Orchestration & Decision Engine's resource-swap search below can
   // reuse the exact same rows instead of the org's capacity being computed
   // twice in one request.
+  //
+  // Streaming: the triage feed's own narrative synthesis + the PS
+  // Orchestration engine's real-headroom/swap-candidate search
+  // (getExecutiveTriage + loadDecisionContext) are this page's heaviest
+  // single piece of server work, and they feed ONLY the triage feed at the
+  // top — not the vitals strip, the command bar, or the activity stream.
+  // Rather than block all four behind the slowest of the two, the triage
+  // feed is its own async Server Component (below) rendered inside a
+  // <Suspense> boundary: the vitals/bar/stream paint immediately, and the
+  // feed streams in right after.
   const [portfolioSummary, capacityRows, notif, stream] = await Promise.all([
     getScopedPortfolioSummary(context),
     loadCapacityRows(organizationId),
@@ -37,15 +49,6 @@ export default async function CommandCenterPage() {
   ]);
   const util = blendedSummary(capacityRows);
   const { projects, summary } = portfolioSummary;
-
-  // Executive Action Triage (src/lib/executive-triage.ts via
-  // src/server/queries/executive-triage.ts) — reuses the portfolio summary
-  // this page already loaded rather than fetching it twice.
-  const { items: triageItems, flagged } = await getExecutiveTriage(context, portfolioSummary);
-  // PS Orchestration & Decision Engine — 2-3 real response options + the
-  // portfolio domino preview per flagged engagement. Reuses `capacityRows`
-  // above rather than recomputing them.
-  const decisionContext = await loadDecisionContext(context, flagged, capacityRows);
 
   const attain = util.attainmentPct;
   const riskFlags = notif.raidAlerts.length + notif.paceAlerts.length;
@@ -92,14 +95,46 @@ export default async function CommandCenterPage() {
         </p>
       </div>
 
-      <ActionTriageFeed
-        items={triageItems}
-        decisionContext={decisionContext}
-        viewer={{ deliveryRole, approvalThresholdUsd: governance.interventionApprovalThresholdUsd }}
-      />
+      <Suspense fallback={<SkeletonCard lines={4} />}>
+        <ActionTriageFeedSection
+          context={context}
+          portfolioSummary={portfolioSummary}
+          capacityRows={capacityRows}
+        />
+      </Suspense>
       <PulseStrip vitals={vitals} />
       <CommandBar projects={projects.map((p) => ({ id: p.id, name: p.name }))} isStaff={isStaff} />
       <ActiveStream events={stream} />
     </>
+  );
+}
+
+/**
+ * The triage feed's own data assembly, split out of `CommandCenterPage` so
+ * it can stream in behind a `<Suspense>` boundary instead of gating the
+ * vitals strip / command bar / activity stream on its own slower queries.
+ * Receives `portfolioSummary` and `capacityRows` as props — both already
+ * fetched by the caller for its own vitals — so this never re-fetches
+ * either.
+ */
+async function ActionTriageFeedSection({
+  context,
+  portfolioSummary,
+  capacityRows,
+}: {
+  context: OrgContext;
+  portfolioSummary: ScopedPortfolioSummary;
+  capacityRows: ResourceCapacityRow[];
+}) {
+  const { deliveryRole, governance } = context;
+  const { items: triageItems, flagged } = await getExecutiveTriage(context, portfolioSummary);
+  const decisionContext = await loadDecisionContext(context, flagged, capacityRows);
+
+  return (
+    <ActionTriageFeed
+      items={triageItems}
+      decisionContext={decisionContext}
+      viewer={{ deliveryRole, approvalThresholdUsd: governance.interventionApprovalThresholdUsd }}
+    />
   );
 }

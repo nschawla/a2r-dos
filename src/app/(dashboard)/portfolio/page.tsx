@@ -1,18 +1,20 @@
 import Link from 'next/link';
-import { requireOrgContext } from '@/lib/session';
-import { getScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
+import { Suspense } from 'react';
+import { requireOrgContext, type OrgContext } from '@/lib/session';
+import { getScopedPortfolioSummary, type ScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
 import { loadPortfolioDashboardExtras, loadDecisionCenterAlerts } from '@/server/queries/pages/dashboards';
 import { getExecutiveTriage } from '@/server/queries/executive-triage';
 import { loadDecisionContext } from '@/server/queries/decision-context';
 import { getProjectHealth } from '@/server/queries/health';
 import { loadCapacityRows } from '@/server/queries/capacity';
-import { blendedSummary } from '@/lib/capacity-engine';
+import { blendedSummary, type ResourceCapacityRow } from '@/lib/capacity-engine';
 import { getVisibleCustomKpis, getKpiMetricValues } from '@/server/queries/kpi-data';
 import { personaForDeliveryRole } from '@/lib/governance/rbacMatrix';
 import { DELIVERY_ROLE_LABEL } from '@/lib/auth/rbac';
 import { canViewMargins } from '@/lib/security/masking';
 import { MaskedValue } from '@/components/security/Masked';
 import { StatCard } from '@/components/ui/stat-card';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import { ModuleTabs } from '@/components/ui/module-tabs';
 import { TruncatedCell, type DataTableColumn } from '@/components/ui/data-table';
 import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
@@ -36,31 +38,25 @@ export default async function HomePage() {
   const scopedProjectIds = projects.map((p) => p.id);
   const showMargins = canViewMargins(deliveryRole, governance);
 
+  // Streaming: only the data every panel/tab actually needs to paint its
+  // FIRST frame is awaited here. The Decision Center — the exception-
+  // driven "needs attention today" panel, and the heaviest single piece of
+  // this page's server work (triage synthesis + the PS Orchestration
+  // engine's own real-headroom/swap-candidate search) — is deliberately
+  // NOT awaited in this function: it's an async Server Component of its
+  // own (below), rendered inside a <Suspense> boundary, so the stat cards
+  // and the project registry table paint immediately while it streams in
+  // separately, instead of the whole page waiting on its slowest query.
   // "Resources on Roster" is scoped like the /capacity roster — practice-
   // boundary data, same as the project list. `practiceCount` stays
   // tenant-wide deliberately: a structural fact about the org (how many
   // practice buckets exist), not a roster. See loadPortfolioDashboardExtras.
-  //
-  // Decision Center — the exception-driven "needs attention today" panel.
-  // `getExecutiveTriage` reuses the already-loaded `portfolioSummary` (no
-  // duplicate query) and is the exact same engine + scope as the Command
-  // Center's Executive Action Triage feed, so whichever page a viewer
-  // lands on, "what's flagged and why" never disagrees. Pending decisions
-  // and high-severity RAID are a separate exception type (not every
-  // critical RAID item sits on a Red/over-budget project) — its own query.
-  const [{ recentActivity, resourceCount, practiceCount, raidCounts }, capacityRows, decisionCenterAlerts, { items: triageItems, flagged }] =
-    await Promise.all([
-      loadPortfolioDashboardExtras(context, scopedProjectIds),
-      loadCapacityRows(organizationId),
-      loadDecisionCenterAlerts(context, scopedProjectIds),
-      getExecutiveTriage(context, portfolioSummary),
-    ]);
+  const [{ recentActivity, resourceCount, practiceCount, raidCounts }, capacityRows] = await Promise.all([
+    loadPortfolioDashboardExtras(context, scopedProjectIds),
+    loadCapacityRows(organizationId),
+  ]);
   const utilization = blendedSummary(capacityRows);
   const openRaidByProject = new Map(raidCounts.map((r) => [r.projectId, r._count._all]));
-  // PS Orchestration & Decision Engine — 2-3 real response options + the
-  // portfolio domino preview per flagged engagement. Reuses `capacityRows`
-  // above rather than recomputing them.
-  const decisionContext = await loadDecisionContext(context, flagged, capacityRows);
 
   // Custom KPI Definition Engine — skip the extra schedule/RAID/capacity
   // queries entirely when the tenant hasn't defined any KPIs, the common
@@ -303,13 +299,14 @@ export default async function HomePage() {
         </p>
       </div>
 
-      <DecisionCenter
-        triageItems={triageItems}
-        decisionContext={decisionContext}
-        viewer={{ deliveryRole, approvalThresholdUsd: governance.interventionApprovalThresholdUsd }}
-        pendingDecisions={decisionCenterAlerts.pendingDecisions}
-        criticalRaid={decisionCenterAlerts.criticalRaid}
-      />
+      <Suspense fallback={<SkeletonCard lines={4} />}>
+        <DecisionCenterSection
+          context={context}
+          portfolioSummary={portfolioSummary}
+          capacityRows={capacityRows}
+          scopedProjectIds={scopedProjectIds}
+        />
+      </Suspense>
 
       <ModuleTabs
         tabs={[
@@ -320,6 +317,44 @@ export default async function HomePage() {
         panels={{ portfolio: portfolioPanel, engagements: engagementsPanel, activity: activityPanel }}
       />
     </>
+  );
+}
+
+/**
+ * The Decision Center's own data assembly, split out of `HomePage` so it
+ * can stream in behind a `<Suspense>` boundary instead of gating the rest
+ * of the page on its own slower queries (`getExecutiveTriage`'s narrative
+ * synthesis, `loadDecisionCenterAlerts`, and the PS Orchestration engine's
+ * real-headroom/swap-candidate search in `loadDecisionContext`). Receives
+ * `portfolioSummary` and `capacityRows` as props — both already fetched by
+ * the caller for its own stat cards — so this never re-fetches either.
+ */
+async function DecisionCenterSection({
+  context,
+  portfolioSummary,
+  capacityRows,
+  scopedProjectIds,
+}: {
+  context: OrgContext;
+  portfolioSummary: ScopedPortfolioSummary;
+  capacityRows: ResourceCapacityRow[];
+  scopedProjectIds: string[];
+}) {
+  const { deliveryRole, governance } = context;
+  const [decisionCenterAlerts, { items: triageItems, flagged }] = await Promise.all([
+    loadDecisionCenterAlerts(context, scopedProjectIds),
+    getExecutiveTriage(context, portfolioSummary),
+  ]);
+  const decisionContext = await loadDecisionContext(context, flagged, capacityRows);
+
+  return (
+    <DecisionCenter
+      triageItems={triageItems}
+      decisionContext={decisionContext}
+      viewer={{ deliveryRole, approvalThresholdUsd: governance.interventionApprovalThresholdUsd }}
+      pendingDecisions={decisionCenterAlerts.pendingDecisions}
+      criticalRaid={decisionCenterAlerts.criticalRaid}
+    />
   );
 }
 

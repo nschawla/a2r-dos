@@ -41,7 +41,7 @@
  * orphaned URL, not a clean preview.
  */
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import { useDashboardUI } from './dashboard-ui-context';
 import { RBAC_MATRIX, RBAC_PERSONAS, type RbacPersona } from '@/lib/governance/rbacMatrix';
@@ -49,9 +49,27 @@ import { RBAC_MATRIX, RBAC_PERSONAS, type RbacPersona } from '@/lib/governance/r
 export function PersonaPreviewBar({ eligible }: { eligible: boolean }) {
   const { rbacPersona, realRbacPersona, rbacPreviewActive, setRbacPreview } = useDashboardUI();
   const router = useRouter();
+  const pathname = usePathname();
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  // Verified-fallback navigation (docs/UI_DESIGN_SYSTEM.md §5.1) — picking
+  // a persona whose landing route happens to match the pathname already
+  // active (e.g. two personas that both land on /portfolio) is exactly the
+  // same-pathname, search-param-only navigation shape with the confirmed
+  // platform-level failure mode: the client router silently never commits.
+  // The Context state below (rbacPersona) always updates instantly — it's
+  // pure client state, no navigation involved — so it can't serve as "did
+  // the nav land" the way it does elsewhere; `pathname` is the real signal.
+  const fallback = useRef<{ timer: ReturnType<typeof setTimeout> } | null>(null);
+  useEffect(() => {
+    if (fallback.current) {
+      clearTimeout(fallback.current.timer);
+      fallback.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
   // Same "no flash of animated color on the first post-mount state
   // change" gate as Sidebar.tsx's own `hydrated` flag (the localStorage
   // restore in useRbacPreview fires a tick after this bar's first paint,
@@ -88,28 +106,36 @@ export function PersonaPreviewBar({ eligible }: { eligible: boolean }) {
     const next = p === realRbacPersona ? null : p;
     setRbacPreview(next);
     setOpen(false);
-    // `router.push()` alone is the correct, complete fix for the "land on
-    // the previewed persona's own page" requirement — it's a real
-    // navigation, so Next.js fetches and renders that destination route's
-    // Server Component tree fresh regardless of whether the URL happens to
-    // change. The Sidebar / ModuleNav / write-affordance reactions to a
-    // preview change are pure client Context state (useDashboardUI), which
-    // re-renders the instant setRbacPreview above commits — no server
-    // round trip is involved in any of that, on this or any other route.
+    // The Sidebar / ModuleNav / write-affordance reactions to a preview
+    // change are pure client Context state (useDashboardUI), which
+    // re-renders the instant setRbacPreview above commits — no navigation
+    // is involved in any of that, on this or any other route. The push
+    // below exists only for the separate "land on the previewed persona's
+    // own page" requirement.
     //
     // A `router.refresh()` immediately after `push()` used to run here too.
     // It was never load-bearing (nothing it could refresh depends on the
     // preview — the server never reads it), and it raced against the
-    // push's own navigation/data-fetch inside the same transition: two
-    // concurrent App Router operations against the same layout segment,
-    // interleaving unpredictably under real network timing. That race is
-    // the leading explanation for reports of the trigger button
-    // occasionally going unresponsive until a hard reload — a symptom the
-    // Ops Console's identical control (RbacPersonaSwitcher.tsx, which
-    // never calls the router at all) never exhibited. Removed.
-    startTransition(() => {
-      router.push(RBAC_MATRIX[next ?? realRbacPersona].landing);
-    });
+    // push's own navigation/data-fetch inside the same transition. Removed.
+    //
+    // Verified-fallback navigation (docs/UI_DESIGN_SYSTEM.md §5.1): when
+    // the target landing route is a DIFFERENT pathname from the one
+    // already active, this is exactly the same-pathname*, search-param-
+    // only navigation shape with a confirmed platform-level failure mode
+    // in this environment (the client router silently never commits) —
+    // *two personas can share a landing route (e.g. both land on
+    // /portfolio), which makes the push here a same-pathname navigation
+    // even though nothing about the call looks unusual. Skip the push
+    // entirely when there's nowhere to go (nothing to verify, nothing to
+    // fall back on); otherwise try the normal soft navigation first and
+    // only fall back to a real one if `pathname` genuinely never updates —
+    // confirmed via the effect above, not a guess, so a merely slow (not
+    // stuck) navigation is never second-guessed.
+    const target = RBAC_MATRIX[next ?? realRbacPersona].landing;
+    if (target === pathname) return;
+    startTransition(() => router.push(target));
+    if (fallback.current) clearTimeout(fallback.current.timer);
+    fallback.current = { timer: setTimeout(() => window.location.assign(target), 2500) };
   }
 
   return (

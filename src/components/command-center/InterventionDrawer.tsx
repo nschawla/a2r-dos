@@ -169,18 +169,40 @@ export function InterventionDrawer({
               </section>
 
               <section>
-                <div className="text-[10px] uppercase tracking-wide text-ink-faint font-semibold mb-1.5">
+                <div className="text-[10px] uppercase tracking-wide text-ink-faint font-semibold mb-2">
                   Portfolio Domino &amp; Trade-off
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-                  <DrawerField label="Margin Impact">
-                    {option.domino.marginDeltaPct === null ? '—' : `${option.domino.marginDeltaPct > 0 ? '+' : ''}${option.domino.marginDeltaPct}%`}
-                  </DrawerField>
-                  <DrawerField label="Affected Project">{option.domino.affectedProjectName ?? '—'}</DrawerField>
-                  <DrawerField label="Team Velocity Risk">{option.domino.teamVelocityRisk ?? '—'}</DrawerField>
-                  <DrawerField label="Approval">
-                    {option.domino.requiresApproval ? 'Required' : 'Not required'}
-                  </DrawerField>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <DrawerTag
+                    label="Margin Impact"
+                    value={option.domino.marginDeltaPct === null ? '—' : `${option.domino.marginDeltaPct > 0 ? '+' : ''}${option.domino.marginDeltaPct}%`}
+                    tone={
+                      option.domino.marginDeltaPct === null
+                        ? 'neutral'
+                        : option.domino.marginDeltaPct < 0
+                          ? 'critical'
+                          : 'success'
+                    }
+                  />
+                  <DrawerTag
+                    label="Team Velocity Risk"
+                    value={option.domino.teamVelocityRisk ?? '—'}
+                    tone={
+                      option.domino.teamVelocityRisk === 'High'
+                        ? 'critical'
+                        : option.domino.teamVelocityRisk === 'Medium'
+                          ? 'warning'
+                          : option.domino.teamVelocityRisk === 'Low'
+                            ? 'success'
+                            : 'neutral'
+                    }
+                  />
+                  <DrawerTag
+                    label="Approval"
+                    value={option.domino.requiresApproval ? 'Required' : 'Not required'}
+                    tone={option.domino.requiresApproval ? 'warning' : 'success'}
+                  />
+                  <DrawerTag label="Affected Project" value={option.domino.affectedProjectName ?? '—'} tone="neutral" />
                 </div>
                 {option.domino.affectedProjectNote && (
                   <p className="text-[12px] text-ink-muted leading-snug mt-3">{option.domino.affectedProjectNote}</p>
@@ -225,11 +247,31 @@ export function InterventionDrawer({
   );
 }
 
-function DrawerField({ label, children }: { label: string; children: React.ReactNode }) {
+const TAG_TONE_CLASS: Record<'critical' | 'warning' | 'success' | 'neutral', string> = {
+  critical: 'bg-critical-soft border-critical/30 text-critical',
+  warning: 'bg-warning-soft border-warning/30 text-warning',
+  success: 'bg-success-soft border-success/30 text-success',
+  neutral: 'bg-surface-2 border-border-soft text-ink-muted',
+};
+
+/** A trade-off metric as a bold, contrasting tag rather than plain text —
+ * the whole point of surfacing a domino effect is that it registers at a
+ * glance, not that it reads like a form field. */
+function DrawerTag({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: 'critical' | 'warning' | 'success' | 'neutral';
+}) {
   return (
-    <div className="min-w-0">
-      <div className="text-[10px] uppercase tracking-wide text-ink-faint font-semibold mb-1">{label}</div>
-      <div className="text-[13px] text-ink leading-snug">{children}</div>
+    <div className={clsx('rounded-md border px-3 py-2', TAG_TONE_CLASS[tone])}>
+      <div className="text-[9.5px] uppercase tracking-wide font-semibold opacity-75 mb-0.5">{label}</div>
+      <div className="text-[13.5px] font-bold truncate" title={value}>
+        {value}
+      </div>
     </div>
   );
 }

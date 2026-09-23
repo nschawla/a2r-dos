@@ -47,12 +47,13 @@ export function DecisionCard({
   const financialImpactUsd = parseUsd(item.financialImpact);
 
   return (
-    <div className="card !border-l-[3px] !border-l-critical flex flex-col gap-4">
+    <div className="card !border !border-critical/25 !border-l-[6px] !border-l-critical flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+            <span className="flex-none w-1.5 h-1.5 rounded-full bg-critical animate-pulse motion-reduce:animate-none" aria-hidden />
             {item.drivers.map((d) => (
-              <span key={d} className="badge !border-0 !py-0.5 !px-2 bg-critical-soft text-critical text-[10.5px]">
+              <span key={d} className="badge !border-0 !py-0.5 !px-2 bg-critical text-white text-[10.5px] font-bold">
                 {DRIVER_META[d]}
               </span>
             ))}
@@ -92,11 +93,13 @@ export function DecisionCard({
       </div>
 
       {lastIntervention && (
-        <div className="flex items-center gap-2 text-[12px] bg-surface-2 rounded-sm px-3 py-2">
-          <span className="status-dot bg-brand flex-none" />
+        <div className="flex items-center gap-2.5 text-[12.5px] bg-success-soft border border-success/30 rounded-md px-3.5 py-2.5">
+          <span className="flex-none w-5 h-5 rounded-full bg-success text-white flex items-center justify-center text-[11px] font-bold">
+            ✓
+          </span>
+          <span className="text-success font-bold uppercase tracking-wide text-[10.5px]">Intervention Applied</span>
           <span className="text-ink-muted">
-            Intervention Applied · <span className="font-semibold text-ink">{lastIntervention.optionLabel}</span> ·{' '}
-            {lastIntervention.decidedByName}
+            <span className="font-semibold text-ink">{lastIntervention.optionLabel}</span> · {lastIntervention.decidedByName}
           </span>
           <ProvenanceStamp at={lastIntervention.createdAt} source="Executed" className="ml-auto flex-none" />
         </div>
@@ -107,16 +110,19 @@ export function DecisionCard({
           <div className="text-[10px] uppercase tracking-wide text-ink-faint font-semibold mb-2">
             {lastIntervention ? 'Take another action' : 'Commercially Viable Options'}
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
             {options.map((opt) => (
               <button
                 key={opt.key}
                 type="button"
                 onClick={() => setOpenOption(opt)}
                 title={opt.summary}
-                className="rounded-2xl border-2 border-border-soft bg-surface-1 px-3.5 py-2 text-[12.5px] font-semibold text-ink hover:border-brand hover:bg-brand/[0.06] hover:text-brand transition-all duration-150 ease-out"
+                className="group/opt flex items-center gap-1.5 rounded-2xl border-2 border-brand/40 bg-brand/[0.07] px-3.5 py-2 text-[12.5px] font-bold text-brand hover:border-brand hover:bg-brand hover:text-white transition-all duration-150 ease-out"
               >
                 {opt.label}
+                <span aria-hidden className="opacity-60 group-hover/opt:opacity-100 group-hover/opt:translate-x-0.5 transition-all">
+                  →
+                </span>
               </button>
             ))}
           </div>
