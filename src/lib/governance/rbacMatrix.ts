@@ -55,7 +55,7 @@ import type { FinancialVisibility } from '@/lib/security/masking';
 import { GOVERNABLE_MODULES, findOwningModule, type GovernableModule } from './config';
 
 export type RbacPersona =
-  | 'GLOBAL_ADMIN'
+  | 'CLIENT_ADMIN'
   | 'DELIVERY_EXECUTIVE'
   | 'ENGAGEMENT_MANAGER'
   | 'DELIVERY_LEAD'
@@ -102,7 +102,7 @@ export interface RbacPersonaDef {
 }
 
 export const RBAC_PERSONAS: readonly RbacPersona[] = [
-  'GLOBAL_ADMIN',
+  'CLIENT_ADMIN',
   'ENGAGEMENT_MANAGER',
   'DELIVERY_EXECUTIVE',
   'DELIVERY_LEAD',
@@ -114,17 +114,32 @@ export const RBAC_PERSONAS: readonly RbacPersona[] = [
  * GOVERNABLE_MODULES key (enforced by tests/rbac-matrix.test.ts) — adjust
  * access by editing these lists, nowhere else.
  *
- * Four definitive enterprise tiers (GLOBAL_ADMIN, ENGAGEMENT_MANAGER,
+ * Four definitive enterprise tiers (CLIENT_ADMIN, ENGAGEMENT_MANAGER,
  * DELIVERY_EXECUTIVE, DELIVERY_LEAD) plus OBSERVER, the read-only guest
  * tier — not counted among the "four," since it's a guest/observer
  * accommodation rather than an enterprise role.
  */
 export const RBAC_MATRIX: Record<RbacPersona, RbacPersonaDef> = {
-  GLOBAL_ADMIN: {
-    key: 'GLOBAL_ADMIN',
+  // Renamed from GLOBAL_ADMIN (v1.31.0) — "Global" read as if this tier
+  // reached across tenants, which it never has: like every other
+  // DeliveryRole, ADMIN is enforced strictly organizationId-scoped by the
+  // ORM's own tenant auto-scope ($extends — src/lib/db/org-scope.ts); this
+  // persona just means "no FURTHER row-level restriction within your own
+  // org" (see src/lib/scoping.ts), never "across every org." It is also
+  // completely independent of A2R staff status: `isA2rStaff`
+  // (session.user.isA2rStaff) is a separate boolean gating the internal
+  // /ops console (Sidebar's OPS_CONSOLE_ITEM, middleware.ts, requireOpsContext)
+  // that has nothing to do with DeliveryRole — a real tenant's own Client
+  // Admin, with no staff grant at all, gets zero access to /ops, exactly
+  // as this blurb says. A2R staff who also happen to hold ADMIN
+  // membership in a tenant (for support) resolve to this same persona for
+  // that tenant's shell, same as any of its own real admins would.
+  CLIENT_ADMIN: {
+    key: 'CLIENT_ADMIN',
     deliveryRoles: ['ADMIN'],
-    label: 'Global Admin',
-    blurb: 'Full tenant authority — every module, the rate card, and org setup.',
+    label: 'Client Admin',
+    blurb:
+      'Full super-user authority over your own tenant — every module, the rate card, org setup, and the compliance ledger. Strictly scoped to your organization: zero access to the internal A2R Ops Console, which is a separate operator axis granted independently.',
     allowedModules: GOVERNABLE_MODULES.map((m) => m.key),
     landing: '/portfolio',
     financialVisibility: 'full',
@@ -161,7 +176,7 @@ export const RBAC_MATRIX: Record<RbacPersona, RbacPersonaDef> = {
     label: 'Practice Director / VP-Professional Services',
     blurb:
       'Full enterprise portfolio visibility — SteerCo briefings, global utilization, commercial baselines, and realization metrics — plus practice-level delivery governance for a Practice Director’s own engagements. No macro-tenant settings, no global admin tools.',
-    // Every module — like GLOBAL_ADMIN, minus admin/audit-log. Not a
+    // Every module — like CLIENT_ADMIN, minus admin/audit-log. Not a
     // literal reading of a simplified role spec's shorter nav-item list:
     // PRACTICE_DIRECTOR holds real per-project edit authority
     // (canEditProject) across commercial-baseline/financials/schedule/
@@ -212,7 +227,7 @@ export const RBAC_MATRIX: Record<RbacPersona, RbacPersonaDef> = {
 // PRACTICE_DIRECTOR and VP_EXECUTIVE resolve to ENGAGEMENT_MANAGER. Every
 // other real DeliveryAccessRole still maps 1:1 to its own persona.
 const DELIVERY_ROLE_TO_PERSONA: Record<DeliveryRole, RbacPersona> = {
-  ADMIN: 'GLOBAL_ADMIN',
+  ADMIN: 'CLIENT_ADMIN',
   VP_EXECUTIVE: 'ENGAGEMENT_MANAGER',
   PRACTICE_DIRECTOR: 'ENGAGEMENT_MANAGER',
   DELIVERY_MANAGER: 'DELIVERY_EXECUTIVE',

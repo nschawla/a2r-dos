@@ -156,9 +156,9 @@ test.describe('Suite J2 — Persona Preview banner navigates to each landing vie
     // Baseline (elevated to Practice Director's breadth), where the old
     // Executive Board never did.
     await signIn(page, 'admin@a2rventures-demo.test');
-    await expect(page).toHaveURL(/\/portfolio$/); // Global Admin's landing
+    await expect(page).toHaveURL(/\/portfolio$/); // Client Admin's landing
 
-    // Land on a page only Global Admin can see, to prove the switch
+    // Land on a page only Client Admin can see, to prove the switch
     // actively navigates away rather than leaving it rendered.
     await page.goto('/admin');
     await expectNoErrorOverlay(page);
@@ -188,12 +188,12 @@ test.describe('Suite J2 — Persona Preview banner navigates to each landing vie
     await expect(page.getByRole('link', { name: 'RAID Cockpit' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Commercial Baseline' })).toHaveCount(0);
 
-    // Exit preview — back to the real Global Admin, back on Control Tower.
+    // Exit preview — back to the real Client Admin, back on Control Tower.
     await trigger.click();
     await page.getByRole('menuitemradio', { name: /your real access/ }).click();
     await page.waitForURL(/\/portfolio$/, { timeout: 15_000 });
     await expectNoErrorOverlay(page);
-    await expect(trigger).toHaveAccessibleName('Persona Preview: Global Admin');
+    await expect(trigger).toHaveAccessibleName('Persona Preview: Client Admin');
     await expect(page.getByRole('link', { name: 'Admin & Org Setup' })).toBeVisible();
   });
 });

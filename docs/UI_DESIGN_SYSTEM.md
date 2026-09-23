@@ -573,3 +573,24 @@ the page most likely to be an executive's first screen of the day.
   `/privacy`) keep their existing `default`/`prose` widths — this pass
   is scoped to the client dashboard specifically, not every `Container`
   consumer.
+
+## 11. `GLOBAL_ADMIN` → `CLIENT_ADMIN` (v1.31.0)
+
+The top tenant persona (`src/lib/governance/rbacMatrix.ts`) is relabeled
+from `GLOBAL_ADMIN`/"Global Admin" to `CLIENT_ADMIN`/"Client Admin" — a
+naming-clarity fix, no capability change. "Global" read as if the tier
+reached across tenants; every `DeliveryAccessRole`, `ADMIN` included, is
+strictly `organizationId`-scoped by the ORM's own tenant auto-scope, so
+the old name was always a slight misnomer. The rename also makes explicit
+what the old "Global Admin / A2R Staff" framing blurred: this persona is
+completely independent of A2R staff status (`session.user.isA2rStaff`, a
+separate boolean gating `/ops` — §9's confirmation that `/ops` stays
+internal-only is unaffected). Full rationale:
+`docs/ROLE_ACCESS_MATRIX.md` §2.5. Renamed everywhere the key/label
+appeared: the Sidebar's route-visibility comment, the Persona Preview
+banner, the Custom KPI Builder's target-persona picker, the SSO Identity
+Federation panel's group-mapping labels
+(`src/components/ops/IdentityFederationPanel.tsx`, also caught and fixed
+two other stale persona labels there left over from the 4-Tier RBAC
+pass — "Executive Board" and "Engagement / Practice Manager" — that had
+drifted out of sync when that merge shipped).

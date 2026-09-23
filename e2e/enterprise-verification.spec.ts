@@ -271,7 +271,7 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
     await expect(page.getByRole('button', { name: '+ Log RAID Item' })).toHaveCount(0);
     await expectNoErrorOverlay(page);
 
-    // Exit preview — the control is back for the real Global Admin.
+    // Exit preview — the control is back for the real Client Admin.
     await page.getByRole('button', { name: /^Persona Preview:/ }).click();
     await page.getByRole('menuitemradio', { name: /your real access/ }).click();
     await page.waitForURL(/\/portfolio$/, { timeout: 15_000 });

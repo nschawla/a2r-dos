@@ -48,14 +48,14 @@ describe('RBAC matrix — data integrity', () => {
     }
   });
 
-  it('GLOBAL_ADMIN can reach every governable module', () => {
-    const allowed = allowedModuleKeys('GLOBAL_ADMIN');
+  it('CLIENT_ADMIN can reach every governable module', () => {
+    const allowed = allowedModuleKeys('CLIENT_ADMIN');
     for (const m of GOVERNABLE_MODULES) expect(allowed.has(m.key)).toBe(true);
   });
 
-  it('Admin & Org Setup and the Compliance Ledger are GLOBAL_ADMIN-only', () => {
+  it('Admin & Org Setup and the Compliance Ledger are CLIENT_ADMIN-only', () => {
     for (const persona of RBAC_PERSONAS) {
-      const expected = persona === 'GLOBAL_ADMIN';
+      const expected = persona === 'CLIENT_ADMIN';
       expect(isModuleAllowedForPersona(persona, 'admin')).toBe(expected);
       expect(isModuleAllowedForPersona(persona, 'audit-log')).toBe(expected);
     }
@@ -108,8 +108,8 @@ describe('personaForDeliveryRole', () => {
     }
   });
 
-  it('ADMIN resolves to GLOBAL_ADMIN and PROJECT_MANAGER to DELIVERY_LEAD', () => {
-    expect(personaForDeliveryRole('ADMIN')).toBe('GLOBAL_ADMIN');
+  it('ADMIN resolves to CLIENT_ADMIN and PROJECT_MANAGER to DELIVERY_LEAD', () => {
+    expect(personaForDeliveryRole('ADMIN')).toBe('CLIENT_ADMIN');
     expect(personaForDeliveryRole('PROJECT_MANAGER')).toBe('DELIVERY_LEAD');
   });
 
@@ -147,8 +147,8 @@ describe('rbacHiddenHrefs', () => {
     }
   });
 
-  it('GLOBAL_ADMIN hides nothing; the OBSERVER (guest) persona hides the most', () => {
-    expect(rbacHiddenHrefs('GLOBAL_ADMIN')).toEqual([]);
+  it('CLIENT_ADMIN hides nothing; the OBSERVER (guest) persona hides the most', () => {
+    expect(rbacHiddenHrefs('CLIENT_ADMIN')).toEqual([]);
     const hiddenCounts = RBAC_PERSONAS.map((p) => rbacHiddenHrefs(p).length);
     expect(Math.max(...hiddenCounts)).toBe(rbacHiddenHrefs('OBSERVER').length);
     // the OBSERVER sees strictly fewer modules than the Delivery Executive
@@ -177,9 +177,9 @@ describe('isRouteBlockedForPersona', () => {
     for (const persona of RBAC_PERSONAS) expect(isRouteBlockedForPersona(persona, '/command')).toBe(false);
   });
 
-  it('blocks /admin and a deep audit-log path for everyone except GLOBAL_ADMIN', () => {
+  it('blocks /admin and a deep audit-log path for everyone except CLIENT_ADMIN', () => {
     for (const persona of RBAC_PERSONAS) {
-      const expectBlocked = persona !== 'GLOBAL_ADMIN';
+      const expectBlocked = persona !== 'CLIENT_ADMIN';
       expect(isRouteBlockedForPersona(persona, '/admin')).toBe(expectBlocked);
       expect(isRouteBlockedForPersona(persona, '/admin/audit-log')).toBe(expectBlocked);
     }
@@ -211,7 +211,7 @@ describe('every persona resolves through the real DeliveryRole tiers', () => {
   });
 
   it('every RbacPersona type value is a key in RBAC_MATRIX (exhaustiveness)', () => {
-    const keys: RbacPersona[] = ['GLOBAL_ADMIN', 'DELIVERY_EXECUTIVE', 'ENGAGEMENT_MANAGER', 'DELIVERY_LEAD', 'OBSERVER'];
+    const keys: RbacPersona[] = ['CLIENT_ADMIN', 'DELIVERY_EXECUTIVE', 'ENGAGEMENT_MANAGER', 'DELIVERY_LEAD', 'OBSERVER'];
     for (const k of keys) expect(RBAC_MATRIX[k]).toBeDefined();
   });
 });

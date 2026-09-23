@@ -148,7 +148,7 @@ test.describe('Suite K2 — Role-Based Scoped Filtering on the Financial Realiza
 // ── K3 · Custom KPI Builder ───────────────────────────────────────────
 
 test.describe('Suite K3 — Custom KPI Builder reflects instantly on the Control Tower', () => {
-  test('an Admin creates a KPI bound to Global Admin, and it appears on the Control Tower', async () => {
+  test('an Admin creates a KPI bound to Client Admin, and it appears on the Control Tower', async () => {
     await signIn(page, 'admin@a2rventures-demo.test');
     await page.goto('/admin/kpis');
     await expectNoErrorOverlay(page);
@@ -161,8 +161,8 @@ test.describe('Suite K3 — Custom KPI Builder reflects instantly on the Control
     await numberInputs.nth(1).fill('20'); // warning
     // exact: true — the tenant shell's Persona Preview banner and identity
     // chip (src/components/layout/PersonaPreviewBar.tsx, Header.tsx) also
-    // surface the "Global Admin" persona label elsewhere on this page.
-    await page.getByRole('button', { name: 'Global Admin', exact: true }).click();
+    // surface the "Client Admin" persona label elsewhere on this page.
+    await page.getByRole('button', { name: 'Client Admin', exact: true }).click();
     await page.getByRole('button', { name: 'Create KPI' }).click();
     await expect(page.locator(`text=${TEST_KPI_NAME}`)).toBeVisible({ timeout: 10_000 });
 

@@ -18,7 +18,7 @@ content lives now.
 
 ## 0. Before you start
 
-- Sign in as `admin@a2rventures-demo.test` (or whichever Global Admin
+- Sign in as `admin@a2rventures-demo.test` (or whichever Client Admin
   account the audience should see) — every module and every write control
   is visible from this seat, which keeps the walkthrough from stalling on
   a permission wall.

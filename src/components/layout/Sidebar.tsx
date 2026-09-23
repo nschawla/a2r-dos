@@ -235,7 +235,7 @@ export function Sidebar({ hiddenHrefs = [], isA2rStaff = false }: { hiddenHrefs?
   //     (core modules never in this list — src/lib/governance/config.ts).
   // (2) The RBAC master matrix — modules this persona isn't allowed to see
   //     at all (src/lib/governance/rbacMatrix.ts; includes core modules
-  //     like Admin, which is GLOBAL_ADMIN-only). `rbacPersona` reflects a
+  //     like Admin, which is CLIENT_ADMIN-only). `rbacPersona` reflects a
   //     demo preview override when one is active — display-only, never
   //     the actual route gate (middleware.ts reads the real session role).
   const hidden = new Set([...hiddenHrefs, ...rbacHiddenHrefs(rbacPersona)]);

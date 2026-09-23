@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.31.0',
+    date: '2026-09-23',
+    headline: 'Client Admin RBAC Rename & Stale Persona Label Fixes',
+    changes: [
+      { type: 'improvement', text: 'The top tenant persona is renamed GLOBAL_ADMIN → CLIENT_ADMIN ("Global Admin" → "Client Admin") — a naming-clarity fix, not a capability change. "Global" read as if the tier reached across tenants; every DeliveryAccessRole, including this one, is and always has been strictly organization-scoped. The rename also makes explicit that this persona is completely independent of A2R staff status — a real tenant Client Admin has zero access to the internal A2R Ops Console, exactly as before.' },
+      { type: 'fix', text: 'Fixed two stale persona labels in the SSO Identity Federation panel\'s group-mapping picker ("Executive Board", "Engagement / Practice Manager") left over from the 4-Tier RBAC merge — they now read "Practice Director / VP-Professional Services" and "Delivery / Project Director", matching the current persona names everywhere else in the app.' },
+      { type: 'improvement', text: 'Confirmed (no code change needed): the Client Admin footer (Admin & Org Setup, Compliance Ledger) and the A2R Ops Console gating were already correct — verified live across a plain tenant admin, a Project Manager persona preview, and a staff+tenant account.' },
+    ],
+  },
+  {
     version: '1.30.0',
     date: '2026-09-23',
     headline: 'Bento Grid 4-Row Restructuring, USB Visibility, Naming & Density Polish',

@@ -33,13 +33,17 @@ type Vendor = 'AZURE_AD' | 'OKTA' | 'GOOGLE_WORKSPACE' | 'GENERIC';
 type DeliveryRole = 'ADMIN' | 'VP_EXECUTIVE' | 'PRACTICE_DIRECTOR' | 'DELIVERY_MANAGER' | 'PROJECT_MANAGER' | 'VIEWER';
 type MembershipRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
 
-// All six real DeliveryAccessRole tiers — the six RBAC Master Matrix
-// personas (src/lib/governance/rbacMatrix.ts) map 1:1 onto these.
+// All six real DeliveryAccessRole tiers — mapped many-to-one onto the
+// five RBAC Master Matrix personas (src/lib/governance/rbacMatrix.ts;
+// PRACTICE_DIRECTOR and VP_EXECUTIVE both resolve to the same merged
+// ENGAGEMENT_MANAGER persona as of the 4-Tier RBAC simplification, kept
+// as two distinct group-mapping targets here since they're still two
+// real, separately assignable roles a tenant's IdP groups can map onto).
 const DELIVERY_ROLE_LABELS: Record<DeliveryRole, string> = {
-  ADMIN: 'Admin (Global Admin)',
-  VP_EXECUTIVE: 'VP / Executive (Executive Board)',
-  PRACTICE_DIRECTOR: 'Practice Director (Engagement / Practice Manager)',
-  DELIVERY_MANAGER: 'Delivery Manager (Delivery Executive)',
+  ADMIN: 'Admin (Client Admin)',
+  VP_EXECUTIVE: 'VP / Executive (Practice Director / VP-Professional Services)',
+  PRACTICE_DIRECTOR: 'Practice Director (Practice Director / VP-Professional Services)',
+  DELIVERY_MANAGER: 'Delivery Manager (Delivery / Project Director)',
   PROJECT_MANAGER: 'Project Manager',
   VIEWER: 'Viewer / Guest',
 };

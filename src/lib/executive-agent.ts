@@ -31,7 +31,8 @@ const MAX_CONTEXT_PROJECTS = 20;
 
 export interface AgentPersonaContext {
   /** The RBAC Master Matrix persona label — "Project Manager", "Delivery
-   * Executive", "Practice Manager", "Global Admin", etc. */
+   * / Project Director", "Practice Director / VP-Professional Services",
+   * "Client Admin", etc. */
   personaLabel: string;
   organizationName: string;
   scopeDescription: string;

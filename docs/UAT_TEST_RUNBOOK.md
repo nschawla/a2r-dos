@@ -168,8 +168,8 @@ control for previewing another role's view.)
 
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | Look at the top of the workspace | A quiet **"Persona Preview: Global Admin ▾"** banner sits above the sidebar/header, distinct from any other control | |
-| 2 | Click it | Menu opens: "Global Admin — your real access" at top, then all 5 personas (Global Admin, Practice Director / VP-Professional Services, Delivery / Project Director, Project Manager, Viewer / Guest), each with a one-line blurb | |
+| 1 | Look at the top of the workspace | A quiet **"Persona Preview: Client Admin ▾"** banner sits above the sidebar/header, distinct from any other control | |
+| 2 | Click it | Menu opens: "Client Admin — your real access" at top, then all 5 personas (Client Admin, Practice Director / VP-Professional Services, Delivery / Project Director, Project Manager, Viewer / Guest), each with a one-line blurb | |
 | 3 | Pick **Viewer / Guest** | Banner turns solid warning-orange, a pulsing dot appears, copy reads "— simulated view, not your real access", and an **Exit preview** button appears | |
 | 4 | Check the sidebar | Only PS Control Tower, SteerCo Briefing, Executive Hub remain — Resource & Capacity, Commercial Baseline, Financial Realization, Schedule, RAID, Controls Audit, Admin & Org Setup, Compliance Ledger are all gone, not just disabled | |
 | 5 | Open any project's module page (e.g. `/audit/<id>`) | No Lock Baseline / edit controls render anywhere — every write affordance is gone, even though the signed-in Admin's own real edit authority is untouched | |

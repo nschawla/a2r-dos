@@ -1,6 +1,6 @@
 # Security & Role Access Matrix — PS-DOS
 
-_Current as of **v1.29.0**. Source of truth: `src/lib/ops/operator-roles.ts`
+_Current as of **v1.31.0**. Source of truth: `src/lib/ops/operator-roles.ts`
 (operator axis), `src/lib/auth/rbac.ts` + `src/lib/governance/rbacMatrix.ts`
 (tenant axis). This document is a reader's map onto that code._
 
@@ -139,7 +139,7 @@ one still holds exactly one real `DeliveryAccessRole`:
 
 | Persona | Delivery role(s) | Modules reachable | Lands on |
 | --- | --- | --- | --- |
-| `GLOBAL_ADMIN` (Global Admin / A2R Staff) | ADMIN | every governable module | PS Control Tower |
+| `CLIENT_ADMIN` (Client Admin) | ADMIN | every governable module | PS Control Tower |
 | `ENGAGEMENT_MANAGER` (Practice Director / VP-Professional Services) | **PRACTICE_DIRECTOR, VP_EXECUTIVE** | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit, steerco, reports | PS Control Tower |
 | `DELIVERY_EXECUTIVE` (Delivery / Project Director) | DELIVERY_MANAGER | control-tower, raid, schedule, capacity, **financials, commercial-baseline** | PS Control Tower |
 | `DELIVERY_LEAD` (Project Manager) | PROJECT_MANAGER | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit | PS Control Tower |
@@ -192,9 +192,32 @@ independent layers keep it that way: (1) `src/middleware.ts` gates every
 `src/app/(admin)/ops/layout.tsx`'s `requireOpsContext()` redirects any
 non-staff session server-side; (3) the Sidebar only renders the "A2R Ops
 Console" link at all when `session.user.isA2rStaff === true`. No tenant
-`RbacPersona` — including `GLOBAL_ADMIN`, a tenant's own top role — carries
+`RbacPersona` — including `CLIENT_ADMIN`, a tenant's own top role — carries
 any operator capability; those are governed entirely by the separate
 `OperatorRole` axis in §1.
+
+### 2.5 `GLOBAL_ADMIN` → `CLIENT_ADMIN` rename (v1.31.0)
+
+The top tenant persona (`ADMIN` `DeliveryAccessRole`) was relabeled from
+`GLOBAL_ADMIN`/"Global Admin" to `CLIENT_ADMIN`/"Client Admin" — a
+naming-clarity fix, not a capability change. "Global" read as if the tier
+reached across tenants; it never has, and never will: `ADMIN`, like every
+`DeliveryAccessRole`, is strictly `organizationId`-scoped by the ORM's own
+tenant auto-scope (`$extends` — `src/lib/db/org-scope.ts`), enforced
+identically regardless of persona. This tier means "no further row-level
+restriction *within your own org*" (see §2.2/§2.4), never "across every
+org."
+
+The rename also makes the independence from A2R staff status explicit,
+which the old "Global Admin / A2R Staff" framing blurred: `isA2rStaff`
+(`session.user.isA2rStaff`) is a completely separate boolean gating
+`/ops` (§2.4), unrelated to `DeliveryRole`. A tenant's own real Client
+Admin, holding no `StaffGrant` at all, has zero `/ops` access — exactly
+as before. An A2R staff member who also happens to hold `ADMIN`
+membership in a tenant (for support, e.g. `master.e2e@a2rventures.com`)
+resolves to this same `CLIENT_ADMIN` persona for that tenant's own shell,
+same as any of its real admins would — the persona describes the
+tenant-side capability, independent of who's holding it.
 
 ---
 
