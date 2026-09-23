@@ -41,7 +41,12 @@ export interface GovernableModule {
 }
 
 export const GOVERNABLE_MODULES: readonly GovernableModule[] = [
-  { key: 'command', label: 'Command Center', href: '/command' },
+  // Command Center was retired as a standalone module (Sidebar Flattening
+  // & Control Tower Merge) — /command now permanently redirects to
+  // /portfolio, and its 'command' governance key is gone. A tenant's
+  // already-persisted GovernanceConfig.hiddenModules containing the string
+  // 'command' is harmless: the hideable-keys sanitization below only ever
+  // honors known keys.
   { key: 'control-tower', label: 'Control Tower', href: '/portfolio', core: true },
   { key: 'capacity', label: 'Resource & Capacity', href: '/capacity' },
   { key: 'commercial-baseline', label: 'Commercial Baseline', href: '/commercial-baseline' },
@@ -132,7 +137,7 @@ export const GOVERNANCE_TEMPLATES: Record<
     label: 'Board-Only',
     blurb:
       'A lean executive read-out — the SteerCo briefing, portfolio, reporting hub and control audit only. Day-to-day working modules are hidden; financials stay visible to authorised roles.',
-    hiddenModules: ['command', 'capacity', 'commercial-baseline', 'financials', 'schedule', 'raid'],
+    hiddenModules: ['capacity', 'commercial-baseline', 'financials', 'schedule', 'raid'],
     maskFinancialsForDelivery: false,
   },
 };

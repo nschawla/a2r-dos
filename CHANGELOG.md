@@ -10,6 +10,35 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.29.0] — 2026-09-23
+
+_Sidebar Flattening, Command Center Merge, 4-Tier RBAC, Demo Script._
+
+### Changed
+
+- **Sidebar flattened** — the three grouped sections (Portfolio / Engagement Governance / Reporting) collapsed
+  into one ordered stack: Control Tower, Commercial Baseline, Financial Realization, Schedule & Milestones,
+  RAID Cockpit, Resource & Capacity, SteerCo Briefing, Executive Hub, Control Audit. Admin & Org Setup and the
+  Compliance Ledger stay pinned at the bottom; the A2R Ops Console link stays staff-only.
+- **Command Center retired** — `/command` now permanently redirects to the Control Tower. Its Impact-Aware
+  Decision Cards feed was already duplicated there (the Decisions tab); its natural-language Command Bar moved
+  there too, pinned above the module tabs.
+- **4-Tier RBAC** — the six-persona `RbacPersona` navigation layer collapsed to five. Practice Director and
+  VP-Professional Services now share one merged tier with identical, full-operational navigation — built by
+  elevating `VP_EXECUTIVE` up to Practice Director's existing breadth, never by narrowing Practice Director
+  down, so real edit/approval authority is unchanged. Delivery/Project Director gained visibility into
+  aggregate financials and commercial baselines across their PMs' projects. The underlying six-value
+  `DeliveryAccessRole` enum and every `Membership` row are untouched — no migration.
+- The flagship demo tenant is renamed from "PS-DOS Demo" to "Apex Global Services" (display name only — slug,
+  routes, and guest-account emails unchanged).
+
+### Added
+
+- `docs/DEMO_WALKTHROUGH.md` — a presenter-facing, manual click-through demo script mirroring the flattened
+  UI, alongside the existing hands-free `docs/AUTO_DEMO_SCRIPT.md`. Added to the in-app Documentation Hub.
+
+---
+
 ## [1.28.0] — 2026-09-23
 
 _Documentation Hub, Implementation & Client Support Runbooks, Support Trace IDs._

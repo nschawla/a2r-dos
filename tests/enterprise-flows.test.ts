@@ -86,7 +86,7 @@ describe('Enterprise flow · role-based landing resolution', () => {
     const admin: LensViewerContext = { deliveryRole: 'ADMIN', isA2rStaff: false };
     expect(landingRouteFor(admin)).toBe('/portfolio'); // default
     expect(landingRouteFor(admin, 'executive')).toBe('/steerco');
-    expect(landingRouteFor(admin, 'operations')).toBe('/command');
+    expect(landingRouteFor(admin, 'operations')).toBe('/portfolio?v=decisions');
   });
 });
 

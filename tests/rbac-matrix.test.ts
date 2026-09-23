@@ -21,9 +21,9 @@ import {
 const ALL_MODULE_KEYS = new Set(GOVERNABLE_MODULES.map((m) => m.key));
 
 describe('RBAC matrix — data integrity', () => {
-  it('has exactly 6 personas, each keyed consistently in RBAC_MATRIX', () => {
-    expect(RBAC_PERSONAS).toHaveLength(6);
-    expect(Object.keys(RBAC_MATRIX)).toHaveLength(6);
+  it('has exactly 5 personas (4 enterprise tiers + the read-only Observer/guest tier), each keyed consistently in RBAC_MATRIX', () => {
+    expect(RBAC_PERSONAS).toHaveLength(5);
+    expect(Object.keys(RBAC_MATRIX)).toHaveLength(5);
     for (const key of RBAC_PERSONAS) expect(RBAC_MATRIX[key].key).toBe(key);
   });
 
@@ -35,10 +35,11 @@ describe('RBAC matrix — data integrity', () => {
     }
   });
 
-  it('each persona maps to a distinct real DeliveryRole (one persona per tier)', () => {
-    const roles = RBAC_PERSONAS.map((p) => RBAC_MATRIX[p].deliveryRole);
-    expect(new Set(roles).size).toBe(6);
-    expect([...roles].sort()).toEqual([...DELIVERY_ROLES].sort());
+  it('every real DeliveryRole is covered by exactly one persona\'s deliveryRoles — the merged ENGAGEMENT_MANAGER tier covers two', () => {
+    const allRoles = RBAC_PERSONAS.flatMap((p) => RBAC_MATRIX[p].deliveryRoles);
+    expect(new Set(allRoles).size).toBe(6);
+    expect([...allRoles].sort()).toEqual([...DELIVERY_ROLES].sort());
+    expect([...RBAC_MATRIX.ENGAGEMENT_MANAGER.deliveryRoles].sort()).toEqual(['PRACTICE_DIRECTOR', 'VP_EXECUTIVE']);
   });
 
   it('control-tower (the universal landing page) is allowed for every persona', () => {
@@ -60,14 +61,17 @@ describe('RBAC matrix — data integrity', () => {
     }
   });
 
-  it('DELIVERY_EXECUTIVE — internal delivery leadership — never sees commercial/cost or admin modules', () => {
-    for (const mod of ['commercial-baseline', 'financials', 'command', 'admin', 'audit-log']) {
+  it('DELIVERY_EXECUTIVE — the Delivery/Project Director tier — never sees admin modules, but does see aggregate financials and staffing', () => {
+    for (const mod of ['admin', 'audit-log']) {
       expect(isModuleAllowedForPersona('DELIVERY_EXECUTIVE', mod)).toBe(false);
     }
-    // ...but unlike a strictly external-facing role, they DO see staffing
-    // exposure — the whole point of the "Resource Utilization & Staffing
-    // Gaps" nav item in their spec.
-    expect(isModuleAllowedForPersona('DELIVERY_EXECUTIVE', 'capacity')).toBe(true);
+    // 4-Tier RBAC: broadened to aggregate financials/commercial baseline
+    // visibility across their PMs' projects, plus the pre-existing
+    // staffing exposure — the whole point of the "Resource Utilization &
+    // Staffing Gaps" nav item in their spec.
+    for (const mod of ['capacity', 'financials', 'commercial-baseline']) {
+      expect(isModuleAllowedForPersona('DELIVERY_EXECUTIVE', mod)).toBe(true);
+    }
   });
 
   it('every persona\'s landing module is one it is actually allowed into', () => {
@@ -78,12 +82,15 @@ describe('RBAC matrix — data integrity', () => {
     }
   });
 
-  it('PRACTICE_DIRECTOR and PROJECT_MANAGER keep every module they hold real per-project edit authority on', () => {
+  it('ENGAGEMENT_MANAGER and DELIVERY_LEAD keep every module they hold real per-project edit authority on', () => {
     // authorizeProjectEdit (canEditProject) is undifferentiated across
     // commercial-baseline/financials/schedule/raid/audit — a role that can
     // edit one can edit all five on their own project(s), so none of the
     // five may ever be missing from their nav allow-list (a "dead route":
-    // reachable-to-edit but unreachable-to-navigate).
+    // reachable-to-edit but unreachable-to-navigate). This holds for
+    // ENGAGEMENT_MANAGER's PRACTICE_DIRECTOR half — its VP_EXECUTIVE half
+    // shares the same nav for visibility only and never gets real edit
+    // authority (see src/lib/auth/rbac.ts's canEditProject).
     for (const persona of ['ENGAGEMENT_MANAGER', 'DELIVERY_LEAD'] as const) {
       for (const mod of ['commercial-baseline', 'financials', 'schedule', 'raid', 'audit']) {
         expect(isModuleAllowedForPersona(persona, mod), `${persona} → ${mod}`).toBe(true);
@@ -93,17 +100,25 @@ describe('RBAC matrix — data integrity', () => {
 });
 
 describe('personaForDeliveryRole', () => {
-  it('is a total, role-preserving mapping for every real DeliveryRole', () => {
+  it('is a total mapping for every real DeliveryRole, and every persona\'s deliveryRoles list contains the role(s) that resolve to it', () => {
     for (const role of DELIVERY_ROLES) {
       const persona = personaForDeliveryRole(role);
       expect(RBAC_PERSONAS).toContain(persona);
-      expect(RBAC_MATRIX[persona].deliveryRole).toBe(role);
+      expect(RBAC_MATRIX[persona].deliveryRoles).toContain(role);
     }
   });
 
   it('ADMIN resolves to GLOBAL_ADMIN and PROJECT_MANAGER to DELIVERY_LEAD', () => {
     expect(personaForDeliveryRole('ADMIN')).toBe('GLOBAL_ADMIN');
     expect(personaForDeliveryRole('PROJECT_MANAGER')).toBe('DELIVERY_LEAD');
+  });
+
+  it('4-Tier RBAC: PRACTICE_DIRECTOR and VP_EXECUTIVE both resolve to the merged ENGAGEMENT_MANAGER tier, with identical nav', () => {
+    expect(personaForDeliveryRole('PRACTICE_DIRECTOR')).toBe('ENGAGEMENT_MANAGER');
+    expect(personaForDeliveryRole('VP_EXECUTIVE')).toBe('ENGAGEMENT_MANAGER');
+    expect(RBAC_MATRIX[personaForDeliveryRole('PRACTICE_DIRECTOR')].allowedModules).toEqual(
+      RBAC_MATRIX[personaForDeliveryRole('VP_EXECUTIVE')].allowedModules
+    );
   });
 });
 
@@ -112,8 +127,9 @@ describe('isRbacPersona', () => {
     for (const p of RBAC_PERSONAS) expect(isRbacPersona(p)).toBe(true);
   });
 
-  it('rejects junk, empty, and null/undefined', () => {
+  it('rejects junk, empty, null/undefined, and the retired EXECUTIVE_BOARD key', () => {
     expect(isRbacPersona('NOT_A_PERSONA')).toBe(false);
+    expect(isRbacPersona('EXECUTIVE_BOARD')).toBe(false);
     expect(isRbacPersona('')).toBe(false);
     expect(isRbacPersona(null)).toBe(false);
     expect(isRbacPersona(undefined)).toBe(false);
@@ -157,6 +173,10 @@ describe('isRouteBlockedForPersona', () => {
     for (const persona of RBAC_PERSONAS) expect(isRouteBlockedForPersona(persona, '/')).toBe(false);
   });
 
+  it('/command permanently redirects, and owns no module (never blocked, for anyone)', () => {
+    for (const persona of RBAC_PERSONAS) expect(isRouteBlockedForPersona(persona, '/command')).toBe(false);
+  });
+
   it('blocks /admin and a deep audit-log path for everyone except GLOBAL_ADMIN', () => {
     for (const persona of RBAC_PERSONAS) {
       const expectBlocked = persona !== 'GLOBAL_ADMIN';
@@ -166,10 +186,9 @@ describe('isRouteBlockedForPersona', () => {
   });
 
   it('matches the deepest owning module on a deep per-project route', () => {
-    // DELIVERY_EXECUTIVE cannot see Financials at all, so a specific
-    // project's financials page is blocked too, not just the bare
-    // /financials index.
-    expect(isRouteBlockedForPersona('DELIVERY_EXECUTIVE', '/financials/proj-123')).toBe(true);
+    // DELIVERY_EXECUTIVE cannot see Control Audit, so a specific project's
+    // audit page is blocked too, not just the bare /audit index.
+    expect(isRouteBlockedForPersona('DELIVERY_EXECUTIVE', '/audit/proj-123')).toBe(true);
     // ...but the same persona IS allowed into Schedule for that project.
     expect(isRouteBlockedForPersona('DELIVERY_EXECUTIVE', '/schedule/proj-123')).toBe(false);
   });
@@ -184,20 +203,15 @@ describe('isRouteBlockedForPersona', () => {
 });
 
 describe('every persona resolves through the real DeliveryRole tiers', () => {
-  it('round-trips DeliveryRole -> persona -> DeliveryRole', () => {
-    const roundTrip = (role: DeliveryRole) => RBAC_MATRIX[personaForDeliveryRole(role)].deliveryRole;
-    for (const role of DELIVERY_ROLES) expect(roundTrip(role)).toBe(role);
+  it('every real DeliveryRole resolves to a persona whose deliveryRoles list contains it', () => {
+    for (const role of DELIVERY_ROLES) {
+      const persona = personaForDeliveryRole(role);
+      expect(RBAC_MATRIX[persona].deliveryRoles).toContain(role);
+    }
   });
 
   it('every RbacPersona type value is a key in RBAC_MATRIX (exhaustiveness)', () => {
-    const keys: RbacPersona[] = [
-      'GLOBAL_ADMIN',
-      'EXECUTIVE_BOARD',
-      'DELIVERY_EXECUTIVE',
-      'ENGAGEMENT_MANAGER',
-      'DELIVERY_LEAD',
-      'OBSERVER',
-    ];
+    const keys: RbacPersona[] = ['GLOBAL_ADMIN', 'DELIVERY_EXECUTIVE', 'ENGAGEMENT_MANAGER', 'DELIVERY_LEAD', 'OBSERVER'];
     for (const k of keys) expect(RBAC_MATRIX[k]).toBeDefined();
   });
 });

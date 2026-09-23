@@ -9,9 +9,12 @@
  * link exactly as before, and adds: a Client Strategic Context badge, a
  * row of 2-3 commercially viable response options (each opening
  * InterventionDrawer), and an "Intervention Applied" badge once a
- * decision has actually been executed for this project. Shared by the
- * Command Center's ActionTriageFeed and the Portfolio's DecisionCenter —
- * the two pages always show the identical card for the identical data.
+ * decision has actually been executed for this project. Used by the
+ * Portfolio Control Tower's DecisionCenter (both the Overview tab's
+ * compact summary and the Decisions tab's full list) — the Command
+ * Center's own standalone ActionTriageFeed wrapper was retired when
+ * /command was folded into the Control Tower (Sidebar Flattening &
+ * Control Tower Merge); this component's data/engine didn't change.
  */
 import { useState } from 'react';
 import Link from 'next/link';

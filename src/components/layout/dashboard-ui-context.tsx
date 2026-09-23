@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RBAC_MATRIX, type RbacPersona } from '@/lib/governance/rbacMatrix';
 import { useRbacPreview } from '@/lib/client/rbac-preview';
-import { hasPermission, roleCanEverEditProjects, type PermissionAction } from '@/lib/auth/rbac';
+import { hasPermission, roleCanEverEditProjects, type PermissionAction, type DeliveryRole } from '@/lib/auth/rbac';
 
 export { RBAC_MATRIX };
 export type { RbacPersona };
@@ -123,18 +123,37 @@ export function useDashboardUI(): DashboardUIState {
  * what this returns. `action` is the coarse `PermissionAction` this
  * editor's writes correspond to (see src/lib/auth/rbac.ts).
  *
- * The AND with `hasPermission(RBAC_MATRIX[rbacPersona].deliveryRole,
- * action)` is what makes an admin's Persona Preview apply consistently to
- * write affordances, not just nav visibility: previewing Guest, Executive,
- * or Delivery Executive — none of which ever hold project-edit authority —
- * strips every edit control even though the previewing admin's own real
- * `serverCanEdit` is true. When no preview is active, `rbacPersona` is the
- * viewer's own `realRbacPersona`, so this is a no-op passthrough for every
- * real signed-in user today.
+ * The AND with `hasPermission(previewDeliveryRole(rbacPersona), action)` is
+ * what makes an admin's Persona Preview apply consistently to write
+ * affordances, not just nav visibility: previewing Guest, Delivery
+ * Executive, or a read-only role — none of which ever hold project-edit
+ * authority — strips every edit control even though the previewing
+ * admin's own real `serverCanEdit` is true. When no preview is active,
+ * `rbacPersona` is the viewer's own `realRbacPersona`, so this is a no-op
+ * passthrough for every real signed-in user today.
  */
 export function usePersonaGatedEdit(serverCanEdit: boolean, action: PermissionAction): boolean {
   const { rbacPersona } = useDashboardUI();
-  return serverCanEdit && hasPermission(RBAC_MATRIX[rbacPersona].deliveryRole, action);
+  return serverCanEdit && hasPermission(previewDeliveryRole(rbacPersona), action);
+}
+
+/**
+ * The one real `DeliveryAccessRole` a persona's preview computes its
+ * write-affordance gating against. 1:1 for every persona except the
+ * merged `ENGAGEMENT_MANAGER` tier (4-Tier RBAC — both `PRACTICE_DIRECTOR`
+ * and `VP_EXECUTIVE` resolve there): its `deliveryRoles[0]` is always
+ * `PRACTICE_DIRECTOR`, so previewing this shared tier renders Practice
+ * Director's real edit authority — a faithful preview for that half of
+ * the merge, and a reasonable simplification for the VP_EXECUTIVE half
+ * (still always read-only for real, server-side, regardless of any
+ * client-side preview — this function only ever affects what a preview
+ * *shows*, never a real session's actual authority). Consistent with the
+ * banner's own "Display only" framing (PersonaPreviewBar.tsx).
+ */
+function previewDeliveryRole(persona: RbacPersona): DeliveryRole {
+  // Non-null: every RBAC_MATRIX entry's deliveryRoles is a non-empty
+  // literal array by construction (enforced by tests/rbac-matrix.test.ts).
+  return RBAC_MATRIX[persona].deliveryRoles[0]!;
 }
 
 /**
@@ -147,5 +166,5 @@ export function usePersonaGatedEdit(serverCanEdit: boolean, action: PermissionAc
  */
 export function usePersonaGatedProjectEdit(serverCanEdit: boolean): boolean {
   const { rbacPersona } = useDashboardUI();
-  return serverCanEdit && roleCanEverEditProjects(RBAC_MATRIX[rbacPersona].deliveryRole);
+  return serverCanEdit && roleCanEverEditProjects(previewDeliveryRole(rbacPersona));
 }

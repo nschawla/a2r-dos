@@ -1,10 +1,16 @@
 'use client';
 
 /**
- * The universal Command Bar — a Spotlight/terminal-inspired input anchored
- * as the Command Center's primary execution header, directly beneath the
- * Pulse strip. Type a destination, an action, or "<module> for
- * <engagement>"; suggestions drop below the prompt; Enter runs the top one.
+ * The universal Command Bar — a Spotlight/terminal-inspired input. Type a
+ * destination, an action, or "<module> for <engagement>"; suggestions drop
+ * below the prompt; Enter runs the top one.
+ *
+ * Originally the standalone Command Center's (`/command`) primary
+ * execution header; that route was retired (Sidebar Flattening & Control
+ * Tower Merge) and this component moved to the Control Tower
+ * (`/portfolio`), pinned above its module tabs so it stays reachable
+ * regardless of which tab is active — the same "always there" positioning
+ * it had before, just on the page /command now redirects to.
  */
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';

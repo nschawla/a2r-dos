@@ -27,7 +27,7 @@ pass/fail checkpoint** for every major module. The automated half
 
 All demo passwords are **`password12345`** unless noted.
 
-**Tenant: PS-DOS Demo** (`a2r-ventures-demo`)
+**Tenant: Apex Global Services** (`a2r-ventures-demo`)
 
 | Email | Console role | Delivery role | Default landing |
 | --- | --- | --- | --- |
@@ -57,7 +57,7 @@ Capability reference: `docs/ROLE_ACCESS_MATRIX.md` § 1.2.
 
 **Family guest accounts** (v1.16.0) — roster in `scripts/lib/family-guests.ts`
 (11 members), shared password **`a2r-DOS-233444`**. Designed tier is
-`MembershipRole.VIEWER` + `deliveryRole = VIEWER` of PS-DOS Demo
+`MembershipRole.VIEWER` + `deliveryRole = VIEWER` of Apex Global Services
 (`npm run guests:seed` / `e2e/global-setup.ts`).
 
 | Accounts (`<name>@a2rventures.local`) | Tier | Default landing |
@@ -71,7 +71,7 @@ Capability reference: `docs/ROLE_ACCESS_MATRIX.md` § 1.2.
 > `docs/ROLE_ACCESS_MATRIX.md` § 3. Playwright Suite Q exercises the VIEWER
 > tier on staging using the first five names.
 
-### 1.3 Reference figures (PS-DOS Demo, fresh seed)
+### 1.3 Reference figures (Apex Global Services, fresh seed)
 
 | Figure | Value |
 | --- | --- |
@@ -159,7 +159,7 @@ A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 
 **Checkpoint:** each role lands on its tailored page, no `/login` bounce, no error overlay.
 
-### UAT-3.2 · Persona Preview banner (all six roles)
+### UAT-3.2 · Persona Preview banner (all five roles)
 
 Signed in as `admin@a2rventures-demo.test`. (The old header "Perspective"
 pill / Workspace Lens switcher was retired — this banner is now the single
@@ -168,12 +168,12 @@ control for previewing another role's view.)
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
 | 1 | Look at the top of the workspace | A quiet **"Persona Preview: Global Admin ▾"** banner sits above the sidebar/header, distinct from any other control | |
-| 2 | Click it | Menu opens: "Global Admin — your real access" at top, then all 6 personas (Global Admin, Executive Board, Delivery Executive, Engagement / Practice Manager, Project Manager, Viewer / Guest), each with a one-line blurb | |
+| 2 | Click it | Menu opens: "Global Admin — your real access" at top, then all 5 personas (Global Admin, Practice Director / VP-Professional Services, Delivery / Project Director, Project Manager, Viewer / Guest), each with a one-line blurb | |
 | 3 | Pick **Viewer / Guest** | Banner turns solid warning-orange, a pulsing dot appears, copy reads "— simulated view, not your real access", and an **Exit preview** button appears | |
 | 4 | Check the sidebar | Only Control Tower, SteerCo Briefing, Executive Hub remain — Resource & Capacity, Commercial Baseline, Financial Realization, Schedule, RAID, Control Audit, Admin & Org Setup, Compliance Ledger are all gone, not just disabled | |
 | 5 | Open any project's module page (e.g. `/audit/<id>`) | No Lock Baseline / edit controls render anywhere — every write affordance is gone, even though the signed-in Admin's own real edit authority is untouched | |
 | 6 | Click **Exit preview** | Banner returns to quiet/neutral, sidebar and write controls return to the real Admin view | |
-| 7 | Pick **Delivery Executive** | Sidebar shows Control Tower, RAID Cockpit, Schedule & Milestones, Resource & Capacity only — no Commercial Baseline, Financial Realization, Control Audit | |
+| 7 | Pick **Delivery / Project Director** | Sidebar shows Control Tower, RAID Cockpit, Schedule & Milestones, Resource & Capacity, Financial Realization, Commercial Baseline — no Control Audit | |
 | 8 | Sign out, sign in as `pm@a2rventures-demo.test` (a real, non-admin Project Manager) | No Persona Preview banner renders at all — locked into their own real navigation | |
 
 **Checkpoint:** the banner is the only switcher, previewing is unmistakable
@@ -216,7 +216,7 @@ Signed in as `ops@a2rventures.com`.
 
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | Sidebar → **Identity Federation** (`/ops/identity`) | Heading "Identity Federation"; a tenant selector + a "Select a tenant to configure" list (PS-DOS Demo, Acme Health) | |
+| 1 | Sidebar → **Identity Federation** (`/ops/identity`) | Heading "Identity Federation"; a tenant selector + a "Select a tenant to configure" list (Apex Global Services, Acme Health) | |
 | 2 | Choose **Acme Health** | URL `?org=…`; panel titled **"SSO & Identity Federation — Acme Health"** | |
 | 3 | Provider **Microsoft Entra ID**, Protocol **OIDC**, Connection name `Acme Entra ID`, Email domains `acme-health.test` → **Create connection** | Toast "Identity provider saved"; status chips: **Configured** (green), **Unverified** (grey), **Disabled** (grey), **Optional** (grey), `OIDC · AZURE_AD` | |
 | 4 | Paste a discovery URL (e.g. `https://accounts.google.com/.well-known/openid-configuration`) → **Verify IdP metadata** | Green result box lists Issuer / Authorization endpoint / Token endpoint / JWKS URI; "Verified" chip turns green | |
@@ -384,18 +384,21 @@ product read-only and cannot touch the operator console or tenant admin.
 
 ## 4. Module runbooks
 
-### UAT-4.1 · Command Center (`/command`)
+### UAT-4.1 · Command Bar (on the Control Tower, `/portfolio`)
 
-Sign in as `admin@a2rventures-demo.test`, go to **Command Center**.
+`/command` is retired as a standalone page (Sidebar Flattening & Control
+Tower Merge, v1.29.0) — it now permanently redirects to `/portfolio`. Its
+Command Bar moved there too, pinned above the module tabs; its Pulse strip
+and Active Stream feed were retired outright (superseded by the Overview
+and Activity tabs). Sign in as `admin@a2rventures-demo.test`.
 
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | **Pulse strip** | 4 vitals: Book of Business (~$1.43M / 6 engagements), Delivery Velocity (~80.2%), Margin Health (~37.5%), Risk Flags (green when 0, else red count) | |
-| 2 | **Command Bar** — type `raid` | Top suggestion "RAID Cockpit"; **Enter** navigates to `/raid` | |
-| 3 | Command Bar — type `financials for Global ERP` | Suggestion "Financial Realization — Global ERP Modernization"; Enter opens `/financials/<id>` | |
-| 4 | Command Bar — type `search` then Enter | The ⌘K palette opens | |
-| 5 | **Active Stream** | A single chronological feed mixing Activity / Governance / Risk items with tone dots and relative timestamps | |
-| 6 | As `pm@…` view Command Center | Margin Health vital shows `••••` | |
+| 1 | Navigate directly to `/command` | Redirects to `/portfolio` — no error page, no 404 | |
+| 2 | On `/portfolio`, look above the tab pills | The Command Bar (`› Navigate or run a command…`) is visible, regardless of which tab is active | |
+| 3 | **Command Bar** — type `raid` | Top suggestion "RAID Cockpit"; **Enter** navigates to `/raid` | |
+| 4 | Command Bar — type `financials for Global ERP` | Suggestion "Financial Realization — Global ERP Modernization"; Enter opens `/financials/<id>` | |
+| 5 | Command Bar — type `search` then Enter | The ⌘K palette opens | |
 
 ### UAT-4.2 · Portfolio / Control Tower (`/portfolio`)
 

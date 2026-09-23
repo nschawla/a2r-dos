@@ -1,5 +1,5 @@
 /**
- * WP4 demo seed: "PS-DOS Demo" — a richer org built specifically to
+ * WP4 demo seed: "Apex Global Services" — a richer org built specifically to
  * exercise the RBAC scoping in src/lib/db/scoped-portfolio.ts and the WP2
  * calculation engine end to end.
  *
@@ -107,12 +107,12 @@ async function upsertUser(email: string, name: string) {
 }
 
 async function main() {
-  await assertProdWriteAllowed(process.env.DATABASE_URL, 'seed/update the PS-DOS Demo and Acme Health demo data');
+  await assertProdWriteAllowed(process.env.DATABASE_URL, 'seed/update the Apex Global Services and Acme Health demo data');
 
   // ==================== ORG ====================
   let org = await db.organization.findUnique({ where: { slug: 'a2r-ventures-demo' } });
   if (!org) {
-    org = await db.organization.create({ data: { name: 'PS-DOS Demo', slug: 'a2r-ventures-demo' } });
+    org = await db.organization.create({ data: { name: 'Apex Global Services', slug: 'a2r-ventures-demo' } });
   }
   const organizationId = org.id;
 
@@ -1837,7 +1837,7 @@ async function main() {
   await grantStaffAccess(supportOperator.id, 'Seed — support / troubleshooting operator (least privilege)', 'SUPPORT');
 
   // Oldest org first, so the FIRST membership created for each master
-  // account is the primary demo tenant (PS-DOS Demo) — requireOrgContext
+  // account is the primary demo tenant (Apex Global Services) — requireOrgContext
   // falls back to memberships[0] when no active-org cookie is set, and the
   // E2E suite's Suite B expects the master to land there.
   const allOrgs = await db.organization.findMany({ select: { id: true }, orderBy: { createdAt: 'asc' } });

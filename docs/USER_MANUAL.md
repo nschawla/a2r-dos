@@ -1,12 +1,13 @@
 # PS-DOS™ — User Manual & Operator's Guide
 
-_Applies to v1.19.0 · Last updated 2026-09-16_
+_Applies to v1.29.0 · Last updated 2026-09-23_
 
 PS-DOS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
-sidebar workflow, the Command Center, the universal command palette, the
-executive briefing, the enterprise governance and identity-federation
-settings in Admin & Org Setup, and — for A2R staff — the operator console.
+sidebar workflow, the Control Tower (including its pinned Command Bar),
+the universal command palette, the executive briefing, the enterprise
+governance and identity-federation settings in Admin & Org Setup, and —
+for A2R staff — the operator console.
 
 If you are setting up a new organization, see
 [`ADMIN_ONBOARDING.md`](./ADMIN_ONBOARDING.md) first. For the security and
@@ -56,45 +57,31 @@ the top of the workspace — see "The RBAC Master Matrix" below.
 
 ## 2. The sidebar workflow
 
-The sidebar is ordered to follow an engagement from sale to close. Work
-top-to-bottom.
-
-### Portfolio
+The sidebar is one flat stack (v1.29.0 — no more section headers), ordered
+to follow an engagement from sale to close. Work top-to-bottom.
 
 | Item | Use it to… |
 | --- | --- |
-| **Command Center** (`/command`) | Start your day. Portfolio vitals, a command bar, and the live activity stream on one screen. See §3. |
-| **Control Tower** (`/portfolio`) | See every engagement in your scope — contract value, health, open RAID, one-click into each module. It's where a Delivery-lens sign-in lands, and `/` (the public site) forwards you here once you're signed in. |
+| **Control Tower** (`/portfolio`) | Your landing page. Every engagement in your scope — contract value, health, open RAID, one-click into each module — plus the Impact-Aware Decision Cards, the pinned Command Bar, and the live activity feed. See §3. It's where every role lands, and `/` (the public site) forwards you here once you're signed in. |
+| **Commercial Baseline** (`/commercial-baseline`) | Contractual scope, baseline hours, sold margin, and the agreed rate card. Lock the baseline to freeze it as the plan of record. |
+| **Financial Realization** (`/financials`) | Actual cost and forecast against the baseline: EAC, margin drift, contractor exposure, the burn curve. |
+| **Schedule & Milestones** (`/schedule`) | Phases, milestone dates, and pace-risk against the planned window. |
+| **RAID Cockpit** (`/raid`) | Risks, Assumptions, Issues, Dependencies. Flag an item for **SteerCo escalation** and it surfaces on the executive briefing and in notifications. |
 | **Resource & Capacity** (`/capacity`) | Blended billable utilization, the concurrency-overload radar, and a 52-week staffing forecast against role targets and the holiday calendar. |
-
-### Engagement Governance — the delivery sequence
-
-Run each engagement through these five, in order:
-
-1. **Commercial Baseline** (`/commercial-baseline`) — contractual scope,
-   baseline hours, sold margin, and the agreed rate card. Lock the
-   baseline to freeze it as the plan of record.
-2. **Financial Realization** (`/financials`) — actual cost and forecast
-   against the baseline: EAC, margin drift, contractor exposure, the burn
-   curve.
-3. **Schedule & Milestones** (`/schedule`) — phases, milestone dates, and
-   pace-risk against the planned window.
-4. **RAID Cockpit** (`/raid`) — Risks, Assumptions, Issues, Dependencies.
-   Flag an item for **SteerCo escalation** and it surfaces on the
-   executive briefing and in notifications.
-5. **Control Audit** (`/audit`) — the delivery-controls checklist and
-   weighted governance score for the engagement.
-
-Import data into any of these in bulk with the module's **Import CSV**
-action — see §6.
-
-### Reporting
-
-| Item | Use it to… |
-| --- | --- |
 | **SteerCo Briefing** (`/steerco`) | A lean, print-ready board view of the whole portfolio. See §5. |
 | **Executive Hub** (`/reports`) | The full portfolio briefing (macro rollups, utilization, risk distribution) plus per-engagement SteerCo decks and compliance certificates. |
-| **Methodology Reference** (`/methodology`) | The delivery standard and per-control guidance. |
+| **Control Audit** (`/audit`) | The delivery-controls checklist and weighted governance score for the engagement. |
+
+Commercial Baseline through Control Audit is the delivery sequence — run
+each engagement through those five, roughly in that order. Import data
+into any of these in bulk with the module's **Import CSV** action — see
+§6. (Methodology Reference (`/methodology`) isn't a top-level sidebar item
+— it's contextual to Control Audit, and reachable via ⌘K.)
+
+> **Retired:** the standalone Command Center (`/command`) page is gone —
+> the route now redirects to the Control Tower, which is where its two
+> live capabilities (the Command Bar and the Decision Cards feed) live
+> now. See §3.
 
 ### Setup (bottom of the sidebar)
 
@@ -105,25 +92,16 @@ action — see §6.
 
 ---
 
-## 3. The Command Center (`/command`)
+## 3. The Control Tower (`/portfolio`)
 
-Your single-pane starting point. Top to bottom:
+Your single starting point (v1.29.0 — the previously-standalone Command
+Center merged in here; `/command` now redirects). A Bento Grid layout, no
+long vertical scroll, four tabs:
 
-### Pulse strip — venture vitals
+### Command Bar — pinned above the tabs
 
-Four figures, refreshed on every load:
-
-| Vital | Meaning |
-| --- | --- |
-| **Book of Business** | Total portfolio contract value and the count of active engagements. |
-| **Delivery Velocity** | Blended billable utilization, and how it tracks against the target (attainment). |
-| **Margin Health** | Blended EAC margin across the portfolio. Shows `••••` if your role isn't authorized to see financials. |
-| **Risk Flags** | Red-health engagements plus open SteerCo-escalated RAID items. Green when zero. |
-
-### Command Bar — the execution header
-
-Directly beneath the Pulse strip. Type where you want to go or what you
-want to do; the top suggestion runs on **Enter**.
+Visible no matter which tab is active. Type where you want to go or what
+you want to do; the top suggestion runs on **Enter**.
 
 - **A destination** — `raid`, `capacity`, `financials`, or a verb form like
   `go to control tower`.
@@ -141,17 +119,34 @@ box then closes suggestions.
 > lost or a session was left open somewhere. Changing your password does
 > this automatically.
 
-### Active Stream — live operational & governance state
+### Overview tab
 
-One chronological feed that replaces scattered activity boards. It merges:
+The above-the-fold read on the whole portfolio: a 4-up KPI strip
+(engagements in scope, total contract value, average baseline margin,
+high-risk/Red count), a compact Decision Center summary tile, the Blended
+Billable Utilization card linking to Resource & Capacity, any Custom KPIs
+your Admin defined, Resources-on-Roster / Practices counts, and — where
+applicable — the Program Rollups table for multi-wave engagements.
 
-- **Activity** — who did what (assignments, edits, imports).
-- **Governance** — baseline locks, EAC updates, RAID escalations, audit
-  score changes, workspace restores.
-- **Risk** — currently open, SteerCo-escalated RAID items.
+### Decisions tab
 
-A coloured dot signals tone (neutral / good / warning / critical); the
-right-hand column shows how long ago it happened.
+The full **Impact-Aware Decision Cards** feed — one card per Red or
+over-budget engagement, each carrying Cause / Impact / Owner & Deadline /
+Required Action plus 2–3 real response options (Change Order, Resource
+Re-leveling, Margin Absorption, and the like) you can open and, if you
+hold the authority, execute. Also lists pending decisions and open
+high-severity RAID items in a compact strip beneath the cards. See
+`docs/PORTFOLIO_ORCHESTRATION.md` for the full mechanics.
+
+### Engagements tab
+
+The portfolio registry table — every engagement in your scope, health, PM,
+commercial model, open RAID count — plus **Register a New Engagement**.
+
+### Activity tab
+
+Recent governance actions in your scope (baseline locks, EAC updates,
+RAID escalations, audit score changes, workspace restores), newest first.
 
 ---
 
@@ -188,7 +183,8 @@ Sections, in reading order:
 
 1. **Cover** — organization, date, and a one-line summary (active
    engagements · green-health share · red count · control compliance).
-2. **Portfolio Pulse** — the same four vitals as the Command Center.
+2. **Portfolio Pulse** — Book of Business, Delivery Velocity, Margin
+   Health, and Risk Flags — the same four-vital strip Platform Pulse uses.
 3. **Margin Health** — baseline margin, EAC margin, and drift-vs-plan in
    points. Shows a *restricted* notice instead of figures if your role
    isn't authorized to see financials.

@@ -124,10 +124,13 @@ boolean on `Project` that could drift out of sync.
 ## 5. UI
 
 `DecisionCard` (`src/components/command-center/DecisionCard.tsx`) is the
-one card component shared by the Command Center's `ActionTriageFeed` and
-the Portfolio's `DecisionCenter` — the two pages always show the identical
-card for the identical data. It keeps the existing Cause/Impact/Owner &
-Deadline/Required Action grid and evidence link, and adds the Client
+one card component the Portfolio's `DecisionCenter` renders for every
+flagged engagement, in both the Overview tab's compact summary and the
+Decisions tab's full list (the standalone Command Center that originally
+shared this component via its own `ActionTriageFeed` wrapper was retired
+in v1.29.0 — see `docs/UI_DESIGN_SYSTEM.md` §9 — the component and its
+underlying engine are unchanged). It keeps the existing Cause/Impact/Owner
+& Deadline/Required Action grid and evidence link, and adds the Client
 Strategic Context badge, the options row, and (once one exists) the
 "Intervention Applied" line.
 

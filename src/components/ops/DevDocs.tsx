@@ -169,7 +169,7 @@ const SETUP_STEPS: SetupStep[] = [
     cmd: 'npx prisma db push --skip-generate && npx prisma generate',
     note: 'Applies prisma/schema.prisma to the database. This project does NOT use `prisma migrate` — schema changes are: edit schema.prisma → db push → generate.',
   },
-  { cmd: 'npm run db:seed', note: 'Idempotent — safe to re-run. Seeds the PS-DOS Demo + Acme Health tenants and per-role logins.' },
+  { cmd: 'npm run db:seed', note: 'Idempotent — safe to re-run. Seeds the Apex Global Services + Acme Health tenants and per-role logins.' },
   { cmd: 'npm run dev', note: '→ http://localhost:3000' },
 ];
 

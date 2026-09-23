@@ -11,7 +11,7 @@ function kpi(overrides: Partial<CustomKpiDef> = {}): CustomKpiDef {
     formulaType: 'DIRECT',
     targetValue: 30,
     warningValue: 20,
-    targetPersonas: ['EXECUTIVE_BOARD'] as CustomKpiDef['targetPersonas'],
+    targetPersonas: ['ENGAGEMENT_MANAGER'] as CustomKpiDef['targetPersonas'],
     ...overrides,
   };
 }
@@ -131,7 +131,7 @@ describe('validateKpiDefinition', () => {
       formulaType: 'DIRECT',
       targetValue: 30,
       warningValue: 20,
-      targetPersonas: ['EXECUTIVE_BOARD'] as CustomKpiInput['targetPersonas'],
+      targetPersonas: ['ENGAGEMENT_MANAGER'] as CustomKpiInput['targetPersonas'],
       ...overrides,
     };
   }

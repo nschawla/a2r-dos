@@ -356,7 +356,10 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
 // ────────────────────────────────────────────────────────────────────────────
 test.describe('Suite L — PS Orchestration & Decision Engine', () => {
   test('K1 · a Decision Card option opens the governance drawer, shows the guardrail + domino preview, and executes', async () => {
-    await page.goto('/command');
+    // Was /command (the standalone Command Center) before its v1.29.0
+    // retirement — the Decision Cards feed lives on the Control Tower's
+    // Decisions tab now (same component/engine, never actually moved).
+    await page.goto('/portfolio?v=decisions');
     await expectNoErrorOverlay(page);
 
     const cards = page.locator('.card:has-text("Commercially Viable Options"), .card:has-text("Take another action")');
@@ -422,7 +425,7 @@ test.describe('Suite D — A2R Ops Console', () => {
     await page.goto('/ops/tenants');
     await expect(page.getByRole('heading', { name: 'Tenants', level: 1 })).toBeVisible();
     const table = page.locator('table');
-    await expect(table).toContainText('PS-DOS Demo');
+    await expect(table).toContainText('Apex Global Services');
     await expect(table).toContainText('Acme Health');
     await expect(table.getByText('Active').first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Provision New Tenant' })).toBeVisible();

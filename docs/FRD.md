@@ -1,6 +1,6 @@
 # Functional Requirements Document — PS-DOS™
 
-_Consolidated current-state, **v1.27.0**. Per-phase functional narratives
+_Consolidated current-state, **v1.29.0**. Per-phase functional narratives
 live in `README.md` (Phases 1–13); this document is the flattened,
 deduplicated view of what the production system does today. Traceability to
 code and tests: `docs/RTM.md`. Security posture: `docs/SECURITY.md` +
@@ -39,7 +39,7 @@ internal operator control plane for the vendor (A2R). Next.js 15 App Router
 | # | Requirement |
 | --- | --- |
 | FR-TEN-1 | Role-based landing: each `DeliveryAccessRole` resolves to a tailored default route via `/launch`. |
-| FR-TEN-2 | **RBAC** — two axes: `MembershipRole` (org/billing tier) and `DeliveryAccessRole` (portfolio scope + edit authority). Six personas gate sidebar / tab-pill / route visibility (`rbacMatrix.ts`), server-enforced in `middleware.ts` and every mutation via `authorizeProjectEdit` / `authorizeAdminAction`. |
+| FR-TEN-2 | **RBAC** — two axes: `MembershipRole` (org/billing tier) and `DeliveryAccessRole` (portfolio scope + edit authority). Five `RbacPersona`s (4-Tier RBAC, v1.29.0 — `PRACTICE_DIRECTOR` and `VP_EXECUTIVE` merged into one shared tier, plus the read-only guest tier) gate sidebar / tab-pill / route visibility (`rbacMatrix.ts`), server-enforced in `middleware.ts` and every mutation via `authorizeProjectEdit` / `authorizeAdminAction`. The underlying six-value `DeliveryAccessRole` enum is unchanged — the persona layer is a friendly presentation collapse on top of it, not a schema change. |
 | FR-TEN-3 | **Row-level scoping** — `getScopedProjectWhere` / `isProjectInScope` restrict portfolio reads by role (global for ADMIN / VP / VIEWER; practice- or report- or assignment-scoped otherwise). |
 | FR-TEN-4 | **Viewer tier** (`DeliveryAccessRole.VIEWER`, v1.16.0) — whole-org read of portfolio + SteerCo, **zero** edit authority, financial figures `restricted` (cost rates, margins, variance scrubbed). `MembershipRole.VIEWER` resolves here. |
 | FR-TEN-5 | Financial data masking — `full` / `summary` / `restricted` visibility tiers per role, plus a tenant-level `maskFinancialsForDelivery` governance toggle. Enforced centrally in `src/lib/security/masking.ts`. |
@@ -47,7 +47,7 @@ internal operator control plane for the vendor (A2R). Next.js 15 App Router
 | FR-TEN-7 | Governance config — compliance templates (Strict Financial / Agile / Board-Only / Standard) toggling route visibility + financial masking per tenant. |
 | FR-TEN-8 | Exact-decimal financial arithmetic — the calc engine accumulates every `$`/rate in `decimal.js`, rounds once at the accounting boundary (money HALF_UP 2 dp). No IEEE-754 drift on large portfolios. |
 | FR-TEN-9 | Tenant lifecycle states: `ACTIVE` / `SUSPENDED` (locks non-staff out) / `GRACE_PERIOD` (read-only). |
-| FR-TEN-10 | **Persona Preview** (v1.17.0) — a tenant Admin or A2R staff member simulates any of the six RBAC personas from an explicit banner; the Sidebar, module tabs, and every per-project write control (Lock Baseline, RAID / Schedule / Audit / Financials / Commercial Baseline editors) render exactly as that persona would, and picking one navigates to its `landing` route. Display-only — never changes what `middleware.ts` or any server action actually permits for the real signed-in session. No switcher renders for any other role. |
+| FR-TEN-10 | **Persona Preview** (v1.17.0) — a tenant Admin or A2R staff member simulates any of the five RBAC personas from an explicit banner; the Sidebar, module tabs, and every per-project write control (Lock Baseline, RAID / Schedule / Audit / Financials / Commercial Baseline editors) render exactly as that persona would, and picking one navigates to its `landing` route. Display-only — never changes what `middleware.ts` or any server action actually permits for the real signed-in session. No switcher renders for any other role. |
 
 ---
 

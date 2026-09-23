@@ -35,156 +35,136 @@ interface NavItem {
   icon: ReactNode;
 }
 
-interface NavGroup {
-  heading: string;
-  items: NavItem[];
-}
-
-const NAV_GROUPS: NavGroup[] = [
+/**
+ * A single flat stack, in the delivery-workflow order the user specified:
+ * land on Control Tower, size the deal (Commercial Baseline), track its
+ * financial realization, run the schedule, manage RAID, staff it
+ * (Resource & Capacity), then the two reporting surfaces. No more
+ * uppercase zone headers (`PORTFOLIO` / `ENGAGEMENT GOVERNANCE` /
+ * `REPORTING`) — the per-item `colorGroup` icon tint still carries which
+ * of the three functional zones each item belongs to, just without a
+ * wrapper label. Command Center is retired as a standalone nav item — its
+ * two live capabilities (Impact-Aware Decision Cards, the Command Bar)
+ * now live on the Control Tower itself (docs/UI_DESIGN_SYSTEM.md §8); the
+ * route still resolves (redirects to /portfolio) for anyone with an old
+ * bookmark.
+ */
+const NAV_ITEMS: NavItem[] = [
   {
-    heading: 'Portfolio',
-    items: [
-      {
-        href: '/command',
-        label: 'Command Center',
-        colorGroup: 'governance',
-        // terminal chevron + prompt line
-        icon: (
-          <>
-            <path d="M5 8l4 4-4 4" />
-            <path d="M13 16h6" />
-          </>
-        ),
-      },
-      {
-        href: '/portfolio',
-        label: 'Control Tower',
-        colorGroup: 'governance',
-        // 2×2 portfolio grid
-        icon: (
-          <>
-            <rect x="4" y="4" width="7" height="7" rx="1" />
-            <rect x="13" y="4" width="7" height="7" rx="1" />
-            <rect x="4" y="13" width="7" height="7" rx="1" />
-            <rect x="13" y="13" width="7" height="7" rx="1" />
-          </>
-        ),
-      },
-      {
-        href: '/capacity',
-        label: 'Resource & Capacity',
-        colorGroup: 'governance',
-        // utilization gauge
-        icon: (
-          <>
-            <path d="M4 18a8 8 0 1 1 16 0" />
-            <path d="M12 18l4-4.5" />
-          </>
-        ),
-      },
-    ],
+    href: '/portfolio',
+    label: 'Control Tower',
+    colorGroup: 'governance',
+    // 2×2 portfolio grid
+    icon: (
+      <>
+        <rect x="4" y="4" width="7" height="7" rx="1" />
+        <rect x="13" y="4" width="7" height="7" rx="1" />
+        <rect x="4" y="13" width="7" height="7" rx="1" />
+        <rect x="13" y="13" width="7" height="7" rx="1" />
+      </>
+    ),
   },
   {
-    heading: 'Engagement Governance',
-    // Ordered to follow the delivery workflow: size the deal, track its
-    // financial realization, run the schedule, manage RAID, then audit.
-    items: [
-      {
-        href: '/commercial-baseline',
-        label: 'Commercial Baseline',
-        colorGroup: 'commercial',
-        // contract document
-        icon: (
-          <>
-            <path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-            <path d="M14 3v5h5" />
-            <path d="M9 13h6M9 16h4" />
-          </>
-        ),
-      },
-      {
-        href: '/financials',
-        label: 'Financial Realization',
-        colorGroup: 'commercial',
-        // trending line + arrow head
-        icon: (
-          <>
-            <path d="M4 16l5-5 4 4 7-7" />
-            <path d="M16 8h4v4" />
-          </>
-        ),
-      },
-      {
-        href: '/schedule',
-        label: 'Schedule & Milestones',
-        colorGroup: 'delivery',
-        // calendar
-        icon: (
-          <>
-            <rect x="4" y="5" width="16" height="16" rx="1.5" />
-            <path d="M8 3v4M16 3v4M4 10h16" />
-          </>
-        ),
-      },
-      {
-        href: '/raid',
-        label: 'RAID Cockpit',
-        colorGroup: 'delivery',
-        // risk triangle
-        icon: (
-          <>
-            <path d="M12 4l9 16H3z" />
-            <path d="M12 10v4M12 17.5h.01" />
-          </>
-        ),
-      },
-      {
-        href: '/audit',
-        label: 'Control Audit',
-        colorGroup: 'delivery',
-        // shield check — governance integrity
-        icon: (
-          <>
-            <path d="M12 3l8 3v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6z" />
-            <path d="M9 12l2 2 4-4" />
-          </>
-        ),
-      },
-    ],
+    href: '/commercial-baseline',
+    label: 'Commercial Baseline',
+    colorGroup: 'commercial',
+    // contract document
+    icon: (
+      <>
+        <path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+        <path d="M14 3v5h5" />
+        <path d="M9 13h6M9 16h4" />
+      </>
+    ),
   },
   {
-    heading: 'Reporting',
-    items: [
-      {
-        href: '/steerco',
-        label: 'SteerCo Briefing',
-        colorGroup: 'governance',
-        // presentation board
-        icon: (
-          <>
-            <rect x="3" y="4" width="18" height="12" rx="1.5" />
-            <path d="M12 16v4M8 20h8" />
-            <path d="M8 12v-2M12 12v-4M16 12v-3" />
-          </>
-        ),
-      },
-      {
-        href: '/reports',
-        label: 'Executive Hub',
-        colorGroup: 'governance',
-        // analytics wedge
-        icon: (
-          <>
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 12V3M12 12l7.8 4.5" />
-          </>
-        ),
-      },
-      // Methodology Reference is intentionally NOT a top-level Reporting item —
-      // it lives in-context under Control Audit (the control-guidance drawer
-      // and the /audit page link to /methodology), and stays reachable via ⌘K.
-    ],
+    href: '/financials',
+    label: 'Financial Realization',
+    colorGroup: 'commercial',
+    // trending line + arrow head
+    icon: (
+      <>
+        <path d="M4 16l5-5 4 4 7-7" />
+        <path d="M16 8h4v4" />
+      </>
+    ),
   },
+  {
+    href: '/schedule',
+    label: 'Schedule & Milestones',
+    colorGroup: 'delivery',
+    // calendar
+    icon: (
+      <>
+        <rect x="4" y="5" width="16" height="16" rx="1.5" />
+        <path d="M8 3v4M16 3v4M4 10h16" />
+      </>
+    ),
+  },
+  {
+    href: '/raid',
+    label: 'RAID Cockpit',
+    colorGroup: 'delivery',
+    // risk triangle
+    icon: (
+      <>
+        <path d="M12 4l9 16H3z" />
+        <path d="M12 10v4M12 17.5h.01" />
+      </>
+    ),
+  },
+  {
+    href: '/capacity',
+    label: 'Resource & Capacity',
+    colorGroup: 'governance',
+    // utilization gauge
+    icon: (
+      <>
+        <path d="M4 18a8 8 0 1 1 16 0" />
+        <path d="M12 18l4-4.5" />
+      </>
+    ),
+  },
+  {
+    href: '/steerco',
+    label: 'SteerCo Briefing',
+    colorGroup: 'governance',
+    // presentation board
+    icon: (
+      <>
+        <rect x="3" y="4" width="18" height="12" rx="1.5" />
+        <path d="M12 16v4M8 20h8" />
+        <path d="M8 12v-2M12 12v-4M16 12v-3" />
+      </>
+    ),
+  },
+  {
+    href: '/reports',
+    label: 'Executive Hub',
+    colorGroup: 'governance',
+    // analytics wedge
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 12V3M12 12l7.8 4.5" />
+      </>
+    ),
+  },
+  {
+    href: '/audit',
+    label: 'Control Audit',
+    colorGroup: 'delivery',
+    // shield check — governance integrity
+    icon: (
+      <>
+        <path d="M12 3l8 3v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6z" />
+        <path d="M9 12l2 2 4-4" />
+      </>
+    ),
+  },
+  // Methodology Reference is intentionally NOT a top-level nav item — it
+  // lives in-context under Control Audit (the control-guidance drawer and
+  // the /audit page link to /methodology), and stays reachable via ⌘K.
 ];
 
 // Org setup / compliance sit apart from the three executive groups —
@@ -259,10 +239,7 @@ export function Sidebar({ hiddenHrefs = [], isA2rStaff = false }: { hiddenHrefs?
   //     demo preview override when one is active — display-only, never
   //     the actual route gate (middleware.ts reads the real session role).
   const hidden = new Set([...hiddenHrefs, ...rbacHiddenHrefs(rbacPersona)]);
-  const visibleGroups = NAV_GROUPS.map((g) => ({
-    ...g,
-    items: g.items.filter((i) => !hidden.has(i.href)),
-  })).filter((g) => g.items.length > 0);
+  const visibleItems = NAV_ITEMS.filter((i) => !hidden.has(i.href));
   const visibleSetup = SETUP_ITEMS.filter((i) => !hidden.has(i.href));
 
   useEffect(() => {
@@ -313,20 +290,9 @@ export function Sidebar({ hiddenHrefs = [], isA2rStaff = false }: { hiddenHrefs?
         )}
       </Link>
 
-      <nav className={clsx('py-2.5 flex flex-col flex-1', collapsed ? 'px-2 gap-1.5' : 'px-2.5 gap-3')}>
-        {visibleGroups.map((group) => (
-          <div key={group.heading} className="flex flex-col gap-0.5">
-            {collapsed ? (
-              <div className="h-px bg-border/70 mx-1 my-1 first:hidden" />
-            ) : (
-              <div className="px-3 pt-1 pb-1 font-mono text-[9.5px] tracking-[0.14em] uppercase text-ink-faint font-semibold">
-                {group.heading}
-              </div>
-            )}
-            {group.items.map((item) => (
-              <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
-            ))}
-          </div>
+      <nav className={clsx('py-2.5 flex flex-col flex-1', collapsed ? 'px-2 gap-1.5' : 'px-2.5 gap-0.5')}>
+        {visibleItems.map((item) => (
+          <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
         ))}
 
         <div className="mt-auto flex flex-col gap-0.5">
@@ -375,10 +341,7 @@ function NavLink({ item, active, collapsed }: { item: NavItem; active: boolean; 
       title={collapsed ? item.label : undefined}
       className={clsx(
         'relative flex items-center gap-2.5 rounded-sm font-semibold text-[13px] transition-colors',
-        // Expanded: the icon holds the indent slot past the outdented section
-        // heading (which sits at px-3) so the parent-child relationship — and
-        // the destination — both read at a glance.
-        collapsed ? 'justify-center px-2 py-2.5' : 'pl-6 pr-3 py-2',
+        collapsed ? 'justify-center px-2 py-2.5' : 'pl-3 pr-3 py-2',
         active ? 'bg-surface-2 text-ink' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
       )}
     >

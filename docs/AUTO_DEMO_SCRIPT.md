@@ -44,6 +44,16 @@ own code comment. 18 beats total now; every cue sheet in §4 except
 Executive Lens (which doesn't play either new beat) shifts again from
 this point on.
 
+**Current as of v1.29.0** — Sidebar Flattening & Control Tower Merge:
+`/command` is retired as a standalone route (permanently redirects to
+`/portfolio`); Beat 2 is renamed `command-center` → `command-bar`, its
+route becomes `/portfolio` (the same route `welcome` just landed on —
+`AutoDemoProvider` skips the push when the target matches the current
+route, so no navigation fires between these two beats), and its VO now
+describes the Command Bar as a feature pinned to the Control Tower rather
+than a separate page. Still 18 beats total; no track membership or
+sequence position changed, only this one beat's route/id/VO.
+
 ---
 
 ## 1. Track overview
@@ -54,8 +64,8 @@ persona-filtered *subsequence* of it, in the same order, never a rewrite:
 | Track | Persona value | Beats played | Total runtime |
 | --- | --- | --- | --- |
 | **Full Platform Tour** | `'Full Tour'` | All 18, in script order | **4:11** (251s) |
-| **Executive Lens** | `'Executive'` | Welcome → Command Center → Scoped Practice View → SteerCo → Executive Hub → Tenant Isolation → Closing (7 beats) | **1:15** (75s) |
-| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Center → Scoped Practice View → Persona Preview → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Identity Federation → Closing (16 beats) | **3:54** (234s) |
+| **Executive Lens** | `'Executive'` | Welcome → Command Bar → Scoped Practice View → SteerCo → Executive Hub → Tenant Isolation → Closing (7 beats) | **1:15** (75s) |
+| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Bar → Scoped Practice View → Persona Preview → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Identity Federation → Closing (16 beats) | **3:54** (234s) |
 | **Security &amp; Trust** | `'Security'` | Welcome → Scoped Practice View → Persona Preview → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Identity Federation → Closing (10 beats) | **2:41** (161s) |
 
 Because a beat's line is identical everywhere it appears, **only 18 unique
@@ -161,12 +171,15 @@ comfortable 150–180 wpm band.
   > Welcome to PS-DOS — the delivery operating system built for professional services firms. This is the Portfolio Control Tower: every engagement, rolled up into one live view.
 - **Pacing:** 28 words / 10s ≈ **168 wpm**
 
-#### Beat 2 — `command-center`
-- **Route:** `/command` · **Duration:** 10s · **Personas:** Executive, Admin, Full Tour
+#### Beat 2 — `command-bar`
+- **Route:** `/portfolio` (holds on the same route `welcome` just landed on —
+  AutoDemoProvider skips the router push when the target route matches the
+  current one, so no navigation actually fires between these two beats)
+  · **Duration:** 10s · **Personas:** Executive, Admin, Full Tour
 - **Highlight:** —
 - **VO:**
-  > The Command Center puts your portfolio's vital signs, and a natural-language command bar, in one pane — type "financials for Contoso" and it just takes you there.
-- **Pacing:** 26 words / 10s ≈ **156 wpm**
+  > A natural-language command bar sits right on the Control Tower — type "financials for Contoso" and it just takes you there.
+- **Pacing:** 20 words / 10s ≈ **120 wpm**
 
 #### Beat 3 — `scoped-practice-view`
 - **Route:** `/capacity` · **Duration:** 15s · **Personas:** Executive, Admin, Security, Full Tour
@@ -314,7 +327,7 @@ is the next beat's IN point; the route change happens exactly on cue.
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
-| 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
+| 0:10–0:20 | 10–20 | `command-bar` | `/portfolio` | — |
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
 | 0:35–0:53 | 35–53 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
 | 0:53–1:01 | 53–61 | `steerco` | `/steerco` | — |
@@ -337,7 +350,7 @@ is the next beat's IN point; the route change happens exactly on cue.
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
-| 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
+| 0:10–0:20 | 10–20 | `command-bar` | `/portfolio` | — |
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
 | 0:35–0:43 | 35–43 | `steerco` | `/steerco` | — |
 | 0:43–0:52 | 43–52 | `executive-hub` | `/reports` | — |
@@ -349,7 +362,7 @@ is the next beat's IN point; the route change happens exactly on cue.
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
-| 0:10–0:20 | 10–20 | `command-center` | `/command` | — |
+| 0:10–0:20 | 10–20 | `command-bar` | `/portfolio` | — |
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
 | 0:35–0:53 | 35–53 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
 | 0:53–1:03 | 53–63 | `admin-setup` | `/admin` | — |

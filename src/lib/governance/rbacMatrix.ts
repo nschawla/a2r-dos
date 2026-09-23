@@ -6,14 +6,30 @@
  * at all.
  *
  * This is deliberately NOT a new, parallel security system. A `RbacPersona`
- * is a human-readable name for one of the five real, server-enforced
- * `DeliveryAccessRole` tiers already defined in src/lib/auth/rbac.ts (the
- * tier that gates every scoped query, edit action and masked figure in the
- * app) — see `PERSONA_TO_DELIVERY_ROLE`. Introducing a second, disconnected
- * role enum would either (a) gate nothing real, or (b) require a schema
- * migration and a second set of authorization checks to keep in sync with
- * the first — both are worse for security than one true axis with a
- * friendlier name painted on top of it.
+ * is a human-readable name for one (or, for the merged executive tier
+ * below, one of two) of the six real, server-enforced `DeliveryAccessRole`
+ * tiers already defined in src/lib/auth/rbac.ts (the tier that gates every
+ * scoped query, edit action and masked figure in the app) — see
+ * `DELIVERY_ROLE_TO_PERSONA`. Introducing a second, disconnected role enum
+ * would either (a) gate nothing real, or (b) require a schema migration and
+ * a second set of authorization checks to keep in sync with the first —
+ * both are worse for security than one true axis with a friendlier name
+ * painted on top of it.
+ *
+ * 4-Tier RBAC simplification — `PRACTICE_DIRECTOR` and `VP_EXECUTIVE` (two
+ * distinct `DeliveryAccessRole`s, real titles worth keeping distinct in the
+ * roster) now both resolve to the ONE merged `ENGAGEMENT_MANAGER` persona
+ * below: "Practice Director & VP-Professional Services" — the exact same
+ * `allowedModules`/`landing`/`financialVisibility`. This is presentation-
+ * layer only, built by elevating `VP_EXECUTIVE` up to `PRACTICE_DIRECTOR`'s
+ * existing full-operational nav breadth, never by narrowing PD down — real
+ * edit/approval authority in src/lib/auth/rbac.ts's `PERMISSIONS`/
+ * `canEditProject` is untouched: a VP_EXECUTIVE session now SEES every
+ * module a Practice Director does, but still can never edit one (VP is,
+ * and stays, read-only by design). That asymmetry (equal visibility,
+ * unequal edit authority) is intentional and safe precisely because
+ * `allowedModules` only ever governs what renders, never what a write
+ * action itself authorizes.
  *
  * What IS new here: a per-persona ALLOW-list of `GOVERNABLE_MODULES` keys
  * (src/lib/governance/config.ts — the same module/route registry the
@@ -40,7 +56,6 @@ import { GOVERNABLE_MODULES, findOwningModule, type GovernableModule } from './c
 
 export type RbacPersona =
   | 'GLOBAL_ADMIN'
-  | 'EXECUTIVE_BOARD'
   | 'DELIVERY_EXECUTIVE'
   | 'ENGAGEMENT_MANAGER'
   | 'DELIVERY_LEAD'
@@ -48,8 +63,13 @@ export type RbacPersona =
 
 export interface RbacPersonaDef {
   key: RbacPersona;
-  /** The real, server-enforced tier this persona is a friendly name for. */
-  deliveryRole: DeliveryRole;
+  /** The real, server-enforced tier(s) this persona is a friendly name
+   * for — usually one, but the merged "Practice Director & VP-PS" tier
+   * (ENGAGEMENT_MANAGER) is a friendly name for two distinct
+   * DeliveryAccessRoles (PRACTICE_DIRECTOR and VP_EXECUTIVE) that share
+   * identical nav/masking treatment. Plural on purpose — see
+   * DELIVERY_ROLE_TO_PERSONA for the (many-to-one) reverse mapping. */
+  deliveryRoles: readonly DeliveryRole[];
   label: string;
   blurb: string;
   /** GOVERNABLE_MODULES keys this persona may reach — sidebar, tab pills,
@@ -83,9 +103,8 @@ export interface RbacPersonaDef {
 
 export const RBAC_PERSONAS: readonly RbacPersona[] = [
   'GLOBAL_ADMIN',
-  'EXECUTIVE_BOARD',
-  'DELIVERY_EXECUTIVE',
   'ENGAGEMENT_MANAGER',
+  'DELIVERY_EXECUTIVE',
   'DELIVERY_LEAD',
   'OBSERVER',
 ];
@@ -94,65 +113,74 @@ export const RBAC_PERSONAS: readonly RbacPersona[] = [
  * The master matrix. Every module key here must be a real
  * GOVERNABLE_MODULES key (enforced by tests/rbac-matrix.test.ts) — adjust
  * access by editing these lists, nowhere else.
+ *
+ * Four definitive enterprise tiers (GLOBAL_ADMIN, ENGAGEMENT_MANAGER,
+ * DELIVERY_EXECUTIVE, DELIVERY_LEAD) plus OBSERVER, the read-only guest
+ * tier — not counted among the "four," since it's a guest/observer
+ * accommodation rather than an enterprise role.
  */
 export const RBAC_MATRIX: Record<RbacPersona, RbacPersonaDef> = {
   GLOBAL_ADMIN: {
     key: 'GLOBAL_ADMIN',
-    deliveryRole: 'ADMIN',
+    deliveryRoles: ['ADMIN'],
     label: 'Global Admin',
     blurb: 'Full tenant authority — every module, the rate card, and org setup.',
     allowedModules: GOVERNABLE_MODULES.map((m) => m.key),
     landing: '/portfolio',
     financialVisibility: 'full',
   },
-  EXECUTIVE_BOARD: {
-    key: 'EXECUTIVE_BOARD',
-    deliveryRole: 'VP_EXECUTIVE',
-    label: 'Executive Board',
-    blurb:
-      'Board-level read-out — the macro Control Tower, the SteerCo briefing, margin realization, and the Executive Hub’s risk & compliance overview. No operational editing, no rate card, no admin settings.',
-    allowedModules: ['control-tower', 'steerco', 'financials', 'reports'],
-    landing: '/steerco',
-    financialVisibility: 'summary',
-  },
   DELIVERY_EXECUTIVE: {
     key: 'DELIVERY_EXECUTIVE',
-    deliveryRole: 'DELIVERY_MANAGER',
-    label: 'Delivery Executive',
+    deliveryRoles: ['DELIVERY_MANAGER'],
+    label: 'Delivery / Project Director',
     blurb:
-      'Internal delivery leadership escalation view — account health roll-up, escalated RAID & risk, cross-project milestones, and staffing exposure. No financials, no admin tools.',
-    allowedModules: ['control-tower', 'raid', 'schedule', 'capacity'],
+      'Multi-project, account-level scope across their PMs’ engagements — aggregate financials, cross-project risk, account rollups, and staffing exposure. No admin tools.',
+    // Broadened (4-Tier RBAC) to include the two financial modules — a
+    // Delivery/Project Director now sees aggregate financials and
+    // commercial baselines across their direct-report PMs' projects. This
+    // is a VISIBILITY grant only: DELIVERY_MANAGER's real authority in
+    // src/lib/auth/rbac.ts stays approval-only (`project:approve`) — it
+    // never gains direct edit (`canEditProject` returns false for this
+    // role regardless of nav), so there's no dead-route risk in the other
+    // direction either.
+    allowedModules: ['control-tower', 'raid', 'schedule', 'capacity', 'financials', 'commercial-baseline'],
     landing: '/portfolio',
     financialVisibility: 'restricted',
   },
   ENGAGEMENT_MANAGER: {
     key: 'ENGAGEMENT_MANAGER',
-    deliveryRole: 'PRACTICE_DIRECTOR',
-    label: 'Engagement / Practice Manager',
+    // Merged 4-Tier RBAC tier: BOTH PRACTICE_DIRECTOR and VP_EXECUTIVE
+    // resolve here (DELIVERY_ROLE_TO_PERSONA below) — "full enterprise
+    // portfolio visibility" shared identically by Practice Directors and
+    // VPs/Professional-Services executives. Built by elevating
+    // VP_EXECUTIVE up to PRACTICE_DIRECTOR's existing full-operational
+    // module list (see the top-of-file doc comment) — not by narrowing PD
+    // down — so this is a strict superset of the old EXECUTIVE_BOARD
+    // persona's nav, and identical to the old ENGAGEMENT_MANAGER's.
+    deliveryRoles: ['PRACTICE_DIRECTOR', 'VP_EXECUTIVE'],
+    label: 'Practice Director / VP-Professional Services',
     blurb:
-      'Runs their practice’s engagements end to end — the practice dashboard, active engagements, resourcing, and full delivery governance. No macro-tenant settings, no global admin tools.',
+      'Full enterprise portfolio visibility — SteerCo briefings, global utilization, commercial baselines, and realization metrics — plus practice-level delivery governance for a Practice Director’s own engagements. No macro-tenant settings, no global admin tools.',
     // Every module — like GLOBAL_ADMIN, minus admin/audit-log. Not a
-    // literal reading of the role spec's shorter nav-item list: PD holds
-    // real per-project edit authority (canEditProject) across commercial-
-    // baseline/financials/schedule/raid/audit uniformly (see the
-    // allowedModules doc comment above), and command/steerco/reports carry
-    // no edit surface at all — nothing to over-grant by including them.
-    // The spec's restrictions for this role ("macro-tenant settings",
-    // "global admin tools") are about admin/audit-log, already excluded;
-    // "the practice-wide vs. whole-portfolio" distinction on Control
-    // Tower/Capacity/Executive Hub is a data-scoping concern
-    // (src/lib/scoping.ts), and margin visibility is a masking concern
-    // (financialVisibility: 'summary' below) — neither is a module-level
-    // nav gate, and narrowing this list to match the spec's headline items
-    // literally breaks real, already-shipped behavior (a Practice Director
-    // reading their masked portfolio rollup on the Executive Hub, e.g.).
+    // literal reading of a simplified role spec's shorter nav-item list:
+    // PRACTICE_DIRECTOR holds real per-project edit authority
+    // (canEditProject) across commercial-baseline/financials/schedule/
+    // raid/audit uniformly (see the allowedModules doc comment above), so
+    // none of those five may ever be missing from this list — a role spec
+    // naming only "SteerCo, utilization, commercial baselines, realization
+    // metrics" as headline items doesn't mean the rest gets hidden out
+    // from under a Practice Director's own working edit authority. VP_
+    // EXECUTIVE shares this same module list for VISIBILITY only — it
+    // never holds canEditProject/project:approve authority
+    // (src/lib/auth/rbac.ts), so a VP seeing (e.g.) RAID Cockpit in nav
+    // never grants them a write action there; they can look, never touch.
     allowedModules: GOVERNABLE_MODULES.filter((m) => m.key !== 'admin' && m.key !== 'audit-log').map((m) => m.key),
     landing: '/portfolio',
     financialVisibility: 'summary',
   },
   DELIVERY_LEAD: {
     key: 'DELIVERY_LEAD',
-    deliveryRole: 'PROJECT_MANAGER',
+    deliveryRoles: ['PROJECT_MANAGER'],
     label: 'Project Manager',
     blurb:
       'Their own assigned engagements — milestones, RAID, effort tracking, baseline through audit. No portfolio-wide margin rollups, no practice-wide capacity headers, no admin configuration.',
@@ -171,7 +199,7 @@ export const RBAC_MATRIX: Record<RbacPersona, RbacPersonaDef> = {
   },
   OBSERVER: {
     key: 'OBSERVER',
-    deliveryRole: 'VIEWER',
+    deliveryRoles: ['VIEWER'],
     label: 'Viewer / Guest',
     blurb: 'Read-only observation — the control tower, board briefing, and summary reports. No edit, create, or write controls anywhere, including baseline locking.',
     allowedModules: ['control-tower', 'steerco', 'reports'],
@@ -180,9 +208,12 @@ export const RBAC_MATRIX: Record<RbacPersona, RbacPersonaDef> = {
   },
 };
 
+// 4-Tier RBAC — many-to-one for the merged executive tier: both
+// PRACTICE_DIRECTOR and VP_EXECUTIVE resolve to ENGAGEMENT_MANAGER. Every
+// other real DeliveryAccessRole still maps 1:1 to its own persona.
 const DELIVERY_ROLE_TO_PERSONA: Record<DeliveryRole, RbacPersona> = {
   ADMIN: 'GLOBAL_ADMIN',
-  VP_EXECUTIVE: 'EXECUTIVE_BOARD',
+  VP_EXECUTIVE: 'ENGAGEMENT_MANAGER',
   PRACTICE_DIRECTOR: 'ENGAGEMENT_MANAGER',
   DELIVERY_MANAGER: 'DELIVERY_EXECUTIVE',
   PROJECT_MANAGER: 'DELIVERY_LEAD',

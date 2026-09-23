@@ -46,13 +46,12 @@ exceptions, identified while rolling this out:**
 
 ### 1.2 Viewport discipline — critical KPIs above the fold
 
-The Command Center (`/command`) is the reference implementation: one
-column, `h1` → `PulseStrip` (four vitals) → `CommandBar` → `ActiveStream`
-(a feed, which is *expected* to run below the fold and require scrolling —
-a feed is not a KPI). The Control Tower (`/portfolio`) — see §8 for the
-Bento Grid refactor — puts every top-line signal (KPI strip, Decision
-Center summary, utilization, roster counts, program rollups) into one
-scannable grid on its default "Overview" tab, so a viewer never scrolls
+The Control Tower (`/portfolio`) is the reference implementation — see §8
+for the Bento Grid refactor that superseded the earlier standalone Command
+Center (`/command`, retired v1.29.0, now a permanent redirect here). It
+puts every top-line signal (KPI strip, Decision Center summary,
+utilization, roster counts, program rollups) into one scannable grid on
+its default "Overview" tab, so a viewer never scrolls
 past a wall of stacked full-width cards to see the operational pulse.
 
 ### 1.3 Contextual in-page navigation, never a dead end
@@ -172,7 +171,7 @@ suite before shipping, not by a user.
 | --- | --- |
 | Portfolio Control Tower — Active Projects table | **Done** — `<DataTable>`, 4 optional columns (Client/PM/Model/Methodology) |
 | `ProjectHeader` — Back to Portfolio | **Done** — reaches Commercial Baseline, Financials, Schedule, RAID, Control Audit at once |
-| Command Center — above-the-fold discipline | **Already conformant**, verified, no change needed |
+| Control Tower Overview tab — above-the-fold discipline | **Done** — Bento Grid (§8); the earlier standalone Command Center this row used to describe is retired (v1.29.0) |
 | RAID Cockpit, Control Audit checklist | **Not applicable** — already card/list layouts (`RaidBoard.tsx`, `AuditChecklist.tsx`), not tables; no horizontal-scroll risk to begin with |
 | Schedule & Milestones phase table (`ScheduleTracker.tsx`) | **Done** — a dense editing grid (§1.1's second exception): sticky "Phase" column, tightened input widths/padding, Pace Risk's elapsed-% moved to a `title` tooltip |
 | Financial Realization — EAC table (`EacEditor.tsx`) | **Done** — same dense-grid treatment: sticky "Role" column, tightened input widths |
@@ -341,11 +340,13 @@ for a real platform defect, not the primary mechanism.
 _A further follow-up, addressing stakeholder feedback on executive
 actionability, persona-driven workflow, and continuous navigation._
 
-### 6.1 The Executive Action Triage feed (`/command`)
+### 6.1 The Executive Action Triage feed
 
 `src/lib/executive-triage.ts` is the pure engine: `selectTriageProjects`
 picks every Red-governance or over-budget/behind-schedule project from
-data the Command Center already loaded (no extra query), worst first,
+data the Control Tower's Decisions tab already loaded (no extra query;
+originally the standalone Command Center's, before that route's v1.29.0
+retirement — see §7 and §8), worst first,
 capped at `TRIAGE_LIMIT`; `buildExecutiveTriage` then synthesizes one
 narrative card per project — Cause / Impact / Owner & Deadline / Required
 Action — from data that **already existed**, not a new schema field:
@@ -360,7 +361,7 @@ Action — from data that **already existed**, not a new schema field:
 `src/server/queries/executive-triage.ts` is the one place that assembles
 this end to end (scoped project load → flag selection → a *second*, small
 query for schedule phases + open RAID items only for the flagged IDs →
-synthesis) — shared by the Command Center page and the Executive Agent
+synthesis) — shared by the Control Tower page and the Executive Agent
 (§6.2) below, so both are always reading the exact same computed reality.
 
 ### 6.2 The Persona-Aware Executive Agent
@@ -406,13 +407,16 @@ app doesn't actually have.
 Full detail: `docs/PORTFOLIO_ORCHESTRATION.md`. In UI-system terms:
 
 - `DecisionCard` (`src/components/command-center/DecisionCard.tsx`) is the
-  one card component the Command Center's `ActionTriageFeed` and the
-  Portfolio's `DecisionCenter` both render for the same flagged engagement
-  — upgraded from §6's plain narrative card with a Client Strategic
-  Context badge and a row of 2-3 pill-styled option buttons (rounded-2xl
-  border-2, the same visual language as §5's `PillSelectorRow`, though
-  these are Links-to-an-action rather than a filter toggle so they don't
-  reuse that component directly).
+  one card component the Portfolio's `DecisionCenter` renders for every
+  flagged engagement (both the Overview tab's compact summary and the
+  Decisions tab's full list) — upgraded from §6's plain narrative card
+  with a Client Strategic Context badge and a row of 2-3 pill-styled
+  option buttons (rounded-2xl border-2, the same visual language as §5's
+  `PillSelectorRow`, though these are Links-to-an-action rather than a
+  filter toggle so they don't reuse that component directly). The
+  standalone Command Center's own `ActionTriageFeed` wrapper around this
+  same component was retired with that route (v1.29.0, §8) — the
+  underlying `DecisionCard`/engine didn't change.
 - Clicking an option opens `InterventionDrawer` — a controlled slide-over
   following the exact same backdrop/aside structure as
   `AuditTrailDrawer` (`fixed inset-0 z-[100]`), so the app has exactly one
@@ -421,7 +425,7 @@ Full detail: `docs/PORTFOLIO_ORCHESTRATION.md`. In UI-system terms:
   full `DecisionCard` treatment (not the compact `AlertRow` list every
   other column still uses) — the richest, most actionable content earns
   the space; "no cramming" is served by keeping it capped at the existing
-  `TRIAGE_LIMIT` (6), the same cap the Command Center feed already uses.
+  `TRIAGE_LIMIT` (6).
 - Once an intervention is executed, the card shows a one-line
   "Intervention Applied · {option} · {who}" stamp with a
   `ProvenanceStamp` — the same honest-freshness convention as §6.4, not a
@@ -467,3 +471,45 @@ the page most likely to be an executive's first screen of the day.
   tile's primary action, rather than reaching for that section's
   verified-fallback pattern for a single secondary shortcut next to an
   always-visible tab pill.
+
+## 9. Sidebar Flattening & Command Center Merge (v1.29.0)
+
+- **`src/components/layout/Sidebar.tsx`'s three grouped sections**
+  (`Portfolio` / `Engagement Governance` / `Reporting`, each with its own
+  uppercase heading) collapsed into **one flat stack**, in delivery-
+  workflow order: Control Tower, Commercial Baseline, Financial
+  Realization, Schedule & Milestones, RAID Cockpit, Resource & Capacity,
+  SteerCo Briefing, Executive Hub, Control Audit. The per-item
+  `colorGroup` icon tint (governance/delivery/commercial) is unchanged —
+  it still signals which of the three functional zones an item belongs
+  to, just without a wrapper label doing the same job twice. The pinned
+  Setup footer (Admin & Org Setup, Compliance Ledger) and the
+  staff-only A2R Ops Console item at the very bottom are unchanged.
+- **The standalone Command Center (`/command`) is retired.** The route
+  now unconditionally `redirect()`s to `/portfolio` (Next.js
+  `next/navigation` `redirect`, not a client-side bounce) rather than
+  404ing for an old bookmark. Its two capabilities that weren't already
+  duplicated elsewhere moved to the Control Tower: the Impact-Aware
+  Decision Cards feed (already identical to Decisions-tab content — see
+  §7 — so nothing there actually changed) and the natural-language
+  `CommandBar`, now rendered once on `/portfolio` above `ModuleTabs` so it
+  stays visible regardless of which tab is active (preserving its
+  original "pinned" positioning). Its venture-vitals `PulseStrip` and its
+  multi-source `ActiveStream` feed were retired from that page outright,
+  not merged — both components remain in active use elsewhere (`PulseStrip`
+  on `/steerco` and `/ops/pulse`; `ActiveStream`'s `getActiveStream` query
+  backs `/ops/pulse` and the SteerCo briefing composer) and were never
+  deleted; `/command` itself simply stopped rendering them, since their
+  ground was already covered within the viewer's real scope by the
+  Overview tab's KPI strip and the Activity tab's feed.
+- **4-Tier RBAC persona consolidation** (`src/lib/governance/rbacMatrix.ts`)
+  — the six-persona `RbacPersona` layer collapsed to five: the old
+  `EXECUTIVE_BOARD` persona is gone, and both `PRACTICE_DIRECTOR` and
+  `VP_EXECUTIVE` (real `DeliveryAccessRole`s, unchanged) now resolve to one
+  merged `ENGAGEMENT_MANAGER` persona ("Practice Director /
+  VP-Professional Services") with identical `allowedModules`. Built by
+  elevating `VP_EXECUTIVE` up to `PRACTICE_DIRECTOR`'s existing
+  full-operational nav breadth, never by narrowing PD down — real edit
+  authority (`src/lib/auth/rbac.ts`) is untouched either way. See
+  `docs/ROLE_ACCESS_MATRIX.md` §2.3 for the full rationale and the "why
+  elevate, not narrow" safety argument.

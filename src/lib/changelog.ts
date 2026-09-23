@@ -36,6 +36,18 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.29.0',
+    date: '2026-09-23',
+    headline: 'Sidebar Flattening, Command Center Merge, 4-Tier RBAC, Demo Script',
+    changes: [
+      { type: 'improvement', text: 'Sidebar flattened — the three grouped sections (Portfolio / Engagement Governance / Reporting) collapsed into one ordered stack: Control Tower, Commercial Baseline, Financial Realization, Schedule & Milestones, RAID Cockpit, Resource & Capacity, SteerCo Briefing, Executive Hub, Control Audit. Admin & Org Setup and the Compliance Ledger stay pinned at the bottom; the A2R Ops Console link stays staff-only.' },
+      { type: 'improvement', text: 'The standalone Command Center (/command) is retired — the route now permanently redirects to the Control Tower. Its Impact-Aware Decision Cards feed was already duplicated there (the Decisions tab); its natural-language Command Bar moved there too, pinned above the module tabs so it stays reachable regardless of which one is active.' },
+      { type: 'improvement', text: '4-Tier RBAC: the six-persona navigation layer (RbacPersona) collapsed to five. Practice Director and VP-Professional Services now share one merged tier with identical, full-operational navigation — built by elevating VP_EXECUTIVE up to Practice Director\'s existing breadth, never by narrowing Practice Director down, so real edit/approval authority is completely unchanged. Delivery/Project Director gained visibility into aggregate financials and commercial baselines across their PMs\' projects. The underlying six-value DeliveryAccessRole enum and every Membership row are untouched — no migration.' },
+      { type: 'improvement', text: 'New docs/DEMO_WALKTHROUGH.md — a presenter-facing, manual click-through demo script mirroring the flattened UI, alongside the existing hands-free docs/AUTO_DEMO_SCRIPT.md. Added to the in-app Documentation Hub (/ops/docs).' },
+      { type: 'improvement', text: 'The flagship demo tenant is renamed from "PS-DOS Demo" to "Apex Global Services" (display name only — the slug, routes, and guest-account emails are unchanged), removing the confusing double-"Demo" naming against the Ops Console\'s own Auto Demo launcher.' },
+    ],
+  },
+  {
     version: '1.28.0',
     date: '2026-09-23',
     headline: 'Documentation Hub, Implementation & Client Support Runbooks, Support Trace IDs',

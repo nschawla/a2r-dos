@@ -18,7 +18,7 @@ these (your own account's password is preserved across re-seeds, not reset).
 
 **Demo persona accounts — shared password `password12345`:**
 
-*PS-DOS Demo org* (Global ERP Modernization, Claims Automation Pilot, …):
+*Apex Global Services org* (Global ERP Modernization, Claims Automation Pilot, …):
 
 | Email | Role |
 | --- | --- |
@@ -107,6 +107,8 @@ npm run build          # production build (what Vercel runs)
 | The new Decision Cards / governance workflow | `docs/PORTFOLIO_ORCHESTRATION.md` |
 | The dual-tile Executive Triage pattern (RAID/Financials/Schedule/Capacity/Commercial) | `docs/EXECUTIVE_TRIAGE_STANDARD.md` (overview) → each module's own `docs/*_TRIAGE.md` for detail |
 | The Control Tower's Bento Grid / Decisions tab layout | `docs/UI_DESIGN_SYSTEM.md` §8 |
+| The flattened sidebar / Command Center retirement / 4-Tier RBAC | `docs/UI_DESIGN_SYSTEM.md` §9, `docs/ROLE_ACCESS_MATRIX.md` §2.3 |
+| Running a client demo (manual click-through, or hands-free) | `docs/DEMO_WALKTHROUGH.md`, `docs/AUTO_DEMO_SCRIPT.md` |
 | Security posture / compliance | `docs/SECURITY.md` |
 | Deploying / Vercel environment variables | `docs/VERCEL_DEPLOYMENT.md` |
 | Full data model | `docs/ERD.md`, `docs/TENANT_MODEL_INVENTORY.md` |

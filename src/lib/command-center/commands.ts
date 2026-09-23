@@ -41,8 +41,12 @@ interface RouteDef {
 }
 
 const ROUTES: RouteDef[] = [
-  { keys: ['command center', 'command', 'pulse', 'stream'], label: 'Command Center', href: '/command' },
-  { keys: ['control tower', 'tower', 'portfolio', 'home', 'dashboard'], label: 'Control Tower', href: '/' },
+  // Command Center ('/command') was retired as a standalone route (Sidebar
+  // Flattening & Control Tower Merge) — it now permanently redirects to
+  // Control Tower, which is where this bar itself now lives. Its old
+  // keywords ('command center', 'pulse', 'stream') fold into Control
+  // Tower's below rather than pointing at a redirect.
+  { keys: ['control tower', 'tower', 'portfolio', 'home', 'dashboard', 'command center', 'command', 'pulse', 'stream'], label: 'Control Tower', href: '/' },
   { keys: ['capacity', 'resource', 'resources', 'utilization', 'bench', 'forecast'], label: 'Resource & Capacity', href: '/capacity' },
   { keys: ['commercial baseline', 'baseline', 'sizing', 'deal', 'scope'], label: 'Commercial Baseline', href: '/commercial-baseline' },
   { keys: ['control audit', 'audit', 'controls', 'stage gate'], label: 'Control Audit', href: '/audit' },
@@ -82,7 +86,7 @@ function bestProject(text: string, projects: CommandContext['projects']) {
 }
 
 const DEFAULTS: RouteDef[] = ROUTES.filter((r) =>
-  ['/command', '/', '/capacity', '/raid', '/financials'].includes(r.href)
+  ['/', '/capacity', '/raid', '/financials'].includes(r.href)
 );
 
 export function resolveCommand(raw: string, ctx: CommandContext): CommandSuggestion[] {

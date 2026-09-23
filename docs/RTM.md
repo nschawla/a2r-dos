@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix — PS-DOS™
 
-_Current-state, **v1.27.0**. Maps each `docs/FRD.md` requirement to its
+_Current-state, **v1.29.0**. Maps each `docs/FRD.md` requirement to its
 implementing code and its automated coverage. Per-phase RTMs (with the
 requirement IDs used at the time) are in `README.md`; this is the flattened
 view. Coverage detail: `docs/TEST_COVERAGE.md`._
@@ -28,7 +28,7 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | Req | Primary code | Coverage |
 | --- | --- | --- |
 | FR-TEN-1 | `src/lib/workspace/lenses.ts`, `src/app/launch/page.tsx` | A `tests/workspace-lens.test.ts` · E Suite J1 · M UAT-3.1 |
-| FR-TEN-2 | `src/lib/auth/rbac.ts`, `src/lib/governance/rbacMatrix.ts`, `src/middleware.ts`, `src/server/authz.ts` | A `tests/rbac.test.ts`, `tests/rbac-matrix.test.ts` (23 — 6 personas) · E Suites B, J · M UAT-3.2 |
+| FR-TEN-2 | `src/lib/auth/rbac.ts`, `src/lib/governance/rbacMatrix.ts`, `src/middleware.ts`, `src/server/authz.ts` | A `tests/rbac.test.ts`, `tests/rbac-matrix.test.ts` (25 — 5 personas, 4-Tier RBAC v1.29.0) · E Suites B, J · M UAT-3.2 |
 | FR-TEN-3 | `src/lib/scoping.ts`, `src/lib/db/scoped-portfolio.ts` | A `tests/scoping.test.ts` · E Suite K1–K2 |
 | FR-TEN-4 | `DeliveryAccessRole.VIEWER` — `rbac.ts` `PERMISSIONS`/`resolveDeliveryRole`, `rbacMatrix.ts` `OBSERVER` | A `tests/rbac.test.ts`, `tests/rbac-matrix.test.ts` · **E Suite Q** (guest read-only, financials scrubbed, `/ops` + `/admin` walled off) |
 | FR-TEN-5 | `src/lib/security/masking.ts` | A `tests/masking.test.ts` · E Suites H, J4, **Q3** |

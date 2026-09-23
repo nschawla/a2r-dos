@@ -68,6 +68,7 @@ export const CURATED_DOCS: CuratedDoc[] = [
   { slug: 'client-support-runbook', file: 'docs/CLIENT_SUPPORT_RUNBOOK.md', category: 'Operations & Support' },
   { slug: 'security', file: 'docs/SECURITY.md', category: 'Operations & Support' },
   { slug: 'role-access-matrix', file: 'docs/ROLE_ACCESS_MATRIX.md', category: 'Operations & Support' },
+  { slug: 'demo-walkthrough', file: 'docs/DEMO_WALKTHROUGH.md', category: 'Operations & Support' },
 ];
 
 export const CATEGORY_ORDER = [...new Set(CURATED_DOCS.map((d) => d.category))];

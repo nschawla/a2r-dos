@@ -1,9 +1,20 @@
 # Entity Relationship Diagram — PS-DOS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.27.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
+it, current as of **v1.29.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
 full model → tenant-binding → RLS-policy map and `docs/ROLE_ACCESS_MATRIX.md`
 for the role axes.
+
+**v1.29.0** — Sidebar Flattening, Command Center Merge, 4-Tier RBAC,
+demo-tenant rename. **No schema change.** The RBAC "4-Tier" simplification
+is application-layer only — `RbacPersona` (`src/lib/governance/rbacMatrix.ts`)
+collapsed from 6 to 5 values, but the underlying `DeliveryAccessRole` enum
+below (still `ADMIN` / `VP_EXECUTIVE` / `PRACTICE_DIRECTOR` /
+`DELIVERY_MANAGER` / `PROJECT_MANAGER` / `VIEWER`) and every `Membership`
+row are untouched — no migration. The demo tenant's `Organization.name`
+changed from "PS-DOS Demo" to "Apex Global Services" via
+`scripts/rename-demo-org-apex.ts` (a data update, not a schema change); its
+`slug` is unchanged.
 
 **v1.27.0** — Documentation & Schema/RLS Alignment Sweep. One schema
 change: migration `00000000000029` gives `PortfolioIntervention` the

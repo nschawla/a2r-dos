@@ -145,35 +145,48 @@ test.describe('Suite J1 — role-based landing resolution', () => {
 
 test.describe('Suite J2 — Persona Preview banner navigates to each landing view', () => {
   test('switching persona redirects instead of orphaning the current URL', async () => {
+    // 4-Tier RBAC (v1.29.0): the old EXECUTIVE_BOARD persona ("Executive
+    // Board", landing /steerco) is retired — VP_EXECUTIVE now resolves to
+    // the merged "Practice Director / VP-Professional Services" tier
+    // (ENGAGEMENT_MANAGER), which lands on /portfolio like every other
+    // persona now (there is no persona left with a non-/portfolio
+    // landing). This test still proves real navigation (starting from a
+    // page the target persona can't see), and now also exercises the
+    // merge's actual behavior change: this persona DOES see Commercial
+    // Baseline (elevated to Practice Director's breadth), where the old
+    // Executive Board never did.
     await signIn(page, 'admin@a2rventures-demo.test');
     await expect(page).toHaveURL(/\/portfolio$/); // Global Admin's landing
 
-    // Land on a page Executive Board can't see at all, to prove the
-    // switch actively navigates away rather than leaving it rendered.
+    // Land on a page only Global Admin can see, to prove the switch
+    // actively navigates away rather than leaving it rendered.
     await page.goto('/admin');
     await expectNoErrorOverlay(page);
 
     const trigger = page.getByRole('button', { name: /^Persona Preview:/ });
     await trigger.click();
-    await page.getByRole('menuitemradio', { name: 'Executive Board' }).click();
+    await page.getByRole('menuitemradio', { name: 'Practice Director / VP-Professional Services' }).click();
 
-    // Executive Board's landing is the SteerCo Briefing — no orphaned /admin.
-    await page.waitForURL(/\/steerco$/, { timeout: 15_000 });
+    // No orphaned /admin — forced to this persona's landing.
+    await page.waitForURL(/\/portfolio$/, { timeout: 15_000 });
     await expectNoErrorOverlay(page);
-    await expect(trigger).toHaveAccessibleName('Persona Preview: Executive Board');
-    // The Sidebar morphed with it — Executive Board has no Commercial
-    // Baseline / Admin & Org Setup links at all.
-    await expect(page.getByRole('link', { name: 'Commercial Baseline' })).toHaveCount(0);
+    await expect(trigger).toHaveAccessibleName('Persona Preview: Practice Director / VP-Professional Services');
+    // The Sidebar morphed with it — full operational nav (elevated from
+    // the old, narrower Executive Board) minus Admin & Org Setup.
+    await expect(page.getByRole('link', { name: 'Commercial Baseline' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'RAID Cockpit' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Admin & Org Setup' })).toHaveCount(0);
 
-    // Switch straight to a second persona — Delivery Executive — from a
-    // page Executive Board could see but Delivery Executive can't.
+    // Navigate to a page this persona can see but Viewer / Guest can't,
+    // then switch straight to it — proves the redirect fires from an
+    // arbitrary page, not just from /admin.
+    await page.goto('/raid');
     await trigger.click();
-    await page.getByRole('menuitemradio', { name: 'Delivery Executive' }).click();
-    await page.waitForURL(/\/portfolio$/, { timeout: 15_000 }); // Delivery Executive's landing
+    await page.getByRole('menuitemradio', { name: 'Viewer / Guest' }).click();
+    await page.waitForURL(/\/portfolio$/, { timeout: 15_000 }); // Viewer / Guest's landing
     await expectNoErrorOverlay(page);
-    await expect(page.getByRole('link', { name: 'Financial Realization' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'RAID Cockpit' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'RAID Cockpit' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Commercial Baseline' })).toHaveCount(0);
 
     // Exit preview — back to the real Global Admin, back on Control Tower.
     await trigger.click();

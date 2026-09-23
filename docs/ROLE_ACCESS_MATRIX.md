@@ -1,6 +1,6 @@
 # Security & Role Access Matrix — PS-DOS
 
-_Current as of **v1.19.0**. Source of truth: `src/lib/ops/operator-roles.ts`
+_Current as of **v1.29.0**. Source of truth: `src/lib/ops/operator-roles.ts`
 (operator axis), `src/lib/auth/rbac.ts` + `src/lib/governance/rbacMatrix.ts`
 (tenant axis). This document is a reader's map onto that code._
 
@@ -125,22 +125,49 @@ edit authority (`src/lib/auth/rbac.ts` `PERMISSIONS`, `canEditProject`).
 | `PROJECT_MANAGER` | their own projects | actuals / RAID / audit / schedule | restricted |
 | **`VIEWER`** (v1.16.0) | whole org (read) | **none** | **restricted** (cost rates, margins, variance all scrubbed) |
 
-### 2.3 RBAC persona (navigation allow-list)
+### 2.3 RBAC persona (navigation allow-list) — 4-Tier RBAC (v1.29.0)
 
 `src/lib/governance/rbacMatrix.ts` — `personaForDeliveryRole` maps each
 delivery role to a persona whose `allowedModules` list gates the sidebar,
-tab pills, and (via middleware) the route:
+tab pills, and (via middleware) the route. As of v1.29.0 this presentation
+layer is **four enterprise-facing personas, plus the read-only guest
+tier** — down from six — collapsing `EXECUTIVE_BOARD` into
+`ENGAGEMENT_MANAGER` (both `PRACTICE_DIRECTOR` and `VP_EXECUTIVE` now
+resolve to the one merged tier). `RbacPersonaDef.deliveryRoles` is
+consequently a *list*, not a single value — every persona but the merged
+one still holds exactly one real `DeliveryAccessRole`:
 
-| Persona | Delivery role | Modules reachable | Lands on |
+| Persona | Delivery role(s) | Modules reachable | Lands on |
 | --- | --- | --- | --- |
 | `GLOBAL_ADMIN` (Global Admin / A2R Staff) | ADMIN | every governable module | Control Tower |
-| `EXECUTIVE_BOARD` (Executive Board / SteerCo) | VP_EXECUTIVE | control-tower, steerco, financials, reports | SteerCo Briefing |
-| `DELIVERY_EXECUTIVE` (Delivery Executive) | DELIVERY_MANAGER | control-tower, raid, schedule, capacity | Control Tower |
-| `ENGAGEMENT_MANAGER` (Engagement / Practice Manager) | PRACTICE_DIRECTOR | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit | Control Tower |
+| `ENGAGEMENT_MANAGER` (Practice Director / VP-Professional Services) | **PRACTICE_DIRECTOR, VP_EXECUTIVE** | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit, steerco, reports | Control Tower |
+| `DELIVERY_EXECUTIVE` (Delivery / Project Director) | DELIVERY_MANAGER | control-tower, raid, schedule, capacity, **financials, commercial-baseline** | Control Tower |
 | `DELIVERY_LEAD` (Project Manager) | PROJECT_MANAGER | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit | Control Tower |
 | **`OBSERVER`** (v1.16.0, Viewer / Guest) | VIEWER | **control-tower, steerco, reports** only | Control Tower (read-only) |
 
-`ENGAGEMENT_MANAGER` and `PROJECT_MANAGER` end up with the same *module*
+**The PD/VP-PS merge was built by elevating `VP_EXECUTIVE` up to
+`PRACTICE_DIRECTOR`'s existing full-operational nav breadth, never by
+narrowing PD down.** This is a *visibility* merge only — real edit/approval
+authority in `src/lib/auth/rbac.ts` (`PERMISSIONS`, `canEditProject`) did
+not change one bit: a `VP_EXECUTIVE` session now sees every module a
+Practice Director does (RAID, Schedule, Audit included, which it didn't
+before), but `canEditProject` still returns `false` for `VP_EXECUTIVE`
+unconditionally — it can look, never touch. Picking the other direction
+(narrowing `PRACTICE_DIRECTOR` down to the old `EXECUTIVE_BOARD`'s macro-only
+nav) was considered and rejected: `PRACTICE_DIRECTOR` holds real, live edit
+authority on RAID/Schedule/Audit for their practice's projects, and
+removing those from nav while leaving that authority in place would have
+created exactly the "dead route" bug this file's `allowedModules` doc
+comment warns against — a working control with no link left to reach it.
+
+`DELIVERY_EXECUTIVE` (the Delivery/Project Director tier) also gained
+`financials` and `commercial-baseline` in this pass, so it can see
+aggregate financials and commercial baselines across its direct-report
+PMs' projects — visibility only, same reasoning: `DELIVERY_MANAGER` keeps
+its existing approval-only authority (`project:approve`), never gaining
+direct edit.
+
+`ENGAGEMENT_MANAGER` and `DELIVERY_LEAD` end up with the same *module*
 list — both hold real, per-project edit authority via `canEditProject`
 (uniform across commercial-baseline/financials/schedule/raid/audit, not
 differentiated by module), so neither can have any of those five removed
@@ -149,6 +176,25 @@ What actually differs between them is *row-level* scope (their whole
 practice vs. only their own assignments), enforced separately by
 Role-Based Scoped Filtering (`src/lib/scoping.ts`) — the RBAC matrix and
 the scoping layer are deliberately two different axes.
+
+The underlying `DeliveryAccessRole` Prisma enum is **unchanged** by this
+pass — still six real values (`ADMIN`, `VP_EXECUTIVE`, `PRACTICE_DIRECTOR`,
+`DELIVERY_MANAGER`, `PROJECT_MANAGER`, `VIEWER`), no migration, no
+`Membership` data rewritten. What's simplified is the friendly persona
+layer painted on top of it, per this file's own standing design principle
+— see §2.2 above for the real identity/edit-authority axis.
+
+### 2.4 `/ops` is internal-only — already enforced, confirmed (v1.29.0)
+
+The A2R Ops Console is not reachable by any tenant persona above. Three
+independent layers keep it that way: (1) `src/middleware.ts` gates every
+`/ops/*` path at the edge before a page even renders; (2)
+`src/app/(admin)/ops/layout.tsx`'s `requireOpsContext()` redirects any
+non-staff session server-side; (3) the Sidebar only renders the "A2R Ops
+Console" link at all when `session.user.isA2rStaff === true`. No tenant
+`RbacPersona` — including `GLOBAL_ADMIN`, a tenant's own top role — carries
+any operator capability; those are governed entirely by the separate
+`OperatorRole` axis in §1.
 
 ---
 
