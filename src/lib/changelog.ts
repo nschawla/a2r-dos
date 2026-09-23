@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.21.0',
+    date: '2026-09-23',
+    headline: 'RAID Cockpit Executive Triage & Thematic Clustering',
+    changes: [
+      { type: 'feature', text: 'The RAID Cockpit now opens on a portfolio-wide Executive Triage summary instead of going straight to a per-project picker: a Red/Amber aggregate across every open Critical/High/Medium item in your scope, plus a breakdown by type (Risk/Assumption/Issue/Dependency).' },
+      { type: 'feature', text: 'Thematic Risk Clusters group those same items by likely root cause — Resource Bottlenecks, Integration / Data Failures, Scope Creep, Vendor Delays — sorted by how many distinct projects each pattern touches, so a systemic issue reads as one story instead of scattered line items. Click a cluster to expand it inline; double-click any item for a shortcut straight to that project’s RAID board.' },
+      { type: 'improvement', text: 'The per-project engagement picker stays one click away below the new triage summary — nothing about the existing per-project RAID workflow changed.' },
+    ],
+  },
+  {
     version: '1.20.0',
     date: '2026-09-22',
     headline: 'PS Orchestration & Decision Engine — Impact-Aware Decision Cards and governed execution',

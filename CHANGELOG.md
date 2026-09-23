@@ -10,6 +10,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.21.0] — 2026-09-23
+
+_RAID Cockpit Executive Triage & Thematic Clustering._
+
+### Added
+
+- **Portfolio-wide Executive Triage** on `/raid` — a Red/Amber aggregate across every open Critical/High/Medium
+  RAID item in scope, plus a breakdown by type, ahead of the existing per-project picker.
+- **Thematic Risk Clusters** — the same items grouped by likely root cause (Resource Bottlenecks, Integration /
+  Data Failures, Scope Creep, Vendor Delays), sorted by how many distinct projects each pattern touches. Click to
+  expand a cluster inline; double-click an item for a shortcut to that project's RAID board. See
+  `docs/RAID_EXECUTIVE_TRIAGE.md`.
+
+---
+
 ## [1.20.0] — 2026-09-22
 
 _PS Orchestration & Decision Engine — Impact-Aware Decision Cards and governed execution._
