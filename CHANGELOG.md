@@ -10,6 +10,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.35.0] — 2026-09-23
+
+_Logo Refinement — Solid Triangle, Separated Base Bar._
+
+### Changed
+
+- The logo mark's triangle is now a single, fully solid filled shape — the earlier "A" counter-cut (a smaller
+  triangle cut from its center) is removed. At the mark's actual render sizes that cutout consumed most of the
+  interior, leaving a thin ring of ink that read as a hollow wireframe outline rather than a solid mark.
+- The red base accent is now a distinct, thick rectangular bar separated from the triangle by a clean gap,
+  exactly as wide as the triangle's own base — previously it was a tapered trapezoid sitting flush against the
+  triangle with no visual break.
+- `src/app/icon.svg` (the browser-tab favicon) kept in sync with the same geometry.
+
+---
+
 ## [1.34.0] — 2026-09-23
 
 _Logo Refresh — Red Base Accent._

@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.35.0',
+    date: '2026-09-23',
+    headline: 'Logo Refinement — Solid Triangle, Separated Base Bar',
+    changes: [
+      { type: 'improvement', text: 'The logo mark\'s triangle is now a single, fully solid filled shape — the earlier "A" counter-cut (a smaller triangle cut from its center) is removed. At the mark\'s actual render sizes that cutout consumed most of the interior, leaving a thin ring of ink that read as a hollow wireframe outline rather than a solid mark.' },
+      { type: 'improvement', text: 'The red base accent is now a distinct, thick rectangular bar separated from the triangle by a clean gap, exactly as wide as the triangle\'s own base — previously it was a tapered trapezoid sitting flush against the triangle with no visual break.' },
+      { type: 'improvement', text: 'src/app/icon.svg (the browser-tab favicon) kept in sync with the same geometry.' },
+    ],
+  },
+  {
     version: '1.34.0',
     date: '2026-09-23',
     headline: 'Logo Refresh — Red Base Accent',
