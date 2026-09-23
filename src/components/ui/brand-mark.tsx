@@ -3,9 +3,9 @@ import clsx from 'clsx';
 /**
  * "Concept B: Ascent Vector" — the PS Delivery OS logo mark: a fully
  * solid triangle rising to a point (an apex, not a curve — the ascent),
- * a clean horizontal gap, and a thick, solid red bar at the base — three
- * flat geometric shapes, no raster artwork, no gradient, no stroke-only
- * outline anywhere.
+ * a clean horizontal gap, a thick, solid red bar at the base, and one
+ * thin outer border framing the whole composite — flat geometric shapes
+ * and one stroke, no raster artwork, no gradient.
  *
  * v1.35.0 — refined to a fully solid triangle. The earlier "Concept B"
  * cut a smaller triangular counter from the mark's center (evenodd
@@ -22,6 +22,23 @@ import clsx from 'clsx';
  * apex (12,2) to base (4,15)/(20,15)) over the bar's own height, so the
  * bar reads as a continuation of the triangle's silhouette rather than a
  * separate, differently-shaped block dropped underneath it.
+ *
+ * v1.37.0 — one thin, sharp outer border traces the whole composite's
+ * outer silhouette (apex → triangle's right side → straight down the
+ * right edge of the gap → the bar's right flare → across the bar's
+ * bottom → up its left flare → straight up the left edge of the gap →
+ * back up the triangle's left side → apex) — a single closed
+ * stroke-only path, `fill="none"`, no separate color of its own: it
+ * reads `currentColor` exactly like the triangle, so wherever a call
+ * site overrides the mark's color (the marketing page's `!text-white`
+ * dark-hero variant included), the border always matches. That's the
+ * whole effect: where the border runs alongside the triangle's own
+ * fill, same color meeting same color, it has zero contrast and reads
+ * as nothing — invisible, flush, the triangle simply looks solid. Where
+ * it runs alongside the empty gap or the (independently red)
+ * base bar, it has real contrast and reads as a crisp frame around
+ * both. No internal dividing lines between the three pieces — this is
+ * the union's OUTER boundary only.
  *
  * Three independent pieces, each its own design token so none can ever
  * silently recolor another:
@@ -83,6 +100,16 @@ export function BrandMark({
           flares to (1.5,22)/(22.5,22), the same taper the triangle's own
           sides use, carried across the bar's 4-unit height. */}
       <path className="text-logo-accent" fill="currentColor" d="M4 18L20 18L22.5 22H1.5Z" />
+      {/* The composite's single outer border — stroke only, inherits
+          `currentColor` (never its own color), so it always matches
+          whatever the triangle above is currently rendering as. */}
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1}
+        strokeLinejoin="miter"
+        d="M12 2L20 15V18L22.5 22H1.5L4 18V15Z"
+      />
     </svg>
   );
 }

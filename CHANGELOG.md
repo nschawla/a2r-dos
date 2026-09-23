@@ -10,6 +10,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.37.0] — 2026-09-23
+
+_Logo Refinement — Outlined Composite Border._
+
+### Changed
+
+- The logo mark gains one thin, sharp outer border tracing the whole composite's silhouette (triangle + gap +
+  base bar), stroke-only and colored via the same `currentColor` the triangle itself uses. Where it runs
+  alongside the triangle's own fill it has zero contrast and reads as nothing — the triangle stays flush and
+  solid; where it runs alongside the empty gap or the red base bar it reads as a crisp frame around both.
+  Matches any call-site color override (e.g. the marketing page's white variant on its dark hero)
+  automatically, since it shares the same color source rather than hardcoding one.
+- `src/app/icon.svg` (the browser-tab favicon) kept in sync with the same geometry.
+
+---
+
 ## [1.36.0] — 2026-09-23
 
 _Logo Refinement — Tapered Base Bar._
