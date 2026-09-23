@@ -49,9 +49,11 @@ exceptions, identified while rolling this out:**
 The Command Center (`/command`) is the reference implementation: one
 column, `h1` → `PulseStrip` (four vitals) → `CommandBar` → `ActiveStream`
 (a feed, which is *expected* to run below the fold and require scrolling —
-a feed is not a KPI). The Control Tower (`/portfolio`) puts its four
-top-line `StatCard`s immediately under the page heading, before the
-tabbed detail panels.
+a feed is not a KPI). The Control Tower (`/portfolio`) — see §8 for the
+Bento Grid refactor — puts every top-line signal (KPI strip, Decision
+Center summary, utilization, roster counts, program rollups) into one
+scannable grid on its default "Overview" tab, so a viewer never scrolls
+past a wall of stacked full-width cards to see the operational pulse.
 
 ### 1.3 Contextual in-page navigation, never a dead end
 
@@ -424,3 +426,44 @@ Full detail: `docs/PORTFOLIO_ORCHESTRATION.md`. In UI-system terms:
   "Intervention Applied · {option} · {who}" stamp with a
   `ProvenanceStamp` — the same honest-freshness convention as §6.4, not a
   new one.
+
+## 8. Control Tower UX Refactor — Bento Grid & the Decisions tab
+
+Before this pass, `/portfolio` stacked its stat cards, the full Decision
+Center (up to `TRIAGE_LIMIT` tall Impact-Aware Decision Cards), a
+utilization link, program rollups, and roster counts as one long vertical
+column above the tabs — the exact "scroll fatigue" §1.2 warns against, on
+the page most likely to be an executive's first screen of the day.
+
+- **The default "Overview" tab is now a responsive grid**
+  (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`, the same breakpoint
+  vocabulary the five triage-module dual-tile headers already use) rather
+  than a single column: the KPI strip spans full width, the Decision
+  Center summary tile and the Utilization tile sit side by side, and
+  Resources/Practices pairs with Program Rollups (when a tenant has any).
+  Cells use `card !p-4` — the same tighter density `StatCard` and every
+  triage-module tile already use — not the default `.card` `p-6`.
+- **The heavy content moved into a new "Decisions" tab**, alongside the
+  existing Engagements and Activity tabs (`ModuleTabs`, §1.6) — every
+  panel is still server-rendered and present in the DOM (`hidden`, not
+  unmounted), so switching is instant with zero extra requests, exactly
+  §1.6's existing contract. `DecisionCenterSummary`
+  (`src/components/portfolio/DecisionCenter.tsx`) is the Overview tab's
+  compact tile: the same headline + a Red/Amber badge row, linking to
+  `?v=decisions`.
+- **One data-fetch, two render targets.** The Decision Center's data
+  (triage synthesis + the PS Orchestration engine's real-headroom search —
+  §7's heaviest query) now feeds both the Overview tile and the Decisions
+  tab's full list. Each lives in its own `<Suspense>` boundary since they
+  render in different parts of the tree, but the fetch itself is wrapped
+  in React's `cache()` (Next.js's documented per-request memoization
+  primitive) so calling it from both places only runs the underlying
+  queries once — confirmed empirically during this rollout (a temporary
+  invocation counter logged exactly one call, not two) rather than assumed.
+- **The Overview→Decisions tile link is a plain `<a href="?v=decisions">`,
+  not `next/link`.** A full navigation always lands correctly (`ModuleTabs`
+  reads `?v=` from the URL on mount) and deliberately avoids §5.1's
+  documented same-pathname client-router issue on what's meant to be this
+  tile's primary action, rather than reaching for that section's
+  verified-fallback pattern for a single secondary shortcut next to an
+  always-visible tab pill.

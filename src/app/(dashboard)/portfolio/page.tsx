@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Suspense } from 'react';
+import { Suspense, cache } from 'react';
 import { requireOrgContext, type OrgContext } from '@/lib/session';
 import { getScopedPortfolioSummary, type ScopedPortfolioSummary } from '@/lib/db/scoped-portfolio';
 import { loadPortfolioDashboardExtras, loadDecisionCenterAlerts } from '@/server/queries/pages/dashboards';
@@ -18,11 +18,39 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { ModuleTabs } from '@/components/ui/module-tabs';
 import { TruncatedCell, type DataTableColumn } from '@/components/ui/data-table';
 import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
-import { DecisionCenter } from '@/components/portfolio/DecisionCenter';
+import { DecisionCenter, DecisionCenterSummary } from '@/components/portfolio/DecisionCenter';
 import { ProjectsExplorer, type ProjectExplorerRow } from '@/components/portfolio/ProjectsExplorer';
 import { CreateProjectForm } from './create-project-form';
 
 const HEALTH_DOT: Record<string, string> = { G: 'bg-success', Y: 'bg-warning', R: 'bg-critical' };
+
+/**
+ * The Decision Center's own data assembly (triage synthesis + the PS
+ * Orchestration engine's real-headroom/swap-candidate search) — the
+ * heaviest single piece of this page's server work, and needed in TWO
+ * places since the Control Tower UX Refactor: the Overview tab's compact
+ * summary tile, and the Decisions tab's full card list. `cache()` (React's
+ * per-request memoization) means calling this twice with the same
+ * `context`/`portfolioSummary`/`capacityRows`/`scopedProjectIds`
+ * references only actually runs the underlying queries once — the second
+ * call resolves from the first's cached result, not a duplicate DB round
+ * trip.
+ */
+const loadDecisionCenterData = cache(
+  async (
+    context: OrgContext,
+    portfolioSummary: ScopedPortfolioSummary,
+    capacityRows: ResourceCapacityRow[],
+    scopedProjectIds: string[]
+  ) => {
+    const [decisionCenterAlerts, { items: triageItems, flagged }] = await Promise.all([
+      loadDecisionCenterAlerts(context, scopedProjectIds),
+      getExecutiveTriage(context, portfolioSummary),
+    ]);
+    const decisionContext = await loadDecisionContext(context, flagged, capacityRows);
+    return { decisionCenterAlerts, triageItems, decisionContext };
+  }
+);
 
 export default async function HomePage() {
   const context = await requireOrgContext();
@@ -39,14 +67,12 @@ export default async function HomePage() {
   const showMargins = canViewMargins(deliveryRole, governance);
 
   // Streaming: only the data every panel/tab actually needs to paint its
-  // FIRST frame is awaited here. The Decision Center — the exception-
-  // driven "needs attention today" panel, and the heaviest single piece of
-  // this page's server work (triage synthesis + the PS Orchestration
-  // engine's own real-headroom/swap-candidate search) — is deliberately
-  // NOT awaited in this function: it's an async Server Component of its
-  // own (below), rendered inside a <Suspense> boundary, so the stat cards
-  // and the project registry table paint immediately while it streams in
-  // separately, instead of the whole page waiting on its slowest query.
+  // FIRST frame is awaited here. The Decision Center data (see
+  // loadDecisionCenterData above) is deliberately NOT awaited in this
+  // function: it feeds two async Server Components below, each behind its
+  // own <Suspense> boundary, so the stat cards and the project registry
+  // table paint immediately while it streams in separately, instead of the
+  // whole page waiting on its slowest query.
   // "Resources on Roster" is scoped like the /capacity roster — practice-
   // boundary data, same as the project list. `practiceCount` stays
   // tenant-wide deliberately: a structural fact about the org (how many
@@ -65,9 +91,19 @@ export default async function HomePage() {
   const kpiValues = customKpis.length > 0 ? await getKpiMetricValues(organizationId, scopedProjectIds, summary) : {};
   const viewerPersona = personaForDeliveryRole(deliveryRole);
 
-  const portfolioPanel = (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  // ── Overview — Bento Grid (Control Tower UX Refactor) ────────────────
+  //
+  // Every "how's the portfolio doing right now" signal in one scannable,
+  // above-the-fold grid instead of a long vertical stack: the 4-up KPI
+  // strip across the top, the Decision Center's compact summary tile
+  // paired with the Utilization tile, then Resources/Practices paired
+  // with Program Rollups when there are any. Cells use the same tighter
+  // `card !p-4` density as StatCard and the five triage-module dual-tile
+  // headers shipped earlier today, rather than the default `.card` p-6 —
+  // more signal per pixel, consistent with that established language.
+  const overviewPanel = (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="sm:col-span-2 lg:col-span-3 grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Engagements in Scope" value={String(summary.projectCount)} />
         <StatCard label="Total Contract Value" value={`$${Math.round(summary.totalValue).toLocaleString('en-US')}`} />
         <StatCard
@@ -82,68 +118,85 @@ export default async function HomePage() {
         />
       </div>
 
-      <KpiWidgetRow kpis={customKpis} values={kpiValues} persona={viewerPersona} />
+      <div className="lg:col-span-2">
+        <Suspense fallback={<SkeletonCard lines={2} />}>
+          <DecisionCenterSummarySection
+            context={context}
+            portfolioSummary={portfolioSummary}
+            capacityRows={capacityRows}
+            scopedProjectIds={scopedProjectIds}
+          />
+        </Suspense>
+      </div>
 
       <Link
         href="/capacity"
-        className="card !p-4 flex items-center justify-between gap-4 hover:border-brand/50 transition-colors"
+        className="card !p-4 flex flex-col justify-between gap-2 hover:border-brand/50 transition-colors"
       >
-        <div>
-          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1.5">
-            Blended Billable Utilization
-          </div>
-          <div className="flex items-baseline gap-3">
-            <span
-              className={`text-2xl font-display font-bold tabular-nums ${
-                utilization.attainmentPct >= 0.98
-                  ? 'text-success'
-                  : utilization.attainmentPct >= 0.85
-                    ? 'text-warning'
-                    : 'text-critical'
-              }`}
-            >
-              {(utilization.utilizationPct * 100).toFixed(1)}%
-            </span>
-            <span className="text-[12px] text-ink-faint">
-              vs {(utilization.targetUtilPct * 100).toFixed(0)}% target · {(utilization.attainmentPct * 100).toFixed(0)}%
-              attainment · {utilization.headcountFte.toFixed(1)} billable FTE
-            </span>
-          </div>
+        <div className="text-[10.5px] uppercase tracking-wide text-ink-faint font-semibold">
+          Blended Billable Utilization
+        </div>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span
+            className={`text-2xl font-display font-bold tabular-nums ${
+              utilization.attainmentPct >= 0.98
+                ? 'text-success'
+                : utilization.attainmentPct >= 0.85
+                  ? 'text-warning'
+                  : 'text-critical'
+            }`}
+          >
+            {(utilization.utilizationPct * 100).toFixed(1)}%
+          </span>
+          <span className="text-[11px] text-ink-faint">
+            vs {(utilization.targetUtilPct * 100).toFixed(0)}% target · {utilization.headcountFte.toFixed(1)} FTE
+          </span>
         </div>
         <span className="text-brand text-xs font-semibold whitespace-nowrap">Resource &amp; Capacity →</span>
       </Link>
 
+      {customKpis.length > 0 && (
+        <div className="sm:col-span-2 lg:col-span-3">
+          <KpiWidgetRow kpis={customKpis} values={kpiValues} persona={viewerPersona} />
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 content-start">
+        <StatCard label="Resources on Roster" value={String(resourceCount)} />
+        <StatCard label="Practices" value={String(practiceCount)} />
+      </div>
+
       {programRollups.length > 0 && (
-        <div className="card">
-          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Program Rollups</div>
-          <h2 className="text-[15.5px] font-bold mb-4">Parent Programs</h2>
+        <div className="lg:col-span-2 card !p-4">
+          <div className="text-[10.5px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Program Rollups</div>
+          <h2 className="text-[14px] font-bold mb-3">Parent Programs</h2>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-ink-faint text-[11px] uppercase tracking-wide border-b border-border">
-                  <th className="py-2 pr-4">Program</th>
-                  <th className="py-2 pr-4">Waves</th>
-                  <th className="py-2 pr-4">Contract Value</th>
-                  <th className="py-2 pr-4">Blended EAC Margin</th>
-                  <th className="py-2 pr-4">Open RR Hours</th>
-                  <th className="py-2 pr-4">Health</th>
+                  <th className="py-1.5 pr-4">Program</th>
+                  <th className="py-1.5 pr-4">Waves</th>
+                  <th className="py-1.5 pr-4">Contract Value</th>
+                  <th className="py-1.5 pr-4">Blended EAC Margin</th>
+                  <th className="py-1.5 pr-4">Open RR Hours</th>
+                  <th className="py-1.5 pr-4">Health</th>
                 </tr>
               </thead>
               <tbody>
                 {programRollups.map(({ parent, rollup }) => (
                   <tr key={parent.id} className="border-b border-border/60 last:border-0">
-                    <td className="py-2.5 pr-4 font-semibold">
+                    <td className="py-2 pr-4 font-semibold">
                       <Link href={`/commercial-baseline/${parent.id}`} className="hover:text-brand">
                         {parent.name}
                       </Link>
                     </td>
-                    <td className="py-2.5 pr-4 tabular-nums text-ink-muted">{rollup.childCount}</td>
-                    <td className="py-2.5 pr-4 tabular-nums">${Math.round(rollup.totalContractValue).toLocaleString('en-US')}</td>
-                    <td className="py-2.5 pr-4 tabular-nums">
+                    <td className="py-2 pr-4 tabular-nums text-ink-muted">{rollup.childCount}</td>
+                    <td className="py-2 pr-4 tabular-nums">${Math.round(rollup.totalContractValue).toLocaleString('en-US')}</td>
+                    <td className="py-2 pr-4 tabular-nums">
                       <MaskedValue canView={showMargins} value={`${rollup.blendedEacMarginPct.toFixed(1)}%`} />
                     </td>
-                    <td className="py-2.5 pr-4 tabular-nums text-ink-muted">{rollup.totalOpenRRHours.toLocaleString('en-US')}</td>
-                    <td className="py-2.5 pr-4">
+                    <td className="py-2 pr-4 tabular-nums text-ink-muted">{rollup.totalOpenRRHours.toLocaleString('en-US')}</td>
+                    <td className="py-2 pr-4">
                       {rollup.health === 'NA' ? (
                         <span className="text-ink-faint">—</span>
                       ) : (
@@ -157,12 +210,25 @@ export default async function HomePage() {
           </div>
         </div>
       )}
+    </div>
+  );
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <StatCard label="Resources on Roster" value={String(resourceCount)} />
-        <StatCard label="Practices" value={String(practiceCount)} />
-      </div>
-    </>
+  // ── Decisions — the full Decision Center, tucked into its own tab ────
+  //
+  // The Impact-Aware Decision Cards are the richest, tallest content on
+  // this page (each one a multi-field grid plus an options row) — exactly
+  // the kind of heavy section the Control Tower UX Refactor moves out of
+  // the always-visible fold and into a dedicated tab a viewer reaches in
+  // one click (from the Overview tile above, or the tab pill itself).
+  const decisionsPanel = (
+    <Suspense fallback={<SkeletonCard lines={4} />}>
+      <DecisionCenterFullSection
+        context={context}
+        portfolioSummary={portfolioSummary}
+        capacityRows={capacityRows}
+        scopedProjectIds={scopedProjectIds}
+      />
+    </Suspense>
   );
 
   // No-Scroll table discipline: Project / Health / Open RAID / the action
@@ -299,37 +365,41 @@ export default async function HomePage() {
         </p>
       </div>
 
-      <Suspense fallback={<SkeletonCard lines={4} />}>
-        <DecisionCenterSection
-          context={context}
-          portfolioSummary={portfolioSummary}
-          capacityRows={capacityRows}
-          scopedProjectIds={scopedProjectIds}
-        />
-      </Suspense>
-
       <ModuleTabs
         tabs={[
-          { key: 'portfolio', label: 'Portfolio' },
+          { key: 'overview', label: 'Overview' },
+          { key: 'decisions', label: 'Decisions' },
           { key: 'engagements', label: 'Engagements' },
           { key: 'activity', label: 'Activity' },
         ]}
-        panels={{ portfolio: portfolioPanel, engagements: engagementsPanel, activity: activityPanel }}
+        panels={{ overview: overviewPanel, decisions: decisionsPanel, engagements: engagementsPanel, activity: activityPanel }}
       />
     </>
   );
 }
 
-/**
- * The Decision Center's own data assembly, split out of `HomePage` so it
- * can stream in behind a `<Suspense>` boundary instead of gating the rest
- * of the page on its own slower queries (`getExecutiveTriage`'s narrative
- * synthesis, `loadDecisionCenterAlerts`, and the PS Orchestration engine's
- * real-headroom/swap-candidate search in `loadDecisionContext`). Receives
- * `portfolioSummary` and `capacityRows` as props — both already fetched by
- * the caller for its own stat cards — so this never re-fetches either.
- */
-async function DecisionCenterSection({
+async function DecisionCenterSummarySection({
+  context,
+  portfolioSummary,
+  capacityRows,
+  scopedProjectIds,
+}: {
+  context: OrgContext;
+  portfolioSummary: ScopedPortfolioSummary;
+  capacityRows: ResourceCapacityRow[];
+  scopedProjectIds: string[];
+}) {
+  const { decisionCenterAlerts, triageItems } = await loadDecisionCenterData(context, portfolioSummary, capacityRows, scopedProjectIds);
+  return (
+    <DecisionCenterSummary
+      triageItems={triageItems}
+      pendingDecisions={decisionCenterAlerts.pendingDecisions}
+      criticalRaid={decisionCenterAlerts.criticalRaid}
+    />
+  );
+}
+
+async function DecisionCenterFullSection({
   context,
   portfolioSummary,
   capacityRows,
@@ -341,11 +411,12 @@ async function DecisionCenterSection({
   scopedProjectIds: string[];
 }) {
   const { deliveryRole, governance } = context;
-  const [decisionCenterAlerts, { items: triageItems, flagged }] = await Promise.all([
-    loadDecisionCenterAlerts(context, scopedProjectIds),
-    getExecutiveTriage(context, portfolioSummary),
-  ]);
-  const decisionContext = await loadDecisionContext(context, flagged, capacityRows);
+  const { decisionCenterAlerts, triageItems, decisionContext } = await loadDecisionCenterData(
+    context,
+    portfolioSummary,
+    capacityRows,
+    scopedProjectIds
+  );
 
   return (
     <DecisionCenter
@@ -357,4 +428,3 @@ async function DecisionCenterSection({
     />
   );
 }
-

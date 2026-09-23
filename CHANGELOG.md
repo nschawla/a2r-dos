@@ -10,6 +10,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.26.0] — 2026-09-23
+
+_Control Tower UX Refactor — Bento Grid & the Decisions Tab._
+
+### Changed
+
+- The PS Control Tower (`/portfolio`) no longer stacks its stat cards, Decision Center, utilization, and program
+  rollups in one long vertical column. Its default "Overview" tab now lays every top-line signal out as a
+  responsive Bento Grid, scannable above the fold.
+- The full Decision Center moved into a new "Decisions" tab alongside Engagements and Activity; the Overview tab
+  keeps a compact summary tile linking straight there. See `docs/UI_DESIGN_SYSTEM.md` §8.
+- Cards throughout the new Overview grid use the same tighter density as the five triage-module dual-tile headers
+  shipped earlier today.
+
+---
+
 ## [1.25.0] — 2026-09-23
 
 _Commercial Baseline Cockpit Executive Triage & Thematic Clustering._

@@ -84,6 +84,58 @@ function AlertRow({
   );
 }
 
+/**
+ * Bento-grid summary tile (Control Tower UX Refactor,
+ * docs/UI_DESIGN_SYSTEM.md §5.1 / "no-scroll" discipline) — the same
+ * headline this file's full `DecisionCenter` opens with, sized down to a
+ * single above-the-fold card so an executive reads "how many things need
+ * me today" without scrolling to the Decisions tab first. A plain `<a>`
+ * (not next/link) to `?v=decisions`: a full navigation always lands
+ * correctly on the right ModuleTabs panel (it reads `?v=` on mount), and
+ * deliberately sidesteps this session's documented same-pathname
+ * client-router issue rather than risking a silent no-op on what is meant
+ * to be this tile's primary action.
+ */
+export function DecisionCenterSummary({ triageItems, pendingDecisions, criticalRaid }: Pick<DecisionCenterProps, 'triageItems' | 'pendingDecisions' | 'criticalRaid'>) {
+  const total = triageItems.length + pendingDecisions.length + criticalRaid.length;
+
+  return (
+    <a
+      href="?v=decisions"
+      className="card !p-4 !border-l-[3px] !border-l-brand h-full flex flex-col gap-2 hover:border-brand/50 transition-colors"
+    >
+      <div className="text-[10.5px] uppercase tracking-wide text-ink-faint font-semibold">Decision Center</div>
+      <div className="text-[16px] font-bold leading-tight">
+        {total === 0 ? 'Nothing needs your attention' : `${total} item${total === 1 ? '' : 's'} need attention today`}
+      </div>
+      {total === 0 ? (
+        <p className="text-[12px] text-ink-muted mt-auto">
+          No red engagements, open decisions, or high-severity RAID in your scope.
+        </p>
+      ) : (
+        <div className="flex items-center gap-1.5 flex-wrap mt-auto pt-1">
+          {triageItems.length > 0 && (
+            <span className="badge !border-0 !py-0.5 !px-2 bg-critical text-white text-[10.5px] font-bold">
+              {triageItems.length} flagged
+            </span>
+          )}
+          {pendingDecisions.length > 0 && (
+            <span className="badge !border-0 !py-0.5 !px-2 bg-warning text-white text-[10.5px] font-bold">
+              {pendingDecisions.length} pending
+            </span>
+          )}
+          {criticalRaid.length > 0 && (
+            <span className="badge !border-0 !py-0.5 !px-2 bg-warning-soft text-warning text-[10.5px] font-bold">
+              {criticalRaid.length} RAID
+            </span>
+          )}
+          <span className="ml-auto text-brand text-[11.5px] font-semibold whitespace-nowrap">View all →</span>
+        </div>
+      )}
+    </a>
+  );
+}
+
 export function DecisionCenter({ triageItems, decisionContext, viewer, pendingDecisions, criticalRaid }: DecisionCenterProps) {
   const total = triageItems.length + pendingDecisions.length + criticalRaid.length;
 
