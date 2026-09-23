@@ -56,7 +56,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             notifications={notifications}
           />
           <main className="flex-1 w-full">
-            <Container>{children}</Container>
+            <Container size="full">{children}</Container>
           </main>
           <Footer />
         </div>

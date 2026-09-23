@@ -139,11 +139,11 @@ one still holds exactly one real `DeliveryAccessRole`:
 
 | Persona | Delivery role(s) | Modules reachable | Lands on |
 | --- | --- | --- | --- |
-| `GLOBAL_ADMIN` (Global Admin / A2R Staff) | ADMIN | every governable module | Control Tower |
-| `ENGAGEMENT_MANAGER` (Practice Director / VP-Professional Services) | **PRACTICE_DIRECTOR, VP_EXECUTIVE** | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit, steerco, reports | Control Tower |
-| `DELIVERY_EXECUTIVE` (Delivery / Project Director) | DELIVERY_MANAGER | control-tower, raid, schedule, capacity, **financials, commercial-baseline** | Control Tower |
-| `DELIVERY_LEAD` (Project Manager) | PROJECT_MANAGER | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit | Control Tower |
-| **`OBSERVER`** (v1.16.0, Viewer / Guest) | VIEWER | **control-tower, steerco, reports** only | Control Tower (read-only) |
+| `GLOBAL_ADMIN` (Global Admin / A2R Staff) | ADMIN | every governable module | PS Control Tower |
+| `ENGAGEMENT_MANAGER` (Practice Director / VP-Professional Services) | **PRACTICE_DIRECTOR, VP_EXECUTIVE** | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit, steerco, reports | PS Control Tower |
+| `DELIVERY_EXECUTIVE` (Delivery / Project Director) | DELIVERY_MANAGER | control-tower, raid, schedule, capacity, **financials, commercial-baseline** | PS Control Tower |
+| `DELIVERY_LEAD` (Project Manager) | PROJECT_MANAGER | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit | PS Control Tower |
+| **`OBSERVER`** (v1.16.0, Viewer / Guest) | VIEWER | **control-tower, steerco, reports** only | PS Control Tower (read-only) |
 
 **The PD/VP-PS merge was built by elevating `VP_EXECUTIVE` up to
 `PRACTICE_DIRECTOR`'s existing full-operational nav breadth, never by

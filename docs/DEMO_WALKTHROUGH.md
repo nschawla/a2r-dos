@@ -11,7 +11,7 @@ when you want the app to drive itself._
 This script mirrors the **current, flattened** UI exactly — no group
 headers in the sidebar, no standalone Command Center. If you've given this
 demo before v1.29.0, the one thing to unlearn: **don't route to
-`/command`** — it now redirects to the Control Tower, which is where that
+`/command`** — it now redirects to the PS Control Tower, which is where that
 content lives now.
 
 ---
@@ -31,7 +31,7 @@ content lives now.
 
 ---
 
-## 1. Landing — the Control Tower (`/portfolio`)
+## 1. Landing — the PS Control Tower (`/portfolio`)
 
 This is where everyone lands, always — the sidebar's first item, and
 where `/` and every role's default landing route both forward to.
@@ -97,7 +97,7 @@ on every module after without you repeating it.
    beat.
 2. **Executive Hub** (`/reports`) — the full portfolio briefing plus
    per-engagement SteerCo decks and compliance certificates.
-3. **Control Audit** (`/audit/<id>`) — the delivery-controls checklist and
+3. **Controls Audit** (`/audit/<id>`) — the delivery-controls checklist and
    weighted governance score.
 
 ---

@@ -216,7 +216,7 @@ test.describe('Suite J3 — tenant governance template application', () => {
     await expect(page.getByRole('link', { name: 'Commercial Baseline' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Executive Hub' })).toHaveCount(0);
     // a core module is untouched
-    await expect(page.getByRole('link', { name: 'Control Tower' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'PS Control Tower' })).toBeVisible();
   });
 
   test('restoring "Standard Delivery" brings the modules back', async () => {

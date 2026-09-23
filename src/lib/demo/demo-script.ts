@@ -93,7 +93,7 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     personas: ['Executive', 'Admin', 'Security'],
     highlightSelector: '#global-header',
     caption:
-      'Welcome to PS-DOS — the delivery operating system built for professional services firms. This is the Portfolio Control Tower: every engagement, rolled up into one live view.',
+      'Welcome to PS-DOS — the delivery operating system built for professional services firms. This is the PS Control Tower: every engagement, rolled up into one live view.',
   },
   {
     // Was a standalone Command Center page (/command); that route is

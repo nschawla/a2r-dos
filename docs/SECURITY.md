@@ -548,15 +548,15 @@ retention window and never edits a row**, and it **never touches**:
   `getScopedProjectWhere`/`getScopedResourceWhere` build the identical
   predicate as Prisma `where` clauses (kept in the same file as the
   DB-free `isProjectInScope`/`isResourceInScope` checks so the two can
-  never drift apart), applied at the Control Tower, Resource & Capacity
+  never drift apart), applied at the PS Control Tower, Resource & Capacity
   Cockpit, Financial Realization, RAID Cockpit, Commercial Baseline,
-  Control Audit, and Schedule & Milestones project pickers. A
+  Controls Audit, and Schedule & Milestones project pickers. A
   practice-scoped role with no matching rows resolves to a fail-closed
   empty result set, never an unscoped fallback.
 - **Custom KPI Definition Engine.** `/admin/kpis` lets an Admin bind a
   curated metric (never an arbitrary formula) from Financial Realization,
   Schedule & Milestones, RAID Cockpit, or Resource & Capacity to a target
-  persona set; the resulting card renders on the Control Tower and
+  persona set; the resulting card renders on the PS Control Tower and
   Executive Hub. Authoring is gated on `admin:governance`
   (`listCustomKpis`/create/update/delete). The read path that decides
   whether a *viewer* sees a given card, `getVisibleCustomKpis`, is

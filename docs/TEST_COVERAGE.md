@@ -64,7 +64,7 @@ Playwright run whose resolved DB URL is the production project ref
 - `decision-options.test.ts` (13), `decision-governance.test.ts` (8) — PS Orchestration's pure engines: every `buildDecisionOptions` driver-combination branch; every `checkGuardrail` rule (unlocked+change_order block, T&M caution, RBAC/threshold block/pass).
 - `executive-agent.test.ts` (21) — the Persona-Aware Executive Agent, incl. the "decisions requiring your authority" framing and clean failure on a malformed/no-tool_use model response.
 - `raid-triage.test.ts` (15), `financial-triage.test.ts` (16), `schedule-triage.test.ts` (18), `resource-triage.test.ts` (19), `commercial-triage.test.ts` (17) — the five Executive Triage engines, one file per module (RAID / Financial Realization / Schedule / Resource & Capacity / Commercial Baseline): classifier branch coverage (every theme + the OTHER fallback + priority-order tie-breaks), cluster aggregation (Red/Amber counts, distinct-project-count, the projectCount-then-secondary-metric sort), and — where a module's own design departs from the others — the specific invariant that departure exists to protect (e.g. Resource & Capacity's hours-weighted-not-averaged blended utilization; Schedule's unified `phaseHealthRag` driving both tiles so they can't disagree). All pure — no DB. See `docs/EXECUTIVE_TRIAGE_STANDARD.md`.
-- `executive-triage.test.ts` (16) — the underlying `selectTriageProjects`/`buildExecutiveTriage` engine the Control Tower's Decision Center draws on; unchanged by the v1.26.0 Bento Grid layout refactor (a JSX/composition change only) or the v1.29.0 Command Center retirement (its standalone `ActionTriageFeed` wrapper around the same engine/component was removed, the engine itself untouched).
+- `executive-triage.test.ts` (16) — the underlying `selectTriageProjects`/`buildExecutiveTriage` engine the PS Control Tower's Decision Center draws on; unchanged by the v1.26.0 Bento Grid layout refactor (a JSX/composition change only) or the v1.29.0 Command Center retirement (its standalone `ActionTriageFeed` wrapper around the same engine/component was removed, the engine itself untouched).
 
 ### Cryptography, calc, observability
 - `calculations*.test.ts` — the engine + `calculations-precision.test.ts` (exact-decimal drift proofs).
@@ -82,7 +82,7 @@ Playwright run whose resolved DB URL is the production project ref
 | --- | --- |
 | **A** | Authentication & master access |
 | **B** | PS Control Tower & multi-tenant scoping |
-| **C** | Engagement governance deep dive (Commercial Baseline, Control Audit, RAID, Financials, Schedule, Executive Hub) |
+| **C** | Engagement governance deep dive (Commercial Baseline, Controls Audit, RAID, Financials, Schedule, Executive Hub) |
 | **D** | A2R Ops Console — telemetry, tenants, provisioning |
 | **E** | Resource & Capacity cockpit |
 | **F** | SOC 2 Compliance Ledger (hash-chained, live integrity check) |

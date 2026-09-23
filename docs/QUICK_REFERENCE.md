@@ -106,7 +106,7 @@ npm run build          # production build (what Vercel runs)
 | The UI design rules ("no cramming," pills, etc.) | `docs/UI_DESIGN_SYSTEM.md` |
 | The new Decision Cards / governance workflow | `docs/PORTFOLIO_ORCHESTRATION.md` |
 | The dual-tile Executive Triage pattern (RAID/Financials/Schedule/Capacity/Commercial) | `docs/EXECUTIVE_TRIAGE_STANDARD.md` (overview) → each module's own `docs/*_TRIAGE.md` for detail |
-| The Control Tower's Bento Grid / Decisions tab layout | `docs/UI_DESIGN_SYSTEM.md` §8 |
+| The PS Control Tower's Bento Grid / Decisions tab layout | `docs/UI_DESIGN_SYSTEM.md` §8 |
 | The flattened sidebar / Command Center retirement / 4-Tier RBAC | `docs/UI_DESIGN_SYSTEM.md` §9, `docs/ROLE_ACCESS_MATRIX.md` §2.3 |
 | Running a client demo (manual click-through, or hands-free) | `docs/DEMO_WALKTHROUGH.md`, `docs/AUTO_DEMO_SCRIPT.md` |
 | Security posture / compliance | `docs/SECURITY.md` |

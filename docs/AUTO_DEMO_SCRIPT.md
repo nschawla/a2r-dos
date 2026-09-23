@@ -44,13 +44,13 @@ own code comment. 18 beats total now; every cue sheet in §4 except
 Executive Lens (which doesn't play either new beat) shifts again from
 this point on.
 
-**Current as of v1.29.0** — Sidebar Flattening & Control Tower Merge:
+**Current as of v1.29.0** — Sidebar Flattening & PS Control Tower Merge:
 `/command` is retired as a standalone route (permanently redirects to
 `/portfolio`); Beat 2 is renamed `command-center` → `command-bar`, its
 route becomes `/portfolio` (the same route `welcome` just landed on —
 `AutoDemoProvider` skips the push when the target matches the current
 route, so no navigation fires between these two beats), and its VO now
-describes the Command Bar as a feature pinned to the Control Tower rather
+describes the Command Bar as a feature pinned to the PS Control Tower rather
 than a separate page. Still 18 beats total; no track membership or
 sequence position changed, only this one beat's route/id/VO.
 
@@ -168,7 +168,7 @@ comfortable 150–180 wpm band.
 - **Route:** `/portfolio` · **Duration:** 10s · **Personas:** Executive, Admin, Security, Full Tour
 - **Highlight:** `#global-header`
 - **VO:**
-  > Welcome to PS-DOS — the delivery operating system built for professional services firms. This is the Portfolio Control Tower: every engagement, rolled up into one live view.
+  > Welcome to PS-DOS — the delivery operating system built for professional services firms. This is the PS Control Tower: every engagement, rolled up into one live view.
 - **Pacing:** 28 words / 10s ≈ **168 wpm**
 
 #### Beat 2 — `command-bar`
@@ -178,7 +178,7 @@ comfortable 150–180 wpm band.
   · **Duration:** 10s · **Personas:** Executive, Admin, Full Tour
 - **Highlight:** —
 - **VO:**
-  > A natural-language command bar sits right on the Control Tower — type "financials for Contoso" and it just takes you there.
+  > A natural-language command bar sits right on the PS Control Tower — type "financials for Contoso" and it just takes you there.
 - **Pacing:** 20 words / 10s ≈ **120 wpm**
 
 #### Beat 3 — `scoped-practice-view`
@@ -232,7 +232,7 @@ comfortable 150–180 wpm band.
 - **Route:** `/admin/kpis` · **Duration:** 22s · **Personas:** Admin, Full Tour
 - **Highlight:** `#new-kpi-button`
 - **VO:**
-  > And this is the Custom KPI Builder. An admin picks a real metric — margin, schedule health, RAID exposure, utilization — sets a target and a warning line, and assigns it to exactly the personas who should see it. Save it, and the card appears immediately on the Control Tower and the Executive Hub for everyone in that persona — no redeploy, no waiting.
+  > And this is the Custom KPI Builder. An admin picks a real metric — margin, schedule health, RAID exposure, utilization — sets a target and a warning line, and assigns it to exactly the personas who should see it. Save it, and the card appears immediately on the PS Control Tower and the Executive Hub for everyone in that persona — no redeploy, no waiting.
 - **Delivery note:** the *builder* list in one breath group each, then the *payoff* — a small lift on "immediately".
 - **Pacing:** 61 words / 22s ≈ **166 wpm**
 

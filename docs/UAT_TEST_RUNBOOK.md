@@ -31,11 +31,11 @@ All demo passwords are **`password12345`** unless noted.
 
 | Email | Console role | Delivery role | Default landing |
 | --- | --- | --- | --- |
-| `admin@a2rventures-demo.test` | Owner/Admin | ADMIN | Control Tower (`/portfolio`) |
+| `admin@a2rventures-demo.test` | Owner/Admin | ADMIN | PS Control Tower (`/portfolio`) |
 | `vp@a2rventures-demo.test` | Viewer | VP_EXECUTIVE | SteerCo Briefing (`/steerco`) |
-| `pd@a2rventures-demo.test` | Admin | PRACTICE_DIRECTOR | Control Tower (`/portfolio`) |
-| `dm@a2rventures-demo.test` | Member | DELIVERY_MANAGER | Control Tower (`/portfolio`) |
-| `pm@a2rventures-demo.test` | Member | PROJECT_MANAGER | Control Tower (`/portfolio`) |
+| `pd@a2rventures-demo.test` | Admin | PRACTICE_DIRECTOR | PS Control Tower (`/portfolio`) |
+| `dm@a2rventures-demo.test` | Member | DELIVERY_MANAGER | PS Control Tower (`/portfolio`) |
+| `pm@a2rventures-demo.test` | Member | PROJECT_MANAGER | PS Control Tower (`/portfolio`) |
 
 **Tenant: Acme Health** (`acme-health`) — same five role shapes:
 `admin@acme-health.test`, `sponsor@acme-health.test` (VP), `pd@acme-health.test`,
@@ -77,6 +77,7 @@ Capability reference: `docs/ROLE_ACCESS_MATRIX.md` § 1.2.
 | --- | --- |
 | Engagements in scope (Admin view) | 6 |
 | Total contract value | ~$1,430,428 |
+| Unscheduled Backlog (USB) | ~$193,056 (renders in warning tone — > $0) |
 | Avg. baseline margin | ~37.5% |
 | High-risk (red) projects | 1 |
 | Blended billable utilization | ~80.2% (target 68%) |
@@ -170,10 +171,10 @@ control for previewing another role's view.)
 | 1 | Look at the top of the workspace | A quiet **"Persona Preview: Global Admin ▾"** banner sits above the sidebar/header, distinct from any other control | |
 | 2 | Click it | Menu opens: "Global Admin — your real access" at top, then all 5 personas (Global Admin, Practice Director / VP-Professional Services, Delivery / Project Director, Project Manager, Viewer / Guest), each with a one-line blurb | |
 | 3 | Pick **Viewer / Guest** | Banner turns solid warning-orange, a pulsing dot appears, copy reads "— simulated view, not your real access", and an **Exit preview** button appears | |
-| 4 | Check the sidebar | Only Control Tower, SteerCo Briefing, Executive Hub remain — Resource & Capacity, Commercial Baseline, Financial Realization, Schedule, RAID, Control Audit, Admin & Org Setup, Compliance Ledger are all gone, not just disabled | |
+| 4 | Check the sidebar | Only PS Control Tower, SteerCo Briefing, Executive Hub remain — Resource & Capacity, Commercial Baseline, Financial Realization, Schedule, RAID, Controls Audit, Admin & Org Setup, Compliance Ledger are all gone, not just disabled | |
 | 5 | Open any project's module page (e.g. `/audit/<id>`) | No Lock Baseline / edit controls render anywhere — every write affordance is gone, even though the signed-in Admin's own real edit authority is untouched | |
 | 6 | Click **Exit preview** | Banner returns to quiet/neutral, sidebar and write controls return to the real Admin view | |
-| 7 | Pick **Delivery / Project Director** | Sidebar shows Control Tower, RAID Cockpit, Schedule & Milestones, Resource & Capacity, Financial Realization, Commercial Baseline — no Control Audit | |
+| 7 | Pick **Delivery / Project Director** | Sidebar shows PS Control Tower, RAID Cockpit, Schedule & Milestones, Resource & Capacity, Financial Realization, Commercial Baseline — no Controls Audit | |
 | 8 | Sign out, sign in as `pm@a2rventures-demo.test` (a real, non-admin Project Manager) | No Persona Preview banner renders at all — locked into their own real navigation | |
 
 **Checkpoint:** the banner is the only switcher, previewing is unmistakable
@@ -188,9 +189,9 @@ Signed in as `admin@a2rventures-demo.test` → **Admin & Org Setup** → **Gover
 | --- | --- | --- | --- |
 | 1 | Note the **"Active:"** badge in the Layer 1 header | Reads **"Standard Delivery"** | |
 | 2 | Click **Agile Delivery** | Toast "Applied 'Agile Delivery'"; the Agile card gets a blue border + ✓ | |
-| 3 | Look at the left sidebar | **Commercial Baseline** and **Executive Hub** are **gone**; Control Tower / Admin / Compliance Ledger remain | |
+| 3 | Look at the left sidebar | **Commercial Baseline** and **Executive Hub** are **gone**; PS Control Tower / Admin / Compliance Ledger remain | |
 | 4 | In Layer 2, check "Scrub margins & EAC for delivery roles" | Reads **On** | |
-| 5 | Click **Board-Only** | Sidebar collapses to: Control Tower, Control Audit, SteerCo Briefing, Executive Hub, Admin, Compliance Ledger only | |
+| 5 | Click **Board-Only** | Sidebar collapses to: PS Control Tower, Controls Audit, SteerCo Briefing, Executive Hub, Admin, Compliance Ledger only | |
 | 6 | Click **Standard Delivery** | Toast "Applied 'Standard Delivery'"; the full sidebar returns; Active badge → "Standard Delivery" | |
 | 7 | Open **Compliance Ledger** (`/admin/audit-log`) | Recent rows include **"Governance config change"** entries; integrity badge **Verified** | |
 
@@ -234,7 +235,7 @@ Signed in as `ops@a2rventures.com`.
 | --- | --- | --- | --- |
 | 1 | Sign in as `admin@a2rventures-demo.test`, open **Resource & Capacity** (`/capacity`) | Scope-indicator line reads **"Tenant-wide — every practice."**; the full roster count | |
 | 2 | Sign out, sign in as `pd@a2rventures-demo.test`, open **Resource & Capacity** | Scope-indicator line reads **"Scoped to your practice — N resources."**, N strictly less than the Admin's tenant-wide count | |
-| 3 | As `pd@…`, open the project picker on **Financial Realization**, **RAID Cockpit**, **Commercial Baseline**, **Control Audit**, and **Schedule & Milestones** | Every picker lists only projects in the PD's own practice — never the full tenant roster | |
+| 3 | As `pd@…`, open the project picker on **Financial Realization**, **RAID Cockpit**, **Commercial Baseline**, **Controls Audit**, and **Schedule & Milestones** | Every picker lists only projects in the PD's own practice — never the full tenant roster | |
 | 4 | As `admin@…`, open the same five project pickers | Every picker lists the full tenant-wide project list | |
 | 5 | Sign in as `dm@a2rventures-demo.test` (Delivery Manager) | Resource & Capacity scopes to their direct reports only, not the whole practice | |
 | 6 | Sign in as `pm@a2rventures-demo.test` | Project pickers scope to their own assigned engagements only | |
@@ -372,7 +373,7 @@ Operator / platform task. `docs/ROLE_ACCESS_MATRIX.md` is the reference.
 | 4 | As the BILLING operator, open `/ops/billing` | Tier counts (Trial / Standard / Enterprise), active seats, and a per-tenant table. No provision / suspend controls. | |
 | 5 | Change the operator to **AUDITOR**, sign in | `/ops/audit` shows the operator roster (with roles) + JIT-elevation history. Read-only; no mutation controls anywhere. | |
 | 6 | Restore the operator to **SUPER_ADMIN** | Full sidebar returns. | |
-| 7 | `npm run guests:seed` (staging) → sign in as `abha@a2rventures.local` / `a2r-DOS-233444` | Lands on **SteerCo Briefing** as "Executive Viewer". Control Tower, SteerCo, Reports visible read-only; **Margin Health = `•••• restricted to Partners`**. | |
+| 7 | `npm run guests:seed` (staging) → sign in as `abha@a2rventures.local` / `a2r-DOS-233444` | Lands on **SteerCo Briefing** as "Executive Viewer". PS Control Tower, SteerCo, Reports visible read-only; **Margin Health = `•••• restricted to Partners`**. | |
 | 8 | As the guest, visit `/ops`, `/ops/telemetry`, `/admin` directly | Each redirects to `/portfolio` or `/steerco` — never renders. No edit buttons, no "Admin & Org Setup" nav, no baseline lock. | |
 | 9 | Sign-in screen — click the eye icon in the password field | Field toggles password ↔ plain text; `aria-pressed` flips; icon changes eye ↔ eye-off. | |
 
@@ -384,7 +385,7 @@ product read-only and cannot touch the operator console or tenant admin.
 
 ## 4. Module runbooks
 
-### UAT-4.1 · Command Bar (on the Control Tower, `/portfolio`)
+### UAT-4.1 · Command Bar (on the PS Control Tower, `/portfolio`)
 
 `/command` is retired as a standalone page (Sidebar Flattening & Control
 Tower Merge, v1.29.0) — it now permanently redirects to `/portfolio`. Its
@@ -400,30 +401,34 @@ and Activity tabs). Sign in as `admin@a2rventures-demo.test`.
 | 4 | Command Bar — type `financials for Global ERP` | Suggestion "Financial Realization — Global ERP Modernization"; Enter opens `/financials/<id>` | |
 | 5 | Command Bar — type `search` then Enter | The ⌘K palette opens | |
 
-### UAT-4.2 · Portfolio / Control Tower (`/portfolio`)
+### UAT-4.2 · PS Control Tower (`/portfolio`)
 
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | **Sub-nav pills** | `Portfolio` · `Engagements 6` · `Activity` — clicking swaps the view **instantly**, exactly one panel visible, URL gains `?v=…` | |
-| 2 | **Portfolio** tab | 4 stat cards, the Blended Billable Utilization card linking to `/capacity`, "Parent Programs" rollup with "Global ERP Modernization" | |
-| 3 | **Engagements** tab | "Active Projects" table (6 rows), each "Open →" deep-links to `/commercial-baseline/<id>`; "Register a New Engagement" form below | |
-| 4 | **Activity** tab | Recent governance/activity list | |
-| 5 | Deep-link `/?v=engagements` in a fresh tab | Loads straight into the Engagements tab | |
-| 6 | Sign in as `pm@…` | Table scoped to the PM's own projects only; subhead reflects the scope | |
-| 7 | Switch tenant (header org switcher) to Acme Health | All figures re-scope to Acme; no stale A2R data | |
+| 1 | **Tab pills** | `Overview` · `Decisions` · `Engagements` · `Activity` — clicking swaps the view **instantly**, exactly one panel visible, URL gains `?v=…` | |
+| 2 | **Overview** tab, Row 1 (Scope & Footprint) | 3 stat cards: Active Engagements, Active Resources, Practices | |
+| 3 | **Overview** tab, Row 2 (Financial Scale & Backlog) | One wide card: Total Contract Value headline, with Actuals to Date / Forecast at Completion / Unscheduled Backlog (USB) as highlighted sub-figures — USB in warning tone when > $0 | |
+| 4 | **Overview** tab, Row 3 (Action & Risk) | Decision Center summary tile + High-Risk (Red) Projects stat card, side by side | |
+| 5 | **Overview** tab, Row 4 (Performance & Health) | Avg. Baseline Margin + Blended Billable Utilization (linking to `/capacity`), side by side | |
+| 6 | **Decisions** tab | Full Impact-Aware Decision Cards feed (same content as UAT-4.1's old Decision Cards check) | |
+| 7 | **Engagements** tab | "Active Projects" table (6 rows), each "Open →" deep-links to `/commercial-baseline/<id>`; "Register a New Engagement" form below | |
+| 8 | **Activity** tab | Recent governance/activity list | |
+| 9 | Deep-link `/portfolio?v=decisions` in a fresh tab | Loads straight into the Decisions tab | |
+| 10 | Sign in as `pm@…` | Table scoped to the PM's own projects only; subhead reflects the scope | |
+| 11 | Switch tenant (header org switcher) to Acme Health | All figures re-scope to Acme; no stale A2R data | |
 
 ### UAT-4.3 · Engagement Governance (per-project modules)
 
-Open any engagement from Control Tower → Engagements → **Open →**.
+Open any engagement from PS Control Tower → Engagements → **Open →**.
 
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
 | 1 | **Project header** | Name + health dot + hierarchy tag; action bar (Lock Baseline / Audit Trail / Reports Hub / Export…) | |
-| 2 | **Module pills** under the header | `Baseline · Financials · Schedule · RAID · Control Audit` — the current one highlighted | |
+| 2 | **Module pills** under the header | `Baseline · Financials · Schedule · RAID · Controls Audit` — the current one highlighted | |
 | 3 | Click **Financials** pill | Navigates to `/financials/<same id>` (no sidebar detour); pill highlight moves | |
 | 4 | Cycle all five pills | Each loads its module for the same project without error | |
 | 5 | **Commercial Baseline** | Commercial setup, sizing matrix, scope table; "Lock Baseline" prompts a confirmation dialog | |
-| 6 | **Control Audit** | 10-control checklist, weighted score, control-guidance `i` buttons | |
+| 6 | **Controls Audit** | 10-control checklist, weighted score, control-guidance `i` buttons | |
 | 7 | **RAID Cockpit** | Counters + type filters (R/A/I/D); SteerCo-escalated items flagged | |
 | 8 | **Financial Realization** | EAC KPI cards, burn curve, per-role hours; masked for restricted roles | |
 | 9 | **Schedule & Milestones** | Phase table with variance / pace / status | |
@@ -508,9 +513,9 @@ Sign in as `admin@a2rventures-demo.test`.
 | 1 | **Admin & Org Setup → Custom KPIs** (or `/admin/kpis` directly) | A list of existing KPI cards (empty on a fresh seed) + a **"+ New KPI"** button | |
 | 2 | Click **"+ New KPI"**, pick data source **RAID Cockpit** | The metric picker updates to that source's two metrics (Open Critical RAID Items / Escalated RAID Items); formula-type defaults sensibly for the chosen metric | |
 | 3 | Name it "Open Critical RAID", leave the default metric, set target `2`, warning `5`, assign persona **Admin** only → **Save** | Toast confirms; the new card appears in the list immediately | |
-| 4 | Open the **Control Tower** (`/`) as `admin@…` | The "Open Critical RAID" card renders with a live value and a status dot (on-track / at-risk / critical) | |
-| 5 | Sign in as `pm@a2rventures-demo.test`, open Control Tower | The card does **not** render (PM is not in its persona list) | |
-| 6 | As `admin@…`, edit the KPI and add **Project Manager** to its personas → **Save** | Sign back in as `pm@…`: the card now renders on their Control Tower | |
+| 4 | Open the **PS Control Tower** (`/`) as `admin@…` | The "Open Critical RAID" card renders with a live value and a status dot (on-track / at-risk / critical) | |
+| 5 | Sign in as `pm@a2rventures-demo.test`, open PS Control Tower | The card does **not** render (PM is not in its persona list) | |
+| 6 | As `admin@…`, edit the KPI and add **Project Manager** to its personas → **Save** | Sign back in as `pm@…`: the card now renders on their PS Control Tower | |
 | 7 | Open the **Executive Hub** (`/reports`) as a persona the KPI is bound to | The same card renders there too | |
 | 8 | Delete the KPI | It disappears from `/admin/kpis` and from every dashboard it rendered on, on next load | |
 
@@ -526,7 +531,7 @@ Sign in as `admin@a2rventures-demo.test`.
 | 2 | `npm run test:e2e` → Suites A–P all green (kill any stray `next` + `rm -rf .next` first) | |
 | 3 | Sign-in works for one login per role shape (admin / vp / pd / dm / pm / ops) | |
 | 4 | ⌘K palette opens on every route incl. `/login` and `/ops` | |
-| 4a | `/` (signed out) reflects `A2R_SITE_MODE`; `/` (signed in) forwards to the workspace; `/portfolio` renders the Control Tower | |
+| 4a | `/` (signed out) reflects `A2R_SITE_MODE`; `/` (signed in) forwards to the workspace; `/portfolio` renders the PS Control Tower | |
 | 5 | Tenant switch (header) fully re-scopes the workspace | |
 | 6 | No Next.js error overlay anywhere during the walkthrough | |
 | 7 | Compliance Ledger integrity badge = **Verified** in every tenant | |

@@ -46,7 +46,7 @@ exceptions, identified while rolling this out:**
 
 ### 1.2 Viewport discipline — critical KPIs above the fold
 
-The Control Tower (`/portfolio`) is the reference implementation — see §8
+The PS Control Tower (`/portfolio`) is the reference implementation — see §8
 for the Bento Grid refactor that superseded the earlier standalone Command
 Center (`/command`, retired v1.29.0, now a permanent redirect here). It
 puts every top-line signal (KPI strip, Decision Center summary,
@@ -70,7 +70,7 @@ This was already substantially built before this pass: `ProjectHeader`'s
 workspaces (Baseline / Financials / Schedule / RAID / Audit) without
 touching the global sidebar, and `<ModuleTabs>` (`src/components/ui/
 module-tabs.tsx`) gives instant, client-only tab switching within a single
-page for views like the Control Tower's Portfolio / Engagements / Activity
+page for views like the PS Control Tower's Portfolio / Engagements / Activity
 panels and the Capacity Cockpit's four-tab layout.
 
 One architectural note for anyone extending this: the app's module pages
@@ -155,9 +155,9 @@ function is not serializable across the Server→Client props boundary —
 Next.js throws a generic, unhelpful runtime error ("Something went wrong")
 the moment one crosses it, with no useful message pointing at the actual
 cause. This is exactly the bug this rollout caught on its first real page
-(the Portfolio Control Tower, `/portfolio`) — an early draft of this
+(the Portfolio PS Control Tower, `/portfolio`) — an early draft of this
 component took `render: (row) => ReactNode` per column, which broke sign-in
-itself (the Control Tower is the post-login landing page) until the design
+itself (the PS Control Tower is the post-login landing page) until the design
 above replaced it: columns are pure metadata, rows carry the already-
 rendered `ReactNode` values, which — unlike a raw function — Server
 Components ARE allowed to pass down as props. Caught by the end-to-end
@@ -169,10 +169,10 @@ suite before shipping, not by a user.
 
 | Surface | Status |
 | --- | --- |
-| Portfolio Control Tower — Active Projects table | **Done** — `<DataTable>`, 4 optional columns (Client/PM/Model/Methodology) |
-| `ProjectHeader` — Back to Portfolio | **Done** — reaches Commercial Baseline, Financials, Schedule, RAID, Control Audit at once |
-| Control Tower Overview tab — above-the-fold discipline | **Done** — Bento Grid (§8); the earlier standalone Command Center this row used to describe is retired (v1.29.0) |
-| RAID Cockpit, Control Audit checklist | **Not applicable** — already card/list layouts (`RaidBoard.tsx`, `AuditChecklist.tsx`), not tables; no horizontal-scroll risk to begin with |
+| Portfolio PS Control Tower — Active Projects table | **Done** — `<DataTable>`, 4 optional columns (Client/PM/Model/Methodology) |
+| `ProjectHeader` — Back to Portfolio | **Done** — reaches Commercial Baseline, Financials, Schedule, RAID, Controls Audit at once |
+| PS Control Tower Overview tab — above-the-fold discipline | **Done** — Bento Grid (§8); the earlier standalone Command Center this row used to describe is retired (v1.29.0) |
+| RAID Cockpit, Controls Audit checklist | **Not applicable** — already card/list layouts (`RaidBoard.tsx`, `AuditChecklist.tsx`), not tables; no horizontal-scroll risk to begin with |
 | Schedule & Milestones phase table (`ScheduleTracker.tsx`) | **Done** — a dense editing grid (§1.1's second exception): sticky "Phase" column, tightened input widths/padding, Pace Risk's elapsed-% moved to a `title` tooltip |
 | Financial Realization — EAC table (`EacEditor.tsx`) | **Done** — same dense-grid treatment: sticky "Role" column, tightened input widths |
 | Commercial Baseline — Phase × Role sizing matrix (`DealEditor.tsx`) | **Done** — genuinely wide matrix (§1.1's first exception): sticky "Phase" column + "Role Total" footer, tightened input widths |
@@ -200,7 +200,7 @@ out, the same way this section documents the first pass's decisions.
 | SteerCo Briefing (`SteerCoBriefingView.tsx`) | **Done** — Pulse / Margin Health / What Moved / Watchlist pills; same `printAll` treatment |
 | Capacity Cockpit (`CapacityCockpit.tsx`) | **Done** — migrated from a bespoke underline-style tab bar to `<ModuleTabs>` for one pill pattern app-wide (functionally unchanged: still instant client-side switching, now also gets `?v=` deep-linking for free) |
 | Admin & Org Setup (`admin/page.tsx`) | **Already conformant** — Roster / Governance / Data & Compliance pills predate this pass |
-| Portfolio Control Tower, Reports Hub outer shell, Reports Hub batch-detail page | **Already conformant** — existing `<ModuleTabs>` usage |
+| Portfolio PS Control Tower, Reports Hub outer shell, Reports Hub batch-detail page | **Already conformant** — existing `<ModuleTabs>` usage |
 | `ControlGuidance.tsx` (audit drawer) | **Not applicable** — a handful of short reference fields (Objective/Guidance/Evidence), faster scrolled than clicked through (§1.6) |
 | `OperatorMfaPanel.tsx` (2FA enrollment) | **Not applicable** — a linear step-by-step wizard; its steps aren't independently reachable, so tabs would misrepresent the flow (§1.6) |
 | Ops Console single-table pages (`ops/staff`, `ops/billing`, `ops/telemetry`, `ops/audit`, `ops/tenants`) | **Not applicable** — one primary surface each, nothing to switch between |
@@ -291,7 +291,7 @@ network, scroll position untouched:
   chips to icon pills; same `typeFilter` state as before.
 - Capacity Cockpit's roster **practice filter** (`CapacityCockpit.tsx`,
   new) — narrows the Per-Resource Utilization table by practice.
-- Portfolio Control Tower's **health-category filter**
+- Portfolio PS Control Tower's **health-category filter**
   (`src/components/portfolio/ProjectsExplorer.tsx`, new) — narrows the
   Active Projects `<DataTable>` by Green/Amber/Red, wrapping it so the
   filter and the table share one client component.
@@ -344,7 +344,7 @@ actionability, persona-driven workflow, and continuous navigation._
 
 `src/lib/executive-triage.ts` is the pure engine: `selectTriageProjects`
 picks every Red-governance or over-budget/behind-schedule project from
-data the Control Tower's Decisions tab already loaded (no extra query;
+data the PS Control Tower's Decisions tab already loaded (no extra query;
 originally the standalone Command Center's, before that route's v1.29.0
 retirement — see §7 and §8), worst first,
 capped at `TRIAGE_LIMIT`; `buildExecutiveTriage` then synthesizes one
@@ -361,7 +361,7 @@ Action — from data that **already existed**, not a new schema field:
 `src/server/queries/executive-triage.ts` is the one place that assembles
 this end to end (scoped project load → flag selection → a *second*, small
 query for schedule phases + open RAID items only for the flagged IDs →
-synthesis) — shared by the Control Tower page and the Executive Agent
+synthesis) — shared by the PS Control Tower page and the Executive Agent
 (§6.2) below, so both are always reading the exact same computed reality.
 
 ### 6.2 The Persona-Aware Executive Agent
@@ -390,7 +390,7 @@ trusting a model-generated href.
 
 Already solved before this pass, not rebuilt: `ProjectHeader.tsx`'s
 `ModuleNav` (§1.4) already lets a viewer switch between a project's
-Financials / Schedule / RAID / Control Audit / Commercial Baseline
+Financials / Schedule / RAID / Controls Audit / Commercial Baseline
 dimensions without ever bouncing back to the global sidebar. Verified
 unregressed, not reimplemented.
 
@@ -431,7 +431,7 @@ Full detail: `docs/PORTFOLIO_ORCHESTRATION.md`. In UI-system terms:
   `ProvenanceStamp` — the same honest-freshness convention as §6.4, not a
   new one.
 
-## 8. Control Tower UX Refactor — Bento Grid & the Decisions tab
+## 8. PS Control Tower UX Refactor — Bento Grid & the Decisions tab
 
 Before this pass, `/portfolio` stacked its stat cards, the full Decision
 Center (up to `TRIAGE_LIMIT` tall Impact-Aware Decision Cards), a
@@ -442,11 +442,40 @@ the page most likely to be an executive's first screen of the day.
 - **The default "Overview" tab is now a responsive grid**
   (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`, the same breakpoint
   vocabulary the five triage-module dual-tile headers already use) rather
-  than a single column: the KPI strip spans full width, the Decision
-  Center summary tile and the Utilization tile sit side by side, and
-  Resources/Practices pairs with Program Rollups (when a tenant has any).
-  Cells use `card !p-4` — the same tighter density `StatCard` and every
-  triage-module tile already use — not the default `.card` `p-6`.
+  than a single undifferentiated column. Cells use `card !p-4` — the same
+  tighter density `StatCard` and every triage-module tile already use —
+  not the default `.card` `p-6`.
+- **v1.30.0 — restructured into 4 explicit rows**, each a full-width
+  nested grid so related signals read as one group rather than a
+  grab-bag of tiles, in this order:
+  1. **Scope & Footprint** — Active Engagements, Active Resources,
+     Practices (3-up).
+  2. **Financial Scale & Backlog** — one wide card: Total Contract Value
+     (`PortfolioSummary.totalValue`, the live-sizing-engine figure,
+     unchanged) as the headline, with Actuals to Date, Forecast at
+     Completion (`bac − vac`), and **Unscheduled Backlog (USB)**
+     highlighted as sub-figures. USB reads `Project.unscheduledBacklog`
+     directly — a real denormalized snapshot column ("USB —
+     sold-but-unscheduled value" per its own schema comment) that existed
+     since the Capacity & Concurrency schema foundation but was never
+     surfaced anywhere in the app before this pass. All three sub-figures
+     are summed in exact decimal (`src/lib/calculations/money.ts`'s
+     `d`/`sumMoney`/`money` — accumulate in `decimal.js`, round once, the
+     same convention the WP2 engine itself uses for every `$` rollup),
+     not a naive `Number()` reduction. USB renders in `text-warning` tone
+     when greater than $0 — real revenue sitting outside a locked
+     baseline is exposure, not a neutral fact.
+  3. **Action & Risk** — the Decision Center summary tile paired with
+     High-Risk (Red) Projects (2-up).
+  4. **Performance & Health** — Avg. Baseline Margin paired with the
+     Blended Billable Utilization tile (2-up).
+
+  Custom KPIs (when the tenant has any) and Program Rollups (when there
+  are parent-hierarchy engagements) still render below the four rows,
+  full width — real conditional content, not part of the fixed
+  structure. "Engagements in Scope" and "Resources on Roster" are
+  renamed **Active Engagements** / **Active Resources** in this pass, to
+  read as one consistent "Active X" vocabulary across Row 1.
 - **The heavy content moved into a new "Decisions" tab**, alongside the
   existing Engagements and Activity tabs (`ModuleTabs`, §1.6) — every
   panel is still server-rendered and present in the DOM (`hidden`, not
@@ -477,9 +506,9 @@ the page most likely to be an executive's first screen of the day.
 - **`src/components/layout/Sidebar.tsx`'s three grouped sections**
   (`Portfolio` / `Engagement Governance` / `Reporting`, each with its own
   uppercase heading) collapsed into **one flat stack**, in delivery-
-  workflow order: Control Tower, Commercial Baseline, Financial
+  workflow order: PS Control Tower, Commercial Baseline, Financial
   Realization, Schedule & Milestones, RAID Cockpit, Resource & Capacity,
-  SteerCo Briefing, Executive Hub, Control Audit. The per-item
+  SteerCo Briefing, Executive Hub, Controls Audit. The per-item
   `colorGroup` icon tint (governance/delivery/commercial) is unchanged —
   it still signals which of the three functional zones an item belongs
   to, just without a wrapper label doing the same job twice. The pinned
@@ -489,7 +518,7 @@ the page most likely to be an executive's first screen of the day.
   now unconditionally `redirect()`s to `/portfolio` (Next.js
   `next/navigation` `redirect`, not a client-side bounce) rather than
   404ing for an old bookmark. Its two capabilities that weren't already
-  duplicated elsewhere moved to the Control Tower: the Impact-Aware
+  duplicated elsewhere moved to the PS Control Tower: the Impact-Aware
   Decision Cards feed (already identical to Decisions-tab content — see
   §7 — so nothing there actually changed) and the natural-language
   `CommandBar`, now rendered once on `/portfolio` above `ModuleTabs` so it
@@ -513,3 +542,34 @@ the page most likely to be an executive's first screen of the day.
   authority (`src/lib/auth/rbac.ts`) is untouched either way. See
   `docs/ROLE_ACCESS_MATRIX.md` §2.3 for the full rationale and the "why
   elevate, not narrow" safety argument.
+
+## 10. Naming & Layout Density Polish (v1.30.0)
+
+- **"Control Tower" → "PS Control Tower"** everywhere it names the
+  module (Sidebar link, `GOVERNABLE_MODULES`'s label, the Command Bar's
+  route keywords, the 404 pages' "back to" links, the Auto Demo's VO
+  captions and track blurbs) — aligning it with the page's own `h1`,
+  which has read "PS Control Tower" since the module existed. Route
+  (`/portfolio`), module key (`control-tower`), and every RBAC/governance
+  check keyed off that string are untouched — this is a display-label
+  rename only.
+- **"Control Audit" → "Controls Audit"** everywhere it names the module
+  (Sidebar link, `GOVERNABLE_MODULES`'s label, the per-project
+  `ModuleNav` pill, the `/audit` page's `h1` ("Controls Audit Intake"),
+  the HelpDrawer topic title, the Methodology Reference's "Back to"
+  link, the Command Bar's route keywords). Same scope as above — route
+  (`/audit`), module key (`audit`), and `CTRL_01`–`CTRL_10` system keys
+  are frozen and untouched (`docs/` nomenclature history:
+  `HelpDrawer.tsx`'s and `AuditChecklist.tsx`'s own comments on the
+  "never invent a '10 Minimum Controls' framing" purge still hold — this
+  rename changes the module's own name, not that separate numbering
+  convention).
+- **The main dashboard shell widened for high-density enterprise
+  viewing.** `Container` (`src/components/ui/container.tsx`) gains a
+  `full` size tier (`max-w-[1920px]`, tighter `px-4 sm:px-6 lg:px-8`
+  gutters vs. the `default` tier's `px-5…lg:px-12`) — applied only to
+  `(dashboard)/layout.tsx`, the client-facing app shell. The Ops Console
+  (`(admin)/layout.tsx`) and the public prose pages (`/terms`,
+  `/privacy`) keep their existing `default`/`prose` widths — this pass
+  is scoped to the client dashboard specifically, not every `Container`
+  consumer.

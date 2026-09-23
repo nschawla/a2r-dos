@@ -1,7 +1,7 @@
 # Tenant-model inventory & tenant-crossing audit
 
 _Status: current as of **v1.26.0** (the Executive Triage & Thematic
-Clustering rollout + Control Tower UX refactor). Companion to
+Clustering rollout + PS Control Tower UX refactor). Companion to
 `docs/RLS_ROADMAP.md` and `docs/DATA_ACCESS_LAYER.md`. Audience:
 engineering + the security auditor._
 
@@ -42,7 +42,7 @@ table added after the RLS baseline. No application query was ever affected
 
 None of the five triage modules shipped in this rollout (RAID, Financial
 Realization, Schedule, Resource & Capacity, Commercial Baseline) or the
-Control Tower Bento Grid refactor added a single new table or column —
+PS Control Tower Bento Grid refactor added a single new table or column —
 every one of them reads existing tenant-owned models already in this
 inventory (`Project`, `RaidEntry`, `SchedulePhase`, `Resource`,
 `FinancialActual`, `PortfolioIntervention`, …). See

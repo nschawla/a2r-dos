@@ -32,7 +32,7 @@ export default async function MethodologyReferencePage() {
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link href="/audit" className="btn-secondary !w-auto px-4 text-xs">
-            Back to Control Audit
+            Back to Controls Audit
           </Link>
           <Link href="/admin" className="text-ink-faint hover:text-ink text-xs px-3 py-2">
             Edit display labels →

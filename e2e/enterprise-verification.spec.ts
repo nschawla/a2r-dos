@@ -133,7 +133,7 @@ test.describe('Suite B — PS Control Tower & Multi-Tenant Scoping', () => {
     await expect(page.getByText('Total Contract Value')).toBeVisible();
     await expect(page.getByText('Avg. Baseline Margin')).toBeVisible();
     await expect(page.getByText('High-Risk (Red) Projects')).toBeVisible();
-    await expect(page.getByText('Engagements in Scope')).toBeVisible();
+    await expect(page.getByText('Active Engagements')).toBeVisible();
 
     // TCV card shows a $ figure
     const tcvCard = page.locator('.card', { hasText: 'Total Contract Value' });
@@ -215,10 +215,12 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
     await expect(page.getByRole('button', { name: 'Partial' }).first()).toBeVisible();
     expect(await page.getByRole('button', { name: 'N/A' }).count()).toBeGreaterThan(0);
 
-    // "Control Audit" nomenclature — old "10 Controls Audit" label is gone
+    // "Controls Audit" nomenclature (v1.30.0 — renamed from "Control
+    // Audit" in the sidebar and project tabs) — old rigid "10 Minimum /
+    // 10 Controls" numbering framing is still gone either way.
     await page.goto('/audit');
-    await expect(page.getByRole('heading', { name: 'Control Audit Intake', level: 1 })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Control Audit' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Controls Audit Intake', level: 1 })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Controls Audit' })).toBeVisible();
     await expect(page.locator('body')).not.toContainText('10 Controls Audit');
     await expect(page.locator('body')).not.toContainText('10 Control Audit');
     await expect(page.locator('body')).not.toContainText('10 minimum controls');
@@ -557,7 +559,7 @@ test.describe('Suite F — SOC 2 Compliance Ledger', () => {
 test.describe('Suite G — Methodology Playbook', () => {
   test('G1 · a control guidance drawer opens from the audit checklist', async () => {
     await page.goto('/audit');
-    await expect(page.getByRole('heading', { name: 'Control Audit Intake', level: 1 })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Controls Audit Intake', level: 1 })).toBeVisible();
     await page.getByRole('link', { name: /Claims Automation Pilot/ }).click();
     await page.waitForURL(/\/audit\/[a-z0-9]+/i);
     await expect(page.getByRole('heading', { name: 'Audit Completion', level: 1 })).toBeVisible();
@@ -592,7 +594,7 @@ test.describe('Suite G — Methodology Playbook', () => {
       await expect(page.locator(`article[data-control="${key}"]`)).toBeVisible();
     }
     // v1.2.3 — Methodology Reference is NOT a top-level Reporting nav item
-    // (no sidebar link); it lives in-context under Control Audit.
+    // (no sidebar link); it lives in-context under Controls Audit.
     await expect(page.getByRole('link', { name: 'Methodology Reference', exact: true })).toHaveCount(0);
     await page.goto('/audit');
     await expect(page.getByRole('link', { name: 'Methodology Reference', exact: true })).toBeVisible();

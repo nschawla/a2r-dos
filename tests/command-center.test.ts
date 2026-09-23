@@ -13,7 +13,7 @@ describe('resolveCommand', () => {
     const out = resolveCommand('', ctx());
     expect(out.length).toBeGreaterThan(0);
     expect(out.every((s) => s.action.type === 'navigate')).toBe(true);
-    expect(out.map((s) => s.label)).toContain('Control Tower');
+    expect(out.map((s) => s.label)).toContain('PS Control Tower');
   });
 
   it('resolves a bare destination keyword', () => {

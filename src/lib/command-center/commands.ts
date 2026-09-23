@@ -46,10 +46,10 @@ const ROUTES: RouteDef[] = [
   // Control Tower, which is where this bar itself now lives. Its old
   // keywords ('command center', 'pulse', 'stream') fold into Control
   // Tower's below rather than pointing at a redirect.
-  { keys: ['control tower', 'tower', 'portfolio', 'home', 'dashboard', 'command center', 'command', 'pulse', 'stream'], label: 'Control Tower', href: '/' },
+  { keys: ['control tower', 'ps control tower', 'tower', 'portfolio', 'home', 'dashboard', 'command center', 'command', 'pulse', 'stream'], label: 'PS Control Tower', href: '/' },
   { keys: ['capacity', 'resource', 'resources', 'utilization', 'bench', 'forecast'], label: 'Resource & Capacity', href: '/capacity' },
   { keys: ['commercial baseline', 'baseline', 'sizing', 'deal', 'scope'], label: 'Commercial Baseline', href: '/commercial-baseline' },
-  { keys: ['control audit', 'audit', 'controls', 'stage gate'], label: 'Control Audit', href: '/audit' },
+  { keys: ['control audit', 'controls audit', 'audit', 'controls', 'stage gate'], label: 'Controls Audit', href: '/audit' },
   { keys: ['raid', 'risk', 'risks', 'issues', 'dependencies'], label: 'RAID Cockpit', href: '/raid' },
   { keys: ['financials', 'financial realization', 'eac', 'margin', 'burn'], label: 'Financial Realization', href: '/financials' },
   { keys: ['schedule', 'milestones', 'timeline', 'phases'], label: 'Schedule & Milestones', href: '/schedule' },
@@ -64,7 +64,7 @@ const ROUTES: RouteDef[] = [
 /** module keyword → route segment, for "<module> for <engagement>". */
 const MODULE_SEGMENTS: { keys: string[]; seg: string; label: string }[] = [
   { keys: ['baseline', 'commercial', 'sizing', 'scope'], seg: 'commercial-baseline', label: 'Commercial Baseline' },
-  { keys: ['audit', 'controls', 'stage gate'], seg: 'audit', label: 'Control Audit' },
+  { keys: ['audit', 'controls', 'stage gate'], seg: 'audit', label: 'Controls Audit' },
   { keys: ['raid', 'risk', 'risks'], seg: 'raid', label: 'RAID' },
   { keys: ['financials', 'financial', 'eac', 'margin', 'burn'], seg: 'financials', label: 'Financial Realization' },
   { keys: ['schedule', 'milestones', 'timeline'], seg: 'schedule', label: 'Schedule' },

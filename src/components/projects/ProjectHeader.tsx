@@ -241,7 +241,7 @@ const ENGAGEMENT_MODULES = [
   { seg: 'financials', label: 'Financials' },
   { seg: 'schedule', label: 'Schedule' },
   { seg: 'raid', label: 'RAID' },
-  { seg: 'audit', label: 'Control Audit' },
+  { seg: 'audit', label: 'Controls Audit' },
 ] as const;
 
 function ModuleNav({ projectId }: { projectId: string }) {

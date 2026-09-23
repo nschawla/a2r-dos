@@ -47,13 +47,13 @@ export const GOVERNABLE_MODULES: readonly GovernableModule[] = [
   // already-persisted GovernanceConfig.hiddenModules containing the string
   // 'command' is harmless: the hideable-keys sanitization below only ever
   // honors known keys.
-  { key: 'control-tower', label: 'Control Tower', href: '/portfolio', core: true },
+  { key: 'control-tower', label: 'PS Control Tower', href: '/portfolio', core: true },
   { key: 'capacity', label: 'Resource & Capacity', href: '/capacity' },
   { key: 'commercial-baseline', label: 'Commercial Baseline', href: '/commercial-baseline' },
   { key: 'financials', label: 'Financial Realization', href: '/financials' },
   { key: 'schedule', label: 'Schedule & Milestones', href: '/schedule' },
   { key: 'raid', label: 'RAID Cockpit', href: '/raid' },
-  { key: 'audit', label: 'Control Audit', href: '/audit' },
+  { key: 'audit', label: 'Controls Audit', href: '/audit' },
   { key: 'steerco', label: 'SteerCo Briefing', href: '/steerco' },
   { key: 'reports', label: 'Executive Hub', href: '/reports' },
   // Methodology Reference is not a top-level nav item (it's contextual to

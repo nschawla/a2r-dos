@@ -20,9 +20,9 @@ engagement health score that a sponsor can read at a glance and drill into.
 | --- | --- |
 | Composite Pulse score | Weighted roll-up of schedule, cost, scope, risk, and stakeholder-sentiment lenses into one 0–100 score per engagement, with a documented weighting model (tenant-overridable via governance config). |
 | Milestone velocity | Rolling measure of milestones completed vs. planned per period; a velocity trend (accelerating / steady / slipping) shown against baseline. |
-| Trend arrows &amp; sparklines | Every Pulse score and sub-lens carries a period-over-period delta and an inline sparkline on the Control Tower and the project header. |
+| Trend arrows &amp; sparklines | Every Pulse score and sub-lens carries a period-over-period delta and an inline sparkline on the PS Control Tower and the project header. |
 | Pulse history | Snapshotted weekly so the score is auditable and back-testable; stored per engagement, immutable once written. |
-| Early-warning surfacing | Engagements whose Pulse crosses a downward threshold are promoted to the top of the Control Tower and the Executive Briefing Hub. |
+| Early-warning surfacing | Engagements whose Pulse crosses a downward threshold are promoted to the top of the PS Control Tower and the Executive Briefing Hub. |
 
 **Depends on:** the existing `Project` EVM rollups and 5-lens health vector
 (`src/lib/calculations/**`), the SteerCo briefing aggregator, and weekly

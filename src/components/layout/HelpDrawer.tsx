@@ -39,7 +39,7 @@ const HELP_CONTENT: { prefix: string; section: HelpSection }[] = [
     prefix: '/audit',
     section: {
       eyebrow: 'Engagement Governance',
-      title: 'Control Audit Intake',
+      title: 'Controls Audit Intake',
       body: [
         {
           heading: 'What the controls cover',

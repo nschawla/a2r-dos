@@ -1,7 +1,7 @@
 # Executive Triage & Thematic Clustering — the cross-cutting standard
 
 _Status: shipped v1.21.0–v1.26.0 (RAID, Financial Realization, Schedule,
-Resource & Capacity, Commercial Baseline, then the Control Tower Bento
+Resource & Capacity, Commercial Baseline, then the PS Control Tower Bento
 Grid). Audience: engineering + delivery leadership. This is the
 architectural overview; each module's own doc is the detailed reference
 — see the table in §2._
@@ -17,7 +17,7 @@ whether the org had a systemic problem or a handful of isolated ones.
 Each module now opens on a **dual-tile Executive Triage banner** — a
 macro rollup, then a thematic breakdown of what's driving it — with the
 existing per-project picker still one click below, completely unchanged.
-The Control Tower (`/portfolio`) then applied the same "macro pulse
+The PS Control Tower (`/portfolio`) then applied the same "macro pulse
 before micro detail" idea at the page-layout level: see §6.
 
 ## 2. The five modules, side by side
@@ -138,7 +138,7 @@ sidesteps the same-pathname client-router issue documented in
 `docs/UI_DESIGN_SYSTEM.md` §5.1: a pure in-page anchor jump has no route
 to transition, so there's nothing for that platform issue to affect.
 
-## 6. The Control Tower Bento Grid — the same idea, one level up
+## 6. The PS Control Tower Bento Grid — the same idea, one level up
 
 `/portfolio` applied the identical "macro before micro, heavy content
 tucked behind one click" philosophy to its own layout, not just to a

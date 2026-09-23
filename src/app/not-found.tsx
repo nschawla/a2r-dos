@@ -21,7 +21,7 @@ export default function RootNotFound() {
           incomplete.
         </p>
         <Link href="/" className="btn-primary !w-auto px-5 inline-block text-sm">
-          Go to the Control Tower
+          Go to the PS Control Tower
         </Link>
       </div>
     </main>

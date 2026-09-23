@@ -4,7 +4,7 @@ _Applies to v1.29.0 · Last updated 2026-09-23_
 
 PS-DOS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
-sidebar workflow, the Control Tower (including its pinned Command Bar),
+sidebar workflow, the PS Control Tower (including its pinned Command Bar),
 the universal command palette, the executive briefing, the enterprise
 governance and identity-federation settings in Admin & Org Setup, and —
 for A2R staff — the operator console.
@@ -48,7 +48,7 @@ to **your role** — a project manager sees their own engagements, a
 practice director sees their practice, an admin or VP sees the whole
 portfolio. Where you land right after signing in is decided automatically
 by your role (a VP lands on the SteerCo Briefing, a Project Manager on the
-Control Tower, and so on) — every module stays reachable from the sidebar
+PS Control Tower, and so on) — every module stays reachable from the sidebar
 and ⌘K regardless. A tenant Admin (or A2R staff member) can additionally
 preview the app as any other role from the **Persona Preview** banner at
 the top of the workspace — see "The RBAC Master Matrix" below.
@@ -62,7 +62,7 @@ to follow an engagement from sale to close. Work top-to-bottom.
 
 | Item | Use it to… |
 | --- | --- |
-| **Control Tower** (`/portfolio`) | Your landing page. Every engagement in your scope — contract value, health, open RAID, one-click into each module — plus the Impact-Aware Decision Cards, the pinned Command Bar, and the live activity feed. See §3. It's where every role lands, and `/` (the public site) forwards you here once you're signed in. |
+| **PS Control Tower** (`/portfolio`) | Your landing page. Every engagement in your scope — contract value, health, open RAID, one-click into each module — plus the Impact-Aware Decision Cards, the pinned Command Bar, and the live activity feed. See §3. It's where every role lands, and `/` (the public site) forwards you here once you're signed in. |
 | **Commercial Baseline** (`/commercial-baseline`) | Contractual scope, baseline hours, sold margin, and the agreed rate card. Lock the baseline to freeze it as the plan of record. |
 | **Financial Realization** (`/financials`) | Actual cost and forecast against the baseline: EAC, margin drift, contractor exposure, the burn curve. |
 | **Schedule & Milestones** (`/schedule`) | Phases, milestone dates, and pace-risk against the planned window. |
@@ -70,16 +70,16 @@ to follow an engagement from sale to close. Work top-to-bottom.
 | **Resource & Capacity** (`/capacity`) | Blended billable utilization, the concurrency-overload radar, and a 52-week staffing forecast against role targets and the holiday calendar. |
 | **SteerCo Briefing** (`/steerco`) | A lean, print-ready board view of the whole portfolio. See §5. |
 | **Executive Hub** (`/reports`) | The full portfolio briefing (macro rollups, utilization, risk distribution) plus per-engagement SteerCo decks and compliance certificates. |
-| **Control Audit** (`/audit`) | The delivery-controls checklist and weighted governance score for the engagement. |
+| **Controls Audit** (`/audit`) | The delivery-controls checklist and weighted governance score for the engagement. |
 
-Commercial Baseline through Control Audit is the delivery sequence — run
+Commercial Baseline through Controls Audit is the delivery sequence — run
 each engagement through those five, roughly in that order. Import data
 into any of these in bulk with the module's **Import CSV** action — see
 §6. (Methodology Reference (`/methodology`) isn't a top-level sidebar item
-— it's contextual to Control Audit, and reachable via ⌘K.)
+— it's contextual to Controls Audit, and reachable via ⌘K.)
 
 > **Retired:** the standalone Command Center (`/command`) page is gone —
-> the route now redirects to the Control Tower, which is where its two
+> the route now redirects to the PS Control Tower, which is where its two
 > live capabilities (the Command Bar and the Decision Cards feed) live
 > now. See §3.
 
@@ -92,7 +92,7 @@ into any of these in bulk with the module's **Import CSV** action — see
 
 ---
 
-## 3. The Control Tower (`/portfolio`)
+## 3. The PS Control Tower (`/portfolio`)
 
 Your single starting point (v1.29.0 — the previously-standalone Command
 Center merged in here; `/command` now redirects). A Bento Grid layout, no
@@ -370,7 +370,7 @@ configuration**.
 
 - **Route visibility.** Toggle any non-core module between **Visible** and
   **Hidden**. Hidden modules disappear from every user's sidebar and ⌘K.
-  Control Tower, Admin & Org Setup and the Compliance Ledger are core and
+  PS Control Tower, Admin & Org Setup and the Compliance Ledger are core and
   can't be switched off.
 - **Sensitive financial data.** Turn on **"Scrub margins & EAC for delivery
   roles"** to mask blended margin, EAC and cost variance for **Practice
@@ -447,7 +447,7 @@ for your platform contact to troubleshoot.
 ### 8.3 Custom KPIs — build your own metric cards
 
 **Admin & Org Setup → Custom KPIs** (`/admin/kpis`) lets an Admin define
-metric cards that render automatically on the **Portfolio Control Tower**
+metric cards that render automatically on the **PS Control Tower**
 and the **Executive Hub**, for whichever roles they're assigned to.
 
 A custom KPI is a binding, not a formula you write: pick a **data
@@ -517,7 +517,7 @@ The "Portfolio scope" column above isn't just a display convention — the
 same rule filters the underlying data on every surface that lists more
 than one engagement or roster entry:
 
-- **Portfolio Control Tower** (`/portfolio`) — your stat cards, project list, and
+- **PS Control Tower** (`/portfolio`) — your stat cards, project list, and
   program rollups already reflect only the engagements in your scope.
 - **Resource & Capacity Cockpit** (`/capacity`) — a Practice Director or
   Delivery Manager sees their own practice's/team's roster and staffing

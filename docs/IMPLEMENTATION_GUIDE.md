@@ -167,7 +167,7 @@ repeatedly-used-safely pattern for a schema change:
 | --- | --- |
 | Architecture, ERD, tenant-isolation model | `docs/ERD.md`, `docs/TENANT_MODEL_INVENTORY.md`, `docs/DATA_ACCESS_LAYER.md` |
 | Requirements ↔ code ↔ tests traceability | `docs/RTM.md`, `docs/FRD.md` |
-| The five Executive Triage modules + Control Tower | `docs/EXECUTIVE_TRIAGE_STANDARD.md` (overview), each module's own `docs/*_TRIAGE.md`, `docs/UI_DESIGN_SYSTEM.md` |
+| The five Executive Triage modules + PS Control Tower | `docs/EXECUTIVE_TRIAGE_STANDARD.md` (overview), each module's own `docs/*_TRIAGE.md`, `docs/UI_DESIGN_SYSTEM.md` |
 | PS Orchestration & Decision Engine | `docs/PORTFOLIO_ORCHESTRATION.md` |
 | Test suites, counts, how to run each layer | `docs/TEST_COVERAGE.md` |
 | Security posture, compliance framing | `docs/SECURITY.md` |

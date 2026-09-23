@@ -52,7 +52,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   {
     href: '/portfolio',
-    label: 'Control Tower',
+    label: 'PS Control Tower',
     colorGroup: 'governance',
     // 2×2 portfolio grid
     icon: (
@@ -152,7 +152,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: '/audit',
-    label: 'Control Audit',
+    label: 'Controls Audit',
     colorGroup: 'delivery',
     // shield check — governance integrity
     icon: (
@@ -163,7 +163,7 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   // Methodology Reference is intentionally NOT a top-level nav item — it
-  // lives in-context under Control Audit (the control-guidance drawer and
+  // lives in-context under Controls Audit (the control-guidance drawer and
   // the /audit page link to /methodology), and stays reachable via ⌘K.
 ];
 

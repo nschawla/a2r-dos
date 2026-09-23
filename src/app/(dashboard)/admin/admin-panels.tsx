@@ -649,7 +649,7 @@ export function GovernancePanel({
         <div className="mt-3">
           <div className="text-[12px] font-semibold mb-1.5">Route visibility</div>
           <p className="text-[11.5px] text-ink-faint mb-2">
-            Hidden modules are removed from every user&apos;s navigation. Core modules (Control Tower, Admin,
+            Hidden modules are removed from every user&apos;s navigation. Core modules (PS Control Tower, Admin,
             Compliance Ledger) can&apos;t be switched off.
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">

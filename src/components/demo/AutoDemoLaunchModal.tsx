@@ -45,7 +45,7 @@ const TRACKS: { persona: DemoPersona; label: string; blurb: string }[] = [
     persona: 'Executive',
     label: 'Executive Lens',
     blurb:
-      'The board-level view: Control Tower, Command Center, scoped-vs-global practice visibility, the SteerCo Briefing, the Executive Hub, and how tenant data stays walled off.',
+      'The board-level view: the PS Control Tower and its live Command Bar, scoped-vs-global practice visibility, the SteerCo Briefing, the Executive Hub, and how tenant data stays walled off.',
   },
   {
     persona: 'Admin',

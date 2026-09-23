@@ -39,7 +39,7 @@ A multi-tenant SaaS platform for professional-services organizations:
 | Capability | What it delivers |
 | --- | --- |
 | **Portfolio governance** | PS Control Tower, RBAC-scoped portfolios, SteerCo briefings, decision ledger. |
-| **Engagement delivery** | Commercial Baseline (sizing + rate card), Control Audit (weighted scoring), RAID, Schedule &amp; Milestones. |
+| **Engagement delivery** | Commercial Baseline (sizing + rate card), Controls Audit (weighted scoring), RAID, Schedule &amp; Milestones. |
 | **Financial realization** | EAC / BAC / margin-drift with **exact-decimal arithmetic** — no floating-point error at portfolio scale. |
 | **Capacity planning** | Utilization, concurrency radar, 52-week forecast, holiday / policy controls. |
 | **Stakeholder visibility** | Executive Briefing Hub, print-ready board packs, a strict read-only **Viewer** tier for guests and clients. |
@@ -199,7 +199,7 @@ reserved for lawful data-subject erasure.
 | `tsc --noEmit` | 0 errors |
 | `eslint` | 0 warnings / 0 errors |
 | `prisma validate` | valid |
-| Vitest, isolated per touched area | all green (5 triage-module engines, the Control Tower page, and the tenant-model-inventory guard, each confirmed independently) |
+| Vitest, isolated per touched area | all green (5 triage-module engines, the PS Control Tower page, and the tenant-model-inventory guard, each confirmed independently) |
 | Vitest, full suite | 844 / 921 passing — every failure beyond the one real, now-fixed issue reproduced identically with this rollout's own changes reverted, confirming pre-existing environmental flake (see below), not a regression |
 | Playwright | not re-run in full for this documentation/schema-alignment pass; the one behavior change (a Suite label rename, K → L, to remove a naming collision) is inspected, not executed, since it changes no test logic |
 | `next build` | clean |
@@ -226,7 +226,7 @@ Full detail and sequencing in `docs/ROADMAP.md`. Headline themes:
 
 - **Deep PM Pulse** — a composite engagement health score (schedule, cost,
   scope, risk, sentiment) with milestone-velocity tracking and trend arrows,
-  surfaced on the Control Tower and every project header.
+  surfaced on the PS Control Tower and every project header.
 - **Real-time telemetry alerts &amp; webhooks** — threshold and anomaly
   alerts on platform and engagement signals, delivered to tenant-configured
   webhook endpoints (signed payloads) and the in-app activity stream.

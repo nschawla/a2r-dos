@@ -21,6 +21,7 @@ import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
 import { DecisionCenter, DecisionCenterSummary } from '@/components/portfolio/DecisionCenter';
 import { ProjectsExplorer, type ProjectExplorerRow } from '@/components/portfolio/ProjectsExplorer';
 import { CommandBar } from '@/components/command-center/CommandBar';
+import { d, money, sumMoney } from '@/lib/calculations/money';
 import { CreateProjectForm } from './create-project-form';
 
 const HEALTH_DOT: Record<string, string> = { G: 'bg-success', Y: 'bg-warning', R: 'bg-critical' };
@@ -93,34 +94,113 @@ export default async function HomePage() {
   const kpiValues = customKpis.length > 0 ? await getKpiMetricValues(organizationId, scopedProjectIds, summary) : {};
   const viewerPersona = personaForDeliveryRole(deliveryRole);
 
-  // ── Overview — Bento Grid (Control Tower UX Refactor) ────────────────
+  // ── Overview — Bento Grid, 4-row structure ────────────────────────────
   //
   // Every "how's the portfolio doing right now" signal in one scannable,
-  // above-the-fold grid instead of a long vertical stack: the 4-up KPI
-  // strip across the top, the Decision Center's compact summary tile
-  // paired with the Utilization tile, then Resources/Practices paired
-  // with Program Rollups when there are any. Cells use the same tighter
-  // `card !p-4` density as StatCard and the five triage-module dual-tile
-  // headers shipped earlier today, rather than the default `.card` p-6 —
-  // more signal per pixel, consistent with that established language.
+  // above-the-fold grid instead of a long vertical stack, organized into
+  // four logical rows (Scope & Footprint / Financial Scale & Backlog /
+  // Action & Risk / Performance & Health) rather than an undifferentiated
+  // stat strip — each row groups genuinely related signals so the eye
+  // reads it as a structured brief, not a grab-bag of tiles. Cells use the
+  // same tighter `card !p-4` density as StatCard and the five triage-
+  // module dual-tile headers, rather than the default `.card` p-6 — more
+  // signal per pixel.
+  //
+  // Row 2's Unscheduled Backlog (USB) figure reads Project.unscheduledBacklog
+  // directly — a real denormalized snapshot column (schema comment: "USB —
+  // sold-but-unscheduled value") that existed but was never surfaced
+  // anywhere in the app before this pass. Summed in exact decimal
+  // (src/lib/calculations/money.ts's d/sumMoney/money — same accumulate-
+  // then-round-once convention the WP2 engine itself uses), same as
+  // Actuals-to-Date and Forecast at Completion (EAC = bac − vac) below it —
+  // real per-project snapshot fields, not derived/fabricated figures.
+  const totalActuals = money(sumMoney(projects.map((p) => d(p.actualsCost))));
+  const totalForecastEac = money(sumMoney(projects.map((p) => d(p.bac).minus(d(p.vac)))));
+  const totalUnscheduledBacklog = money(sumMoney(projects.map((p) => d(p.unscheduledBacklog))));
+
+  const utilizationTile = (
+    <Link
+      href="/capacity"
+      className="card !p-4 flex flex-col justify-between gap-2 hover:border-brand/50 transition-colors"
+    >
+      <div className="text-[10.5px] uppercase tracking-wide text-ink-faint font-semibold">
+        Blended Billable Utilization
+      </div>
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <span
+          className={`text-2xl font-display font-bold tabular-nums ${
+            utilization.attainmentPct >= 0.98
+              ? 'text-success'
+              : utilization.attainmentPct >= 0.85
+                ? 'text-warning'
+                : 'text-critical'
+          }`}
+        >
+          {(utilization.utilizationPct * 100).toFixed(1)}%
+        </span>
+        <span className="text-[11px] text-ink-faint">
+          vs {(utilization.targetUtilPct * 100).toFixed(0)}% target · {utilization.headcountFte.toFixed(1)} FTE
+        </span>
+      </div>
+      <span className="text-brand text-xs font-semibold whitespace-nowrap">Resource &amp; Capacity →</span>
+    </Link>
+  );
+
   const overviewPanel = (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div className="sm:col-span-2 lg:col-span-3 grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Engagements in Scope" value={String(summary.projectCount)} />
-        <StatCard label="Total Contract Value" value={`$${Math.round(summary.totalValue).toLocaleString('en-US')}`} />
-        <StatCard
-          label="Avg. Baseline Margin"
-          value={showMargins ? (summary.hasMargin ? `${summary.avgMarginPct.toFixed(1)}%` : '—') : '••••'}
-          restricted={!showMargins}
-        />
-        <StatCard
-          label="High-Risk (Red) Projects"
-          value={String(summary.highRiskCount)}
-          tone={summary.highRiskCount > 0 ? 'text-critical' : undefined}
-        />
+      {/* Row 1 — Scope & Footprint */}
+      <div className="sm:col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard label="Active Engagements" value={String(summary.projectCount)} />
+        <StatCard label="Active Resources" value={String(resourceCount)} />
+        <StatCard label="Practices" value={String(practiceCount)} />
       </div>
 
-      <div className="lg:col-span-2">
+      {/* Row 2 — Financial Scale & Backlog */}
+      <div className="sm:col-span-2 lg:col-span-3 card !p-4">
+        <div className="text-[10.5px] uppercase tracking-wide text-ink-faint font-semibold mb-1.5">
+          Total Contract Value
+        </div>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="text-2xl font-display font-bold tabular-nums leading-none">
+            ${Math.round(summary.totalValue).toLocaleString('en-US')}
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-ink-faint font-semibold">Actuals to Date</div>
+              <div className="text-[15px] font-display font-bold tabular-nums">
+                <MaskedValue canView={showMargins} value={`$${totalActuals.toLocaleString('en-US')}`} />
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-ink-faint font-semibold">
+                Forecast at Completion
+              </div>
+              <div className="text-[15px] font-display font-bold tabular-nums">
+                <MaskedValue canView={showMargins} value={`$${totalForecastEac.toLocaleString('en-US')}`} />
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-brand font-semibold">
+                Unscheduled Backlog (USB)
+              </div>
+              <div
+                className={`text-[15px] font-display font-bold tabular-nums ${
+                  totalUnscheduledBacklog > 0 ? 'text-warning' : ''
+                }`}
+              >
+                <MaskedValue canView={showMargins} value={`$${totalUnscheduledBacklog.toLocaleString('en-US')}`} />
+              </div>
+            </div>
+          </div>
+        </div>
+        <p className="text-[11px] text-ink-faint mt-2">
+          Sold-but-unscheduled value not yet on a locked baseline — revenue leakage and cash-flow-predictability
+          exposure until it&apos;s scheduled and billed.
+        </p>
+      </div>
+
+      {/* Row 3 — Action & Risk */}
+      <div className="sm:col-span-2 lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Suspense fallback={<SkeletonCard lines={2} />}>
           <DecisionCenterSummarySection
             context={context}
@@ -129,33 +209,24 @@ export default async function HomePage() {
             scopedProjectIds={scopedProjectIds}
           />
         </Suspense>
+        <StatCard
+          label="High-Risk (Red) Projects"
+          value={String(summary.highRiskCount)}
+          tone={summary.highRiskCount > 0 ? 'text-critical' : undefined}
+          className="h-full justify-center"
+        />
       </div>
 
-      <Link
-        href="/capacity"
-        className="card !p-4 flex flex-col justify-between gap-2 hover:border-brand/50 transition-colors"
-      >
-        <div className="text-[10.5px] uppercase tracking-wide text-ink-faint font-semibold">
-          Blended Billable Utilization
-        </div>
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span
-            className={`text-2xl font-display font-bold tabular-nums ${
-              utilization.attainmentPct >= 0.98
-                ? 'text-success'
-                : utilization.attainmentPct >= 0.85
-                  ? 'text-warning'
-                  : 'text-critical'
-            }`}
-          >
-            {(utilization.utilizationPct * 100).toFixed(1)}%
-          </span>
-          <span className="text-[11px] text-ink-faint">
-            vs {(utilization.targetUtilPct * 100).toFixed(0)}% target · {utilization.headcountFte.toFixed(1)} FTE
-          </span>
-        </div>
-        <span className="text-brand text-xs font-semibold whitespace-nowrap">Resource &amp; Capacity →</span>
-      </Link>
+      {/* Row 4 — Performance & Health */}
+      <div className="sm:col-span-2 lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <StatCard
+          label="Avg. Baseline Margin"
+          value={showMargins ? (summary.hasMargin ? `${summary.avgMarginPct.toFixed(1)}%` : '—') : '••••'}
+          restricted={!showMargins}
+          className="h-full justify-center"
+        />
+        {utilizationTile}
+      </div>
 
       {customKpis.length > 0 && (
         <div className="sm:col-span-2 lg:col-span-3">
@@ -163,13 +234,8 @@ export default async function HomePage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 content-start">
-        <StatCard label="Resources on Roster" value={String(resourceCount)} />
-        <StatCard label="Practices" value={String(practiceCount)} />
-      </div>
-
       {programRollups.length > 0 && (
-        <div className="lg:col-span-2 card !p-4">
+        <div className="sm:col-span-2 lg:col-span-3 card !p-4">
           <div className="text-[10.5px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Program Rollups</div>
           <h2 className="text-[14px] font-bold mb-3">Parent Programs</h2>
           <div className="overflow-x-auto">

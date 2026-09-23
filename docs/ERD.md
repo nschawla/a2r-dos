@@ -26,7 +26,7 @@ architecture doc this sweep also added.
 
 **v1.21.0 – v1.26.0** — the Executive Triage & Thematic Clustering rollout
 (RAID, Financial Realization, Schedule, Resource & Capacity, Commercial
-Baseline) and the Control Tower Bento Grid refactor. **No schema changes
+Baseline) and the PS Control Tower Bento Grid refactor. **No schema changes
 across all six releases** — every module reads existing tenant-owned
 models already in this ERD (`Project`'s denormalized EVM snapshot columns,
 `RaidEntry`, `SchedulePhase`, `Resource`/`DeliveryRole`,

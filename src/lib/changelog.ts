@@ -36,6 +36,17 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.30.0',
+    date: '2026-09-23',
+    headline: 'Bento Grid 4-Row Restructuring, USB Visibility, Naming & Density Polish',
+    changes: [
+      { type: 'improvement', text: 'The PS Control Tower\'s Overview tab is restructured into four explicit rows — Scope & Footprint (Active Engagements, Active Resources, Practices), Financial Scale & Backlog, Action & Risk (Decision Center + High-Risk Projects), and Performance & Health (Baseline Margin + Utilization) — grouping related signals instead of an undifferentiated stat strip.' },
+      { type: 'feature', text: 'Unscheduled Backlog (USB) is now visible on the Control Tower — sold-but-unscheduled contract value, a real schema field that existed since the Capacity & Concurrency foundation but was never surfaced anywhere in the app. Shown alongside Actuals to Date and Forecast at Completion on the new Financial Scale & Backlog row, highlighted in warning tone above $0 as revenue-leakage / cash-flow-predictability exposure.' },
+      { type: 'improvement', text: 'Renamed for consistency: "Control Tower" -> "PS Control Tower" (matching the page\'s own header) and "Control Audit" -> "Controls Audit", across the sidebar, project module tabs, the /audit page, the Command Bar, and the Auto Demo script. "Engagements in Scope" -> "Active Engagements" and "Resources on Roster" -> "Active Resources" for a consistent Row 1 vocabulary.' },
+      { type: 'improvement', text: 'The main dashboard shell widened for high-density enterprise viewing — a new Container "full" size tier (1920px, tighter gutters), applied to the client dashboard only; the Ops Console and public pages are unchanged.' },
+    ],
+  },
+  {
     version: '1.29.0',
     date: '2026-09-23',
     headline: 'Sidebar Flattening, Command Center Merge, 4-Tier RBAC, Demo Script',

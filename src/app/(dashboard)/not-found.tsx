@@ -22,7 +22,7 @@ export default function DashboardNotFound() {
         </p>
         <div className="mt-5 flex items-center justify-center gap-2">
           <Link href="/portfolio" className="btn-primary !w-auto px-5 text-xs">
-            Back to the Control Tower
+            Back to the PS Control Tower
           </Link>
         </div>
       </div>
