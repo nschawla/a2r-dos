@@ -594,3 +594,42 @@ Federation panel's group-mapping labels
 two other stale persona labels there left over from the 4-Tier RBAC
 pass — "Executive Board" and "Engagement / Practice Manager" — that had
 drifted out of sync when that merge shipped).
+
+## 12. Global rebrand — "PS Delivery OS" (v1.33.0)
+
+The product's full name is **PS Delivery OS**; **PS-DOS** remains its
+official shorthand — both names refer to the same product, and neither
+retires the other. The split follows one consistent rule: **brand-identity
+slots and full product-introduction sentences use the full name; compact,
+space-constrained UI (browser tab titles, the footer copyright line,
+single-line auth-screen headers) keeps the shorthand.**
+
+- **Full name, rendered:** the Sidebar's own brand text
+  (`src/components/layout/Sidebar.tsx`, next to `BrandMark`) and the
+  marketing site's header brand text and hero paragraph
+  (`src/app/page.tsx`) — the two places a viewer's eye actually lands on
+  "what is this product," matching how a real product names itself in its
+  own primary logo lockup.
+- **Shorthand, kept:** every `<title>`/`Metadata.title` browser-tab string
+  (`PS-DOS™`, unchanged — see the existing rationale in this file and in
+  `README.md` about not putting a second, visually competing brand string
+  in the tab bar), the global `Footer.tsx` copyright line, and every
+  single-line auth-screen header (`"Sign in to PS-DOS™"`, etc.).
+- **Meta descriptions and marketing prose** (`src/app/layout.tsx`,
+  `src/app/page.tsx`) now formally introduce "PS Delivery OS (PS-DOS)" —
+  the one sentence a reader who's never seen the product before actually
+  needs the full name in.
+- **Three stale copyright headers fixed in the same pass** —
+  `src/lib/due-status.ts`, `src/components/portfolio/DecisionCenter.tsx`,
+  `src/components/modules/audit/StatusBlurbEditor.tsx` still said "A2R
+  Delivery OS™," a leftover from the *prior* A2R-DOS → PS-DOS rebrand
+  (`scripts/rebrand-demo-org-name.ts`'s own doc comment) that the other
+  117 files carrying the standard `PS-DOS™ — © 2026 A2R Ventures LLC.`
+  header had already picked up. Brought in line with that established
+  convention rather than introducing a third variant.
+- **`docs/` is deliberately NOT swept wholesale.** Every doc already uses
+  "PS-DOS" consistently as shorthand throughout — correct, and exactly
+  the "where appropriate" case for keeping it. The naming relationship
+  itself is now stated once, centrally, in the two most-read entry-point
+  docs (`docs/EXECUTIVE_SUMMARY.md`, `docs/QUICK_REFERENCE.md`) rather
+  than repeated as a caveat in every file.

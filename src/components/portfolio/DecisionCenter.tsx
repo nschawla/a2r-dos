@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * The PS Control Tower's Decision Center — the exception-driven "what
  * needs my attention today" panel that renders above the full portfolio

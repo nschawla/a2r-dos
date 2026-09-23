@@ -1,8 +1,8 @@
 {
   "name": "ps-dos-app",
-  "version": "1.32.0",
+  "version": "1.33.0",
   "private": true,
-  "description": "PS-DOS — SaaS foundation (Phase 3). Next.js App Router + Prisma + Postgres.",
+  "description": "PS Delivery OS (PS-DOS) — SaaS foundation (Phase 3). Next.js App Router + Prisma + Postgres.",
   "scripts": {
     "dev": "next dev",
     "dev:clean": "npx kill-port 3000 && rm -rf .next && next dev",

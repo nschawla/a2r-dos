@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * The Executive Status Blurb editor — a one-or-two sentence plain-English
  * note on why an engagement is Yellow or Red. Lives on the Audit page

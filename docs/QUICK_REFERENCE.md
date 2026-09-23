@@ -4,6 +4,10 @@ _A one-page cheat sheet for the parts of this project that are easy to
 forget. Written for you, not for an engineer picking up the repo — for the
 deeper technical docs, see the index at the bottom._
 
+_The product's full name is **PS Delivery OS**; **PS-DOS** is its official
+shorthand, used everywhere space is tight (browser tabs, the footer, this
+doc index) — both names refer to the same product._
+
 ## Local dev logins
 
 Seeded by `prisma/seed.ts`. Re-running `npm run db:seed` restores all of

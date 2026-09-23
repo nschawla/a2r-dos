@@ -27,7 +27,7 @@ export const dynamic = 'force-static';
 export const metadata = {
   title: 'PS-DOS™ — Coming Soon',
   description:
-    'PS-DOS is the delivery operating system for professional-services organizations. Request early access.',
+    'PS Delivery OS (PS-DOS) is the delivery operating system for professional-services organizations. Request early access.',
 };
 
 const VALUE_PROPS = [
@@ -45,7 +45,7 @@ export default function MarketingLandingPage() {
           <div className="flex items-center gap-2.5">
             <BrandMark size="md" className="!text-white" />
             <span className="whitespace-nowrap font-display text-[14px] font-bold text-white sm:text-[15px]">
-              PS-DOS<span className="align-top text-[10px] text-white/50">™</span>
+              PS Delivery OS<span className="align-top text-[10px] text-white/50">™</span>
             </span>
           </div>
           <nav className="flex items-center gap-2.5 sm:gap-3">
@@ -74,7 +74,7 @@ export default function MarketingLandingPage() {
             </h1>
 
             <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-[#AEB7CC] sm:text-[17px]">
-              PS-DOS is the delivery operating system for professional-services organizations — track
+              PS Delivery OS (PS-DOS) is the delivery operating system for professional-services organizations — track
               every engagement, keep your RAID logs current, and automate status reporting from one
               governed workspace. We&rsquo;re onboarding early-access organizations now.
             </p>

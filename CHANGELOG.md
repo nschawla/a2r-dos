@@ -10,6 +10,29 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.33.0] — 2026-09-23
+
+_Global Rebrand — PS Delivery OS._
+
+### Changed
+
+- The product's full name is now **"PS Delivery OS,"** with **"PS-DOS"** retained as its official shorthand —
+  both names refer to the same product. Full name now renders in the two brand-identity slots (the app
+  Sidebar, the marketing site header + hero), and formally introduces itself once in every meta description
+  and the Auto Demo's opening line. Shorthand is kept everywhere space is tight and appropriate: every
+  browser-tab title, the global footer, and single-line auth-screen headers.
+- `docs/EXECUTIVE_SUMMARY.md` and `docs/QUICK_REFERENCE.md` each state the full-name/shorthand relationship
+  once, centrally, rather than repeating it across the `docs/` tree — every doc already used "PS-DOS"
+  consistently, and correctly, as shorthand throughout.
+
+### Fixed
+
+- Three stale copyright headers ("A2R Delivery OS™") left over from the prior A2R-DOS → PS-DOS rebrand that
+  the other 117 files carrying the standard header had already picked up — brought in line with the
+  established "PS-DOS™" convention rather than introducing a third variant.
+
+---
+
 ## [1.32.0] — 2026-09-23
 
 _A2R Global Admin — Clarified, Not Reintroduced._

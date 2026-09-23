@@ -1,6 +1,8 @@
-# PS-DOS — Phase 3: SaaS Foundation
+# PS Delivery OS (PS-DOS) — Phase 3: SaaS Foundation
 
-This is the Next.js / Prisma / Postgres backend for **PS-DOS**, replacing the
+This is the Next.js / Prisma / Postgres backend for **PS Delivery OS**
+("**PS-DOS**" — the name used throughout this repo, its docs, and its UI),
+replacing the
 Phase 1/2 static prototype (`a2r/index.html`, a single-file localStorage app)
 with a real multi-tenant SaaS foundation. The domain model — Modules 0
 through 5 — is lifted 1:1 from that prototype's `state` object; see

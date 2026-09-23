@@ -284,7 +284,7 @@ export function Sidebar({ hiddenHrefs = [], isA2rStaff = false }: { hiddenHrefs?
         {!collapsed && (
           <div className="min-w-0 overflow-hidden">
             <div className="font-display font-bold text-[14.5px] whitespace-nowrap text-ink">
-              Delivery OS<span className="text-ink-faint text-[10px] align-top ml-0.5">™</span>
+              PS Delivery OS<span className="text-ink-faint text-[10px] align-top ml-0.5">™</span>
             </div>
           </div>
         )}

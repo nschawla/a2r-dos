@@ -16,7 +16,7 @@ const plexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '600
 export const metadata: Metadata = {
   title: 'PS-DOS™',
   description:
-    'PS-DOS™ — Delivery Operating System for Professional Services organizations. © 2026 A2R Ventures LLC. All rights reserved.',
+    'PS Delivery OS™ (PS-DOS) — the delivery operating system for Professional Services organizations. © 2026 A2R Ventures LLC. All rights reserved.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

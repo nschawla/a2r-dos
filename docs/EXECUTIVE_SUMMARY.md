@@ -1,5 +1,9 @@
 # Executive Security &amp; Architecture Summary — PS-DOS™
 
+_**PS Delivery OS** is the product's full name; **PS-DOS** is its official
+shorthand — both names refer to the same product throughout this
+document and the rest of the `docs/` tree._
+
 _Authoritative current-state, **v1.19.0**._
 _Audience: executive sponsors, security review, prospective enterprise clients,
 external audit. Requirement- and code-level detail: `docs/FRD.md` ·

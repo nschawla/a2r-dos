@@ -86,14 +86,14 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'welcome',
     route: '/portfolio',
-    // 28-word VO at ~168 wpm — see docs/AUTO_DEMO_SCRIPT.md §3 for the
+    // 29-word VO at ~174 wpm — see docs/AUTO_DEMO_SCRIPT.md §3 for the
     // pacing math behind every duration in this file.
     durationMs: 10000,
     act: 'Introduction',
     personas: ['Executive', 'Admin', 'Security'],
     highlightSelector: '#global-header',
     caption:
-      'Welcome to PS-DOS — the delivery operating system built for professional services firms. This is the PS Control Tower: every engagement, rolled up into one live view.',
+      'Welcome to PS Delivery OS — PS-DOS — the delivery operating system built for professional services firms. This is the PS Control Tower: every engagement, rolled up into one live view.',
   },
   {
     // Was a standalone Command Center page (/command); that route is

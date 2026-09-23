@@ -1,5 +1,5 @@
 /**
- * A2R Delivery OS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
  *
  * Shared "is this open item due soon or overdue" classifier — used by the
  * RAID Cockpit and the SteerCo Decision & Action Tracker so both tables

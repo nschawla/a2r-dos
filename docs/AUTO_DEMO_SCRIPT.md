@@ -54,6 +54,14 @@ describes the Command Bar as a feature pinned to the PS Control Tower rather
 than a separate page. Still 18 beats total; no track membership or
 sequence position changed, only this one beat's route/id/VO.
 
+**Current as of v1.33.0** — global rebrand to **PS Delivery OS** (full
+name; **PS-DOS** remains the official shorthand). Beat 1 (`welcome`)'s VO
+now formally introduces the product by its full name before its
+shorthand, matching the same introduction the marketing site and app
+sidebar now make — see `docs/UI_DESIGN_SYSTEM.md` §12. No other beat's
+VO changed; every later beat already introduces itself via "PS-DOS,"
+which stays correct shorthand usage once the product's been named once.
+
 ---
 
 ## 1. Track overview
@@ -168,8 +176,8 @@ comfortable 150–180 wpm band.
 - **Route:** `/portfolio` · **Duration:** 10s · **Personas:** Executive, Admin, Security, Full Tour
 - **Highlight:** `#global-header`
 - **VO:**
-  > Welcome to PS-DOS — the delivery operating system built for professional services firms. This is the PS Control Tower: every engagement, rolled up into one live view.
-- **Pacing:** 28 words / 10s ≈ **168 wpm**
+  > Welcome to PS Delivery OS — PS-DOS — the delivery operating system built for professional services firms. This is the PS Control Tower: every engagement, rolled up into one live view.
+- **Pacing:** 29 words / 10s ≈ **174 wpm**
 
 #### Beat 2 — `command-bar`
 - **Route:** `/portfolio` (holds on the same route `welcome` just landed on —
