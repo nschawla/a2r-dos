@@ -10,6 +10,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.23.0] — 2026-09-23
+
+_Schedule & Milestones Cockpit Executive Triage & Thematic Clustering._
+
+### Added
+
+- **Portfolio Schedule & Milestone Triage** on `/schedule` — active-milestone count, upcoming go-lives in the
+  next 30/60 days, and a Red/Amber/on-track milestone-health split across every scoped project, ahead of the
+  existing per-project picker.
+- **Schedule Bottleneck & Risk Clusters** — the at-risk subset grouped by likely root cause (Third-Party
+  Dependency Cascades, UAT Sign-off Lags, Resource Contention on Deployment Windows, Scope Expansion Slippage),
+  sorted by how many distinct projects each pattern touches. Click to expand a cluster inline; double-click an
+  engagement for a shortcut to its schedule view. See `docs/SCHEDULE_MILESTONES_TRIAGE.md`.
+
+---
+
 ## [1.22.0] — 2026-09-23
 
 _Financial Realization Cockpit Executive Triage & Thematic Clustering._

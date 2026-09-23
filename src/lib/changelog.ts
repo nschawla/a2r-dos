@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.23.0',
+    date: '2026-09-23',
+    headline: 'Schedule & Milestones Cockpit Executive Triage & Thematic Clustering',
+    changes: [
+      { type: 'feature', text: 'The Schedule & Milestone Burndown Cockpit (/schedule) now opens on a portfolio-wide Executive Triage summary instead of going straight to a per-project picker: active-milestone count, upcoming go-lives in the next 30 and 60 days, and a Red/Amber/on-track milestone-health split across your whole scope.' },
+      { type: 'feature', text: 'Schedule Bottleneck & Risk Clusters group the at-risk engagements by likely root cause — Third-Party Dependency Cascades, UAT Sign-off Lags, Resource Contention on Deployment Windows, Scope Expansion Slippage — sorted by how many distinct projects each pattern touches. Click a cluster to expand it inline; double-click any engagement for a shortcut straight to its schedule view.' },
+      { type: 'improvement', text: 'The per-project engagement picker stays one click away below the new triage summary — nothing about the existing per-project schedule workflow changed.' },
+    ],
+  },
+  {
     version: '1.22.0',
     date: '2026-09-23',
     headline: 'Financial Realization Cockpit Executive Triage & Thematic Clustering',
