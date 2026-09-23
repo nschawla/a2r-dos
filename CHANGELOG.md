@@ -10,6 +10,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.22.0] — 2026-09-23
+
+_Financial Realization Cockpit Executive Triage & Thematic Clustering._
+
+### Added
+
+- **Portfolio Financial Health Triage** on `/financials` — total BAC, Actuals, and EAC Variance across every
+  scoped project, a Red/Amber over-budget project count, and a Fixed Price vs. T&M breakdown, ahead of the
+  existing per-project picker.
+- **Financial Variance & Risk Clusters** — the Amber/Red subset grouped by likely root cause (Unbilled Milestone
+  Delays, Scope Creep Overruns, Subcontractor Rate Variances, Labor Burn Accelerations), sorted by how many
+  distinct projects each pattern touches. Click to expand a cluster inline; double-click an engagement for a
+  shortcut to its Financial Realization view. See `docs/FINANCIAL_REALIZATION_TRIAGE.md`.
+
+---
+
 ## [1.21.0] — 2026-09-23
 
 _RAID Cockpit Executive Triage & Thematic Clustering._

@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.22.0',
+    date: '2026-09-23',
+    headline: 'Financial Realization Cockpit Executive Triage & Thematic Clustering',
+    changes: [
+      { type: 'feature', text: 'The Financial Realization Cockpit (/financials) now opens on a portfolio-wide Executive Triage summary instead of going straight to a per-project picker: total BAC, Actuals, and EAC Variance across your whole scope, a Red/Amber over-budget project count, and a Fixed Price vs. T&M breakdown.' },
+      { type: 'feature', text: 'Financial Variance & Risk Clusters group the Amber/Red engagements by likely root cause — Unbilled Milestone Delays, Scope Creep Overruns, Subcontractor Rate Variances, Labor Burn Accelerations — sorted by how many distinct projects each pattern touches. Click a cluster to expand it inline; double-click any engagement for a shortcut straight to its Financial Realization view.' },
+      { type: 'improvement', text: 'The per-project engagement picker stays one click away below the new triage summary — nothing about the existing per-project EAC workflow changed.' },
+    ],
+  },
+  {
     version: '1.21.0',
     date: '2026-09-23',
     headline: 'RAID Cockpit Executive Triage & Thematic Clustering',
