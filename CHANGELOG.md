@@ -10,6 +10,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.39.0] — 2026-09-23
+
+_Logo Match — Navy Triangle, Wider Red Ribbon._
+
+### Changed
+
+- The logo mark is matched to final approved reference art: the triangle recolors from Gunmetal Gray to Navy,
+  and the base red bar becomes a wider ribbon — already wider than the triangle's own base right at the gap,
+  flaring further by the bottom — rather than a bar cut to the triangle's exact width. `logo-accent` brightened
+  to a more vivid flag red, now fully independent of the `critical` status color (they only shared a hex by
+  coincidence before this pass).
+- `src/app/icon.svg` (the browser-tab favicon) kept in sync with the same geometry and colors.
+
+---
+
 ## [1.38.0] — 2026-09-23
 
 _Logo Revert — Clean Base Form._
