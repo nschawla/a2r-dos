@@ -10,6 +10,24 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.25.0] — 2026-09-23
+
+_Commercial Baseline Cockpit Executive Triage & Thematic Clustering._
+
+### Added
+
+- **Portfolio Commercial & Contract Triage** on `/commercial-baseline` — total contracted value, active-contract
+  count, a locked-vs-draft baseline split, a Red/Amber margin-health count, and a Fixed Fee vs. T&M breakdown,
+  ahead of the existing per-project picker.
+- **Commercial Risk & Margin Leakage Clusters** — the at-risk subset grouped by likely root cause (Change Order
+  Exposure, Margin Squeeze on Fixed-Fee Deliverables, Blended Rate Erosion, Exceeded Baseline Scope Caps), sorted
+  by how many distinct projects each pattern touches. Click to expand a cluster inline; double-click an engagement
+  for a shortcut to its Commercial Baseline view. See `docs/COMMERCIAL_BASELINE_TRIAGE.md` (including §2 on two
+  requested capabilities — a third "Milestone-based" commercial model, and unsigned-change-order tracking — that
+  PS-DOS has no real data for and does not fabricate).
+
+---
+
 ## [1.24.0] — 2026-09-23
 
 _Resource & Capacity Cockpit Executive Triage & Thematic Clustering._

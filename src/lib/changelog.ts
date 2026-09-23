@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.25.0',
+    date: '2026-09-23',
+    headline: 'Commercial Baseline Cockpit Executive Triage & Thematic Clustering',
+    changes: [
+      { type: 'feature', text: 'The Commercial Baseline Cockpit (/commercial-baseline) now opens on a portfolio-wide Executive Triage summary instead of going straight to a per-project picker: total contracted value, active-contract count, a locked-vs-draft baseline split, a Red/Amber margin-health count, and a Fixed Fee vs. T&M breakdown.' },
+      { type: 'feature', text: 'Commercial Risk & Margin Leakage Clusters group the at-risk engagements by likely root cause — Change Order Exposure, Margin Squeeze on Fixed-Fee Deliverables, Blended Rate Erosion, Exceeded Baseline Scope Caps — sorted by how many distinct projects each pattern touches. Click a cluster to expand it inline; double-click any engagement for a shortcut straight to its Commercial Baseline view.' },
+      { type: 'improvement', text: 'The per-project engagement picker stays one click away below the new triage summary — nothing about the existing per-project commercial workflow changed.' },
+    ],
+  },
+  {
     version: '1.24.0',
     date: '2026-09-23',
     headline: 'Resource & Capacity Cockpit Executive Triage & Thematic Clustering',
