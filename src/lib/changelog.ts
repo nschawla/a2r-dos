@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.32.0',
+    date: '2026-09-23',
+    headline: 'A2R Global Admin — Clarified, Not Reintroduced',
+    changes: [
+      { type: 'improvement', text: 'The internal, cross-tenant "A2R Global Admin" role was never removed — it is, and has always been, OperatorRole.SUPER_ADMIN, spanning every client tenant with exclusive /ops access. Its label is now explicit: "Super Admin / Owner (A2R Global Admin)" (was "Super Admin / Owner"), everywhere it renders (the /ops/access role picker, the operator audit trail, the capability matrix).' },
+      { type: 'improvement', text: 'docs/ROLE_ACCESS_MATRIX.md gains a new §0 answering "where\'s the cross-tenant A2R Global Admin?" directly and up front, plus a matching cross-reference in rbacMatrix.ts\'s CLIENT_ADMIN definition, explaining why a cross-tenant role cannot live inside RbacPersona/DeliveryAccessRole: every tenant-side query is unconditionally organizationId-scoped by the ORM auto-scope + Postgres RLS, regardless of persona — a persona that actually spanned tenants would mean deliberately weakening that isolation; one that only appeared to would be a UI that lies about what it does. Cross-tenant reach is exactly what the separate Operator axis exists to provide safely, outside the tenant dashboard\'s own row-level guarantees.' },
+      { type: 'improvement', text: 'CLIENT_ADMIN (renamed from GLOBAL_ADMIN in v1.31.0) is confirmed unchanged and correct as the strictly tenant-scoped super-user tier: full authority within one organization, zero cross-tenant reach, zero /ops access.' },
+    ],
+  },
+  {
     version: '1.31.0',
     date: '2026-09-23',
     headline: 'Client Admin RBAC Rename & Stale Persona Label Fixes',

@@ -21,8 +21,18 @@ export const OPERATOR_ROLES = [
 ] as const;
 export type OperatorRole = (typeof OPERATOR_ROLES)[number];
 
+// SUPER_ADMIN's label deliberately keeps "A2R Global Admin" as a
+// PARENTHETICAL SUFFIX, not a prefix before the existing "Super Admin /
+// Owner" text — OperatorAccessManager.tsx's capability-matrix column
+// header takes `OPERATOR_ROLE_LABEL[r].split(' / ')[0]` for a compact
+// form; putting the new text after that first "/" keeps that split
+// producing "Super Admin" unchanged. This is the real, unambiguous name
+// for "the internal A2R platform-level admin who spans every client
+// tenant, manages global settings, and holds exclusive /ops access" —
+// see docs/ROLE_ACCESS_MATRIX.md §0 for why that role lives here, on the
+// separate Operator axis, and not as a tenant-side RbacPersona.
 export const OPERATOR_ROLE_LABEL: Record<OperatorRole, string> = {
-  SUPER_ADMIN: 'Super Admin / Owner',
+  SUPER_ADMIN: 'Super Admin / Owner (A2R Global Admin)',
   PROVISIONING: 'Provisioning Staff',
   SUPPORT: 'Support / Troubleshooting',
   AUDITOR: 'Auditor / Compliance',
@@ -31,7 +41,7 @@ export const OPERATOR_ROLE_LABEL: Record<OperatorRole, string> = {
 };
 
 export const OPERATOR_ROLE_DESCRIPTION: Record<OperatorRole, string> = {
-  SUPER_ADMIN: 'Full access to every operator surface and action.',
+  SUPER_ADMIN: 'Full access to every operator surface and action, across every client tenant — the real cross-tenant A2R platform admin.',
   PROVISIONING: 'Tenant onboarding and creation; ingestion and SSO setup.',
   SUPPORT: 'Diagnostic inspection, platform health, and read-only tenant impersonation for troubleshooting.',
   AUDITOR: 'Read-only: the immutable audit ledger, elevation history, and platform logs.',

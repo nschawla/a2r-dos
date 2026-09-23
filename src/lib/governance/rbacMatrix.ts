@@ -134,6 +134,15 @@ export const RBAC_MATRIX: Record<RbacPersona, RbacPersonaDef> = {
   // as this blurb says. A2R staff who also happen to hold ADMIN
   // membership in a tenant (for support) resolve to this same persona for
   // that tenant's shell, same as any of its own real admins would.
+  //
+  // Looking for the internal, cross-tenant "A2R Global Admin"? It isn't,
+  // and can't be, a value here — every RbacPersona is scoped to exactly
+  // one Membership row, enforced by the ORM auto-scope + RLS regardless
+  // of persona (a persona that actually bypassed that would be a real
+  // tenant-isolation hole, not a naming choice). That role is
+  // `OperatorRole.SUPER_ADMIN` (src/lib/ops/operator-roles.ts, labeled
+  // "Super Admin / Owner (A2R Global Admin)") — a separate axis entirely.
+  // See docs/ROLE_ACCESS_MATRIX.md §0 for the full rationale.
   CLIENT_ADMIN: {
     key: 'CLIENT_ADMIN',
     deliveryRoles: ['ADMIN'],

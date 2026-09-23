@@ -1,6 +1,6 @@
 # Security & Role Access Matrix — PS-DOS
 
-_Current as of **v1.31.0**. Source of truth: `src/lib/ops/operator-roles.ts`
+_Current as of **v1.32.0**. Source of truth: `src/lib/ops/operator-roles.ts`
 (operator axis), `src/lib/auth/rbac.ts` + `src/lib/governance/rbacMatrix.ts`
 (tenant axis). This document is a reader's map onto that code._
 
@@ -11,6 +11,34 @@ on one, the other, or (for A2R staff who also administer a tenant) both.
 | --- | --- | --- |
 | **Operator** | What can this A2R staff member do in the internal `/ops` console? | `staff_grants` row + `staff_grants.role` (`OperatorRole`) + a live `staff_elevations` for mutations |
 | **Tenant** | What can this member do inside a client workspace? | `Membership.role` (`MembershipRole`) → `Membership.deliveryRole` (`DeliveryAccessRole`) permission matrix |
+
+### 0. "Where's the cross-tenant A2R Global Admin?"
+
+**`OperatorRole.SUPER_ADMIN`** (§1.1 below) — labeled **"Super Admin / Owner
+(A2R Global Admin)"** as of v1.32.0. It has always been, and remains, the
+real internal platform-level role that spans every client tenant, manages
+global settings, and holds exclusive `/ops` access. It was never removed
+and nothing about it changed in the v1.29.0–v1.31.0 tenant-persona work
+below — it lives on the **Operator** axis, a completely different system
+from the **Tenant** axis's `CLIENT_ADMIN` persona.
+
+**Why there is no, and cannot be, a `GLOBAL_ADMIN` value inside
+`RbacPersona`/`DeliveryAccessRole` (§2.3):** that axis is fundamentally
+per-`Membership` — one row per (user, organization) pair, and every single
+query the tenant dashboard runs is unconditionally `organizationId`-scoped
+by the ORM's own tenant auto-scope (`$extends` — `src/lib/db/org-scope.ts`),
+independent of which `DeliveryAccessRole` the membership holds, backed
+further by Postgres RLS `tenant_isolation` policies and composite tenant
+FKs (`docs/TENANT_MODEL_INVENTORY.md`). A `DeliveryAccessRole`/`RbacPersona`
+value that actually reached across tenants would require punching a hole
+through every one of those layers for that one role — a real, deliberate
+weakening of the tenant-isolation guarantee this app is built on, not a
+naming choice. A persona that merely *displayed* as cross-tenant without
+actually bypassing scoping would be worse: a false sense of reach with a
+UI that lies about what it does. Cross-tenant reach is precisely what the
+separate Operator axis (`OperatorRole`) exists to provide, safely, outside
+the tenant dashboard's own row-level guarantees — which is exactly where
+`SUPER_ADMIN` already lives.
 
 ---
 
@@ -35,7 +63,7 @@ role (password re-verify + TOTP + `sessionVersion` binding — see
 
 | Role | Remit |
 | --- | --- |
-| **Super Admin / Owner** (`SUPER_ADMIN`) | Full access to every operator surface and action. The pre-v1.16 default; all migrated grants. |
+| **Super Admin / Owner (A2R Global Admin)** (`SUPER_ADMIN`) | Full access to every operator surface and action, across every client tenant. The pre-v1.16 default; all migrated grants. |
 | **Provisioning Staff** (`PROVISIONING`) | Tenant onboarding and creation; lifecycle (suspend / grace); SSO / identity setup; ingestion templates. |
 | **Support / Troubleshooting** (`SUPPORT`) | Diagnostic inspection — telemetry, platform pulse, tenant detail, read-only tenant impersonation, the operator audit trail. No provisioning, no purge, no staff/role management. |
 | **Auditor / Compliance** (`AUDITOR`) | Read-only: the immutable audit ledger, JIT-elevation history, operator roster, contract/billing records, cryptographic tenant export. No mutations. |
