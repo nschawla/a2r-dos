@@ -10,6 +10,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.38.0] — 2026-09-23
+
+_Logo Revert — Clean Base Form._
+
+### Fixed
+
+- Reverted the logo mark to its clean base form, per explicit request: removed the v1.37.0 stroke-only outer
+  border entirely, and restored the base bar to a plain, uniform rectangle exactly as wide as the triangle's
+  own base (reverting v1.36.0's tapered-trapezoid experiment). Solid dark triangle, clean white gap, clean red
+  rectangle — no borders, no lines, no taper.
+- `src/app/icon.svg` (the browser-tab favicon) kept in sync with the same geometry.
+
+---
+
 ## [1.37.0] — 2026-09-23
 
 _Logo Refinement — Outlined Composite Border._

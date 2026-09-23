@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.38.0',
+    date: '2026-09-23',
+    headline: 'Logo Revert — Clean Base Form',
+    changes: [
+      { type: 'fix', text: 'Reverted the logo mark to its clean base form, per explicit request: removed the v1.37.0 stroke-only outer border entirely, and restored the base bar to a plain, uniform rectangle exactly as wide as the triangle\'s own base (reverting v1.36.0\'s tapered-trapezoid experiment). Solid dark triangle, clean white gap, clean red rectangle — no borders, no lines, no taper.' },
+      { type: 'improvement', text: 'src/app/icon.svg (the browser-tab favicon) kept in sync with the same geometry.' },
+    ],
+  },
+  {
     version: '1.37.0',
     date: '2026-09-23',
     headline: 'Logo Refinement — Outlined Composite Border',

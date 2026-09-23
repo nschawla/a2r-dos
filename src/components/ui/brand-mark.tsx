@@ -3,45 +3,12 @@ import clsx from 'clsx';
 /**
  * "Concept B: Ascent Vector" — the PS Delivery OS logo mark: a fully
  * solid triangle rising to a point (an apex, not a curve — the ascent),
- * a clean horizontal gap, a thick, solid red bar at the base, and one
- * thin outer border framing the whole composite — flat geometric shapes
- * and one stroke, no raster artwork, no gradient.
+ * a clean horizontal gap, and a solid red rectangular bar at the base —
+ * three flat geometric shapes, no raster artwork, no gradient, no
+ * stroke/outline anywhere.
  *
- * v1.35.0 — refined to a fully solid triangle. The earlier "Concept B"
- * cut a smaller triangular counter from the mark's center (evenodd
- * fill-rule) so it read as the letterform "A" — at the mark's actual
- * render sizes (18–40px) that counter consumed most of the shape's
- * interior, leaving only a thin ring of ink that read as a hollow
- * wireframe outline rather than a solid mark. Dropped entirely: the
- * triangle is now one plain filled path, full stop.
- *
- * v1.36.0 — the base bar is now a trapezoid, not a rectangle: its top
- * edge sits exactly on the triangle's own base footprint (x4–20, flush
- * and unified — no width jump across the gap), then flares outward at
- * the same rate the triangle's own two sides taper (Δx/Δy = 8/13, from
- * apex (12,2) to base (4,15)/(20,15)) over the bar's own height, so the
- * bar reads as a continuation of the triangle's silhouette rather than a
- * separate, differently-shaped block dropped underneath it.
- *
- * v1.37.0 — one thin, sharp outer border traces the whole composite's
- * outer silhouette (apex → triangle's right side → straight down the
- * right edge of the gap → the bar's right flare → across the bar's
- * bottom → up its left flare → straight up the left edge of the gap →
- * back up the triangle's left side → apex) — a single closed
- * stroke-only path, `fill="none"`, no separate color of its own: it
- * reads `currentColor` exactly like the triangle, so wherever a call
- * site overrides the mark's color (the marketing page's `!text-white`
- * dark-hero variant included), the border always matches. That's the
- * whole effect: where the border runs alongside the triangle's own
- * fill, same color meeting same color, it has zero contrast and reads
- * as nothing — invisible, flush, the triangle simply looks solid. Where
- * it runs alongside the empty gap or the (independently red)
- * base bar, it has real contrast and reads as a crisp frame around
- * both. No internal dividing lines between the three pieces — this is
- * the union's OUTER boundary only.
- *
- * Three independent pieces, each its own design token so none can ever
- * silently recolor another:
+ * Two independent pieces, each its own design token so neither can ever
+ * silently recolor the other:
  *   - The triangle inherits `currentColor` from the svg's own
  *     `text-logo` class (Gunmetal Gray, #545A61) — deliberately its own
  *     token, not `text-brand` (the one interactive accent: links,
@@ -58,6 +25,19 @@ import clsx from 'clsx';
  *     `text-critical` (the RAID/health severity color) nor `text-brand`:
  *     pure branding, never a status signal, and never affected by a
  *     `className` override on the mark (it doesn't use `currentColor`).
+ *     A clean rectangle, the exact width of the triangle's own base.
+ *
+ * Revision history (each iteration verified live before the next):
+ *   v1.35.0 — the earlier "A" counter-cut (a smaller triangle removed
+ *     from the mark's center) was dropped for a fully solid triangle —
+ *     at this mark's actual render sizes that cutout consumed most of
+ *     the interior, reading as a hollow wireframe rather than a solid
+ *     mark.
+ *   v1.36.0 — tried a tapered trapezoid base bar (flaring wider than the
+ *     triangle's base). v1.37.0 — tried a stroke-only outer border
+ *     framing the whole composite. v1.38.0 — both reverted per explicit
+ *     request, back to this file's current clean-rectangle-bar,
+ *     no-border form.
  *
  * Every call site pairs this with its own adjacent text label already
  * (Header, Sidebar, AuthShell, the public/marketing shell, the Ops
@@ -95,21 +75,9 @@ export function BrandMark({
           override). Apex (12,2); base corners (4,15) and (20,15). */}
       <path fill="currentColor" d="M12 2L20 15H4Z" />
       {/* y15–18 is a deliberate empty gap — no shape drawn. */}
-      {/* The base bar — always the brand red, own class. Top edge (4,18)
-          to (20,18) matches the triangle's base exactly; bottom edge
-          flares to (1.5,22)/(22.5,22), the same taper the triangle's own
-          sides use, carried across the bar's 4-unit height. */}
-      <path className="text-logo-accent" fill="currentColor" d="M4 18L20 18L22.5 22H1.5Z" />
-      {/* The composite's single outer border — stroke only, inherits
-          `currentColor` (never its own color), so it always matches
-          whatever the triangle above is currently rendering as. */}
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1}
-        strokeLinejoin="miter"
-        d="M12 2L20 15V18L22.5 22H1.5L4 18V15Z"
-      />
+      {/* The base bar — always the brand red, own class. A clean
+          rectangle, exactly as wide as the triangle's own base (x4–20). */}
+      <rect className="text-logo-accent" fill="currentColor" x="4" y="18" width="16" height="4" />
     </svg>
   );
 }
