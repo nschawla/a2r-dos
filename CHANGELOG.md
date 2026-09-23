@@ -10,6 +10,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.36.0] — 2026-09-23
+
+_Logo Refinement — Tapered Base Bar._
+
+### Changed
+
+- The logo mark's red base bar is now a trapezoid, not a rectangle: its top edge sits exactly on the
+  triangle's own base footprint (flush and unified, no width jump across the gap), then flares outward at the
+  same rate the triangle's own two sides taper, so the bar reads as a continuation of the triangle's
+  silhouette rather than a separate block.
+- `src/app/icon.svg` (the browser-tab favicon) kept in sync with the same geometry.
+
+---
+
 ## [1.35.0] — 2026-09-23
 
 _Logo Refinement — Solid Triangle, Separated Base Bar._

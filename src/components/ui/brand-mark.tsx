@@ -15,6 +15,14 @@ import clsx from 'clsx';
  * wireframe outline rather than a solid mark. Dropped entirely: the
  * triangle is now one plain filled path, full stop.
  *
+ * v1.36.0 — the base bar is now a trapezoid, not a rectangle: its top
+ * edge sits exactly on the triangle's own base footprint (x4–20, flush
+ * and unified — no width jump across the gap), then flares outward at
+ * the same rate the triangle's own two sides taper (Δx/Δy = 8/13, from
+ * apex (12,2) to base (4,15)/(20,15)) over the bar's own height, so the
+ * bar reads as a continuation of the triangle's silhouette rather than a
+ * separate, differently-shaped block dropped underneath it.
+ *
  * Three independent pieces, each its own design token so none can ever
  * silently recolor another:
  *   - The triangle inherits `currentColor` from the svg's own
@@ -70,9 +78,11 @@ export function BrandMark({
           override). Apex (12,2); base corners (4,15) and (20,15). */}
       <path fill="currentColor" d="M12 2L20 15H4Z" />
       {/* y15–18 is a deliberate empty gap — no shape drawn. */}
-      {/* The base bar — always the brand red, own class, exactly as wide
-          as the triangle's own base above it (x4–20). */}
-      <rect className="text-logo-accent" fill="currentColor" x="4" y="18" width="16" height="4" />
+      {/* The base bar — always the brand red, own class. Top edge (4,18)
+          to (20,18) matches the triangle's base exactly; bottom edge
+          flares to (1.5,22)/(22.5,22), the same taper the triangle's own
+          sides use, carried across the bar's 4-unit height. */}
+      <path className="text-logo-accent" fill="currentColor" d="M4 18L20 18L22.5 22H1.5Z" />
     </svg>
   );
 }

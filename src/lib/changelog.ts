@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.36.0',
+    date: '2026-09-23',
+    headline: 'Logo Refinement — Tapered Base Bar',
+    changes: [
+      { type: 'improvement', text: 'The logo mark\'s red base bar is now a trapezoid, not a rectangle: its top edge sits exactly on the triangle\'s own base footprint (flush and unified, no width jump across the gap), then flares outward at the same rate the triangle\'s own two sides taper, so the bar reads as a continuation of the triangle\'s silhouette rather than a separate block.' },
+      { type: 'improvement', text: 'src/app/icon.svg (the browser-tab favicon) kept in sync with the same geometry.' },
+    ],
+  },
+  {
     version: '1.35.0',
     date: '2026-09-23',
     headline: 'Logo Refinement — Solid Triangle, Separated Base Bar',
