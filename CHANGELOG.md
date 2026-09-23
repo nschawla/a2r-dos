@@ -10,6 +10,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.24.0] — 2026-09-23
+
+_Resource & Capacity Cockpit Executive Triage & Thematic Clustering._
+
+### Added
+
+- **Portfolio Resource & Capacity Triage** on `/capacity` — blended utilization, unassigned headcount, a
+  severely-over-allocated (>110%) count, and a Red/Amber/Optimal resource-health split, above the existing tabs.
+- **Allocation Bottleneck & Skill Risk Clusters** — the at-risk roster grouped by likely staffing root cause
+  (Senior/Architect Over-allocation, Cross-Project Contention for Lead PMs, Junior/Analyst Under-utilization,
+  Bench/Unassigned Capacity — a real-data substitute for the requested but ungrounded "Certification Gaps" theme;
+  see `docs/RESOURCE_CAPACITY_TRIAGE.md` §2), sorted by how many distinct projects each pattern touches. Click to
+  expand a cluster inline; click a resource for a same-page shortcut to its row in the Utilization table.
+
+---
+
 ## [1.23.0] — 2026-09-23
 
 _Schedule & Milestones Cockpit Executive Triage & Thematic Clustering._

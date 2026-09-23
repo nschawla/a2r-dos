@@ -1,6 +1,7 @@
 import { requireOrgContext } from '@/lib/session';
 import { isGlobalRole } from '@/lib/scoping';
 import { loadCapacityCockpitData } from '@/server/queries/pages/dashboards';
+import { loadResourceTriage } from '@/server/queries/resource-triage';
 import {
   resourceCapacityRow,
   blendedSummary,
@@ -8,6 +9,7 @@ import {
   type CapacityResourceInput,
 } from '@/lib/capacity-engine';
 import { CapacityCockpit } from '@/components/modules/capacity/CapacityCockpit';
+import { ResourceTriageHeader } from '@/components/modules/capacity/ResourceTriageHeader';
 
 const FORECAST_WEEKS = 52;
 
@@ -26,15 +28,15 @@ export default async function CapacityPage() {
   const { role, deliveryRole } = context;
   const isAdmin = role === 'OWNER' || role === 'ADMIN';
 
-  const {
-    window: { period, periodStart, periodEnd, firstWeek },
-    resources,
-    holidays,
-    policies,
-    actualsByResource,
-    forecastSlots,
-    activeProjects,
-  } = await loadCapacityCockpitData(context);
+  // The triage rollup (its own small, independent set of queries) runs
+  // concurrently with the tabs' heavier 52-week forecast load rather than
+  // after it — this page returns one shell once both resolve, so there's
+  // no Suspense boundary to gain from here (unlike RAID/Financial/
+  // Schedule, whose triage sits above an otherwise-fast, already-
+  // independent picker): the two just no longer wait on each other in
+  // series.
+  const [{ window: { period, periodStart, periodEnd, firstWeek }, resources, holidays, policies, actualsByResource, forecastSlots, activeProjects }, triage] =
+    await Promise.all([loadCapacityCockpitData(context), loadResourceTriage(context)]);
 
   const holidayDates = holidays.map((h) => h.date);
   const actualByResource = new Map(actualsByResource.map((a) => [a.resourceId, a._sum.actualHours ?? 0]));
@@ -119,6 +121,9 @@ export default async function CapacityPage() {
             : `Scoped to your practice — ${resources.length} resource${resources.length === 1 ? '' : 's'}.`}
         </p>
       </div>
+
+      {/* Macro View — the dual-tile Executive Triage banner. */}
+      <ResourceTriageHeader triage={triage} />
 
       <CapacityCockpit
         isAdmin={isAdmin}

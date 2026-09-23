@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.24.0',
+    date: '2026-09-23',
+    headline: 'Resource & Capacity Cockpit Executive Triage & Thematic Clustering',
+    changes: [
+      { type: 'feature', text: 'The Resource & Capacity Cockpit (/capacity) now opens on a portfolio-wide Executive Triage banner above its existing tabs: blended utilization, unassigned headcount, a count of severely over-allocated resources (>110% of capacity), and a Red/Amber/Optimal resource-health split.' },
+      { type: 'feature', text: 'Allocation Bottleneck & Skill Risk Clusters group the at-risk roster by likely staffing root cause — Senior/Architect Over-allocation, Cross-Project Contention for Lead PMs, Junior/Analyst Under-utilization, Bench/Unassigned Capacity — sorted by how many distinct projects each pattern touches. Click a cluster to expand it inline; click a resource for a same-page shortcut to its row in the Utilization table.' },
+      { type: 'improvement', text: 'The existing Utilization & Attainment, Concurrency Radar, 52-Week Forecast, and Policy & Holiday Controls tabs are unchanged — the triage banner sits above them, loaded concurrently rather than in series.' },
+    ],
+  },
+  {
     version: '1.23.0',
     date: '2026-09-23',
     headline: 'Schedule & Milestones Cockpit Executive Triage & Thematic Clustering',

@@ -236,7 +236,7 @@ function UtilizationTab({ periodLabel, orgSummary, practices, resourceRows }: Ca
                 </tr>
               )}
               {filteredRows.map((r) => (
-                <tr key={r.id} className="border-b border-border/60 last:border-0">
+                <tr id={`resource-${r.id}`} key={r.id} className="border-b border-border/60 last:border-0 scroll-mt-20">
                   <td className="py-2.5 pr-4 font-semibold">
                     {r.name}
                     {!r.isBillableHead && <span className="ml-2 badge !py-0.5 !px-1.5 text-[10px]">non-billable</span>}
