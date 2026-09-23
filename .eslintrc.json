@@ -4,6 +4,7 @@
   "ignorePatterns": [
     "**/*.d.ts",
     "**/*.d.mts",
+    "**/*.generated.ts",
     ".next/",
     "node_modules/",
     "coverage/",

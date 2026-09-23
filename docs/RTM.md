@@ -50,7 +50,7 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | FR-OPS-6 | `src/app/(admin)/ops/access`, `src/components/ops/OperatorAccessManager.tsx`, `src/server/actions/ops-roles.ts`, `staff-grants.ts` `setOperatorRole` | A `tests/operator-role-grants.test.ts` · E (SUPER_ADMIN reaches `/ops/access` in prod verification) |
 | FR-OPS-7 | `src/server/actions/ops.ts`, `src/lib/ops/data-sovereignty.ts`, `src/lib/ops/api-keys.ts` | A `tests/enterprise-flows.test.ts` · E Suite I (provision / export / purge) |
 | FR-OPS-8 | `src/lib/ops/tenant-management.ts` (`startImpersonation`) | E Suite I2 |
-| FR-OPS-9 | `src/app/(admin)/ops/{telemetry,pulse,billing,audit,ingestion,dev-docs}` | E Suite D · M UAT (ops walkthrough) |
+| FR-OPS-9 | `src/app/(admin)/ops/{telemetry,pulse,billing,audit,ingestion,dev-docs,docs}` | E Suite D · M UAT (ops walkthrough); `/ops/docs`'s content-generation script (`scripts/build-docs-hub.ts`) verified by a full `next build` compiling `src/lib/ops/docs-hub-content.generated.ts` and the route |
 | FR-OPS-10 | `src/lib/audit-ledger.ts` (`recordLedgerEvent` / `verifyLedgerIntegrity`) | A `tests/security/ledger-*.test.ts` · E Suite F2 |
 | FR-OPS-11 | `src/lib/integrations/*` (types, http, errors, normalize, registry, sync-runner, adapters/*), `src/server/actions/integrations.ts`, `src/app/(admin)/ops/integrations`, `src/app/api/internal/integrations-sync` | A `tests/integrations.test.ts` (24 — normalization, error classification, adapter read-only-by-construction, provider-meta drift guard), `tests/integrations-sync-runner.test.ts` (3 — live DB + a real network failure) |
 
@@ -83,6 +83,7 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | FR-OBS-3 | `src/lib/observability/action-wrapper.ts`, `route-wrapper.ts` | A `tests/observability.test.ts`, `tests/security/error-sanitization.test.ts` (every route wrapped or allowlisted; no raw error in any body) |
 | FR-OBS-4 | `src/app/api/health/route.ts`, `src/app/api/health/ready/route.ts` | A `tests/security/health-endpoint.test.ts` (7 — public body = `{ status }` only; token unlocks detail; no error-string leak) · `npm run health:prod` |
 | FR-OBS-5 | `next.config.mjs` `securityHeaders` | A `tests/security/security-headers.test.ts` |
+| FR-OBS-6 | `src/lib/observability.ts` `generateTraceId`/`captureException`, `src/lib/observability/{action-wrapper,route-wrapper}.ts` | A `tests/observability.test.ts` (Ref/traceId surfaced from a mocked deterministic id), `tests/security/rate-limit-endpoints.test.ts` (a real, unmocked id — shape-asserted, not a fixed value) |
 
 ## Executive governance & triage modules
 

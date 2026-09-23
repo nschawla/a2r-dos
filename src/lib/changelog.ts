@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.28.0',
+    date: '2026-09-23',
+    headline: 'Documentation Hub, Implementation & Client Support Runbooks, Support Trace IDs',
+    changes: [
+      { type: 'feature', text: 'New in-app Documentation Hub at /ops/docs — a native Markdown reader for the repo\'s curated docs/*.md, organized into Architecture, RTM, Module Specs, QA, Implementation Guide, Release Notes, and Operations & Support. Content is baked in at build time (scripts/build-docs-hub.ts), so it never depends on reading the filesystem at runtime. Same devdocs:view gate as the existing /ops/dev-docs summary, which it complements rather than replaces.' },
+      { type: 'improvement', text: 'Server Action and API route failures now carry a support-ticket-friendly trace id — "(Ref: <id>)" in the generic error message, or traceId in a Route Handler\'s 500 body — matching the reference id Next.js already shows on a page-render error boundary. A client can quote it verbatim; Tier 2/3 grep the exact structured log line back out.' },
+      { type: 'improvement', text: 'Two new docs: docs/IMPLEMENTATION_GUIDE.md (a from-zero setup-to-deploy runbook for a new engineer) and docs/CLIENT_SUPPORT_RUNBOOK.md (graceful error states, the trace-id convention, and a Tier 1/2/3 support escalation playbook).' },
+    ],
+  },
+  {
     version: '1.27.0',
     date: '2026-09-23',
     headline: 'Documentation & Schema/RLS Alignment Sweep',

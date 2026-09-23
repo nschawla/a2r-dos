@@ -112,8 +112,8 @@ export function withAction<A extends unknown[], R extends ActionResultish>(
       const code = guardCode(err);
       if (code) return { ok: false, error: code } as unknown as R;
 
-      captureException(err, redactContext({ scope: 'server-action', action: name, ...(await actorContext()) }));
-      return { ok: false, error: GENERIC_ACTION_ERROR } as unknown as R;
+      const traceId = captureException(err, redactContext({ scope: 'server-action', action: name, ...(await actorContext()) }));
+      return { ok: false, error: `${GENERIC_ACTION_ERROR} (Ref: ${traceId})` } as unknown as R;
     }
   };
 }

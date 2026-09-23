@@ -23,6 +23,7 @@ const OPS_NAV: ReadonlyArray<{ href: string; label: string; desc: string; capabi
   { href: '/ops/security', label: 'Operator Security', desc: 'Your authenticator (2FA)', capability: 'ops:view' },
   { href: '/ops/ingestion', label: 'Ingestion & Templates', desc: 'Intake schemas & downloads', capability: 'ingestion:manage' },
   { href: '/ops/dev-docs', label: 'Developer Docs', desc: 'Build · architecture · setup', capability: 'devdocs:view' },
+  { href: '/ops/docs', label: 'Documentation Hub', desc: 'Architecture · RTM · QA · runbooks', capability: 'devdocs:view' },
 ];
 
 export function OpsNav({ role }: { role: OperatorRole }) {

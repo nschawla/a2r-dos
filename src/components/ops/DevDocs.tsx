@@ -17,6 +17,7 @@
  * Presentational server component: all data comes in as props.
  */
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import type { BuildInfo } from '@/lib/build-info';
 import { CHANGE_TYPE_META, type ReleaseNote } from '@/lib/changelog';
 
@@ -340,7 +341,12 @@ export function DevDocs({ build, releases }: { build: BuildInfo; releases: Relea
           The in-app engineering reference for PS-DOS — build summary, architecture notes, and
           setup guidelines in one place. A2R staff only; no tenant can reach this page. It{' '}
           <span className="font-medium">consolidates</span> the repo docs listed at the bottom — it does not
-          replace them. When this page and the repo disagree, the repo wins.
+          replace them. When this page and the repo disagree, the repo wins. For the actual files themselves,
+          rendered in full, see{' '}
+          <Link href="/ops/docs" className="text-brand font-semibold hover:underline">
+            the Documentation Hub
+          </Link>
+          .
         </p>
       </div>
 

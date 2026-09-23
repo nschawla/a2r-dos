@@ -31,7 +31,35 @@ interface StructuredEvent {
   name?: string;
   stack?: string;
   digest?: string;
+  /** This event's own correlation id — see generateTraceId(). Distinct
+   * from `digest`, which is Next.js's own id for a render-time error
+   * caught by an error.tsx boundary; this is the one `captureException`
+   * mints for every event (render errors carry both). */
+  traceId?: string;
   context?: Record<string, unknown>;
+}
+
+/**
+ * A short, support-ticket-friendly correlation id — see
+ * docs/CLIENT_SUPPORT_RUNBOOK.md for the full convention this backs. Every
+ * `captureException` call mints one and logs it in the structured event;
+ * `withAction`/`withRouteHandler` also surface it to the caller (in the
+ * generic error message / JSON body) so a user can quote it verbatim in a
+ * support ticket and Tier 2/3 can `grep` the exact log line back out.
+ *
+ * `crypto.randomUUID()` is a Web Crypto global — available in every
+ * runtime this file needs to run in (browser, Node 19+, the Edge runtime)
+ * with no import, keeping this module's "no node built-ins" contract
+ * intact. 8 hex chars (32 bits) is short enough to read aloud or paste
+ * into a ticket, and collision odds are irrelevant for a "grep the last
+ * few minutes of logs for this string" workflow, not a security id.
+ */
+export function generateTraceId(): string {
+  try {
+    return crypto.randomUUID().replace(/-/g, '').slice(0, 8);
+  } catch {
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`.slice(-8);
+  }
 }
 
 /** JSON.stringify that never throws on circular refs / BigInt / functions. */
@@ -94,8 +122,9 @@ function emit(event: StructuredEvent): void {
  * domain-level expected failure (those return `{ ok:false, error }` tuples
  * and don't come here).
  */
-export function captureException(error: unknown, context?: ObservabilityContext): void {
+export function captureException(error: unknown, context?: ObservabilityContext): string {
   const norm = normalizeError(error);
+  const traceId = generateTraceId();
   emit({
     timestamp: new Date().toISOString(),
     level: 'error',
@@ -104,10 +133,12 @@ export function captureException(error: unknown, context?: ObservabilityContext)
     name: norm.name,
     stack: norm.stack,
     digest: norm.digest,
+    traceId,
     context: context && Object.keys(context).length > 0 ? { ...context } : undefined,
   });
   // When the Sentry hook above is wired, also call:
-  //   Sentry.captureException(error, { extra: context });
+  //   Sentry.captureException(error, { extra: context, tags: { traceId } });
+  return traceId;
 }
 
 /**

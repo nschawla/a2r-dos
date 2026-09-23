@@ -10,6 +10,28 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.28.0] — 2026-09-23
+
+_Documentation Hub, Implementation & Client Support Runbooks, Support Trace IDs._
+
+### Added
+
+- **In-app Documentation Hub** at `/ops/docs` — a native Markdown reader for the repo's curated `docs/*.md`,
+  organized into Architecture, RTM, Module Specs, QA, Implementation Guide, Release Notes, and Operations &
+  Support. Content is baked in at build time (`scripts/build-docs-hub.ts`), never read from the filesystem at
+  runtime. Same `devdocs:view` gate as the existing `/ops/dev-docs` summary, which it complements.
+- `docs/IMPLEMENTATION_GUIDE.md` — a from-zero setup-to-deploy runbook for a new engineer.
+- `docs/CLIENT_SUPPORT_RUNBOOK.md` — graceful error states, the trace-id convention, and a Tier 1/2/3 support
+  escalation playbook.
+
+### Changed
+
+- Server Action and API route failures now carry a support-ticket-friendly trace id — `(Ref: <id>)` in the
+  generic error message, or `traceId` in a Route Handler's 500 body — matching the reference id Next.js already
+  shows on a page-render error boundary.
+
+---
+
 ## [1.27.0] — 2026-09-23
 
 _Documentation & Schema/RLS Alignment Sweep._

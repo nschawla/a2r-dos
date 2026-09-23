@@ -111,4 +111,7 @@ npm run build          # production build (what Vercel runs)
 | Deploying / Vercel environment variables | `docs/VERCEL_DEPLOYMENT.md` |
 | Full data model | `docs/ERD.md`, `docs/TENANT_MODEL_INVENTORY.md` |
 | What's traced to what (requirements ↔ code ↔ tests) | `docs/RTM.md`, `docs/FRD.md` |
+| Zero-to-deployed setup, for someone new to the repo | `docs/IMPLEMENTATION_GUIDE.md` |
+| Live client-support triage (error reference ids, Tier 1/2/3 escalation) | `docs/CLIENT_SUPPORT_RUNBOOK.md` |
+| Reading any of this **inside the app**, no checkout needed | `/ops/docs` — the Documentation Hub, A2R staff only |
 | Test suite layout / how to run everything | `docs/TEST_COVERAGE.md` |

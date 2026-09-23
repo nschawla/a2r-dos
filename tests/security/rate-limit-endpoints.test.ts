@@ -110,12 +110,16 @@ describe('changePasswordAction — PASSWORD_CHANGE rate limit', () => {
 });
 
 describe('withRouteHandler ↔ observability', () => {
-  it('a throwing handler → 500 { error: "Internal server error." }', async () => {
+  it('a throwing handler → 500 { error: "Internal server error.", traceId }', async () => {
     const route = withRouteHandler('probe', async () => {
       throw new Error('simulated pool timeout');
     });
     const res = await route(req(), { params: Promise.resolve({}) });
     expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({ error: 'Internal server error.' });
+    const body = await res.json();
+    expect(body.error).toBe('Internal server error.');
+    // a real (unmocked) captureException() here — assert shape, not the
+    // random value: an 8-char correlation id a support ticket can quote.
+    expect(body.traceId).toMatch(/^[0-9a-z]{8}$/);
   });
 });

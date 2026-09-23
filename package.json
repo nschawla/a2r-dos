@@ -1,12 +1,13 @@
 {
   "name": "ps-dos-app",
-  "version": "1.27.0",
+  "version": "1.28.0",
   "private": true,
   "description": "PS-DOS — SaaS foundation (Phase 3). Next.js App Router + Prisma + Postgres.",
   "scripts": {
     "dev": "next dev",
     "dev:clean": "npx kill-port 3000 && rm -rf .next && next dev",
-    "build": "next build",
+    "docs:hub:build": "tsx scripts/build-docs-hub.ts",
+    "build": "npm run docs:hub:build && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -57,6 +58,8 @@
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },

@@ -113,6 +113,7 @@ const OPS_ROUTE_CAPABILITY: ReadonlyArray<[prefix: string, capability: OperatorC
   ['/ops/telemetry', 'telemetry:view'],
   ['/ops/pulse', 'pulse:view'],
   ['/ops/dev-docs', 'devdocs:view'],
+  ['/ops/docs', 'devdocs:view'],
   ['/ops/tenants', 'tenants:view'],
   ['/ops/identity', 'identity:manage'],
   ['/ops/ingestion', 'ingestion:manage'],

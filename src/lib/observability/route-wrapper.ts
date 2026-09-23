@@ -42,8 +42,8 @@ export function withRouteHandler<Ctx extends RouteContext = RouteContext>(
       // redirect() / notFound() / the static-generation bailout — framework
       // control flow, must propagate untouched.
       if (isNextControlFlow(err)) throw err;
-      captureException(err, { scope: 'api', route: name });
-      return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
+      const traceId = captureException(err, { scope: 'api', route: name });
+      return NextResponse.json({ error: 'Internal server error.', traceId }, { status: 500 });
     }
   };
 }

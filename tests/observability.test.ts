@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Spy on the structured-logging seam.
-const { captureException } = vi.hoisted(() => ({ captureException: vi.fn() }));
+// Spy on the structured-logging seam. Real captureException() now returns a
+// trace id (see src/lib/observability.ts's generateTraceId) that the
+// wrappers surface to the caller — the mock returns a fixed one so the
+// wrapped-result assertions below stay deterministic.
+const { captureException } = vi.hoisted(() => ({
+  captureException: vi.fn((_err: unknown, _ctx?: Record<string, unknown>) => 'abc12345'),
+}));
 vi.mock('@/lib/observability', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/observability')>();
   return { ...actual, captureException };
@@ -34,12 +39,12 @@ describe('withAction', () => {
     expect(captureException).not.toHaveBeenCalled();
   });
 
-  it('converts an unhandled throw to the generic result + one structured capture', async () => {
+  it('converts an unhandled throw to the generic result + a Ref trace id from one structured capture', async () => {
     const boom = new Error('connection reset by peer');
     const wrapped = withAction('updateWidget', async () => {
       throw boom;
     });
-    expect(await wrapped()).toEqual({ ok: false, error: GENERIC_ACTION_ERROR });
+    expect(await wrapped()).toEqual({ ok: false, error: `${GENERIC_ACTION_ERROR} (Ref: abc12345)` });
     expect(captureException).toHaveBeenCalledTimes(1);
     const [err, ctx] = captureException.mock.calls[0]!;
     expect(err).toBe(boom);
@@ -108,14 +113,14 @@ describe('withRouteHandler', () => {
     expect(captureException).not.toHaveBeenCalled();
   });
 
-  it('turns an unhandled throw into a 500 + one structured capture', async () => {
+  it('turns an unhandled throw into a 500 + Ref trace id from one structured capture', async () => {
     const boom = new Error('db pool exhausted');
     const wrapped = withRouteHandler('reports/x', async () => {
       throw boom;
     });
     const res = await wrapped(new Request('http://t/'), { params: Promise.resolve({}) });
     expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({ error: 'Internal server error.' });
+    expect(await res.json()).toEqual({ error: 'Internal server error.', traceId: 'abc12345' });
     expect(captureException).toHaveBeenCalledWith(boom, { scope: 'api', route: 'reports/x' });
   });
 
