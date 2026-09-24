@@ -32,6 +32,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
+import { downloadCsv } from '@/lib/client/csv-export';
 
 export type TriageTag = 'UNDER_REVIEW' | 'ACKNOWLEDGED';
 
@@ -58,24 +59,6 @@ function readSnoozed(rowId: string): boolean {
   } catch {
     return false;
   }
-}
-
-/** Minimal RFC 4180 CSV — one header row, one data row (this is always a
- * single flagged row, not a bulk export). */
-function downloadCsv(filename: string, fields: Record<string, string | null>): void {
-  const headers = Object.keys(fields);
-  const escape = (v: string) => (/["\n,]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-  const csv = `${headers.map(escape).join(',')}\n${headers.map((h) => escape(fields[h] ?? '')).join(',')}\n`;
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
 }
 
 function useTriageRowState(rowId: string) {
@@ -246,7 +229,10 @@ export function TriageRow({
                 <button
                   type="button"
                   onClick={() => {
-                    downloadCsv(exportFilename, exportFields);
+                    const headers = Object.keys(exportFields);
+                    downloadCsv(exportFilename, headers, [
+                      Object.fromEntries(headers.map((h) => [h, exportFields[h] ?? ''])),
+                    ]);
                     setOpen(false);
                   }}
                   className="w-full px-3 py-1.5 text-[13px] text-left hover:bg-surface-2 transition-colors"

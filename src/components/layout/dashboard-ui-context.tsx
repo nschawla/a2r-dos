@@ -4,6 +4,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { RBAC_MATRIX, type RbacPersona } from '@/lib/governance/rbacMatrix';
 import { useRbacPreview } from '@/lib/client/rbac-preview';
 import { hasPermission, roleCanEverEditProjects, type PermissionAction, type DeliveryRole } from '@/lib/auth/rbac';
+import {
+  parseWorkspaceTabs,
+  WORKSPACE_TABS_STORAGE_KEY,
+  MAX_WORKSPACE_TABS,
+  type WorkspaceTab,
+} from '@/lib/client/workspace-tabs';
+
+export type { WorkspaceTab };
 
 export { RBAC_MATRIX };
 export type { RbacPersona };
@@ -35,6 +43,15 @@ interface DashboardUIState {
   rbacPersona: RbacPersona;
   rbacPreviewActive: boolean;
   setRbacPreview: (p: RbacPersona | null) => void;
+  /** Tabbed Multi-Tasking Workspaces — session-scoped, sessionStorage-backed
+   * record of what's been opened from the Control Tower / portfolio grid
+   * this session (WorkspaceTabsBar.tsx renders the strip;
+   * TrackedProjectLink.tsx calls openWorkspaceTab on click). See
+   * src/lib/client/workspace-tabs.ts for the scope/limitations this is
+   * deliberately built to. */
+  workspaceTabs: WorkspaceTab[];
+  openWorkspaceTab: (href: string, label: string) => void;
+  closeWorkspaceTab: (href: string) => void;
 }
 
 const DashboardUIContext = createContext<DashboardUIState | null>(null);
@@ -52,6 +69,49 @@ export function DashboardUIProvider({
   // has no DashboardUIProvider of its own) and PersonaPreviewBar.tsx (the
   // explicit tenant-shell banner) via the same localStorage key.
   const { rbacPreview, setRbacPreview } = useRbacPreview();
+
+  // Tabbed Multi-Tasking Workspaces — restored from this browser's
+  // sessionStorage a tick after first paint (hydration-safe: SSR and the
+  // first client render both start with an empty strip, same guard pattern
+  // as PersonaPreviewBar's `mounted` flag), then kept live in this one
+  // Context value for the rest of the session.
+  const [workspaceTabs, setWorkspaceTabs] = useState<WorkspaceTab[]>([]);
+  useEffect(() => {
+    try {
+      setWorkspaceTabs(parseWorkspaceTabs(window.sessionStorage.getItem(WORKSPACE_TABS_STORAGE_KEY)));
+    } catch {
+      /* ignore — starts empty */
+    }
+  }, []);
+
+  const openWorkspaceTab = useCallback(
+    (href: string, label: string) => {
+      setWorkspaceTabs((prev) => {
+        const next = prev.some((t) => t.href === href)
+          ? prev.map((t) => (t.href === href ? { href, label } : t)) // refresh label, keep position
+          : [...prev, { href, label }].slice(-MAX_WORKSPACE_TABS);
+        try {
+          window.sessionStorage.setItem(WORKSPACE_TABS_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          /* best-effort only */
+        }
+        return next;
+      });
+    },
+    []
+  );
+
+  const closeWorkspaceTab = useCallback((href: string) => {
+    setWorkspaceTabs((prev) => {
+      const next = prev.filter((t) => t.href !== href);
+      try {
+        window.sessionStorage.setItem(WORKSPACE_TABS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* best-effort only */
+      }
+      return next;
+    });
+  }, []);
 
   // The ⌘K palette lives at the app root (CommandK) so it works on every
   // surface, not just the dashboard — this just pokes it open.
@@ -88,6 +148,9 @@ export function DashboardUIProvider({
       rbacPersona: rbacPreview ?? realRbacPersona,
       rbacPreviewActive: rbacPreview !== null,
       setRbacPreview,
+      workspaceTabs,
+      openWorkspaceTab,
+      closeWorkspaceTab,
     }),
     [
       helpDrawerOpen,
@@ -100,6 +163,9 @@ export function DashboardUIProvider({
       realRbacPersona,
       rbacPreview,
       setRbacPreview,
+      workspaceTabs,
+      openWorkspaceTab,
+      closeWorkspaceTab,
     ]
   );
 

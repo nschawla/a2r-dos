@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.43.0',
+    date: '2026-09-24',
+    headline: 'Tabbed Workspaces + PS-DOS IQ Natural-Language Search',
+    changes: [
+      { type: 'feature', text: 'Tabbed Multi-Tasking Workspaces: clicking into a project from the Control Tower / portfolio grid now opens a dismissible tab in a new strip below the header, so you can jump straight back to any recently-opened project without hunting through the sidebar. Session-scoped (sessionStorage) — the tab list resets with a fresh browser session, same convention as the Decision Center\'s row-snooze feature. This is a navigational convenience layer on top of Next.js\'s normal routing, not an in-memory kept-alive shell: switching tabs is still a real page transition, each fetching its own data fresh — the Control Tower itself is the pinned, always-present home tab and is never affected by opening others.' },
+      { type: 'feature', text: 'PS-DOS IQ: a natural-language search bar above the Active Projects registry. Recognizes health-status words ("red"/"amber"/"green" and synonyms), PM-assignment ("unassigned"), RAID-volume words ("clean", "high-raid") and threshold expressions ("raid>2"), plus plain-text matches against project/client/PM/model/methodology — entirely client-side keyword matching over data already on the page, no external NLP API, no new server query. Combines with the existing health-pill filter and adds a one-click "Export CSV" of whatever\'s currently visible.' },
+    ],
+  },
+  {
     version: '1.42.0',
     date: '2026-09-24',
     headline: 'Quick Reference — Family Persona Matrix + env.local Correction',

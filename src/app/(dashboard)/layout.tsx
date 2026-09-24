@@ -5,6 +5,7 @@ import { personaForDeliveryRole, RBAC_MATRIX } from '@/lib/governance/rbacMatrix
 import { getNotificationSummary } from '@/server/queries/notifications';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { WorkspaceTabsBar } from '@/components/layout/WorkspaceTabsBar';
 import { Footer } from '@/components/layout/Footer';
 import { HelpDrawer } from '@/components/layout/HelpDrawer';
 import { SupportTicketModal } from '@/components/support/SupportTicketModal';
@@ -56,6 +57,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             notifications={notifications}
             operatorRole={session.user.operatorRole ?? null}
           />
+          <WorkspaceTabsBar />
           <main className="flex-1 w-full">
             <Container size="full">{children}</Container>
           </main>

@@ -20,6 +20,7 @@ import { TruncatedCell, type DataTableColumn } from '@/components/ui/data-table'
 import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
 import { DecisionCenter, DecisionCenterSummary } from '@/components/portfolio/DecisionCenter';
 import { ProjectsExplorer, type ProjectExplorerRow } from '@/components/portfolio/ProjectsExplorer';
+import { TrackedProjectLink } from '@/components/portfolio/TrackedProjectLink';
 import { CommandBar } from '@/components/command-center/CommandBar';
 import { d, money, sumMoney } from '@/lib/calculations/money';
 import { CreateProjectForm } from './create-project-form';
@@ -254,9 +255,9 @@ export default async function HomePage() {
                 {programRollups.map(({ parent, rollup }) => (
                   <tr key={parent.id} className="border-b border-border/60 last:border-0">
                     <td className="py-2 pr-4 font-semibold">
-                      <Link href={`/commercial-baseline/${parent.id}`} className="hover:text-brand">
+                      <TrackedProjectLink href={`/commercial-baseline/${parent.id}`} label={parent.name} className="hover:text-brand">
                         {parent.name}
-                      </Link>
+                      </TrackedProjectLink>
                     </td>
                     <td className="py-2 pr-4 tabular-nums text-ink-muted">{rollup.childCount}</td>
                     <td className="py-2 pr-4 tabular-nums">${Math.round(rollup.totalContractValue).toLocaleString('en-US')}</td>
@@ -327,6 +328,18 @@ export default async function HomePage() {
     return {
       key: p.id,
       healthCode: health.code,
+      // PS-DOS IQ (client-side NL search, ProjectsExplorer.tsx) filters
+      // against this plain-text/plain-value data, never the pre-rendered
+      // `cells` below — those are JSX, not searchable text.
+      searchable: {
+        name: p.name,
+        client: p.client ?? '',
+        pm: p.projectManager?.name ?? '',
+        model: p.commercialModel,
+        methodology: p.methodology,
+        raidCount: openRaidByProject.get(p.id) ?? 0,
+        unassigned: !p.projectManager,
+      },
       cellTitles: { client: p.client, pm: p.projectManager?.name },
       cells: {
         name: (
@@ -351,9 +364,13 @@ export default async function HomePage() {
         ),
         raid: openRaidByProject.get(p.id) ?? 0,
         action: (
-          <Link href={`/commercial-baseline/${p.id}`} className="text-brand text-xs font-semibold whitespace-nowrap">
+          <TrackedProjectLink
+            href={`/commercial-baseline/${p.id}`}
+            label={p.name}
+            className="text-brand text-xs font-semibold whitespace-nowrap"
+          >
             Open →
-          </Link>
+          </TrackedProjectLink>
         ),
       },
     };
