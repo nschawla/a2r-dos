@@ -162,9 +162,15 @@ A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 
 ### UAT-3.2 · Persona Preview banner (all five roles)
 
-Signed in as `admin@a2rventures-demo.test`. (The old header "Perspective"
-pill / Workspace Lens switcher was retired — this banner is now the single
-control for previewing another role's view.)
+Signed in as `master.e2e@a2rventures.com` — **not** `admin@a2rventures-demo.test`.
+(The old header "Perspective" pill / Workspace Lens switcher was retired —
+this banner is now the single control for previewing another role's view.)
+As of the A2R-staff-only restriction below, a plain tenant Client Admin no
+longer sees this banner at all, so this walkthrough needs an A2R-staff
+account that also holds a tenant workspace — `master.e2e@a2rventures.com`
+is exactly that (same account the e2e suite uses for this reason), and its
+first-created membership is this same demo org, so it still resolves to
+the "Client Admin" persona label every step below expects.
 
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
@@ -176,10 +182,13 @@ control for previewing another role's view.)
 | 6 | Click **Exit preview** | Banner returns to quiet/neutral, sidebar and write controls return to the real Admin view | |
 | 7 | Pick **Delivery / Project Director** | Sidebar shows PS Control Tower, RAID Cockpit, Schedule & Milestones, Resource & Capacity, Financial Realization, Commercial Baseline — no Controls Audit | |
 | 8 | Sign out, sign in as `pm@a2rventures-demo.test` (a real, non-admin Project Manager) | No Persona Preview banner renders at all — locked into their own real navigation | |
+| 9 | Sign out, sign in as `admin@a2rventures-demo.test` (a real tenant's own Client Admin — **not** A2R staff) | No Persona Preview banner renders at all, same as step 8 — a real client's Client Admin gets no developer/testing switcher in their production workspace | |
 
 **Checkpoint:** the banner is the only switcher, previewing is unmistakable
 while active, nav and write controls both morph consistently, and only an
-Admin/A2R-staff account sees the control at all.
+A2R-staff account sees the control at all — a real tenant's own Client
+Admin does not, even though they hold full delivery authority in their own
+org.
 
 ### UAT-3.3 · Governance template application
 

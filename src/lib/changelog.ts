@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.45.0',
+    date: '2026-09-24',
+    headline: 'Persona Preview Banner — A2R Staff Only',
+    changes: [
+      { type: 'security', text: 'The Persona Preview banner ((dashboard)/layout.tsx) is now visible only to A2R staff (an active StaffGrant) — previously it was also shown to any tenant\'s own Client Admin. A real client\'s Client Admin (e.g. a customer\'s own admin, or the family test accounts on client.com) no longer sees a developer/testing persona switcher in their production workspace at all; it is not merely hidden-but-reachable, the component renders nothing. This banner is display-only by construction — middleware and every server action/query enforce the signed-in user\'s real session DeliveryRole and never read the preview value — so this is a UX/production-cleanliness fix, not a change to any actual access boundary.' },
+      { type: 'fix', text: 'e2e/enterprise-governance-identity.spec.ts Suite J2 (which exercises the banner\'s switch-and-redirect behavior) now signs in as the dedicated E2E master account instead of a plain tenant Client Admin, since that persona no longer renders the banner at all. docs/UAT_TEST_RUNBOOK.md\'s UAT-3.2 walkthrough updated the same way, plus a new step confirming a real Client Admin login sees no banner.' },
+    ],
+  },
+  {
     version: '1.44.0',
     date: '2026-09-24',
     headline: 'Fix — Commercial Setup Label/Value Misalignment',

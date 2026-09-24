@@ -22,11 +22,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isA2rStaff = session.user.isA2rStaff === true;
 
   const realRbacPersona = personaForDeliveryRole(deliveryRole);
-  // Who may see and use the Persona Preview banner at all: a tenant ADMIN
-  // (full delivery authority already — previewing a narrower role can't
-  // grant anything) or an A2R staff member. Every other signed-in user is
-  // locked into their own real navigation with no switcher rendered.
-  const personaPreviewEligible = isA2rStaff || deliveryRole === 'ADMIN';
+  // Who may see and use the Persona Preview banner: A2R staff only (an
+  // active StaffGrant — any OperatorRole, since this is a demo/QA tool for
+  // internal personnel, not a role-tiered feature). Previously also
+  // included a tenant ADMIN, on the reasoning that full delivery authority
+  // already makes previewing a narrower role harmless — but that meant
+  // every real client's own Client Admin (rajan@client.com,
+  // pankaj@client.com, and any customer's actual tenant admin) saw a
+  // developer/testing control with no purpose in their own production
+  // workspace. Every non-staff signed-in user is locked into their own
+  // real navigation with no switcher rendered at all — not hidden-but-
+  // reachable, not disabled-but-visible: PersonaPreviewBar returns null
+  // outright when this is false.
+  const personaPreviewEligible = isA2rStaff;
 
   // A2R Operator Control Plane — a SUSPENDED tenant retains all its data but
   // its members cannot use the workspace until an operator reactivates it.

@@ -155,7 +155,18 @@ test.describe('Suite J2 — Persona Preview banner navigates to each landing vie
     // merge's actual behavior change: this persona DOES see Commercial
     // Baseline (elevated to Practice Director's breadth), where the old
     // Executive Board never did.
-    await signIn(page, 'admin@a2rventures-demo.test');
+    //
+    // Signs in as the dedicated E2E master (A2R staff + OWNER/ADMIN in
+    // every org — same account Suite A/I use), not a plain tenant Client
+    // Admin like admin@a2rventures-demo.test: the Persona Preview banner
+    // is now A2R-staff-only ((dashboard)/layout.tsx's
+    // `personaPreviewEligible = isA2rStaff`) — a real client's own Client
+    // Admin no longer sees this control at all, by design, so this suite
+    // has to exercise it from an account that's genuinely staff. Its
+    // first-created (oldest) membership is this same demo org, so it
+    // still lands here and still resolves to the "Client Admin" persona
+    // label every assertion below expects.
+    await signIn(page, 'master.e2e@a2rventures.com');
     await expect(page).toHaveURL(/\/portfolio$/); // Client Admin's landing
 
     // Land on a page only Client Admin can see, to prove the switch
