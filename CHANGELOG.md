@@ -10,6 +10,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.40.0] — 2026-09-24
+
+_Header — Ops Console Status Badge._
+
+### Changed
+
+- The header identity chip now shows a small "Ops: `<role>`" badge next to the tenant persona label whenever the
+  signed-in user holds an active Operator Control Plane staff grant (e.g. "Ops: Super Admin"). The two labels stay
+  deliberately separate — the persona label (e.g. "Client Admin") always describes tenant-scoped `DeliveryAccessRole`
+  authority, never cross-tenant reach — but a staff member can now see their Ops Console status at a glance, without
+  needing to click into `/ops` to confirm it.
+
+---
+
 ## [1.39.0] — 2026-09-23
 
 _Logo Match — Navy Triangle, Wider Red Ribbon._

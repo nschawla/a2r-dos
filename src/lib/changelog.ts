@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.40.0',
+    date: '2026-09-24',
+    headline: 'Header — Ops Console Status Badge',
+    changes: [
+      { type: 'improvement', text: 'The header identity chip now shows a small "Ops: <role>" badge next to the tenant persona label whenever the signed-in user holds an active Operator Control Plane staff grant (e.g. "Ops: Super Admin"). The two labels stay deliberately separate — the persona label (e.g. "Client Admin") always describes tenant-scoped DeliveryAccessRole authority, never cross-tenant reach — but a staff member can now see their Ops Console status at a glance, without needing to click into /ops to confirm it.' },
+    ],
+  },
+  {
     version: '1.39.0',
     date: '2026-09-23',
     headline: 'Logo Match — Navy Triangle, Wider Red Ribbon',

@@ -54,6 +54,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             organizationName={organizationName}
             memberships={memberships}
             notifications={notifications}
+            operatorRole={session.user.operatorRole ?? null}
           />
           <main className="flex-1 w-full">
             <Container size="full">{children}</Container>

@@ -12,6 +12,7 @@ import { switchActiveOrganization } from '@/server/actions/organizations';
 import { signOutEverywhereAction } from '@/server/actions/auth';
 import type { NotificationSummary } from '@/server/queries/notifications';
 import type { SessionMembership } from '@/types/next-auth';
+import { OPERATOR_ROLE_LABEL, type OperatorRole } from '@/lib/ops/operator-roles';
 
 /** Closes `menu` when a pointer event lands outside `ref`, or Escape is pressed. */
 function useOutsideClose(ref: React.RefObject<HTMLElement>, open: boolean, close: () => void) {
@@ -38,9 +39,19 @@ export interface HeaderProps {
   organizationName: string;
   memberships: SessionMembership[];
   notifications: NotificationSummary;
+  /** The Operator Control Plane axis (src/lib/ops/operator-roles.ts) — a
+   * completely separate identity from the tenant RbacPersona shown right
+   * next to it. `null` for the ~everyone who isn't A2R staff. Surfaced here
+   * as a small "Ops: <role>" badge so a staff member holding, say,
+   * SUPER_ADMIN can see that cross-tenant status at a glance while the
+   * tenant persona label still (correctly) reads "Client Admin" or
+   * whatever their DeliveryAccessRole is in the org they're currently
+   * viewing — see the RBAC_MATRIX doc comment on why those two are
+   * deliberately never merged into one label. */
+  operatorRole: OperatorRole | null;
 }
 
-export function Header({ userName, role, organizationName, memberships, notifications }: HeaderProps) {
+export function Header({ userName, role, organizationName, memberships, notifications, operatorRole }: HeaderProps) {
   return (
     <header id="global-header" className="sticky top-0 z-40 bg-bg/90 backdrop-blur-md border-b border-border px-5 py-2.5 flex items-center gap-2.5">
       {/* Left: identity — the brand, the workspace, and the one action
@@ -58,7 +69,7 @@ export function Header({ userName, role, organizationName, memberships, notifica
         <NotificationsBell notifications={notifications} />
         <SupportTrigger />
         <HelpTrigger />
-        <UserMenu userName={userName} role={role} />
+        <UserMenu userName={userName} role={role} operatorRole={operatorRole} />
       </div>
     </header>
   );
@@ -255,7 +266,15 @@ function NotificationsBell({ notifications }: { notifications: NotificationSumma
 
 // ------------------------------------------------------------- User + persona menu
 
-function UserMenu({ userName, role }: { userName: string; role: SessionMembership['role'] }) {
+function UserMenu({
+  userName,
+  role,
+  operatorRole,
+}: {
+  userName: string;
+  role: SessionMembership['role'];
+  operatorRole: OperatorRole | null;
+}) {
   // The identity chip always reflects who you ARE, never an active Persona
   // Preview (realRbacPersona, not rbacPersona) — the one place preview
   // state is surfaced is the explicit banner (PersonaPreviewBar.tsx).
@@ -275,8 +294,22 @@ function UserMenu({ userName, role }: { userName: string; role: SessionMembershi
           {userName.slice(0, 1).toUpperCase()}
         </span>
         <span className="hidden sm:block text-left">
-          <span className="block text-xs font-semibold leading-tight max-w-[120px] truncate">{userName}</span>
-          <span className="block text-[10px] text-ink-faint leading-tight">{RBAC_MATRIX[realRbacPersona].label}</span>
+          <span className="block text-xs font-semibold leading-tight max-w-[160px] truncate">{userName}</span>
+          <span className="flex items-center gap-1 leading-tight">
+            <span className="text-[10px] text-ink-faint truncate">{RBAC_MATRIX[realRbacPersona].label}</span>
+            {/* Operator Control Plane status — a separate cross-tenant axis
+                from the tenant persona label just to its left (see the
+                HeaderProps doc comment on `operatorRole`). Only ever renders
+                for A2R staff; every tenant-only user sees nothing here. */}
+            {operatorRole && (
+              <span
+                title={`Ops Console access: ${OPERATOR_ROLE_LABEL[operatorRole]}`}
+                className="flex-none px-1 py-px rounded-sm bg-brand/10 text-brand text-[9px] font-bold uppercase tracking-wide leading-tight"
+              >
+                Ops: {OPERATOR_ROLE_LABEL[operatorRole].split(' / ')[0]}
+              </span>
+            )}
+          </span>
         </span>
       </button>
       {open && (
@@ -284,6 +317,11 @@ function UserMenu({ userName, role }: { userName: string; role: SessionMembershi
           <div className="px-3 py-2.5 border-b border-border">
             <div className="text-sm font-semibold truncate">{userName}</div>
             <div className="text-[10px] text-ink-faint uppercase">Org role: {role}</div>
+            {operatorRole && (
+              <div className="text-[10px] text-brand uppercase mt-0.5">
+                Ops Console: {OPERATOR_ROLE_LABEL[operatorRole]}
+              </div>
+            )}
           </div>
           <div className="border-t border-border">
             <button
