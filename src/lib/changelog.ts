@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.44.0',
+    date: '2026-09-24',
+    headline: 'Fix — Commercial Setup Label/Value Misalignment',
+    changes: [
+      { type: 'fix', text: 'The Commercial Baseline tab\'s "Commercial Setup" card rendered its 8 label/value pairs (Client, Commercial model, Methodology, Governance profile, Contingency, Practice Director, Delivery Manager, Project Manager) as flat alternating <dt>/<dd> elements flowing directly into a 3-column grid at desktop width. Since 3 isn\'t a multiple of 2, the label/value pairing shifted by one position after the very first row, compounding down every subsequent row — a label would land where a value should read, and vice versa. Fixed by wrapping each label and its own value in one flex row, so each grid cell is a complete, self-contained pair regardless of column count.' },
+      { type: 'improvement', text: 'Audited the other four engagement sub-tabs (Financials, Schedule, RAID, Controls Audit) and their shared dual-tile Executive Triage headers for the same class of bug (a label/value pair split across separate grid siblings) — none found; every other multi-column grid in that set already wraps each stat/pair as one self-contained cell.' },
+    ],
+  },
+  {
     version: '1.43.0',
     date: '2026-09-24',
     headline: 'Tabbed Workspaces + PS-DOS IQ Natural-Language Search',

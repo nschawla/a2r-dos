@@ -45,23 +45,47 @@ export default async function DealProjectPage({ params }: { params: Promise<{ pr
 
       <div className="card">
         <h2 className="text-[15.5px] font-bold mb-4">Commercial Setup</h2>
-        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-y-2.5 text-sm">
-          <dt className="text-ink-muted">Client</dt>
-          <dd>{project.client || '—'}</dd>
-          <dt className="text-ink-muted">Commercial model</dt>
-          <dd>{project.commercialModel === 'FF' ? 'Fixed Fee' : 'Time & Materials'}</dd>
-          <dt className="text-ink-muted">Methodology</dt>
-          <dd className="capitalize">{project.methodology.toLowerCase()}</dd>
-          <dt className="text-ink-muted">Governance profile</dt>
-          <dd className="capitalize">{project.govProfile.toLowerCase()}</dd>
-          <dt className="text-ink-muted">Contingency</dt>
-          <dd>{Number(project.contingencyPct)}%</dd>
-          <dt className="text-ink-muted">Practice Director</dt>
-          <dd>{project.practiceDirector?.name ?? 'Unassigned'}</dd>
-          <dt className="text-ink-muted">Delivery Manager</dt>
-          <dd>{project.deliveryManager?.name ?? 'Unassigned'}</dd>
-          <dt className="text-ink-muted">Project Manager</dt>
-          <dd>{project.projectManager?.name ?? 'Unassigned'}</dd>
+        {/* Each label/value pair is its own grid cell (a <div> wrapping its
+            own <dt>/<dd>), never bare alternating dt/dd siblings flowing
+            straight into the grid — with a 3-column grid, sequential
+            dt,dd,dt,dd,... flow shifts the pairing by one position after
+            the first row (label lands in what reads as a value column,
+            value lands under the next label), compounding down every
+            subsequent row. Wrapping each pair keeps one label always
+            paired with its own value regardless of column count. */}
+        <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink-muted">Client</dt>
+            <dd className="text-right">{project.client || '—'}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink-muted">Commercial model</dt>
+            <dd className="text-right">{project.commercialModel === 'FF' ? 'Fixed Fee' : 'Time & Materials'}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink-muted">Methodology</dt>
+            <dd className="text-right capitalize">{project.methodology.toLowerCase()}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink-muted">Governance profile</dt>
+            <dd className="text-right capitalize">{project.govProfile.toLowerCase()}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink-muted">Contingency</dt>
+            <dd className="text-right">{Number(project.contingencyPct)}%</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink-muted">Practice Director</dt>
+            <dd className="text-right">{project.practiceDirector?.name ?? 'Unassigned'}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink-muted">Delivery Manager</dt>
+            <dd className="text-right">{project.deliveryManager?.name ?? 'Unassigned'}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-3">
+            <dt className="text-ink-muted">Project Manager</dt>
+            <dd className="text-right">{project.projectManager?.name ?? 'Unassigned'}</dd>
+          </div>
         </dl>
       </div>
 
