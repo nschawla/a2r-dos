@@ -10,6 +10,25 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.42.0] — 2026-09-24
+
+_Quick Reference — Family Persona Matrix + .env.local Correction._
+
+### Added
+
+- `docs/QUICK_REFERENCE.md` gains a new "Production test accounts — family persona matrix" section listing the
+  full roster set up for family testing directly against the live app (4 provider-side operator tiers plus a
+  full Admin-through-VP ladder on each of the two client tenants), clearly separated from the pre-existing
+  local/staging seed-account table above it.
+
+### Fixed
+
+- Corrected a real gap in the same doc's database-split explanation: `npm run dev` actually reads `.env.local`
+  (Next.js gives it priority over `.env`), and `.env.local` points at staging — not `.env`/production as the
+  doc previously implied by omission. Local dev has always been showing staging's data.
+
+---
+
 ## [1.41.0] — 2026-09-24
 
 _Decision Center — Local Triage Actions._

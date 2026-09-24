@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.42.0',
+    date: '2026-09-24',
+    headline: 'Quick Reference — Family Persona Matrix + env.local Correction',
+    changes: [
+      { type: 'improvement', text: 'docs/QUICK_REFERENCE.md gains a new "Production test accounts — family persona matrix" section listing the full roster set up for family testing directly against the live app (4 provider-side operator tiers plus a full Admin-through-VP ladder on each of the two client tenants), clearly separated from the pre-existing local/staging seed-account table above it.' },
+      { type: 'fix', text: 'Corrected a real gap in the same doc\'s database-split explanation: `npm run dev` actually reads `.env.local` (Next.js gives it priority over `.env`), and `.env.local` points at staging — not `.env`/production as the doc previously implied by omission. Local dev has always been showing staging\'s data.' },
+    ],
+  },
+  {
     version: '1.41.0',
     date: '2026-09-24',
     headline: 'Decision Center — Local Triage Actions',

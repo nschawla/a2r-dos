@@ -1,6 +1,6 @@
 {
   "name": "ps-dos-app",
-  "version": "1.41.0",
+  "version": "1.42.0",
   "private": true,
   "description": "PS Delivery OS (PS-DOS) — SaaS foundation (Phase 3). Next.js App Router + Prisma + Postgres.",
   "scripts": {

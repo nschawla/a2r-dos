@@ -54,6 +54,48 @@ needs a TOTP authenticator enrolled once at `/ops/security` — a standing
 login alone isn't enough by design (JIT elevation, see
 `docs/JIT_STAFF_ELEVATION.md`).
 
+## Production test accounts — family persona matrix
+
+A separate roster from the local seed accounts above: real accounts in the
+**production** database, built for the family to test against the live app
+(not local dev). Each tenant has a full ladder from Admin down to VP so a
+tester can compare what each tier actually sees.
+
+**A2R Ventures — provider side (`/ops` staff, no client workspace):**
+
+| Login | Ops role |
+| --- | --- |
+| `navinder@a2rventures.com` | Super Admin — full `/ops` + Admin in every tenant |
+| `abha@a2rventures.com` | Support |
+| `janvi@a2rventures.com` | Provisioning |
+| `honey@a2rventures.com` | Viewer (read-only QA) |
+
+**Client 1 — Apex Global Services:**
+
+| Login | Tier |
+| --- | --- |
+| `rajan@client.com` | Client Admin |
+| `indeepa@client.com` | Client Admin |
+| `lucky@client.com` | Client PM |
+| `angad@client.com` | Client DD |
+| `mani@client.com` | Client Practice Director |
+| `chan@client.com` | Client VP |
+
+**Client 2 — Acme Health:**
+
+| Login | Tier |
+| --- | --- |
+| `pankaj@client.com` | Client Admin |
+| `ananya@client.com` | Client PM |
+| `griffin@client.com` | Client DD |
+| `sudhindra@client.com` | Client Practice Director |
+| `urvashi@client.com` | Client VP |
+
+Shared password for every account above: `password12345`. None of these
+hold any staff/`/ops` access except the four provider-side logins — every
+client-side login is scoped to exactly one tenant, with no reach into the
+other, and no way to see the Ops Console at all.
+
 ## Where things live
 
 | | |
@@ -64,10 +106,20 @@ login alone isn't enough by design (JIT elevation, see
 | Current version | see `package.json` / the in-app Release Notes (Ops Console) |
 
 Two separate databases: **production** (real, used by the live site — never
-run tests against it) and **staging** (used by the automated test suite and
-this session's own verification work). Which one a command touches is
-controlled by `DATABASE_URL`/`DIRECT_URL` — local `.env` is production,
-`.env.test` is staging.
+run tests against it — this is where the family persona matrix above lives)
+and **staging** (used by the automated test suite and this session's own
+verification work). Which one a command touches is controlled by
+`DATABASE_URL`/`DIRECT_URL` — **but the file that actually wins depends on
+which command you're running:** direct scripts (`tsx scripts/...`, this
+session's own CLIs) read `.env`, which is production; **`npm run dev` reads
+`.env.local` instead** (Next.js gives it priority over `.env`), and
+`.env.local` here points at **staging** — so your local dev server has
+always been showing staging's data (currently ~25 tenants / ~185 users from
+accumulated test runs), never production's. `.env.test` is staging too, used
+by the automated test suite specifically. If local dev ever looks like it
+has "extra" or "missing" tenants compared to the live site, this is why —
+check which env file the command in question actually loaded before
+assuming something broke.
 
 ## Running it locally
 
@@ -94,10 +146,17 @@ npm run build          # production build (what Vercel runs)
   can only confirm the live site is responding. If you want me to check
   build status directly in future, either run `! vercel login` in a chat
   message (opens the interactive login for me), or hand me a `VERCEL_TOKEN`.
-- This session's work in progress: **v1.20.0** (PS Orchestration & Decision
-  Engine) is committed locally and its schema migration is applied to
-  staging only — both are still waiting on your go-ahead to reach
-  production.
+- **Recently added, worth knowing about:** v1.40.0 put a small "Ops: `<role>`"
+  badge next to the header persona label for staff accounts, so your real
+  cross-tenant Ops Console status is visible at a glance without opening
+  `/ops`. v1.41.0 added a local-only "•••" triage menu (tag / snooze for the
+  session / export CSV) to the Decision Center's Pending Decisions and
+  High-Severity RAID rows — purely client-side, no backend writes. Full
+  detail in the in-app Release Notes (Ops Console) or `CHANGELOG.md`.
+- **Committed, not yet pushed:** v1.41.0 (Decision Center local triage
+  actions) is committed locally and one commit ahead of `origin/main` —
+  waiting on your go-ahead to push, per the standing convention that nothing
+  reaches `main` without an explicit "push to main" each time.
 
 ## Where to look for more
 
