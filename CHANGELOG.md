@@ -10,6 +10,23 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.41.0] — 2026-09-24
+
+_Decision Center — Local Triage Actions._
+
+### Added
+
+- The Decision Center's Pending Decisions and High-Severity RAID rows (PS Control Tower) each gain a "•••" local
+  triage menu: mark a row Under Review or Acknowledged, snooze it for the current session, or export that row as
+  a one-line CSV. All three are purely client-side — the tag persists in this browser's `localStorage`, the
+  snooze in `sessionStorage` (so it always comes back once the tab/session ends), and the CSV export never
+  touches the network. No backend writes, no new API routes, no effect on any other viewer, device, or session.
+  Deliberately separate from the Impact-Aware Decision Card's own intervention flow, which still writes a real,
+  audited `PortfolioIntervention` row — this is an ungated personal scratchpad for a reviewer's own triage pass,
+  not a substitute for it.
+
+---
+
 ## [1.40.0] — 2026-09-24
 
 _Header — Ops Console Status Badge._

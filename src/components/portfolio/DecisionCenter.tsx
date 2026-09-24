@@ -21,6 +21,7 @@
 import Link from 'next/link';
 import { DecisionCard } from '@/components/command-center/DecisionCard';
 import type { InterventionDrawerContext } from '@/components/command-center/InterventionDrawer';
+import { TriageRow } from '@/components/portfolio/TriageRowActions';
 import type { DecisionAlert, RaidAlert } from '@/server/queries/pages/dashboards';
 import type { TriageItem } from '@/lib/executive-triage';
 import type { DecisionContextEntry } from '@/server/queries/decision-context';
@@ -48,39 +49,51 @@ function EmptyColumn({ text }: { text: string }) {
 }
 
 function AlertRow({
+  rowId,
   href,
   title,
   meta,
   overdue,
   badge,
+  exportFields,
 }: {
+  /** Stable, globally-unique key for this row's local triage state
+   * (localStorage tag / sessionStorage snooze) — the underlying record's
+   * own id, namespaced by kind so a decision and a RAID item can never
+   * collide even if their ids ever matched by coincidence. */
+  rowId: string;
   href: string;
   title: string;
   meta: string | null;
   overdue?: boolean;
   badge?: { label: string; tone: 'critical' | 'warning' };
+  /** What a "Export row as CSV" click writes — the same fields already
+   * visible in this row, nothing more. */
+  exportFields: Record<string, string | null>;
 }) {
   return (
-    <Link
-      href={href}
-      className="flex items-start justify-between gap-3 py-2 border-b border-border/60 last:border-0 hover:bg-surface-2 -mx-1 px-1 rounded-sm transition-colors"
-    >
-      <div className="min-w-0">
-        <div className="text-[13px] font-semibold text-ink leading-snug truncate">{title}</div>
-        {meta && (
-          <div className={`text-[11px] mt-0.5 ${overdue ? 'text-critical font-semibold' : 'text-ink-faint'}`}>{meta}</div>
+    <TriageRow rowId={rowId} exportFilename={`${rowId}.csv`} exportFields={exportFields} className="border-b border-border/60 last:border-0 py-2">
+      <Link
+        href={href}
+        className="flex items-start justify-between gap-3 hover:bg-surface-2 -mx-1 px-1 rounded-sm transition-colors"
+      >
+        <div className="min-w-0">
+          <div className="text-[13px] font-semibold text-ink leading-snug truncate">{title}</div>
+          {meta && (
+            <div className={`text-[11px] mt-0.5 ${overdue ? 'text-critical font-semibold' : 'text-ink-faint'}`}>{meta}</div>
+          )}
+        </div>
+        {badge && (
+          <span
+            className={`flex-none text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
+              badge.tone === 'critical' ? 'bg-critical-soft text-critical' : 'bg-warning-soft text-warning'
+            }`}
+          >
+            {badge.label}
+          </span>
         )}
-      </div>
-      {badge && (
-        <span
-          className={`flex-none text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
-            badge.tone === 'critical' ? 'bg-critical-soft text-critical' : 'bg-warning-soft text-warning'
-          }`}
-        >
-          {badge.label}
-        </span>
-      )}
-    </Link>
+      </Link>
+    </TriageRow>
   );
 }
 
@@ -175,6 +188,7 @@ export function DecisionCenter({ triageItems, decisionContext, viewer, pendingDe
                 {pendingDecisions.map((d) => (
                   <AlertRow
                     key={d.id}
+                    rowId={`decision:${d.id}`}
                     href={`/reports?project=${d.projectId}`}
                     title={d.decisionRequired}
                     meta={
@@ -183,6 +197,14 @@ export function DecisionCenter({ triageItems, decisionContext, viewer, pendingDe
                         .join(' · ') || null
                     }
                     overdue={d.overdue}
+                    exportFields={{
+                      Type: 'Pending Decision',
+                      Project: d.projectName,
+                      Decision: d.decisionRequired,
+                      Owner: d.ownerName ?? '',
+                      'Resolution Target': d.resolutionTargetDate ?? '',
+                      Overdue: d.overdue ? 'Yes' : 'No',
+                    }}
                   />
                 ))}
               </div>
@@ -200,11 +222,20 @@ export function DecisionCenter({ triageItems, decisionContext, viewer, pendingDe
                 {criticalRaid.map((r) => (
                   <AlertRow
                     key={r.id}
+                    rowId={`raid:${r.id}`}
                     href={`/raid/${r.projectId}`}
                     title={r.title}
                     meta={[r.projectName, formatDue(r.targetDate, r.overdue)].filter(Boolean).join(' · ') || null}
                     overdue={r.overdue}
                     badge={{ label: r.severity, tone: r.severity === 'CRITICAL' ? 'critical' : 'warning' }}
+                    exportFields={{
+                      Type: r.type,
+                      Project: r.projectName,
+                      Title: r.title,
+                      Severity: r.severity,
+                      'Target Date': r.targetDate ?? '',
+                      Overdue: r.overdue ? 'Yes' : 'No',
+                    }}
                   />
                 ))}
               </div>
