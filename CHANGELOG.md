@@ -10,6 +10,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.45.1] — 2026-09-27
+
+_Ops Console — Scoped Error Boundary._
+
+### Fixed
+
+- Added `src/app/(admin)/error.tsx`. Before this, the entire `(admin)` route group (every `/ops/*` page) had no
+  local error boundary at all, so any thrown error — a transient DB blip in `ops-auth.ts`'s unwrapped hot-path
+  queries, or anything else — fell all the way through to the root `global-error.tsx`: a full-document fallback
+  that replaces the whole page, sidebar included, with no indication of which ops page even failed. Found while
+  triaging a reported "PS-DOS hit an unexpected error" on `/ops/pulse`. The Ops Console now keeps its own chrome
+  mounted around a failure and offers a scoped "Try again," same as `(dashboard)/error.tsx` already does for the
+  tenant shell.
+
+---
+
 ## [1.45.0] — 2026-09-24
 
 _Persona Preview Banner — A2R Staff Only._

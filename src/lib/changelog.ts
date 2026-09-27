@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.45.1',
+    date: '2026-09-27',
+    headline: 'Ops Console — Scoped Error Boundary',
+    changes: [
+      { type: 'fix', text: 'Added src/app/(admin)/error.tsx. Before this, the entire (admin) route group (every /ops/* page) had no local error boundary at all, so any thrown error — a transient DB blip in ops-auth.ts\'s unwrapped hot-path queries, or anything else — fell all the way through to the root global-error.tsx: a full-document fallback that replaces the whole page, sidebar included, with no indication of which ops page even failed. Found while triaging a reported "PS-DOS hit an unexpected error" on /ops/pulse. The Ops Console now keeps its own chrome mounted around a failure and offers a scoped "Try again," same as (dashboard)/error.tsx already does for the tenant shell.' },
+    ],
+  },
+  {
     version: '1.45.0',
     date: '2026-09-24',
     headline: 'Persona Preview Banner — A2R Staff Only',
