@@ -146,6 +146,10 @@ tenant's Compliance Ledger (`INTEGRATION_CONFIG_CHANGE`).
   `vercel.json`'s cron config — flipping on an automatically-firing
   schedule in production is a deliberate step for a human to take, not
   something to enable unreviewed.
-- **Migration 26 is applied to staging only.** Production has not been
-  touched — see the release notes for the explicit "apply to production"
-  step this still needs.
+- **Migration 26 is applied to both staging and production** (v1.45.3) —
+  via `prisma db execute` (production has no `_prisma_migrations` history;
+  every schema change there has always gone through this tool, not
+  `migrate deploy`). The tables and RLS policies exist for real now; what's
+  still true is that no tenant has an actual connection configured yet
+  (v1 has no self-service "connect" UI — see below), so the Connection
+  Health Matrix renders correctly but empty until one is added directly.

@@ -10,6 +10,29 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.45.3] — 2026-09-27
+
+_Migration 26 Applied to Production — Integration Adapters Live._
+
+### Added
+
+- Migration 26 (Read-Only External Integration Adapters — `IntegrationConnection`/`IntegrationSyncRun`/
+  `IntegrationError`, v1.18.0) is now applied to production, at explicit request following the
+  `/ops/integrations` crash triage in v1.45.2. Verified directly: all 3 tables + their `tenant_isolation` RLS
+  policies exist, and the exact query `loadAllConnections()` runs returns cleanly (0 rows — no tenant has a
+  connection configured yet, which is expected; v1 of this feature has no self-service "connect" UI).
+
+### Fixed
+
+- Discovered and documented a real gotcha while applying this: production has never had Prisma's
+  `_prisma_migrations` bookkeeping table at all — every schema change there has always gone through
+  `prisma db execute` (raw SQL) rather than `prisma migrate deploy`, so `migrate status` against production is
+  meaningless (it reports all 30 migrations as "not applied" even though the schema is current). Used
+  `db execute` for this migration too, matching the established convention. Docs updated (`docs/ERD.md`,
+  `docs/INTEGRATION_ADAPTERS.md`) to stop claiming migration 26 is staging-only.
+
+---
+
 ## [1.45.2] — 2026-09-27
 
 _Fix — /ops/integrations Crash in Production._

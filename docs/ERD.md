@@ -62,7 +62,12 @@ now accepts migration 17, 26, or 27 as a valid policy source. See
 `docs/SAML_SSO_LIVE_HANDSHAKE.md`.
 
 **v1.18.0** — Read-Only External Integration Adapters (migration
-`00000000000026`, **applied to staging only** — production untouched).
+`00000000000026`, applied to staging **and production** as of v1.45.3 —
+via `prisma db execute` against production, the same tool this project's
+own migration history has always used there;
+`_prisma_migrations` bookkeeping has never existed on production, so
+`prisma migrate deploy`/`migrate status` don't reflect its real state —
+see the v1.45.3 changelog entry).
 Three new tenant-owned tables, same composite-FK closure pattern as every
 other tenant table: **`IntegrationConnection`** (`@@unique([organizationId,
 provider])` — one row per tenant per external system; `config` JSON +
