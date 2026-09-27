@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.45.2',
+    date: '2026-09-27',
+    headline: 'Fix — /ops/integrations Crash in Production',
+    changes: [
+      { type: 'fix', text: 'Root-caused the "PS-DOS hit an unexpected error" reports (reference 3776838899) via live Vercel logs: /ops/integrations queries IntegrationConnection/IntegrationError, whose tables were deliberately migrated to staging only (v1.18.0) and never applied to production. Visiting any /ops page triggered the Ops Console sidebar\'s automatic Link prefetch of every nav item, including Integrations — its background query threw P2021 ("table does not exist"), which surfaced as a crash on whatever page was actually being viewed, not just /ops/integrations itself. src/server/queries/pages/ops-integrations.ts now catches this specific Prisma error code and degrades to an empty result instead of throwing; every other Prisma error still throws and surfaces normally.' },
+    ],
+  },
+  {
     version: '1.45.1',
     date: '2026-09-27',
     headline: 'Ops Console — Scoped Error Boundary',

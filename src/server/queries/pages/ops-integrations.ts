@@ -11,9 +11,25 @@
  * an explicit `select` that omits it, so a leaked query result can't leak
  * a sealed secret either.
  */
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { PROVIDER_LABEL } from '@/lib/integrations/registry-labels';
+import { captureException } from '@/lib/observability';
 import type { IntegrationConnectionStatus, IntegrationErrorCategory, IntegrationProvider } from '@prisma/client';
+
+/** True when a Prisma error is specifically "this table doesn't exist yet"
+ * (P2021) — the exact shape thrown for `IntegrationConnection`/
+ * `IntegrationError` in an environment whose migration 26 hasn't been
+ * applied. v1.18.0 shipped this feature to STAGING ONLY, production
+ * deliberately untouched (docs/INTEGRATION_ADAPTERS.md) — but nothing
+ * gated the /ops/integrations *route* itself behind that, so any visit
+ * (including the Ops Console sidebar's own automatic Link prefetch of
+ * every nav item) threw this uncaught in production. Any OTHER Prisma
+ * error still throws normally — this narrowly catches only the "not
+ * provisioned in this environment" case, not a real query bug. */
+function isMissingIntegrationTables(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2021';
+}
 
 const CONNECTION_SELECT = {
   id: true,
@@ -55,17 +71,28 @@ export interface ConnectionRow {
 }
 
 /** Every connection across every (non-purged) tenant — the Connection
- * Health Matrix's row set. */
+ * Health Matrix's row set. Empty (never throws) in an environment where
+ * this feature's tables aren't provisioned yet — see
+ * `isMissingIntegrationTables` above. */
 export async function loadAllConnections(): Promise<ConnectionRow[]> {
-  const [rows, orgs, errorCounts] = await Promise.all([
-    db.integrationConnection.findMany({ select: CONNECTION_SELECT, orderBy: { createdAt: 'desc' } }),
-    db.organization.findMany({ where: { purgedAt: null }, select: { id: true, name: true } }),
-    db.integrationError.groupBy({
-      by: ['connectionId'],
-      where: { resolved: false },
-      _count: { _all: true },
-    }),
-  ]);
+  let rows: Awaited<ReturnType<typeof db.integrationConnection.findMany<{ select: typeof CONNECTION_SELECT }>>>;
+  let orgs: { id: string; name: string }[];
+  let errorCounts: { connectionId: string; _count: { _all: number } }[];
+  try {
+    [rows, orgs, errorCounts] = await Promise.all([
+      db.integrationConnection.findMany({ select: CONNECTION_SELECT, orderBy: { createdAt: 'desc' } }),
+      db.organization.findMany({ where: { purgedAt: null }, select: { id: true, name: true } }),
+      db.integrationError.groupBy({
+        by: ['connectionId'],
+        where: { resolved: false },
+        _count: { _all: true },
+      }),
+    ]);
+  } catch (err) {
+    if (!isMissingIntegrationTables(err)) throw err;
+    captureException(err, { scope: 'ops-integrations', reason: 'tables-not-provisioned' });
+    return [];
+  }
 
   const orgNameById = new Map(orgs.map((o) => [o.id, o.name]));
   const errorCountByConnection = new Map(errorCounts.map((e) => [e.connectionId, e._count._all]));
@@ -102,13 +129,21 @@ export interface ErrorLogRow {
 }
 
 /** The error log for one connection, newest first — the detail panel a
- * click on a Connection Health Matrix row opens into. */
+ * click on a Connection Health Matrix row opens into. Empty (never
+ * throws) when this feature's tables aren't provisioned. */
 export async function loadConnectionErrors(organizationId: string, connectionId: string): Promise<ErrorLogRow[]> {
-  const rows = await db.integrationError.findMany({
-    where: { organizationId, connectionId },
-    orderBy: { occurredAt: 'desc' },
-    take: 50,
-  });
+  let rows: Awaited<ReturnType<typeof db.integrationError.findMany>>;
+  try {
+    rows = await db.integrationError.findMany({
+      where: { organizationId, connectionId },
+      orderBy: { occurredAt: 'desc' },
+      take: 50,
+    });
+  } catch (err) {
+    if (!isMissingIntegrationTables(err)) throw err;
+    captureException(err, { scope: 'ops-integrations', reason: 'tables-not-provisioned' });
+    return [];
+  }
   return rows.map((r) => ({
     id: r.id,
     connectionId: r.connectionId,
@@ -121,10 +156,17 @@ export async function loadConnectionErrors(organizationId: string, connectionId:
 }
 
 /** One connection's own detail (config + fingerprint, never the secret) —
- * for the "edit connection" form to pre-fill non-secret fields. */
+ * for the "edit connection" form to pre-fill non-secret fields. `null`
+ * (never throws) when this feature's tables aren't provisioned. */
 export async function loadConnection(organizationId: string, connectionId: string) {
-  return db.integrationConnection.findFirst({
-    where: { organizationId, id: connectionId },
-    select: CONNECTION_SELECT,
-  });
+  try {
+    return await db.integrationConnection.findFirst({
+      where: { organizationId, id: connectionId },
+      select: CONNECTION_SELECT,
+    });
+  } catch (err) {
+    if (!isMissingIntegrationTables(err)) throw err;
+    captureException(err, { scope: 'ops-integrations', reason: 'tables-not-provisioned' });
+    return null;
+  }
 }
