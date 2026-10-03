@@ -1,12 +1,15 @@
 # Demo Walkthrough Guide — PS-DOS™
 
 _Introduced v1.29.0, alongside the Sidebar Flattening & Command Center
-Merge. A presenter-facing, manual click-through script — distinct from
-`docs/AUTO_DEMO_SCRIPT.md`, which is the hands-free Auto Demo's voiceover
-and production cue sheet for the same underlying tour. Use this document
-when **you** are driving the mouse live, in front of a client or
-prospect; use the Auto Demo (Ops Console header, `AutoDemoLaunchModal`)
-when you want the app to drive itself._
+Merge. Current as of **v1.47.0** — re-verified against the live app, not
+just the version this was first written at; see §4's note for one real,
+demo-breaking fact this pass caught. A presenter-facing, manual
+click-through script — distinct from `docs/AUTO_DEMO_SCRIPT.md`, which is
+the hands-free Auto Demo's voiceover and production cue sheet for the
+same underlying tour. Use this document when **you** are driving the
+mouse live, in front of a client or prospect; use the Auto Demo (Ops
+Console header, `AutoDemoLaunchModal`) when you want the app to drive
+itself._
 
 This script mirrors the **current, flattened** UI exactly — no group
 headers in the sidebar, no standalone Command Center. If you've given this
@@ -26,8 +29,11 @@ content lives now.
   different organization, switch tenants from the header's org switcher
   first.
 - Have a second, narrower login ready (e.g. `pm@a2rventures-demo.test`)
-  if the audience asks "what does a Project Manager see?" — the Persona
-  Preview banner (step 3 below) usually answers this without a re-login.
+  if the audience asks "what does a Project Manager see?" — switching to
+  it is the answer now (see §4's note: the Persona Preview banner that
+  used to cover this from your main seat is A2R-staff-only as of v1.45.0,
+  so a quick tab-switch to a second pre-authenticated login is the
+  client-facing way to show this, not a live persona switch).
 
 ---
 
@@ -53,8 +59,18 @@ where `/` and every role's default landing route both forward to.
    governance drawer — the guardrail check, the trade-off preview, the
    single-step "Submit for Governance Approval & Execute" action. This is
    the single best "we're not just a dashboard" moment in the whole demo.
-4. **Engagements tab** — the full project registry. Click into any row's
-   "Open →" to start the module tour below.
+4. **Engagements tab** — the full project registry.
+   - **Worth showing (v1.43.0):** type `red` into the **PS-DOS IQ** search
+     bar above the table — the list narrows instantly, client-side, no
+     page reload. Try `raid>2` too. This is a good "it's actually fast,
+     not just a pretty dashboard" beat. (Say it plainly if asked: it's
+     keyword matching, not a model — don't oversell it as understanding a
+     typed sentence.)
+   - Click into any row's "Open →" to start the module tour below — point
+     out that it opened as a **tab** in the new strip below the header
+     (v1.43.0). Open a second engagement the same way and click between
+     the two tabs to show you never lose your place; "PS Control Tower"
+     itself stays pinned on the left as the way back.
 5. **Activity tab** — recent governance actions, for when someone asks
    "how do I know what changed since last week."
 
@@ -116,12 +132,26 @@ separate from the day-to-day modules above:
    a live integrity badge. Worth a 10-second pause if the audience
    includes anyone from security/compliance.
 
-**Optional — Persona Preview.** From `/admin` or the banner at the top of
-any page, open the Persona Preview switcher and pick a narrower role
-(Project Manager, or Practice Director / VP-Professional Services) to
-show the sidebar and every write control reshape live, without a
-re-login. This is the fastest way to answer "what does role X actually
-see" mid-demo.
+**⚠ Persona Preview — no longer available from this demo login, as of
+v1.45.0.** This section previously told you to open the Persona Preview
+banner while signed in as `admin@a2rventures-demo.test` (§0's recommended
+seat). **That banner is now A2R-staff-only — a tenant Client Admin like
+this one does not see it at all**, by deliberate design (a real customer's
+own Admin shouldn't see a developer/testing switcher in their production
+workspace, and this demo login is meant to behave exactly like a real
+customer's). Followed as the old script read, this beat would silently do
+nothing live in front of an audience.
+
+**If asked "what does role X actually see" mid-demo**, the clean answer
+is a second, pre-authenticated login for that role — the production
+persona matrix (`docs/QUICK_REFERENCE.md` §2) has a full Client
+Admin-through-VP ladder on two separate tenants for exactly this, ready to
+tab into. Switching into an actual A2R staff account to show the Persona
+Preview banner is **not** recommended for a client-facing demo even though
+it's technically possible — it also surfaces the Ops Console link and the
+header's "Ops: `<role>`" badge, both of which are internal-only UI with
+nothing to do with the sales story. Save that banner for internal QA /
+training sessions, not a prospect-facing walkthrough.
 
 ---
 

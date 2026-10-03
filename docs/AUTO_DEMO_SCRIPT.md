@@ -62,6 +62,21 @@ sidebar now make — see `docs/UI_DESIGN_SYSTEM.md` §12. No other beat's
 VO changed; every later beat already introduces itself via "PS-DOS,"
 which stays correct shorthand usage once the product's been named once.
 
+**Current as of v1.47.0** — fixes a real bug, not just a stale fact: Beat
+4 (`persona-preview`)'s VO said "Any admin can instantly preview the app
+as any other role," which became false the moment v1.45.0 restricted that
+banner to A2R staff only (a tenant's own Admin can no longer see it at
+all). Corrected to "An A2R operator can instantly preview…" and the beat
+now runs 20s (56 words, was 18s/50 words) to carry the extra clause
+naming the restriction — every downstream timecode in every cue sheet
+that includes this beat (Full Tour, Admin/Ops Lens, Security & Trust)
+shifts by +2s accordingly; §4's tables were regenerated directly from
+`DEMO_SCRIPT`, not hand-edited, to guarantee they match. This track's
+gating logic itself needed no change — both tracks that play this beat
+already require an A2R staff presenter for their own later beats (Ops
+Console, Operator Roles, Step-Up MFA), so the only thing that was ever
+wrong was the claim in the VO.
+
 ---
 
 ## 1. Track overview
@@ -71,10 +86,10 @@ persona-filtered *subsequence* of it, in the same order, never a rewrite:
 
 | Track | Persona value | Beats played | Total runtime |
 | --- | --- | --- | --- |
-| **Full Platform Tour** | `'Full Tour'` | All 18, in script order | **4:11** (251s) |
+| **Full Platform Tour** | `'Full Tour'` | All 18, in script order | **4:13** (253s) |
 | **Executive Lens** | `'Executive'` | Welcome → Command Bar → Scoped Practice View → SteerCo → Executive Hub → Tenant Isolation → Closing (7 beats) | **1:15** (75s) |
-| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Bar → Scoped Practice View → Persona Preview → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Identity Federation → Closing (16 beats) | **3:54** (234s) |
-| **Security &amp; Trust** | `'Security'` | Welcome → Scoped Practice View → Persona Preview → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Identity Federation → Closing (10 beats) | **2:41** (161s) |
+| **Admin / Ops Lens** | `'Admin'` | Welcome → Command Bar → Scoped Practice View → Persona Preview → Admin Setup → Batch Import → Custom KPI Builder → Ops Console → Platform Pulse → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Identity Federation → Closing (16 beats) | **3:56** (236s) |
+| **Security &amp; Trust** | `'Security'` | Welcome → Scoped Practice View → Persona Preview → Tenant Isolation → Operator Roles → Step-Up MFA → Audit Ledger → External Integrations → Identity Federation → Closing (10 beats) | **2:43** (163s) |
 
 Because a beat's line is identical everywhere it appears, **only 18 unique
 voiceover files are ever needed** — not one per track/beat combination.
@@ -84,11 +99,14 @@ recording plays when, on which track.
 - **"Scoped Practice View"** is shared by all three single-persona tracks —
   it's the Role-Based Scoped Filtering capability and reads the same way to
   any audience.
-- **"Persona Preview"** (v1.17.0) plays right after it on the Admin and
-  Security tracks only — never Executive, since only a tenant Admin or A2R
-  staff can see the banner at all, and it's the natural next beat after
-  "every view is role-aware": now show the tool that lets you *become* any
-  role on demand.
+- **"Persona Preview"** (v1.17.0; restricted to A2R staff only in v1.45.0)
+  plays right after it on the Admin and Security tracks only — never
+  Executive, since only A2R staff can see the banner at all (a tenant's
+  own Admin could too before v1.45.0; not any more), and both of those
+  tracks are presented from a staff login anyway given their later
+  staff-only beats (Ops Console, Operator Roles, Step-Up MFA, …) — it's
+  the natural next beat after "every view is role-aware": now show the
+  tool that lets you *become* any role on demand.
 - **"Tenant Isolation"** is the one Security &amp; Trust beat that also plays
   on the Executive and Admin tracks — it's the tenant-facing half of the
   security story (your data is walled off at the database), which every
@@ -198,12 +216,12 @@ comfortable 150–180 wpm band.
 - **Pacing:** 41 words / 15s ≈ **164 wpm**
 
 #### Beat 4 — `persona-preview`
-- **Route:** `/portfolio` · **Duration:** 18s · **Personas:** Admin, Security, Full Tour
+- **Route:** `/portfolio` · **Duration:** 20s · **Personas:** Admin, Security, Full Tour
 - **Highlight:** `#persona-preview-bar`
 - **VO:**
-  > Any admin can instantly preview the app as any other role — Executive, Project Manager, even a read-only guest — right from this banner. The sidebar, every module tab, and every write control morph to match exactly, so you can verify access control without creating test accounts or switching who's signed in.
-- **Delivery note:** land on "without creating test accounts" — that's the payoff line.
-- **Pacing:** 50 words / 18s ≈ **167 wpm**
+  > An A2R operator can instantly preview the app as any role — Executive, Project Manager, even a read-only guest — right from this banner, staff-only as of v1.45.0. The sidebar, every module tab, and every write control morph to match exactly, so access control can be verified without creating test accounts or switching who's signed in.
+- **Delivery note:** land on "without creating test accounts" — that's the payoff line. **Corrected v1.47.0:** the VO used to say "Any admin can..." — as of v1.45.0 this banner is A2R-staff-only, not also a tenant Admin's; this beat (and this whole track) is presenter-as-staff by construction anyway (later beats in the same track — Ops Console, Operator Roles, Step-Up MFA — already require a staff login), so the fix is the claim, not the persona gating.
+- **Pacing:** 56 words / 20s ≈ **168 wpm**
 
 #### Beat 5 — `steerco`
 - **Route:** `/steerco` · **Duration:** 8s · **Personas:** Executive, Full Tour
@@ -330,28 +348,28 @@ the instant `startDemo(persona)` fires) — precise to the second, since
 every beat's duration is a whole number of seconds. Each row's OUT point
 is the next beat's IN point; the route change happens exactly on cue.
 
-### 4.1 Full Platform Tour — 4:11 total, all 18 beats
+### 4.1 Full Platform Tour — 4:13 total, all 18 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
 | 0:10–0:20 | 10–20 | `command-bar` | `/portfolio` | — |
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
-| 0:35–0:53 | 35–53 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
-| 0:53–1:01 | 53–61 | `steerco` | `/steerco` | — |
-| 1:01–1:10 | 61–70 | `executive-hub` | `/reports` | — |
-| 1:10–1:20 | 70–80 | `admin-setup` | `/admin` | — |
-| 1:20–1:33 | 80–93 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
-| 1:33–1:55 | 93–115 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
-| 1:55–2:05 | 115–125 | `ops-console` | `/ops/telemetry` | — |
-| 2:05–2:13 | 125–133 | `ops-pulse` | `/ops/pulse` | — |
-| 2:13–2:29 | 133–149 | `tenant-isolation` | `/portfolio` | `#global-header` |
-| 2:29–2:50 | 149–170 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
-| 2:50–3:07 | 170–187 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
-| 3:07–3:22 | 187–202 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
-| 3:22–3:43 | 202–223 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
-| 3:43–4:04 | 223–244 | `sso-federation` | `/ops/identity` | `#identity-federation-console` |
-| 4:04–4:11 | 244–251 | `closing` | `/portfolio` | — |
+| 0:35–0:55 | 35–55 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
+| 0:55–1:03 | 55–63 | `steerco` | `/steerco` | — |
+| 1:03–1:12 | 63–72 | `executive-hub` | `/reports` | — |
+| 1:12–1:22 | 72–82 | `admin-setup` | `/admin` | — |
+| 1:22–1:35 | 82–95 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
+| 1:35–1:57 | 95–117 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
+| 1:57–2:07 | 117–127 | `ops-console` | `/ops/telemetry` | — |
+| 2:07–2:15 | 127–135 | `ops-pulse` | `/ops/pulse` | — |
+| 2:15–2:31 | 135–151 | `tenant-isolation` | `/portfolio` | `#global-header` |
+| 2:31–2:52 | 151–172 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
+| 2:52–3:09 | 172–189 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
+| 3:09–3:24 | 189–204 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
+| 3:24–3:45 | 204–225 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
+| 3:45–4:06 | 225–246 | `sso-federation` | `/ops/identity` | `#identity-federation-console` |
+| 4:06–4:13 | 246–253 | `closing` | `/portfolio` | — |
 
 ### 4.2 Executive Lens — 1:15 total, 7 beats
 
@@ -365,41 +383,41 @@ is the next beat's IN point; the route change happens exactly on cue.
 | 0:52–1:08 | 52–68 | `tenant-isolation` | `/portfolio` | `#global-header` |
 | 1:08–1:15 | 68–75 | `closing` | `/portfolio` | — |
 
-### 4.3 Admin / Ops Lens — 3:54 total, 16 beats
+### 4.3 Admin / Ops Lens — 3:56 total, 16 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
 | 0:10–0:20 | 10–20 | `command-bar` | `/portfolio` | — |
 | 0:20–0:35 | 20–35 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
-| 0:35–0:53 | 35–53 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
-| 0:53–1:03 | 53–63 | `admin-setup` | `/admin` | — |
-| 1:03–1:16 | 63–76 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
-| 1:16–1:38 | 76–98 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
-| 1:38–1:48 | 98–108 | `ops-console` | `/ops/telemetry` | — |
-| 1:48–1:56 | 108–116 | `ops-pulse` | `/ops/pulse` | — |
-| 1:56–2:12 | 116–132 | `tenant-isolation` | `/portfolio` | `#global-header` |
-| 2:12–2:33 | 132–153 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
-| 2:33–2:50 | 153–170 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
-| 2:50–3:05 | 170–185 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
-| 3:05–3:26 | 185–206 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
-| 3:26–3:47 | 206–227 | `sso-federation` | `/ops/identity` | `#identity-federation-console` |
-| 3:47–3:54 | 227–234 | `closing` | `/portfolio` | — |
+| 0:35–0:55 | 35–55 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
+| 0:55–1:05 | 55–65 | `admin-setup` | `/admin` | — |
+| 1:05–1:18 | 65–78 | `admin-ingestion` | `/admin/ingestion?v=batch` | `#batch-import-zone` |
+| 1:18–1:40 | 78–100 | `admin-kpis` | `/admin/kpis` | `#new-kpi-button` |
+| 1:40–1:50 | 100–110 | `ops-console` | `/ops/telemetry` | — |
+| 1:50–1:58 | 110–118 | `ops-pulse` | `/ops/pulse` | — |
+| 1:58–2:14 | 118–134 | `tenant-isolation` | `/portfolio` | `#global-header` |
+| 2:14–2:35 | 134–155 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
+| 2:35–2:52 | 155–172 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
+| 2:52–3:07 | 172–187 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
+| 3:07–3:28 | 187–208 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
+| 3:28–3:49 | 208–229 | `sso-federation` | `/ops/identity` | `#identity-federation-console` |
+| 3:49–3:56 | 229–236 | `closing` | `/portfolio` | — |
 
-### 4.4 Security &amp; Trust — 2:41 total, 10 beats
+### 4.4 Security &amp; Trust — 2:43 total, 10 beats
 
 | Timecode | Sec | Beat | Route | Highlight |
 | --- | --- | --- | --- | --- |
 | 0:00–0:10 | 0–10 | `welcome` | `/portfolio` | `#global-header` |
 | 0:10–0:25 | 10–25 | `scoped-practice-view` | `/capacity` | `#capacity-scope-indicator` |
-| 0:25–0:43 | 25–43 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
-| 0:43–0:59 | 43–59 | `tenant-isolation` | `/portfolio` | `#global-header` |
-| 0:59–1:20 | 59–80 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
-| 1:20–1:37 | 80–97 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
-| 1:37–1:52 | 97–112 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
-| 1:52–2:13 | 112–133 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
-| 2:13–2:34 | 133–154 | `sso-federation` | `/ops/identity` | `#identity-federation-console` |
-| 2:34–2:41 | 154–161 | `closing` | `/portfolio` | — |
+| 0:25–0:45 | 25–45 | `persona-preview` | `/portfolio` | `#persona-preview-bar` |
+| 0:45–1:01 | 45–61 | `tenant-isolation` | `/portfolio` | `#global-header` |
+| 1:01–1:22 | 61–82 | `operator-roles` | `/ops/access` | `#operator-capability-matrix` |
+| 1:22–1:39 | 82–99 | `step-up-mfa` | `/ops/security` | `#operator-mfa-panel` |
+| 1:39–1:54 | 99–114 | `audit-ledger` | `/ops/audit` | `#jit-elevation-log` |
+| 1:54–2:15 | 114–135 | `external-integrations` | `/ops/integrations` | `#integration-health-matrix` |
+| 2:15–2:36 | 135–156 | `sso-federation` | `/ops/identity` | `#identity-federation-console` |
+| 2:36–2:43 | 156–163 | `closing` | `/portfolio` | — |
 
 ---
 

@@ -10,7 +10,10 @@ The setup runbook for the first administrator of a new PS-DOS™
 organization — from signup to the first locked baseline, plus the access
 model every admin should understand before a real rollout.
 
-**Current as of v1.16.0.** Written for whoever holds the `OWNER` / `ADMIN`
+**Current as of v1.47.0** (re-verified at this version — see the note at
+the end of **Known gaps** below for what was actually re-checked, vs. what
+carried forward unchanged from v1.16.0 because nothing about it has
+moved). Written for whoever holds the `OWNER` / `ADMIN`
 membership role (`src/lib/auth/rbac.ts`) on a freshly created tenant.
 Related reading: `docs/ROLE_ACCESS_MATRIX.md` (the full access model),
 `docs/SECURITY.md` (security posture), `docs/USER_MANUAL.md` (day-to-day
@@ -141,7 +144,8 @@ Everything the wizard touched, plus the rest. Panels:
 4. From there the team works the project day to day (Audit evidence, RAID,
    financial actuals & forecast, schedule), and you can generate a SteerCo
    Status Deck, Portfolio Margin Rollup, or Audit Verification Certificate
-   from the **Executive Reporting Hub** (`/reports`) at any time.
+   from the **Executive Hub** (`/reports`, titled "Executive Briefing Hub"
+   on the page itself) at any time.
 
 ---
 
@@ -173,7 +177,16 @@ responsible for or should be able to speak to:
 
 ---
 
-## Known gaps (as of v1.16.0)
+## Known gaps (as of v1.16.0, re-verified still accurate at v1.47.0)
+
+Checked directly against the current schema rather than assumed: neither
+gap below has been closed in the 31 releases since this doc was first
+written — `BatchImportDataType` still has no rate-card pillar
+(`prisma/schema.prisma`), and there is still no "join an existing
+organization" path in the registration flow. Nothing else in this
+document needed a content correction at this pass — the onboarding
+journey, the wizard's five phases, and the Admin & Org Setup panel list
+are all still accurate as written.
 
 - **No tenant-wide rate-card CSV importer.** The Batch Import Engine and
   the intake templates cover per-project data and a **Delivery Roster**

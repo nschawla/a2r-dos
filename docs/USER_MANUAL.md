@@ -1,6 +1,6 @@
 # PS-DOS™ — User Manual & Operator's Guide
 
-_Applies to v1.29.0 · Last updated 2026-09-23_
+_Applies to v1.47.0 · Last updated 2026-09-30_
 
 PS-DOS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
@@ -49,9 +49,13 @@ practice director sees their practice, an admin or VP sees the whole
 portfolio. Where you land right after signing in is decided automatically
 by your role (a VP lands on the SteerCo Briefing, a Project Manager on the
 PS Control Tower, and so on) — every module stays reachable from the sidebar
-and ⌘K regardless. A tenant Admin (or A2R staff member) can additionally
-preview the app as any other role from the **Persona Preview** banner at
-the top of the workspace — see "The RBAC Master Matrix" below.
+and ⌘K regardless. **If you're an A2R staff member**, you'll additionally
+see a **Persona Preview** banner at the top of the workspace, letting you
+preview the app as any other role — see "The RBAC Master Matrix" below.
+(As of v1.45.0 this banner is staff-only — a tenant's own Admin no longer
+sees it, even though they previously did; your own production workspace is
+never cluttered with a developer/testing control that has no purpose
+there.)
 
 ---
 
@@ -138,10 +142,40 @@ hold the authority, execute. Also lists pending decisions and open
 high-severity RAID items in a compact strip beneath the cards. See
 `docs/PORTFOLIO_ORCHESTRATION.md` for the full mechanics.
 
+**Local triage actions (v1.41.0).** Each Pending Decision and
+High-Severity RAID row in that compact strip has a "•••" menu: mark it
+**Under Review** or **Acknowledged** (a small tag that sticks around on
+this device even after you reload), **snooze** it for the rest of this
+browser session only (it always comes back once you close the tab or sign
+out — it's a "clear my view while I work" control, never a permanent
+dismissal), or **export that one row as a CSV**. This is entirely local to
+your own browser — nothing here is visible to a teammate, writes to the
+server, or shows up in the audit ledger. It's a personal scratchpad for
+your own pass through the list, separate from actually executing a
+Decision Card option above (which *is* a real, audited action).
+
 ### Engagements tab
 
 The portfolio registry table — every engagement in your scope, health, PM,
 commercial model, open RAID count — plus **Register a New Engagement**.
+
+**PS-DOS IQ (v1.43.0).** A search bar above the table lets you type a
+short filter term instead of scanning the list — `red` or `amber`/`green`
+for health status, `unassigned` for engagements with no PM on record,
+`clean` or `high-raid` for RAID volume, or a direct threshold like
+`raid>2`. Combine words to narrow further (`red unassigned` finds both at
+once), or just type a client or PM name — it falls back to a plain text
+match. Worth knowing plainly: despite the name, this reads your typed
+words as keywords, not as a real question — it won't understand a full
+sentence. An **Export CSV** button downloads whatever's currently visible.
+
+**Tabbed workspaces (v1.43.0).** Click into any engagement from this table
+(or from Program Rollups) and it opens as a small, dismissible tab in a
+strip just below the header, so you can jump back to anything you've
+recently opened without returning to the sidebar. "PS Control Tower"
+itself stays pinned as the one tab you can't close. These tabs clear
+themselves out at the end of your browser session — they're a convenience
+for the work you're doing right now, not a saved list.
 
 ### Activity tab
 
@@ -501,15 +535,19 @@ the sidebar groups, per-engagement module pills, and routes it may reach.
 An unauthorized item is never rendered at all — there's no disabled button
 or greyed-out link to notice and wonder about — and the same matrix backs a
 server-side route guard, so a direct link to a page outside your role never
-gets further than a redirect. A tenant Admin (or an A2R staff member) sees
-a **Persona Preview** banner at the top of the workspace and can pick any
-role to see the app exactly as that role would — sidebar, tab pills, and
-write controls (like Lock Baseline) all strip down to match. It's clearly
+gets further than a redirect. An A2R staff member sees a **Persona
+Preview** banner at the top of the workspace and can pick any role to see
+the app exactly as that role would — sidebar, tab pills, and write
+controls (like Lock Baseline) all strip down to match. It's clearly
 labeled and unmissable while active (a solid warning-colored bar with an
 "Exit preview" button) so it's never mistaken for real access, and it's
 display-only — it can never show data your own account isn't actually
-permitted to see. Every other role signs in and stays locked to its own
-real view; no switcher is shown at all.
+permitted to see. **Every real tenant user — including your own Admin —
+signs in and stays locked to its own real view; no switcher is shown at
+all** (tightened in v1.45.0: this banner used to also render for a
+tenant's own Admin, which meant every real customer saw an internal
+testing control in their production workspace for no reason — it's A2R
+staff only now).
 
 ### Role-Based Scoped Filtering — where "Their practice" is actually enforced
 

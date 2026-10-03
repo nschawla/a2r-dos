@@ -123,12 +123,12 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
   {
     id: 'persona-preview',
     route: '/portfolio',
-    durationMs: 18000, // 50 words at ~167 wpm
+    durationMs: 20000, // 56 words at ~168 wpm
     act: 'Introduction',
     personas: ['Admin', 'Security'],
     highlightSelector: '#persona-preview-bar',
     caption:
-      "Any admin can instantly preview the app as any other role — Executive, Project Manager, even a read-only guest — right from this banner. The sidebar, every module tab, and every write control morph to match exactly, so you can verify access control without creating test accounts or switching who's signed in.",
+      "An A2R operator can instantly preview the app as any role — Executive, Project Manager, even a read-only guest — right from this banner, staff-only as of v1.45.0. The sidebar, every module tab, and every write control morph to match exactly, so access control can be verified without creating test accounts or switching who's signed in.",
   },
   {
     id: 'steerco',

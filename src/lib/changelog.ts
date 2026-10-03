@@ -36,6 +36,17 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.48.0',
+    date: '2026-09-30',
+    headline: 'Client-Facing Docs Catch-Up — a Real Live-Demo Bug Found',
+    changes: [
+      { type: 'fix', text: 'Found and fixed a real bug in shipped content, not just a stale doc: the Auto Demo\'s persona-preview beat (src/lib/demo/demo-script.ts) had voiceover text claiming "Any admin can instantly preview the app as any other role" — false since v1.45.0 restricted that banner to A2R staff only. Run as written, this beat\'s highlight would have silently done nothing while the VO kept asserting something untrue, live in front of a prospect. Corrected the caption, recalculated its duration (56 words vs. 50), and regenerated every downstream cue-sheet timecode in docs/AUTO_DEMO_SCRIPT.md programmatically from the corrected source data rather than hand-transcribed, to guarantee the two never drift apart.' },
+      { type: 'fix', text: 'docs/USER_MANUAL.md had the same stale "tenant Admin or A2R staff" Persona Preview claim in two places, plus no mention at all of Tabbed Multi-Tasking Workspaces or PS-DOS IQ (both v1.43.0, both on the exact page — PS Control Tower — this manual walks through screen by screen). All corrected; both new features given full explanations in the Decisions/Engagements tab sections where they actually live.' },
+      { type: 'fix', text: 'docs/DEMO_WALKTHROUGH.md (the presenter-facing manual click-through, distinct from the automated script above) told a presenter to open the Persona Preview banner while signed in as the demo\'s recommended Client Admin seat — exactly the account that no longer sees it. Rewritten to flag this explicitly and redirect to the actual client-facing answer (switching to a second pre-authenticated login from the production persona matrix), plus added the same two missing v1.43.0 features as a demo beat.' },
+      { type: 'improvement', text: 'docs/ADMIN_ONBOARDING.md (31 releases stale, the worst drift found in this whole catch-up effort) re-verified against the current schema rather than assumed — both of its "known gaps" (no rate-card CSV importer, no self-serve org-join flow) confirmed still genuinely open, nothing else in the document needed a content correction. Fixed one wrong product-area name ("Executive Reporting Hub" → "Executive Hub").' },
+    ],
+  },
+  {
     version: '1.47.0',
     date: '2026-09-30',
     headline: 'Quick Reference Catch-Up + Vercel CLI Note',
