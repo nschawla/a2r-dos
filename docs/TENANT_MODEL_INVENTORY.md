@@ -1,9 +1,20 @@
 # Tenant-model inventory & tenant-crossing audit
 
-_Status: current as of **v1.26.0** (the Executive Triage & Thematic
-Clustering rollout + PS Control Tower UX refactor). Companion to
+_Status: current as of **v1.45.3**. Re-verified at that version — model
+count (`grep -c "^model " prisma/schema.prisma` = 44) and the 9/34/1 split
+below are unchanged since the v1.26.0 pass; no new tenant model has been
+added in between (confirmed: `prisma/schema.prisma` has had zero diff
+since v1.29.0, and nothing changed it from v1.26.0 to v1.29.0 either —
+every release in that whole span was application-layer only). Companion to
 `docs/RLS_ROADMAP.md` and `docs/DATA_ACCESS_LAYER.md`. Audience:
 engineering + the security auditor._
+
+**v1.45.3** — Migration 26's three tables (`integration_connections` /
+`integration_sync_runs` / `integration_errors`, already in the inventory
+below since their original v1.18.0 pass) are now **applied to production**,
+not staging-only as previously noted — their `tenant_isolation` RLS policy,
+also already documented below, is accordingly live on production too. See
+`docs/INTEGRATION_ADAPTERS.md`.
 
 Every Prisma model, its tenant binding, and how a tenant boundary is
 enforced for it at the **database** layer (on top of the three application

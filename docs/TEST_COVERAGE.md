@@ -1,6 +1,6 @@
 # Test Suite Documentation & Coverage — PS-DOS™
 
-_Current-state, **v1.27.0**. How the automated suites are organised, what
+_Current-state, **v1.45.3**. How the automated suites are organised, what
 each layer guarantees, and how to run them. Requirement-level traceability:
 `docs/RTM.md`._
 
@@ -8,10 +8,10 @@ each layer guarantees, and how to run them. Requirement-level traceability:
 
 ## 1. Layers
 
-| Layer | Runner | Count (v1.27.0) | Target DB | Gate |
+| Layer | Runner | Count (v1.45.3) | Target DB | Gate |
 | --- | --- | --- | --- | --- |
-| Unit + DB-integration | Vitest | **921 tests / 73 files** | staging (`.env.test`) or local Postgres — **never production** | `npm test` |
-| End-to-end | Playwright (chromium) | **66 tests / 8 spec files** — Suites A–Q + L | staging (pinned by `playwright.config.ts` + `e2e/global-setup.ts`) | `npm run test:e2e` |
+| Unit + DB-integration | Vitest | **948 tests / 74 files** (one new file since v1.27.0 — `tests/portfolio-nl-search.test.ts`, 25 tests, v1.43.0) | staging (`.env.test`) or local Postgres — **never production** | `npm test` |
+| End-to-end | Playwright (chromium) | **66 tests / 8 spec files** — Suites A–Q + L (unchanged in count since v1.27.0; Suite J2's sign-in account changed in v1.45.0, see §3 below — same test count, different fixture) | staging (pinned by `playwright.config.ts` + `e2e/global-setup.ts`) | `npm run test:e2e` |
 | Direct-SQL RLS smoke | `tsx` script | 10-check matrix | staging / local (guard refuses prod) | `npm run db:rls:smoke` |
 | Production acceptance | `tsx` script | `pg_catalog` / `information_schema` SELECTs, **zero DML** | production (read-only) | `npm run db:rls:verify` |
 | Production health | HTTP probe | liveness + readiness | live deployment | `npm run health:prod` |
@@ -66,6 +66,9 @@ Playwright run whose resolved DB URL is the production project ref
 - `raid-triage.test.ts` (15), `financial-triage.test.ts` (16), `schedule-triage.test.ts` (18), `resource-triage.test.ts` (19), `commercial-triage.test.ts` (17) — the five Executive Triage engines, one file per module (RAID / Financial Realization / Schedule / Resource & Capacity / Commercial Baseline): classifier branch coverage (every theme + the OTHER fallback + priority-order tie-breaks), cluster aggregation (Red/Amber counts, distinct-project-count, the projectCount-then-secondary-metric sort), and — where a module's own design departs from the others — the specific invariant that departure exists to protect (e.g. Resource & Capacity's hours-weighted-not-averaged blended utilization; Schedule's unified `phaseHealthRag` driving both tiles so they can't disagree). All pure — no DB. See `docs/EXECUTIVE_TRIAGE_STANDARD.md`.
 - `executive-triage.test.ts` (16) — the underlying `selectTriageProjects`/`buildExecutiveTriage` engine the PS Control Tower's Decision Center draws on; unchanged by the v1.26.0 Bento Grid layout refactor (a JSX/composition change only) or the v1.29.0 Command Center retirement (its standalone `ActionTriageFeed` wrapper around the same engine/component was removed, the engine itself untouched).
 
+### PS-DOS IQ (v1.43.0)
+- `portfolio-nl-search.test.ts` (25) — **NEW v1.43.0**: every health-status keyword (`red`/`critical`/`at-risk`→R, `amber`/`yellow`/`watch`→Y, `green`/`healthy`/`on-track`→G) resolves only its own health code; `unassigned`/`no-pm`, `clean`/`no-raid`, `high-raid` boundary cases; every RAID threshold operator (`raid>N`/`raid>=N`/`raid<N`/`raid<=N`/`raid=N`); multi-token AND-combination; case-insensitivity; plain-text substring fallback across name/client/PM/model/methodology; empty-query matches everything. Pure functions, no DB. Tabbed Multi-Tasking Workspaces (same release) and the Decision Center's local triage actions (v1.41.0) have **no automated coverage** — both are thin client-side `sessionStorage`/`localStorage` state with no server boundary to assert against; verified by manual probe only (`docs/RTM.md` FR-TEN-11/13).
+
 ### Cryptography, calc, observability
 - `calculations*.test.ts` — the engine + `calculations-precision.test.ts` (exact-decimal drift proofs).
 - `rate-limiter.test.ts`, `rate-limiter-redis.test.ts` (6 — **prod fail-closed policy**), `security/rate-limit-endpoints.test.ts`.
@@ -89,7 +92,7 @@ Playwright run whose resolved DB URL is the production project ref
 | **G** | Methodology Playbook |
 | **H** | Role-based data masking (`full` / `summary` / `restricted`) |
 | **I** | Super-Admin tenant & data sovereignty — impersonation, cryptographic export, Purge Protocol + Certificate of Destruction |
-| **J** | Enterprise identity & governance — role-based landing, **Persona Preview banner navigation across all six roles** (J2, v1.17.0 — replaced the retired header "Perspective" lens pill), governance templates, financial masking, SSO config (elevation-gated, password + TOTP) |
+| **J** | Enterprise identity & governance — role-based landing, **Persona Preview banner navigation across all five personas** (J2, v1.17.0 — replaced the retired header "Perspective" lens pill; count corrected from "six" to "five" to match the 4-Tier RBAC merge, v1.29.0; **re-pointed at the staff+tenant `master.e2e@a2rventures.com` account in v1.45.0**, since the banner no longer renders at all for a plain tenant Client Admin — the account this suite originally signed in as), governance templates, financial masking, SSO config (elevation-gated, password + TOTP) |
 | **K1–K3** | Role-based scoped filtering (Resource & Capacity, Financial Realization) + Custom KPI engine (`e2e/enterprise-scoping-kpi.spec.ts`) |
 | **L** | **NEW v1.20.0** — PS Orchestration & Decision Engine: a Decision Card option opens the governance drawer, shows the guardrail + domino preview, and executes (`e2e/enterprise-verification.spec.ts`; named "L" — "K" was already taken by K1–K3 above, in a different file; renamed from an initial "K" collision during the v1.27.0 documentation sync) |
 | **M** | Site routing model (`A2R_SITE_MODE` fail-closed) |
@@ -170,3 +173,33 @@ exceed their timeout under elevated staging-pooler latency — reproducibly
 release: `tests/staff-elevation.test.ts` and `tests/security/
 ledger-concurrency.test.ts`, both 100% green at a 20s timeout). Known
 environmental flake, confirmed unrelated to this release's changes.
+
+---
+
+## 5. Most recent full-suite run (2026-09-30, docs catch-up pass, v1.45.3)
+
+| Gate | Result |
+| --- | --- |
+| `tsc --noEmit` | 0 errors |
+| `eslint src` | 0 / 0 |
+| `tests/changelog.test.ts`, `tests/portfolio-nl-search.test.ts` (isolated, the two files this session's work touched) | 6/6, 25/25 — clean |
+| Vitest, full suite, default parallelism | **875 passed / 64 failed / 9 skipped** (948 total, 74 files; 14 files had at least one failure) — reported honestly rather than silently omitted |
+
+**Every one of the 64 failures is the same documented flake pattern this
+doc has already called out above, at larger scale under this run's
+parallelism**, not a new regression: every failure's own error text is a
+plain `Test timed out in 5000ms` / `Hook timed out in 10000ms` against the
+shared staging Postgres pooler — confirmed by inspecting
+`tests/financial-precision.test.ts` directly (2/2 "failures," both literal
+connection timeouts, no assertion ever ran). The failures span unrelated
+domains (SAML, operator MFA, org-scope, ledger concurrency, financial
+precision, staff elevation/grants) with no common code path other than "a
+DB-integration test competing for a pooled staging connection" — the
+signature of pooler contention, not a logic bug concentrated in one area.
+A single-fork (`--pool=forks --poolOptions.forks.singleFork`, no
+parallelism) re-run was started to get a clean number but was too slow to
+complete within this pass and was stopped rather than block the rest of
+this documentation update on it. **Action item, not yet done:** re-run the
+full suite single-forked (or with a longer per-test timeout) before next
+treating "all green" as confirmed — don't carry this run's 875/948 forward
+as if it were a real regression count.

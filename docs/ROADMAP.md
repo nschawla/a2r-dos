@@ -1,8 +1,26 @@
 # Product Roadmap &amp; PM Pulse — PS-DOS™
 
-_Current production baseline: **v1.19.0**. This document is the
+_Current production baseline: **v1.45.3**. This document is the
 forward plan; it does not describe shipped behaviour (see `docs/FRD.md` for
 that). Target audience: beta clients and internal PM._
+
+> **Status check (2026-09-30):** the three themes below were written at
+> v1.19.0 and are still the forward plan as originally scoped — but
+> sixteen releases have shipped since (v1.20.0 → v1.45.3) without any of
+> Theme A/B/C landing. What actually shipped in that span: the PS
+> Orchestration & Decision Engine and Executive Triage rollout (v1.20.0–
+> v1.26.0), a documentation/schema alignment pass (v1.27.0), the Bento
+> Grid restructuring (v1.30.0), a full product rebrand + six rounds of
+> logo refinement (v1.31.0–v1.39.0), an Ops Console status badge
+> (v1.40.0), Tabbed Multi-Tasking Workspaces + PS-DOS IQ client-side
+> search + local triage actions (v1.41.0–v1.43.0), a UI bug fix
+> (v1.44.0), a Persona Preview access restriction (v1.45.0), and Ops
+> Console resilience/integration fixes (v1.45.1–v1.45.3). None of that is
+> Theme A/B/C. This isn't flagged to criticize the sequencing — it's
+> flagged because a roadmap nobody has re-confirmed in sixteen releases
+> stops being a plan and starts being an artifact; worth an explicit
+> decision (still next up? superseded? reprioritized?) rather than this
+> document quietly going stale a second time.
 
 ---
 

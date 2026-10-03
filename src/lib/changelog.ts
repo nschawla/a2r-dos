@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.46.0',
+    date: '2026-09-30',
+    headline: 'Documentation Hub Catch-Up — 16 Releases of Drift',
+    changes: [
+      { type: 'fix', text: 'Every doc in the Documentation Hub had stopped being updated somewhere between v1.19.0 and v1.33.0 while the app moved on to v1.45.3 — up to 26 releases of silent drift. Two of the nine (docs/ROLE_ACCESS_MATRIX.md, docs/RTM.md/FRD.md) had drifted from merely stale into actively wrong: the operator roster listed a revoked SUPER_ADMIN grant (rajan@a2rventures.com) as current, the family guest roster listed emails that no longer exist in production (all renamed in the persona-matrix rebuild), the test-coverage doc said "six roles" for a persona set that was merged to five releases ago, and the Persona Preview requirement row still described its pre-v1.45.0 "tenant Admin or staff" eligibility. All corrected against live-verified production state, not guessed. docs/ERD.md and docs/TENANT_MODEL_INVENTORY.md needed no factual correction (schema.prisma has had zero diff since v1.29.0) but gained consolidated catch-up notes; docs/UI_DESIGN_SYSTEM.md gained four new sections for real UI patterns shipped since its last update (the logo mark, the Ops badge, Tabbed Workspaces + PS-DOS IQ, and the Commercial Setup alignment-bug lesson); docs/SECURITY.md and docs/EXECUTIVE_SUMMARY.md gained dated addenda rather than in-place rewrites, since both are customer-facing and not every pre-existing claim in them was re-verified in this pass; docs/ROADMAP.md gained an honest status note that none of its three planned themes have shipped in the sixteen releases since it was written.' },
+      { type: 'fix', text: 'scripts/lib/family-guests.ts (the actual operational seed/access-tier script, not just a doc) is flagged as stale relative to production — it still lists the pre-rename @a2rventures.local emails, so running guests:seed/guests:access against production today would act on accounts that no longer match reality. Deliberately NOT rewritten in this pass — flagged in docs/ROLE_ACCESS_MATRIX.md §2.7/§3 as a known gap needing its own decision, not silently patched as a side effect of a documentation sweep.' },
+    ],
+  },
+  {
     version: '1.45.3',
     date: '2026-09-27',
     headline: 'Migration 26 Applied to Production — Integration Adapters Live',

@@ -1,6 +1,53 @@
 # PS-DOS — Security & Trust Overview
 
-_Last reviewed: 2026-09-16 · Applies to v1.19.0 · Owner: A2R Ventures Engineering_
+_Last reviewed: 2026-09-16 · Applies to v1.19.0, with a dated addendum below
+covering verified changes through **v1.45.3** · Owner: A2R Ventures
+Engineering_
+
+> **⚠ Open verification item (flagged 2026-09-30, not yet resolved):** §1
+> below states production "still connects as `postgres`" with `RLS_ENFORCE`
+> unset, so DB-level RLS is inert there. `RLS_ENFORCE` **does exist** as a
+> Vercel Production environment variable as of this review, but its value
+> is a Secret and wasn't re-confirmed as part of this pass — whether
+> production has actually been cut over to enforced RLS since this doc was
+> last reviewed is unconfirmed. Don't treat §1's "inert on production"
+> claim as current until a human re-verifies the variable's value (or the
+> cutover is deliberately performed per `docs/RLS_ENFORCEMENT_RUNBOOK.md`
+> and this doc is updated to match). This is the single most
+> security-material claim in this document — resolve it before sharing
+> this doc with a prospective customer's security team.
+
+### Verified changes since the last full review (through v1.45.3)
+
+Added as a dated addendum rather than rewritten in place, since this is a
+customer-facing document and every claim in §§1–12 below predates this
+note and has not been individually re-verified in this pass — only the
+items below were checked against the live app/database:
+
+- **Persona Preview banner restricted to A2R staff only (v1.45.0).** The
+  tenant-shell control that lets a viewer simulate another role's
+  navigation used to also render for any tenant's own Client Admin; it is
+  now gated on an active A2R staff grant alone. Display-only either way —
+  no change to any enforced access boundary — but closes a real
+  production-cleanliness gap (a developer/testing control was visible to
+  real customer admins). See `docs/ROLE_ACCESS_MATRIX.md` §2.6.
+- **Ops Console resilience (v1.45.1–v1.45.2).** The internal `/ops/*`
+  console had no local error boundary — any uncaught exception replaced
+  the entire page with the generic last-resort error screen. Fixed, and
+  while adding it a real production bug was found and fixed: a sidebar
+  nav-link prefetch of `/ops/integrations` threw because its tables
+  (migration 26) had only ever been applied to staging, not production —
+  every `/ops` page was one background prefetch away from crashing.
+- **Migration 26 applied to production (v1.45.3).** The three
+  read-only External Integration Adapter tables
+  (`integration_connections`/`integration_sync_runs`/`integration_errors`,
+  composite tenant FKs + `tenant_isolation` RLS policy, same pattern as
+  every other tenant table) are now live on production, verified directly
+  — see `docs/INTEGRATION_ADAPTERS.md`. No tenant has a connection
+  configured yet; v1 of that feature has no self-service "connect" UI.
+- **Global rebrand (v1.33.0)** — the product's full name is "PS Delivery
+  OS," "PS-DOS" its shorthand; no security-relevant change, noted only so
+  a reader isn't confused by the name switching mid-document.
 
 This document describes the security architecture, data-handling posture, and
 compliance controls of PS-DOS™. It is written for the security and

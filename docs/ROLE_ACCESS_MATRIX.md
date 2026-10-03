@@ -1,6 +1,6 @@
 # Security & Role Access Matrix — PS-DOS
 
-_Current as of **v1.32.0**. Source of truth: `src/lib/ops/operator-roles.ts`
+_Current as of **v1.45.3**. Source of truth: `src/lib/ops/operator-roles.ts`
 (operator axis), `src/lib/auth/rbac.ts` + `src/lib/governance/rbacMatrix.ts`
 (tenant axis). This document is a reader's map onto that code._
 
@@ -122,12 +122,25 @@ role. CLI equivalents: `npm run staff:grant -- <email> "<reason>" --role <ROLE>`
 
 ### 1.5 Current production operators
 
+Verified directly against production (`staff_grants` where `revokedAt IS NULL`)
+as of v1.45.3 — this table drifted out of sync with reality for a while
+(see §2.6) and is now the thing actually re-checked when this doc is
+updated, not copied forward from memory:
+
 | Account | Role |
 | --- | --- |
-| `navinder@a2rventures.com` | SUPER_ADMIN (+ OWNER/ADMIN in every tenant) |
+| `navinder@a2rventures.com` | SUPER_ADMIN (+ OWNER/ADMIN in every tenant — the platform's own A2R Global Admin) |
 | `ops@a2rventures.com` | SUPER_ADMIN |
-| `master.e2e@a2rventures.com` | SUPER_ADMIN (E2E only) |
-| `rajan@a2rventures.com` | SUPER_ADMIN |
+| `master.e2e@a2rventures.com` | SUPER_ADMIN (E2E test account only) |
+| `abha@a2rventures.com` | SUPPORT |
+| `support@a2rventures.com` | SUPPORT |
+| `janvi@a2rventures.com` | PROVISIONING |
+| `honey@a2rventures.com` | VIEWER |
+
+`rajan@a2rventures.com`'s `SUPER_ADMIN` grant (listed here until this
+update) was **revoked** as part of the v1.45.0-era family persona matrix
+rebuild (§2.6) — that identity now exists only as `rajan@client.com`, a
+plain tenant Client Admin with zero `/ops` reach, not an operator at all.
 
 ---
 
@@ -247,9 +260,86 @@ resolves to this same `CLIENT_ADMIN` persona for that tenant's own shell,
 same as any of its real admins would — the persona describes the
 tenant-side capability, independent of who's holding it.
 
+### 2.6 Persona Preview banner restricted to A2R staff only (v1.45.0)
+
+The banner that lets a viewer simulate another `RbacPersona`'s navigation
+(`PersonaPreviewBar.tsx`, `(dashboard)/layout.tsx`'s `personaPreviewEligible`)
+used to render for **either** an A2R staff member **or** any tenant's own
+`CLIENT_ADMIN` — meaning a real customer's top admin (and, before the
+rebuild in §2.7, the family's own client-side test accounts) saw a
+developer/testing switcher cluttering their production workspace, with no
+real purpose for a non-staff user. As of v1.45.0 it is gated on
+`isA2rStaff` alone — a real tenant Client Admin now sees nothing there at
+all. This is strictly a UX/production-cleanliness fix, not an access-boundary
+change: the banner was always display-only (middleware and every scoped
+query/action enforce the signed-in user's real session `DeliveryRole`, never
+this preview value), so a client user could never have escalated real
+access through it either before or after.
+
+### 2.7 Family persona test matrix — current production roster
+
+The original "family guest accounts" model below this section (§3) is
+**superseded** by a richer, intentionally-scoped matrix built for testing
+both sides of the product (the A2R/provider side and the client/tenant
+side) against the **live production app**, not just a uniform read-only
+observer tier in one demo org. The old `scripts/lib/family-guests.ts`
+roster (`@a2rventures.local` emails, §3) is **stale relative to production**
+— every one of those identities was renamed off that script's emails as
+part of this rebuild, so running `npm run guests:seed` / `guests:access`
+today would create or act on accounts that no longer match reality. That
+script is not corrected here — it's flagged as a known gap for a deliberate
+decision (retire it, or rewrite it to match §2.7), not silently rewritten as
+a side effect of a documentation pass.
+
+**Provider side** (A2R Ventures — `/ops` staff, no client workspace):
+
+| Login | Operator role |
+| --- | --- |
+| `navinder@a2rventures.com` | SUPER_ADMIN — full `/ops` + Admin in every tenant |
+| `abha@a2rventures.com` | SUPPORT |
+| `janvi@a2rventures.com` | PROVISIONING |
+| `honey@a2rventures.com` | VIEWER (read-only QA) |
+
+**Client side — Apex Global Services** (all `OperatorRole`-free, scoped to
+this one tenant only):
+
+| Login | Tier (`DeliveryAccessRole`) |
+| --- | --- |
+| `rajan@client.com` | Client Admin |
+| `indeepa@client.com` | Client Admin |
+| `lucky@client.com` | Client PM (`PROJECT_MANAGER`) |
+| `angad@client.com` | Client DD (`DELIVERY_MANAGER`) |
+| `mani@client.com` | Client Practice Director |
+| `chan@client.com` | Client VP (`VP_EXECUTIVE`) |
+
+**Client side — Acme Health** (a second, fully independent tenant, same
+role ladder):
+
+| Login | Tier (`DeliveryAccessRole`) |
+| --- | --- |
+| `pankaj@client.com` | Client Admin |
+| `ananya@client.com` | Client PM |
+| `griffin@client.com` | Client DD |
+| `sudhindra@client.com` | Client Practice Director |
+| `urvashi@client.com` | Client VP |
+
+Shared password for every account above: `password12345`. No client-side
+login holds any `staff_grants` row — each is confirmed scoped to exactly
+one tenant with zero `/ops` reach, including no visibility into the
+Persona Preview banner (§2.6).
+
 ---
 
-## 3. Family guest accounts
+## 3. Family guest accounts (legacy — see §2.7 for the current roster)
+
+**⚠ Stale relative to production as of v1.45.3 — see §2.7.** The emails
+below (`@a2rventures.local`) no longer correspond to any real account; every
+one of these people now has a production login under the `@a2rventures.com`
+(provider) or `@client.com` (client-side) addresses in §2.7 instead. Kept
+here only as a record of the original guest-access design (the
+`VIEWER`-then-`full`-then-revert lifecycle below) — do not run
+`guests:seed`/`guests:access` against production expecting it to match
+current reality.
 
 The roster lives in `scripts/lib/family-guests.ts` (11 members) and shares
 one password, `a2r-DOS-233444` (satisfies the strength policy; `mustChangePassword`

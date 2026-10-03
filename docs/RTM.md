@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix — PS-DOS™
 
-_Current-state, **v1.29.0**. Maps each `docs/FRD.md` requirement to its
+_Current-state, **v1.45.3**. Maps each `docs/FRD.md` requirement to its
 implementing code and its automated coverage. Per-phase RTMs (with the
 requirement IDs used at the time) are in `README.md`; this is the flattened
 view. Coverage detail: `docs/TEST_COVERAGE.md`._
@@ -36,7 +36,10 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | FR-TEN-7 | `src/lib/governance/*`, `GovernanceConfig` | A `tests/governance-config.test.ts` · E Suite J3 |
 | FR-TEN-8 | `src/lib/calculations/money.ts` + engine | A `tests/calculations-precision.test.ts` (400-cell matrix, 150-project portfolio, 60-row EAC) |
 | FR-TEN-9 | `src/lib/ops/tenant-management.ts`, `src/app/(dashboard)/layout.tsx` | A `tests/enterprise-flows.test.ts` · E Suite I |
-| FR-TEN-10 | `src/components/layout/PersonaPreviewBar.tsx`, `src/lib/client/rbac-preview.ts`, `src/components/layout/dashboard-ui-context.tsx` (`usePersonaGatedEdit` / `usePersonaGatedProjectEdit`) | A `tests/rbac-matrix.test.ts` (landing-route + module-authority checks) · E Suite J2 |
+| FR-TEN-10 | `src/components/layout/PersonaPreviewBar.tsx`, `src/lib/client/rbac-preview.ts`, `src/components/layout/dashboard-ui-context.tsx` (`usePersonaGatedEdit` / `usePersonaGatedProjectEdit`), `(dashboard)/layout.tsx` `personaPreviewEligible` (A2R-staff-only as of v1.45.0 — a tenant's own Client Admin no longer renders this control, see FR-TEN-10's text in `docs/FRD.md`) | A `tests/rbac-matrix.test.ts` (landing-route + module-authority checks) · E Suite J2 (re-pointed at a staff+tenant account in v1.45.0, since a plain Client Admin login no longer sees the banner at all) |
+| FR-TEN-11 | Tabbed Multi-Tasking Workspaces (v1.43.0) — `src/components/layout/WorkspaceTabsBar.tsx`, `src/components/portfolio/TrackedProjectLink.tsx`, `src/lib/client/workspace-tabs.ts`, `dashboard-ui-context.tsx` (`workspaceTabs`/`openWorkspaceTab`/`closeWorkspaceTab`) | M manual probe only — no dedicated automated test; purely client-side `sessionStorage` state with no server boundary to assert against |
+| FR-TEN-12 | PS-DOS IQ client-side search (v1.43.0) — `src/lib/portfolio-nl-search.ts`, `src/components/portfolio/ProjectsExplorer.tsx` | A `tests/portfolio-nl-search.test.ts` (25 — every keyword, every threshold operator, AND-combination, case-insensitivity) |
+| FR-TEN-13 | Decision Center local triage actions (v1.41.0) — `src/components/portfolio/TriageRowActions.tsx`, `src/lib/client/csv-export.ts` | M manual probe only — no dedicated automated test; purely client-side `localStorage`/`sessionStorage` state with no server boundary to assert against |
 
 ## Operator control plane
 
@@ -52,7 +55,9 @@ smoke, **M** manual UAT (`docs/UAT_TEST_RUNBOOK.md`).
 | FR-OPS-8 | `src/lib/ops/tenant-management.ts` (`startImpersonation`) | E Suite I2 |
 | FR-OPS-9 | `src/app/(admin)/ops/{telemetry,pulse,billing,audit,ingestion,dev-docs,docs}` | E Suite D · M UAT (ops walkthrough); `/ops/docs`'s content-generation script (`scripts/build-docs-hub.ts`) verified by a full `next build` compiling `src/lib/ops/docs-hub-content.generated.ts` and the route |
 | FR-OPS-10 | `src/lib/audit-ledger.ts` (`recordLedgerEvent` / `verifyLedgerIntegrity`) | A `tests/security/ledger-*.test.ts` · E Suite F2 |
-| FR-OPS-11 | `src/lib/integrations/*` (types, http, errors, normalize, registry, sync-runner, adapters/*), `src/server/actions/integrations.ts`, `src/app/(admin)/ops/integrations`, `src/app/api/internal/integrations-sync` | A `tests/integrations.test.ts` (24 — normalization, error classification, adapter read-only-by-construction, provider-meta drift guard), `tests/integrations-sync-runner.test.ts` (3 — live DB + a real network failure) |
+| FR-OPS-11 | `src/lib/integrations/*` (types, http, errors, normalize, registry, sync-runner, adapters/*), `src/server/actions/integrations.ts`, `src/app/(admin)/ops/integrations`, `src/app/api/internal/integrations-sync`, `src/server/queries/pages/ops-integrations.ts` (P2021-aware graceful degrade, added v1.45.2) | A `tests/integrations.test.ts` (24 — normalization, error classification, adapter read-only-by-construction, provider-meta drift guard), `tests/integrations-sync-runner.test.ts` (3 — live DB + a real network failure) · manually verified live against production post-migration (v1.45.3): exact page-load query shape returns cleanly, 0 rows |
+| FR-OPS-12 | `src/app/(admin)/error.tsx` | M manual probe only — no automated test (error-boundary components are typically exercised via a forced-throw harness this codebase doesn't yet have for either route group's boundary) |
+| FR-OPS-13 | `src/components/layout/Header.tsx` (`UserMenu`'s operator badge) | M manual probe only — no dedicated automated test |
 
 ## Data isolation & integrity
 

@@ -4,7 +4,7 @@ _**PS Delivery OS** is the product's full name; **PS-DOS** is its official
 shorthand — both names refer to the same product throughout this
 document and the rest of the `docs/` tree._
 
-_Authoritative current-state, **v1.19.0**._
+_Authoritative current-state, **v1.45.3**._
 _Audience: executive sponsors, security review, prospective enterprise clients,
 external audit. Requirement- and code-level detail: `docs/FRD.md` ·
 `docs/RTM.md` · `docs/SECURITY.md` · `docs/ROLE_ACCESS_MATRIX.md` ·
@@ -196,37 +196,53 @@ reserved for lawful data-subject erasure.
 
 ---
 
-## 5. Verification (v1.27.0)
+## 5. Verification
+
+Full detail and the most recent run's numbers: `docs/TEST_COVERAGE.md` §5.
+Snapshot as of **v1.45.3** (2026-09-30):
 
 | Gate | Result |
 | --- | --- |
 | `tsc --noEmit` | 0 errors |
 | `eslint` | 0 warnings / 0 errors |
 | `prisma validate` | valid |
-| Vitest, isolated per touched area | all green (5 triage-module engines, the PS Control Tower page, and the tenant-model-inventory guard, each confirmed independently) |
-| Vitest, full suite | 844 / 921 passing — every failure beyond the one real, now-fixed issue reproduced identically with this rollout's own changes reverted, confirming pre-existing environmental flake (see below), not a regression |
-| Playwright | not re-run in full for this documentation/schema-alignment pass; the one behavior change (a Suite label rename, K → L, to remove a naming collision) is inspected, not executed, since it changes no test logic |
+| Vitest, isolated per touched area | all green (every file this release's own work touched, confirmed independently) |
+| Vitest, full suite, default parallelism | 875 / 948 passing, 9 skipped — see the flake note below; not yet re-confirmed clean on an isolated re-run (tracked as an open action item in `docs/TEST_COVERAGE.md` §5) |
+| Playwright | not re-run in full for this documentation catch-up pass (no app-code change) |
 | `next build` | clean |
-| `db:rls:smoke` | **all 34 tenant tables enforce isolation for `a2r_app`** — run live against staging after applying migration 29 |
-| Migration 29 | `portfolio_interventions` RLS policy (closes the v1.20.0 gap — §4.1 case study) — applied to **staging only**; production untouched |
+| Migration 26 | applied to **production** (v1.45.3) — see §3's integration-adapters note and `docs/INTEGRATION_ADAPTERS.md` |
 
 The automated suites **cannot** run against the production database — a hard
 guard aborts any run whose resolved URL is the production project. Every
 release tag from `v1.12.0` points at the exact immutable commit deployed to
 production.
 
-Up to ten Vitest DB-integration tests intermittently exceed their timeout
-under elevated staging-pooler latency — a known environmental flake
-tracked across multiple releases now, reproducibly 100% green on an
-isolated re-run at a longer timeout, and reconfirmed unrelated to this
-release's changes by re-running the full suite with those changes
-temporarily `git stash`-ed out and observing the identical failures.
+Up to ten (this run: 64, under this pass's parallelism) Vitest
+DB-integration tests intermittently exceed their timeout under elevated
+staging-pooler latency — a known environmental flake tracked across
+multiple releases now, reproducibly reducible by re-running single-forked
+or at a longer timeout. Confirmed by inspecting the actual failure text
+directly in this pass: every failure is a literal connection/hook timeout,
+not a failed assertion, spread across domains with no code path in common
+other than "competes for a pooled staging DB connection" — the signature
+of pooler contention, not a regression.
 
 ---
 
 ## 6. Product roadmap — next release for beta clients
 
-Full detail and sequencing in `docs/ROADMAP.md`. Headline themes:
+Full detail and sequencing in `docs/ROADMAP.md`. **None of the three
+themes below have shipped as of v1.45.3** — the sixteen releases since
+this section was last reviewed (v1.27.0 → v1.45.3) instead delivered a
+rebrand, several rounds of logo/UI refinement, RBAC persona cleanup,
+Tabbed Multi-Tasking Workspaces, PS-DOS IQ client-side search, local
+triage actions, and a handful of bug fixes — a different, more
+UI/polish-weighted set of priorities than the Pulse-score/webhooks/Viewer-
+widgets plan below. Kept here as-written rather than quietly rewritten,
+since it's possible this remains the real intended next-up plan and only
+got deprioritized by more urgent work in between — worth an explicit
+"is this still the plan?" conversation rather than this document silently
+asserting either answer. Headline themes (still as originally scoped):
 
 - **Deep PM Pulse** — a composite engagement health score (schedule, cost,
   scope, risk, sentiment) with milestone-velocity tracking and trend arrows,

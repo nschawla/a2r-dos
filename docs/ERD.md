@@ -1,9 +1,24 @@
 # Entity Relationship Diagram — PS-DOS
 
 Source of truth is always `prisma/schema.prisma`; this is a reader's map onto
-it, current as of **v1.29.0**. See `docs/TENANT_MODEL_INVENTORY.md` for the
+it, current as of **v1.45.3**. See `docs/TENANT_MODEL_INVENTORY.md` for the
 full model → tenant-binding → RLS-policy map and `docs/ROLE_ACCESS_MATRIX.md`
 for the role axes.
+
+**v1.30.0 – v1.45.3** — **No schema change across this entire span**
+(verified: `prisma/schema.prisma` is byte-identical to its v1.29.0 state;
+`git diff e398a22..HEAD -- prisma/schema.prisma` is empty). Sixteen
+releases of application-layer work — the Bento Grid restructuring, the
+global PS Delivery OS rebrand, the logo mark iterations, RBAC persona
+relabeling (`GLOBAL_ADMIN`→`CLIENT_ADMIN`), the Ops Console status badge,
+Tabbed Multi-Tasking Workspaces, PS-DOS IQ (client-side NL search), local
+triage actions on the Decision Center, and a handful of UI/resilience
+fixes — none of it touched the Prisma schema. The one database-relevant
+event in this span wasn't a new migration: **migration 26** (already
+documented below, v1.18.0) was **applied to production** for the first
+time in v1.45.3, closing a staging/production gap that had existed since
+that migration was originally written — see that version's note below and
+`docs/INTEGRATION_ADAPTERS.md`.
 
 **v1.29.0** — Sidebar Flattening, Command Center Merge, 4-Tier RBAC,
 demo-tenant rename. **No schema change.** The RBAC "4-Tier" simplification

@@ -633,3 +633,91 @@ single-line auth-screen headers) keeps the shorthand.**
   itself is now stated once, centrally, in the two most-read entry-point
   docs (`docs/EXECUTIVE_SUMMARY.md`, `docs/QUICK_REFERENCE.md`) rather
   than repeated as a caveat in every file.
+
+## 13. The logo mark — "Concept B: Ascent Vector" (v1.34.0 – v1.39.0)
+
+Six iterative passes on the one app-wide logo mark
+(`src/components/ui/brand-mark.tsx`), converging on a pure-SVG navy
+triangle + a wider red "ribbon" base, no gradient or raster artwork. Two
+deliberately independent design tokens (`logo`, `logo-accent` in
+`tailwind.config.ts`) keep the mark's own ink and accent color separate
+from both `brand` (the one interactive accent — links, CTAs, focus rings)
+and `critical` (the RAID/health severity red) — a re-theme of any one of
+the three can never silently recolor another. `src/app/icon.svg` is a
+hand-synced static copy for the browser-tab favicon (the app had none
+before v1.34.0) and must be updated by hand whenever the mark's path data
+changes — it has no access to Tailwind/CSS tokens as a static file.
+
+## 14. Header — Ops Console status badge (v1.40.0)
+
+For A2R staff viewing a tenant workspace, the header's identity chip now
+shows a compact "Ops: `<role>`" badge beside the tenant persona label
+(`Header.tsx`'s `UserMenu`) — e.g. "Client Admin" next to "Ops: Super
+Admin." The two labels are deliberately never merged into one: the persona
+label always describes tenant-scoped `DeliveryAccessRole` authority for
+*this* workspace; the badge surfaces the completely independent
+cross-tenant Operator axis (`docs/ROLE_ACCESS_MATRIX.md` §1), letting a
+staff member confirm their `/ops` status at a glance without navigating
+there. Renders nothing for a non-staff viewer.
+
+## 15. Tabbed Multi-Tasking Workspaces + PS-DOS IQ (v1.41.0 – v1.43.0)
+
+Three additions to the PS Control Tower's Overview tab, all **purely
+client-side** (React state + `sessionStorage`/`localStorage` — no new
+server routes, no backend writes):
+
+- **Local triage actions** (v1.41.0, `TriageRowActions.tsx`) — a "•••"
+  menu on each Decision Center alert row (Pending Decisions,
+  High-Severity RAID): tag a row Under Review/Acknowledged
+  (`localStorage`, persists across sessions), snooze it for the current
+  session only (`sessionStorage`, always returns once the tab/session
+  ends — deliberately never a standing dismissal), or export that one row
+  as a CSV. Explicitly **not** the same thing as the Decision Card's own
+  intervention flow, which still writes a real, audited
+  `PortfolioIntervention` row — this is an ungated personal scratchpad for
+  a reviewer's own pass, never a substitute for a governed action.
+- **Tabbed Multi-Tasking Workspaces** (v1.43.0, `WorkspaceTabsBar.tsx` +
+  `TrackedProjectLink.tsx`) — clicking into a project from the Control
+  Tower opens a dismissible pill in a tab strip below the header, so a
+  viewer can jump back to a recently-opened project without returning to
+  the sidebar. Session-scoped (`sessionStorage`), capped at 8 open tabs.
+  Scoped honestly: this is a navigational shortcut layer on top of
+  Next.js's normal server-rendered routing, **not** an in-memory
+  "kept-alive" multi-instance shell — switching tabs is a real page
+  transition that re-fetches its own data, same as a normal navigation.
+  The Control Tower itself is a pinned, non-closable home tab, never
+  disturbed by opening/closing others — its own filter and search state
+  (below) always survives a round trip through other tabs.
+- **PS-DOS IQ** (v1.43.0, `src/lib/portfolio-nl-search.ts` +
+  `ProjectsExplorer.tsx`) — a search bar above the Active Projects table
+  recognizing a small, grounded set of real keywords (health status —
+  `red`/`amber`/`green` + synonyms; `unassigned`; RAID-volume words —
+  `clean`/`high-raid`; threshold expressions — `raid>2`) plus a plain
+  substring fallback against name/client/PM/model/methodology, AND-combined
+  across space-separated tokens. Named candidly in this doc so the gap is
+  never papered over: despite the name, this is keyword/threshold
+  matching, not natural-language understanding — a real free-form sentence
+  will fall through to the plain-substring path and likely match nothing.
+  Combines with the existing health-pill filter; an "Export CSV" button
+  downloads whatever's currently visible under both filters.
+
+## 16. A production bug this doc's own pattern should have caught (v1.44.0)
+
+Worth recording as a cautionary note for future work in this file, not
+just a changelog line: the Commercial Baseline tab's "Commercial Setup"
+card rendered 8 label/value pairs as flat alternating `<dt>`/`<dd>`
+siblings flowing directly into a `grid-cols-2 sm:grid-cols-3` container.
+Sequential `dt,dd,dt,dd,…` flow only stays correctly paired when the
+column count is a multiple of 2 — at 3 columns the pairing silently shifts
+by one position after the first row and compounds down every row after
+it, so a label rendered where a value should read. **The fix, and the
+house rule going forward:** a label and its own value must always share
+one wrapper element (a `<div>` holding both `<dt>` and `<dd>`) that the
+grid arranges — never bare alternating `dt`/`dd` siblings handed straight
+to a multi-column grid. The two other `<dl>` usages in the codebase
+(`MarginModelerCard.tsx`, `OnboardingJourneyWizard.tsx`'s `SummaryRow`)
+already followed this pattern correctly; this was an isolated miss, not a
+systemic one — but it shipped to production before anyone caught it by
+eye, which is the real lesson: a visual/alignment review of a finished
+screen is not yet a standing step in how this app ships UI, and arguably
+should be.
