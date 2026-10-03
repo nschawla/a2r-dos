@@ -3,7 +3,9 @@
 _Status: shipped in v1.7.0 (P1). Builds on P0 #2 (explicit staff grants) and the
 Impersonation Gateway. **v1.14.0 (WP2)** adds password step-up +
 `sessionVersion` binding. **Batch 2** adds a mandatory TOTP second factor —
-see §3.1 and §7._
+see §3.1 and §7. Re-verified at **v1.49.0** — the TTL clamp range and
+`e2e/staff-elevation.spec.ts`'s existence confirmed directly against the
+live code; nothing has drifted since this was written._
 _Audience: engineering + security audit._
 
 ## 1. Purpose

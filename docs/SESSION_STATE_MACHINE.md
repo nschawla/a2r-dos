@@ -1,6 +1,10 @@
 # Restricted-session state machine
 
-_Status: shipped in v1.7.0 (P1). Builds on P0 #3 (forced-password-rotation enforcement)._
+_Status: shipped in v1.7.0 (P1). Builds on P0 #3 (forced-password-rotation enforcement).
+Re-verified at **v1.49.0** — the 2500ms default timeout, the transition
+table, and `e2e/session-state-machine.spec.ts`'s existence were all
+checked directly against the live code; nothing has drifted since this
+was written._
 _Audience: engineering + security audit._
 
 ## 1. Purpose

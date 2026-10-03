@@ -1,6 +1,8 @@
 # Site routing model — `A2R_SITE_MODE`
 
-_Status: shipped in v1.7.0 (P1). Replaces `NEXT_PUBLIC_COMING_SOON`._
+_Status: shipped in v1.7.0 (P1). Replaces `NEXT_PUBLIC_COMING_SOON`.
+Re-verified at **v1.49.0** — found and corrected one real drift in the
+Vercel setup guidance; see the Production row below._
 
 ## Why it changed
 
@@ -56,7 +58,7 @@ middleware only lets an anonymous visitor reach in `marketing` mode.
 
 | Environment | `A2R_SITE_MODE` |
 | --- | --- |
-| Production (`main` → www.a2rventures.com) | `marketing` while pre-launch; flip to `live` at GA |
+| Production (`main` → www.a2rventures.com) | **confirmed `internal` as of v1.49.0** — `curl -sI https://www.a2rventures.com/` returns a 307 to `/launch` for an anonymous visitor, which per the model table above only happens in `internal` mode (not `marketing`, which this row originally suggested as the pre-launch default; evidently changed at some point after this doc was written, undocumented until now). The variable's own value is a Vercel Secret this session can't read directly — this row is inferred from the redirect's live behavior, not read from the dashboard. |
 | Preview (`feature/landing-page-preview`, etc.) | `internal` |
 | Development | `internal` (or omit — local falls back to `marketing`) |
 

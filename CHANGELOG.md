@@ -10,6 +10,37 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.50.0] — 2026-09-30
+
+_Docs Catch-Up Part 4 — Infra Docs, and a Consistent Open Item._
+
+### Fixed
+
+- `docs/OBSERVABILITY.md` had two real, grep-confirmed drifts: the wrapped-Server-Action count had nearly
+  doubled (48 → 81) and the rate-limit rule table was missing 3 of its now-12 real rules entirely (`EXEC_AGENT`,
+  `SSO_LOGIN`, `SSO_ACS` — all three already shipped and enforced at their call sites, just never added to this
+  table). Both fixed against the live code, not estimated.
+- `docs/SITE_ROUTING_MODEL.md`'s Vercel setup guidance claimed Production runs in `marketing` mode pre-launch;
+  live behavior (`curl -I` on the production domain) shows a 307 to `/launch`, which per the doc's own model
+  table only happens in `internal` mode. Corrected from direct observation, not the unreadable env var value.
+
+### Improved
+
+- `docs/PREVIEW_ENVIRONMENT_ISOLATION.md`'s header claimed its manual Vercel isolation steps were "still
+  outstanding" — found circumstantial evidence they've actually been completed (separately-scoped
+  `DATABASE_URL`/`DIRECT_URL`/`NEXTAUTH_SECRET` exist for Production and Preview independently, which is exactly
+  what those steps call for, and is the condition the build-time guard would hard-fail on if it were still
+  wrong). Flagged as strong evidence, not a certified re-audit — a human spot-check of Deployment Protection
+  would close the gap.
+- Five more docs (`docs/JIT_STAFF_ELEVATION.md`, `SESSION_STATE_MACHINE.md`, `RLS_ENFORCEMENT_RUNBOOK.md`,
+  `RLS_ROADMAP.md`) re-verified or corrected. The two RLS docs share one consistent, explicitly-flagged open
+  item with `docs/SECURITY.md` and `docs/VERCEL_DEPLOYMENT.md`: whether production RLS is still inert or has
+  since been enforced is genuinely unconfirmed (`RLS_ENFORCE` exists as a Vercel Secret this session can't
+  read) — flagged the same way in all four docs rather than guessed differently in each, with a pointer that one
+  human check resolves all four at once.
+
+---
+
 ## [1.49.0] — 2026-09-30
 
 _Docs Catch-Up Part 3 — Triage Modules, Orchestration, Support, DAL._

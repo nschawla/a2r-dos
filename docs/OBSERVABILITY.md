@@ -1,7 +1,11 @@
 # Observability & rate limiting
 
 _Status: shipped in v1.7.0 (P2). Builds on the GA-readiness `observability.ts` /
-`rate-limiter.ts` primitives._
+`rate-limiter.ts` primitives. Re-verified at **v1.49.0** — found and fixed
+real drift: the wrapped-action count had nearly doubled (48→81) and the
+rate-limit rule table was missing 3 of its now-12 real rules entirely
+(`EXEC_AGENT`, `SSO_LOGIN`, `SSO_ACS` — all three already shipped and
+enforced, just never added to this table). See the notes inline below._
 _Audience: engineering + on-call._
 
 ## 1. Structured error capture
@@ -17,7 +21,7 @@ every call site already routes through this module.
 
 | Wrapper | File | Wraps | On an unhandled throw |
 | --- | --- | --- | --- |
-| `withAction(name, fn)` | `src/lib/observability/action-wrapper.ts` | every `{ ok }`-returning **Server Action** (~48) | re-throws Next control-flow (`redirect` / `notFound` / `DYNAMIC_SERVER_USAGE`); maps `PASSWORD_CHANGE_REQUIRED` / `ELEVATION_REQUIRED` codes through; else `captureException({ scope:'server-action', action, userId, activeOrgId })` (redacted) + returns `{ ok:false, error:'An unexpected error occurred. Please try again.' }` |
+| `withAction(name, fn)` | `src/lib/observability/action-wrapper.ts` | every `{ ok }`-returning **Server Action** (81 as of v1.49.0 — grep-counted, not estimated; was "~48" at v1.7.0, grown with every feature that added mutating actions since) | re-throws Next control-flow (`redirect` / `notFound` / `DYNAMIC_SERVER_USAGE`); maps `PASSWORD_CHANGE_REQUIRED` / `ELEVATION_REQUIRED` codes through; else `captureException({ scope:'server-action', action, userId, activeOrgId })` (redacted) + returns `{ ok:false, error:'An unexpected error occurred. Please try again.' }` |
 | `withRouteHandler(name, handler)` | `src/lib/observability/route-wrapper.ts` | the session-backed download / report **Route Handlers** | re-throws Next control-flow; else `captureException({ scope:'api', route })` + `500 { error:'Internal server error.' }` |
 
 Read-only actions (`listX` / `getX` / `getCommandKContext`) keep raw throws —
@@ -52,6 +56,16 @@ too, not just the 429 (which also carries `Retry-After`).
 | `TEMPLATE_DOWNLOAD` | 60 | 1 min | per user | `api/templates/[id]` |
 | `BATCH_INGEST` | 20 | 1 min | per user | `stage/commit/update/discardImportBatch`, `commitCsvImport` |
 | `WORKSPACE_SNAPSHOT` | 5 | 10 min | per user | `export/restoreWorkspaceSnapshot` |
+| `EXEC_AGENT` | 15 | 1 min | per user | `api/assistant/ask` (the Persona-Aware Executive Agent chat) |
+| `SSO_LOGIN` | 15 | 1 min | per IP | `api/auth/saml/login` (SP-initiated AuthnRequest redirect) |
+| `SSO_ACS` | 20 | 1 min | per IP | `api/auth/saml/acs` (the SAML assertion-consumer callback — public POST, real XML-signature crypto per call) |
+
+**Three rows added in this pass** (`EXEC_AGENT`, `SSO_LOGIN`, `SSO_ACS`) —
+all three rules already existed in `src/lib/rate-limits.ts` and were
+already enforced at their call sites; this table had simply never been
+updated to include them since the SAML/Executive Agent features shipped.
+Confirmed via `grep "rule("` against the live rule file, not assumed —
+this is now a complete 1:1 list, not a historical subset.
 
 Every `limit` is overridable via `RL_<NAME>_LIMIT` (e.g.
 `RL_BULK_EXPORT_LIMIT=50`); windows are fixed in code.

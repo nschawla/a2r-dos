@@ -3,15 +3,30 @@
 _Companion to `docs/RLS_ROADMAP.md` and `docs/TENANT_MODEL_INVENTORY.md`.
 Turning DB-level Row-Level Security on, and the emergency rollback._
 
+> **⚠ Open verification item (flagged v1.49.0, not yet resolved) — this
+> whole document's premise rests on it.** The "Production" status row
+> below asserts the app still connects as `postgres` (RLS inert,
+> cutover pending). `RLS_ENFORCE` **does exist** as a Vercel Production
+> env var (confirmed via `npx vercel env ls production`), but its value
+> is a Secret this session cannot read — whether production has
+> actually already been cut over since this doc was last confirmed is
+> genuinely unknown. Same open item as `docs/SECURITY.md` and
+> `docs/VERCEL_DEPLOYMENT.md` flag — **a single human check of the real
+> value would resolve all three at once.** Don't run "Production
+> cutover" below assuming it hasn't happened yet, and don't run the
+> "Emergency rollback" assuming it has — verify first either way.
+
 ## Status
 
 - **Staging** (`urdlkmlhjhvoxsphvwte`) — **ENFORCED** (v1.9.0). `RLS_ENFORCE=1`,
   migrations 16 + 17 + 20 + 21 + 22 applied, `npm run db:rls:smoke` green
   (10 checks), full suite green.
 - **Production** (`xoaabhqsbfetffyawayw`) — migrations 16 + 17 + 20 + 21 + 22
-  **APPLIED (inert)**; the app still connects/acts as `postgres`. The
-  enforcement flip (`RLS_ENFORCE=1` on Vercel) is the remaining step —
-  "Production cutover" below.
+  **APPLIED**; whether the app still connects/acts as `postgres` (inert) or
+  has since been cut over to `a2r_app` enforcement is the unconfirmed item
+  flagged above — the enforcement flip (`RLS_ENFORCE=1` on Vercel) is
+  believed to be the remaining step as of this doc's last confirmed
+  review, but that belief itself needs re-checking before acting on it.
 
 ## Design (as shipped)
 

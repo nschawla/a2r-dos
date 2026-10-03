@@ -1,10 +1,16 @@
 # Database-level Row Level Security — implementation roadmap
 
 _Status: **ENFORCED on staging** (v1.9.0). Production has the migrations
-applied **inert** (v1.12.0–v1.13.0); the `RLS_ENFORCE=1` flip is the last
-step (§ "Production cutover")._
+applied; whether it's still **inert** or has since been cut over to
+enforcement is an **open, unconfirmed item as of v1.49.0** — see
+`docs/RLS_ENFORCEMENT_RUNBOOK.md`'s top note (the same `RLS_ENFORCE`
+value this session couldn't read, flagged consistently across that doc,
+`docs/SECURITY.md`, and `docs/VERCEL_DEPLOYMENT.md`)._
 _Owner: platform / security. Audience: engineering + the security auditor.
-See `docs/TENANT_MODEL_INVENTORY.md` for the full model map._
+See `docs/TENANT_MODEL_INVENTORY.md` for the full model map — the model
+count in §2 below (37 total / 28–29 tenant-owned) is itself stale (grown
+to 44 / 34 since v1.9.0–v1.13.0 as later features added tables); treat
+that inventory doc as the live source, not the counts repeated here._
 
 ## Where we are (v1.13.0, WP1)
 

@@ -1,7 +1,19 @@
 # Preview / Production environment isolation
 
-_Status: **code guardrail shipped in v1.7.0 (P0 #4). Vercel dashboard steps below are
-manual and still outstanding.**_
+_Status: code guardrail shipped in v1.7.0 (P0 #4). **Re-checked at
+v1.49.0: the manual Vercel steps below appear to have actually been
+completed since this doc was written** — `npx vercel env ls` shows
+`DATABASE_URL`/`DIRECT_URL`/`NEXTAUTH_SECRET` each as separately-scoped
+entries under Production and under Preview (not one shared
+"All Environments" value), which is exactly what step 4/6 below call for,
+and is the condition the build-time guard would hard-fail on if it were
+still wrong — Preview builds have been succeeding throughout this
+session's work. This session could not read the actual secret values to
+confirm they genuinely differ (same limitation as every other "Secret"-typed
+Vercel var this pass ran into), so treat this as strong circumstantial
+confirmation, not a certified re-audit — a human spot-check of
+Deployment Protection (step 9) and a real preview-URL test (the
+"Verify" section below) would close the gap completely._
 
 ## The risk
 
