@@ -141,22 +141,51 @@ npm run build          # production build (what Vercel runs)
 - Pushing to `main` deploys the app on Vercel automatically, but it does
   **not** apply database migrations — those are a separate, deliberate
   step, held for your explicit go-ahead each time a change needs one.
-- I don't have a way to check Vercel's build/deploy status directly from
-  here yet (no CLI login, no API token configured in this environment) — I
-  can only confirm the live site is responding. If you want me to check
-  build status directly in future, either run `! vercel login` in a chat
-  message (opens the interactive login for me), or hand me a `VERCEL_TOKEN`.
-- **Recently added, worth knowing about:** v1.40.0 put a small "Ops: `<role>`"
-  badge next to the header persona label for staff accounts, so your real
-  cross-tenant Ops Console status is visible at a glance without opening
-  `/ops`. v1.41.0 added a local-only "•••" triage menu (tag / snooze for the
-  session / export CSV) to the Decision Center's Pending Decisions and
-  High-Severity RAID rows — purely client-side, no backend writes. Full
-  detail in the in-app Release Notes (Ops Console) or `CHANGELOG.md`.
-- **Committed, not yet pushed:** v1.41.0 (Decision Center local triage
-  actions) is committed locally and one commit ahead of `origin/main` —
-  waiting on your go-ahead to push, per the standing convention that nothing
-  reaches `main` without an explicit "push to main" each time.
+- **Vercel CLI is authenticated and working** (`npx vercel`, logged in as
+  `nschawla`, team `a2-r-dos` / project `a2r-dos`) — I can pull real
+  deployment status and live production logs (`npx vercel ls --prod`,
+  `npx vercel logs <deployment-url>`) directly now, not just confirm the
+  site responds. This is how the `/ops/integrations` crash a few sessions
+  back actually got root-caused — live-tailed logs while reproducing it,
+  rather than guessing from reading code. A fresh terminal session may
+  need `! npx vercel login` run again (auth doesn't always persist across
+  sandbox sessions) — ask if a Vercel-CLI command suddenly stops working.
+- **Recently added, worth knowing about** (full detail in the in-app
+  Release Notes or `CHANGELOG.md`):
+  - **v1.43.0** — Tabbed Multi-Tasking Workspaces (clicking into a project
+    opens a dismissible tab below the header) and **PS-DOS IQ**, a
+    client-side search bar on Active Projects. Worth knowing plainly: PS-DOS
+    IQ is keyword/threshold matching (`red`, `unassigned`, `raid>2`, plain
+    substrings), not real natural-language understanding — a genuine free-form
+    sentence will likely match nothing.
+  - **v1.44.0** — fixed a real misalignment bug on the Commercial Baseline
+    tab's "Commercial Setup" card (labels were rendering in the value
+    column) — caught by you looking at the live screen, not by any
+    automated check.
+  - **v1.45.0** — the Persona Preview banner (the role-switcher control) is
+    now **A2R staff only**. A real tenant's own Client Admin — including
+    every `client.com` family test login — no longer sees it at all.
+  - **v1.45.1–v1.45.3** — found and fixed a real production bug: the Ops
+    Console sidebar's background link-prefetch was silently crashing
+    whichever `/ops` page you were actually looking at, because
+    `/ops/integrations`'s database tables existed on staging only. Added a
+    proper error boundary, fixed the crash, then — at your request —
+    applied that migration to production for real; verified live.
+  - **v1.46.0** — a full documentation-hub catch-up. Every doc under
+    `docs/` had drifted out of date (some by 16+ releases); two had gone
+    past "stale" into **actively wrong** on real facts (a revoked operator
+    grant still listed as active, a stale persona-count). All corrected
+    against live-verified state. If you're reading a `docs/*.md` file and
+    something looks off, it's worth double-checking against this
+    session's own verification rather than assuming it's current — the
+    same drift can always start accumulating again.
+- **Current git state:** `main` is ahead of `origin/main` (v1.46.0's
+  documentation catch-up + v1.47.0, this very update) — waiting on your
+  go-ahead to push, per the standing convention that nothing reaches
+  `main` without an explicit "push to main" each time. Check
+  `git status -sb` for the live answer; this line itself will drift the
+  moment the next commit lands — treat it as a hint, not a source of
+  truth.
 
 ## Where to look for more
 

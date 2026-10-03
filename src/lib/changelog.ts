@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.47.0',
+    date: '2026-09-30',
+    headline: 'Quick Reference Catch-Up + Vercel CLI Note',
+    changes: [
+      { type: 'fix', text: 'docs/QUICK_REFERENCE.md\'s "A few things worth remembering" section was itself stale — it still said Vercel build/deploy status couldn\'t be checked directly (the Vercel CLI has in fact been authenticated and in active use for several sessions now: npx vercel ls/logs is how the /ops/integrations crash in v1.45.2 was actually root-caused), and its "recently added" + "committed, not yet pushed" notes hadn\'t been touched since v1.41.0. Updated to summarize v1.43.0 through v1.46.0 and reflect current git state.' },
+    ],
+  },
+  {
     version: '1.46.0',
     date: '2026-09-30',
     headline: 'Documentation Hub Catch-Up — 16 Releases of Drift',

@@ -10,6 +10,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.47.0] — 2026-09-30
+
+_Quick Reference Catch-Up + Vercel CLI Note._
+
+### Fixed
+
+- `docs/QUICK_REFERENCE.md`'s "A few things worth remembering" section was itself stale — it still said Vercel
+  build/deploy status couldn't be checked directly (the Vercel CLI has in fact been authenticated and in active
+  use for several sessions now: `npx vercel ls`/`logs` is how the `/ops/integrations` crash in v1.45.2 was
+  actually root-caused), and its "recently added" + "committed, not yet pushed" notes hadn't been touched since
+  v1.41.0. Updated to summarize v1.43.0 through v1.46.0 and reflect current git state.
+
+---
+
 ## [1.46.0] — 2026-09-30
 
 _Documentation Hub Catch-Up — 16 Releases of Drift._
