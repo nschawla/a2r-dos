@@ -181,10 +181,10 @@ one still holds exactly one real `DeliveryAccessRole`:
 | Persona | Delivery role(s) | Modules reachable | Lands on |
 | --- | --- | --- | --- |
 | `CLIENT_ADMIN` (Client Admin) | ADMIN | every governable module | PS Control Tower |
-| `ENGAGEMENT_MANAGER` (Practice Director / VP-Professional Services) | **PRACTICE_DIRECTOR, VP_EXECUTIVE** | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit, steerco, reports | PS Control Tower |
+| `ENGAGEMENT_MANAGER` (Practice Director / VP-Professional Services) | **PRACTICE_DIRECTOR, VP_EXECUTIVE** | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit, reports | PS Control Tower |
 | `DELIVERY_EXECUTIVE` (Delivery / Project Director) | DELIVERY_MANAGER | control-tower, raid, schedule, capacity, **financials, commercial-baseline** | PS Control Tower |
 | `DELIVERY_LEAD` (Project Manager) | PROJECT_MANAGER | control-tower, capacity, commercial-baseline, financials, schedule, raid, audit | PS Control Tower |
-| **`OBSERVER`** (v1.16.0, Viewer / Guest) | VIEWER | **control-tower, steerco, reports** only | PS Control Tower (read-only) |
+| **`OBSERVER`** (v1.16.0, Viewer / Guest) | VIEWER | **control-tower, reports** only | PS Control Tower (read-only) |
 
 **The PD/VP-PS merge was built by elevating `VP_EXECUTIVE` up to
 `PRACTICE_DIRECTOR`'s existing full-operational nav breadth, never by
@@ -363,8 +363,10 @@ is `false`):
 
 `npm run guests:seed` provisions them as `MembershipRole.VIEWER` +
 `deliveryRole = VIEWER` of the demo organization. On sign-in they land on
-the SteerCo Briefing as an "Executive Viewer"; portfolio, control tower, and
-reports are visible read-only with every financial figure scrubbed. No
+the Executive Hub as an "Executive Viewer" (was the standalone SteerCo
+Briefing pre-v1.51.0 — see `docs/UI_DESIGN_SYSTEM.md` §17); portfolio,
+control tower, and reports are visible read-only with every financial
+figure scrubbed. No
 operator grant — `/ops/*` and `/admin` redirect away. This is the tier
 Playwright **Suite Q** verifies (against staging, using the first five).
 

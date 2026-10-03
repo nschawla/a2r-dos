@@ -226,7 +226,9 @@ export const RBAC_MATRIX: Record<RbacPersona, RbacPersonaDef> = {
     deliveryRoles: ['VIEWER'],
     label: 'Viewer / Guest',
     blurb: 'Read-only observation — the control tower, board briefing, and summary reports. No edit, create, or write controls anywhere, including baseline locking.',
-    allowedModules: ['control-tower', 'steerco', 'reports'],
+    // 'steerco' retired here in v1.51.0 — the SteerCo Briefing page merged
+    // into Executive Hub ('reports'), which this persona already held.
+    allowedModules: ['control-tower', 'reports'],
     landing: '/portfolio',
     financialVisibility: 'restricted',
   },

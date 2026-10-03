@@ -126,19 +126,6 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    href: '/steerco',
-    label: 'SteerCo Briefing',
-    colorGroup: 'governance',
-    // presentation board
-    icon: (
-      <>
-        <rect x="3" y="4" width="18" height="12" rx="1.5" />
-        <path d="M12 16v4M8 20h8" />
-        <path d="M8 12v-2M12 12v-4M16 12v-3" />
-      </>
-    ),
-  },
-  {
     href: '/reports',
     label: 'Executive Hub',
     colorGroup: 'governance',

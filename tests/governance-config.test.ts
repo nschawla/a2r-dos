@@ -121,7 +121,7 @@ describe('visibility queries', () => {
   it('isModuleHidden respects core immunity', () => {
     expect(isModuleHidden(boardOnly, 'financials')).toBe(true);
     expect(isModuleHidden(boardOnly, 'control-tower')).toBe(false); // core
-    expect(isModuleHidden(boardOnly, 'steerco')).toBe(false); // not hidden by this template
+    expect(isModuleHidden(boardOnly, 'audit')).toBe(false); // a hideable module BOARD_ONLY deliberately keeps on
     expect(isModuleHidden(DEFAULT_GOVERNANCE, 'financials')).toBe(false);
   });
 
@@ -136,7 +136,7 @@ describe('visibility queries', () => {
     expect(isPathHidden(boardOnly, '/financials')).toBe(true);
     expect(isPathHidden(boardOnly, '/financials/abc123')).toBe(true);
     expect(isPathHidden(boardOnly, '/')).toBe(false); // control tower, core
-    expect(isPathHidden(boardOnly, '/steerco')).toBe(false);
+    expect(isPathHidden(boardOnly, '/audit')).toBe(false);
     expect(isPathHidden(DEFAULT_GOVERNANCE, '/financials/abc')).toBe(false);
   });
 });

@@ -22,20 +22,16 @@ describe('workspace lenses — availableLenses', () => {
     }
   });
 
-  it('unlocks Executive only with SteerCo access', () => {
+  it('unlocks Executive/Finance with either SteerCo access or margin visibility (v1.51.0 merge — union gate)', () => {
+    // ADMIN and VP_EXECUTIVE had both checks before the merge; PRACTICE_DIRECTOR
+    // only had margin visibility; VIEWER only had SteerCo access. All four keep
+    // a path onto the merged lens — nobody loses reach in the merge.
     expect(availableLenses(ctx('ADMIN'))).toContain('executive');
     expect(availableLenses(ctx('VP_EXECUTIVE'))).toContain('executive');
-    expect(availableLenses(ctx('PRACTICE_DIRECTOR'))).not.toContain('executive');
+    expect(availableLenses(ctx('PRACTICE_DIRECTOR'))).toContain('executive');
+    expect(availableLenses(ctx('VIEWER'))).toContain('executive');
     expect(availableLenses(ctx('DELIVERY_MANAGER'))).not.toContain('executive');
     expect(availableLenses(ctx('PROJECT_MANAGER'))).not.toContain('executive');
-  });
-
-  it('unlocks Finance only with margin visibility', () => {
-    expect(availableLenses(ctx('ADMIN'))).toContain('finance');
-    expect(availableLenses(ctx('VP_EXECUTIVE'))).toContain('finance');
-    expect(availableLenses(ctx('PRACTICE_DIRECTOR'))).toContain('finance');
-    expect(availableLenses(ctx('DELIVERY_MANAGER'))).not.toContain('finance');
-    expect(availableLenses(ctx('PROJECT_MANAGER'))).not.toContain('finance');
   });
 
   it('gives A2R staff the full set regardless of delivery role', () => {
@@ -73,13 +69,19 @@ describe('workspace lenses — defaultLens', () => {
 describe('workspace lenses — resolveLens', () => {
   it('honours a valid, still-available stored choice', () => {
     expect(resolveLens('operations', ctx('PROJECT_MANAGER'))).toBe('operations');
-    expect(resolveLens('finance', ctx('ADMIN'))).toBe('finance');
+    expect(resolveLens('executive', ctx('ADMIN'))).toBe('executive');
   });
 
   it('falls back to the role default when the stored lens is no longer available', () => {
-    // a PM who once had Finance access, or a tampered cookie
-    expect(resolveLens('finance', ctx('PROJECT_MANAGER'))).toBe('delivery');
     expect(resolveLens('executive', ctx('DELIVERY_MANAGER'))).toBe('delivery');
+  });
+
+  it('falls back to the role default on a pre-v1.51.0 "finance" cookie (now a retired, unrecognised key)', () => {
+    // A PM who once had Finance access, or anyone with a cookie minted before
+    // the merge — 'finance' is no longer a real lens, so isLens rejects it
+    // the same as any other garbage value and the role default takes over.
+    expect(resolveLens('finance', ctx('PROJECT_MANAGER'))).toBe('delivery');
+    expect(resolveLens('finance', ctx('ADMIN'))).toBe('delivery');
   });
 
   it('falls back to the role default on missing or garbage input', () => {
@@ -90,9 +92,10 @@ describe('workspace lenses — resolveLens', () => {
 });
 
 describe('workspace lenses — registry', () => {
-  it('isLens guards the four keys and nothing else', () => {
+  it('isLens guards the three keys and nothing else', () => {
     expect(LENS_ORDER.every(isLens)).toBe(true);
     expect(isLens('executive')).toBe(true);
+    expect(isLens('finance')).toBe(false); // retired in the v1.51.0 merge
     expect(isLens('')).toBe(false);
     expect(isLens('EXECUTIVE')).toBe(false);
     expect(isLens(null)).toBe(false);

@@ -92,8 +92,8 @@ need to bounce back to the sidebar between them.
    pace risk. Same pattern.
 4. **RAID Cockpit** (`/raid/<id>`) — the original reference
    implementation of the dual-tile triage pattern every other module now
-   shares. Flag an item for SteerCo escalation here to set up the SteerCo
-   Briefing demo below.
+   shares. Flag an item for SteerCo escalation here to set up the
+   Executive Hub demo below.
 5. **Resource & Capacity** (`/capacity`) — utilization, the
    concurrency-overload radar, the 52-week staffing forecast. Same
    pattern, plus the "Bench/Unassigned Capacity" theme.
@@ -107,13 +107,16 @@ on every module after without you repeating it.
 
 ## 3. Reporting & audit
 
-1. **SteerCo Briefing** (`/steerco`) — the lean, board-ready, print-to-PDF
-   view. If you escalated a RAID item in step 2.4, it shows up on the
-   Watchlist here — a good "nothing is duplicated, everything is live"
-   beat.
-2. **Executive Hub** (`/reports`) — the full portfolio briefing plus
-   per-engagement SteerCo decks and compliance certificates.
-3. **Controls Audit** (`/audit/<id>`) — the delivery-controls checklist and
+1. **Executive Hub** (`/reports`) — the Portfolio Briefing tab: a lean,
+   board-ready, print-to-PDF view (Pulse strip, macro rollups, financial
+   realization, risk register), plus the Engagement Reports tab for
+   per-engagement SteerCo decks and compliance certificates. If you
+   escalated a RAID item in step 2.4, it shows up on the Risk Register and
+   the Activity tab here — a good "nothing is duplicated, everything is
+   live" beat. (Was two separate sidebar items, SteerCo Briefing and
+   Executive Hub, before the v1.51.0 merge — `/steerco` now redirects
+   here.)
+2. **Controls Audit** (`/audit/<id>`) — the delivery-controls checklist and
    weighted governance score.
 
 ---

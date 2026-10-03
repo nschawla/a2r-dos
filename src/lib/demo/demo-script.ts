@@ -19,8 +19,10 @@
  * Tracks (persona-filtered subsequences of the one master script, in
  * script order — never a rewrite):
  *   - 'Executive'   — board-level: portfolio, command bar, scoped
- *                     visibility, SteerCo, Exec Hub, plus the one
- *                     tenant-isolation beat.
+ *                     visibility, the Executive Hub (board briefing +
+ *                     per-engagement decks, merged with the former
+ *                     standalone SteerCo Briefing in v1.51.0), plus the
+ *                     one tenant-isolation beat.
  *   - 'Admin'       — the delivery-leader / ops walkthrough end to end,
  *                     including the Persona Preview banner and the full
  *                     Security & Trust segment.
@@ -131,22 +133,16 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
       "An A2R operator can instantly preview the app as any role — Executive, Project Manager, even a read-only guest — right from this banner, staff-only as of v1.45.0. The sidebar, every module tab, and every write control morph to match exactly, so access control can be verified without creating test accounts or switching who's signed in.",
   },
   {
-    id: 'steerco',
-    route: '/steerco',
-    durationMs: 8000, // 23 words at ~172 wpm
-    act: 'Introduction',
-    personas: ['Executive'],
-    caption:
-      'For the steering committee, the SteerCo Briefing distills the whole portfolio into a lean, board-ready read-out — and prints straight to a clean PDF.',
-  },
-  {
+    // Was two beats ('steerco' + 'executive-hub') before the v1.51.0
+    // SteerCo/Executive Hub merge — SteerCo's own route now permanently
+    // redirects here, so one beat covers what used to need two stops.
     id: 'executive-hub',
     route: '/reports',
-    durationMs: 9000, // 24 words at ~160 wpm
+    durationMs: 15000, // 40 words at ~160 wpm
     act: 'Introduction',
     personas: ['Executive'],
     caption:
-      'The Executive Hub goes one layer deeper — a full four-section portfolio briefing, also print-ready, for whenever the board wants the detail behind the headline.',
+      'For the steering committee, the Executive Hub distills the whole portfolio into one board-ready read-out — Pulse vitals, financials, risk register — and goes one layer deeper with the full briefing, plus per-engagement SteerCo decks, all printing straight to a clean PDF.',
   },
   {
     id: 'admin-setup',

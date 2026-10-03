@@ -1,20 +1,21 @@
-import { requireOrgContext } from '@/lib/session';
-import { getSteerCoBriefing } from '@/server/queries/steerco-briefing';
-import { canViewMargins } from '@/lib/security/masking';
-import { SteerCoBriefingView } from '@/components/reports/SteerCoBriefingView';
+import { redirect } from 'next/navigation';
 
 /**
- * SteerCo Briefing — a lean, print-ready board view of the whole portfolio:
- * Pulse vitals, margin health, what moved since the last review, and the
- * escalated-risk watchlist. Org-scoped; every figure comes from the same
- * live engines the Executive Briefing Hub and the module pages use.
+ * PS-DOS™ — © 2026 A2R Ventures LLC. All rights reserved.
+ *
+ * Retired in v1.51.0 — SteerCo Briefing merged into the Executive Hub
+ * (`/reports`): the overlap between this page's own Margin Health /
+ * Watchlist sections and Executive Hub's Financial Realization / Critical
+ * Risk Register was real and substantial (both already read the same
+ * underlying `ExecutiveBriefing` data), and this page's two genuinely
+ * unique pieces — the Pulse strip and the "What Moved" activity feed —
+ * now live there too, as a glance strip and a new Activity tab
+ * respectively. See `docs/UI_DESIGN_SYSTEM.md` for the full writeup.
+ *
+ * Route kept alive as a permanent forward (not a 404) for any bookmark or
+ * typed link — exact precedent: `src/app/(dashboard)/command/page.tsx`'s
+ * v1.29.0 retirement.
  */
-export default async function SteerCoBriefingPage() {
-  const { organizationId, organizationName, deliveryRole, governance } = await requireOrgContext();
-
-  const briefing = await getSteerCoBriefing(organizationId, organizationName, {
-    showFinancials: canViewMargins(deliveryRole, governance),
-  });
-
-  return <SteerCoBriefingView briefing={briefing} />;
+export default function SteerCoRetiredPage() {
+  redirect('/reports');
 }

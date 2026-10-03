@@ -23,7 +23,7 @@
 import { hasPermission, type DeliveryRole } from '@/lib/auth/rbac';
 import { canViewMargins } from '@/lib/security/masking';
 
-export type WorkspaceLens = 'executive' | 'delivery' | 'finance' | 'operations';
+export type WorkspaceLens = 'executive' | 'delivery' | 'operations';
 
 export interface LensDef {
   key: WorkspaceLens;
@@ -40,10 +40,14 @@ export interface LensDef {
 export const LENSES: Record<WorkspaceLens, LensDef> = {
   executive: {
     key: 'executive',
-    label: 'Executive / SteerCo',
+    label: 'Executive / Finance',
     short: 'Executive',
-    landing: '/steerco',
-    blurb: 'Board-ready portfolio briefing',
+    // Was '/steerco' before the v1.51.0 SteerCo/Executive Hub merge —
+    // the board-ready portfolio briefing (Pulse + What Moved) and the
+    // margin/EAC/utilization rollups that used to be the separate
+    // Finance lens's landing now live on the same merged page.
+    landing: '/reports',
+    blurb: 'Board-ready portfolio briefing, margin, EAC, and utilization rollups',
   },
   delivery: {
     key: 'delivery',
@@ -51,13 +55,6 @@ export const LENSES: Record<WorkspaceLens, LensDef> = {
     short: 'Delivery',
     landing: '/portfolio',
     blurb: 'Every engagement, its health, and open RAID',
-  },
-  finance: {
-    key: 'finance',
-    label: 'Finance Controller',
-    short: 'Finance',
-    landing: '/reports',
-    blurb: 'Margin, EAC, and utilization rollups',
   },
   operations: {
     key: 'operations',
@@ -77,7 +74,7 @@ export const LENSES: Record<WorkspaceLens, LensDef> = {
 };
 
 /** Canonical display / iteration order. */
-export const LENS_ORDER: readonly WorkspaceLens[] = ['executive', 'delivery', 'finance', 'operations'];
+export const LENS_ORDER: readonly WorkspaceLens[] = ['executive', 'delivery', 'operations'];
 
 /** Cookie that carries the user's explicit lens choice across requests so
  * the server-side landing dispatcher (/launch) can honour it. */
@@ -92,32 +89,38 @@ export interface LensViewerContext {
 }
 
 export function isLens(value: string | null | undefined): value is WorkspaceLens {
-  return value === 'executive' || value === 'delivery' || value === 'finance' || value === 'operations';
+  return value === 'executive' || value === 'delivery' || value === 'operations';
 }
 
 /**
  * The lenses this viewer may switch among.
  *  - Delivery and Operations are available to everyone — both landing pages
  *    are already role-scoped and margin-masked.
- *  - Executive needs SteerCo access (`steerco:view`).
- *  - Finance needs at least summary margin visibility (`canViewMargins`).
+ *  - Executive/Finance needs *either* of the two checks that used to gate
+ *    its two now-merged predecessors — SteerCo access (`steerco:view`) or
+ *    at least summary margin visibility (`canViewMargins`) — so every role
+ *    that had a path onto either half before the v1.51.0 merge still has a
+ *    path onto the combined page now. (The page itself still masks
+ *    financials per `canViewMargins`, independently of lens availability.)
  *  - A2R staff viewing a tenant get the full set.
  */
 export function availableLenses(ctx: LensViewerContext): WorkspaceLens[] {
   const allowed = new Set<WorkspaceLens>(['delivery', 'operations']);
-  if (ctx.isA2rStaff || hasPermission(ctx.deliveryRole, 'steerco:view')) allowed.add('executive');
-  if (
+  const hasSteerco = ctx.isA2rStaff || hasPermission(ctx.deliveryRole, 'steerco:view');
+  const hasMargins =
     ctx.isA2rStaff ||
-    canViewMargins(ctx.deliveryRole, { maskFinancialsForDelivery: ctx.maskFinancialsForDelivery })
-  ) {
-    allowed.add('finance');
-  }
+    canViewMargins(ctx.deliveryRole, { maskFinancialsForDelivery: ctx.maskFinancialsForDelivery });
+  if (hasSteerco || hasMargins) allowed.add('executive');
   return LENS_ORDER.filter((lens) => allowed.has(lens));
 }
 
 const PREFERRED_BY_ROLE: Record<DeliveryRole, WorkspaceLens> = {
   ADMIN: 'delivery',
   VP_EXECUTIVE: 'executive',
+  // Unchanged by the merge: PRACTICE_DIRECTOR's old 'finance' preference
+  // and 'delivery' preference both already resolved to a non-executive
+  // default, so it stays on 'delivery' (its own module access, not this
+  // lens, is what actually gates its margin visibility on /reports).
   PRACTICE_DIRECTOR: 'delivery',
   DELIVERY_MANAGER: 'delivery',
   PROJECT_MANAGER: 'delivery',

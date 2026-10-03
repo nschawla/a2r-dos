@@ -61,7 +61,7 @@ function landingRouteFor(ctx: LensViewerContext, storedCookie: string | null = n
 describe('Enterprise flow · role-based landing resolution', () => {
   const cases: [DeliveryRole, string][] = [
     ['ADMIN', '/portfolio'],
-    ['VP_EXECUTIVE', '/steerco'],
+    ['VP_EXECUTIVE', '/reports'],
     ['PRACTICE_DIRECTOR', '/portfolio'],
     ['DELIVERY_MANAGER', '/portfolio'],
     ['PROJECT_MANAGER', '/portfolio'],
@@ -85,7 +85,7 @@ describe('Enterprise flow · role-based landing resolution', () => {
   it('a saved perspective wins over the role default at landing time', () => {
     const admin: LensViewerContext = { deliveryRole: 'ADMIN', isA2rStaff: false };
     expect(landingRouteFor(admin)).toBe('/portfolio'); // default
-    expect(landingRouteFor(admin, 'executive')).toBe('/steerco');
+    expect(landingRouteFor(admin, 'executive')).toBe('/reports');
     expect(landingRouteFor(admin, 'operations')).toBe('/portfolio?v=decisions');
   });
 });
@@ -99,23 +99,26 @@ describe('Enterprise flow · multi-role workspace switching', () => {
   const pd: LensViewerContext = { deliveryRole: 'PRACTICE_DIRECTOR', isA2rStaff: false };
   const pm: LensViewerContext = { deliveryRole: 'PROJECT_MANAGER', isA2rStaff: false };
 
-  it('an admin can switch between all four perspectives, each with a distinct landing', () => {
+  it('an admin can switch between all three perspectives, each with a distinct landing', () => {
     const lenses = availableLenses(admin);
-    expect(lenses).toEqual(['executive', 'delivery', 'finance', 'operations']);
+    expect(lenses).toEqual(['executive', 'delivery', 'operations']);
     const routes = lenses.map(landingFor);
-    expect(new Set(routes).size).toBe(4);
+    expect(new Set(routes).size).toBe(3);
   });
 
   it('a Project Manager only gets Delivery + Operations; a stale/tampered cookie is ignored', () => {
     expect(availableLenses(pm)).toEqual(['delivery', 'operations']);
-    expect(resolveLens('finance', pm)).toBe('delivery');
     expect(resolveLens('executive', pm)).toBe('delivery');
     expect(resolveLens('not-a-real-lens', pm)).toBe('delivery');
   });
 
-  it('turning on Strict Financial Governance revokes a Practice Director’s Finance perspective mid-session', () => {
-    expect(availableLenses(pd)).toContain('finance');
-    expect(resolveLens('finance', pd)).toBe('finance');
+  it('turning on Strict Financial Governance revokes a Practice Director’s Executive/Finance perspective mid-session', () => {
+    // Pre-v1.51.0 this was the standalone Finance lens; the merge folded it
+    // into Executive/Finance, gated on the union of the two old checks —
+    // for a Practice Director (no steerco:view) that union collapses to
+    // just canViewMargins, so Strict Financial Governance still revokes it.
+    expect(availableLenses(pd)).toContain('executive');
+    expect(resolveLens('executive', pd)).toBe('executive');
 
     const strict = applyTemplate('STRICT_FINANCIAL');
     const pdStrict: LensViewerContext = {
@@ -123,16 +126,15 @@ describe('Enterprise flow · multi-role workspace switching', () => {
       maskFinancialsForDelivery: strict.maskFinancialsForDelivery,
     };
 
-    expect(availableLenses(pdStrict)).not.toContain('finance');
-    // the PD's stored 'finance' choice now collapses to the role default
-    expect(resolveLens('finance', pdStrict)).toBe('delivery');
+    expect(availableLenses(pdStrict)).not.toContain('executive');
+    // the PD's stored 'executive' choice now collapses to the role default
+    expect(resolveLens('executive', pdStrict)).toBe('delivery');
   });
 
   it('an A2R operator viewing a tenant gets every perspective regardless of delivery tier', () => {
     expect(availableLenses({ deliveryRole: 'PROJECT_MANAGER', isA2rStaff: true })).toEqual([
       'executive',
       'delivery',
-      'finance',
       'operations',
     ]);
   });
@@ -180,7 +182,7 @@ describe('Enterprise flow · governance template application', () => {
     const stillVisible = GOVERNABLE_MODULES.filter((m) => !isModuleHidden(g, m.key))
       .map((m) => m.key)
       .sort();
-    expect(stillVisible).toEqual(['admin', 'audit', 'audit-log', 'control-tower', 'reports', 'steerco']);
+    expect(stillVisible).toEqual(['admin', 'audit', 'audit-log', 'control-tower', 'reports']);
     // core modules are never hidden, even by a template
     expect(isModuleHidden(g, 'control-tower')).toBe(false);
     expect(isModuleHidden(g, 'admin')).toBe(false);

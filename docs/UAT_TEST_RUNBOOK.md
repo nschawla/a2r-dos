@@ -32,7 +32,7 @@ All demo passwords are **`password12345`** unless noted.
 | Email | Console role | Delivery role | Default landing |
 | --- | --- | --- | --- |
 | `admin@a2rventures-demo.test` | Owner/Admin | ADMIN | PS Control Tower (`/portfolio`) |
-| `vp@a2rventures-demo.test` | Viewer | VP_EXECUTIVE | SteerCo Briefing (`/steerco`) |
+| `vp@a2rventures-demo.test` | Viewer | VP_EXECUTIVE | Executive Hub (`/reports`) |
 | `pd@a2rventures-demo.test` | Admin | PRACTICE_DIRECTOR | PS Control Tower (`/portfolio`) |
 | `dm@a2rventures-demo.test` | Member | DELIVERY_MANAGER | PS Control Tower (`/portfolio`) |
 | `pm@a2rventures-demo.test` | Member | PROJECT_MANAGER | PS Control Tower (`/portfolio`) |
@@ -62,7 +62,7 @@ Capability reference: `docs/ROLE_ACCESS_MATRIX.md` § 1.2.
 
 | Accounts (`<name>@a2rventures.local`) | Tier | Default landing |
 | --- | --- | --- |
-| abha, janvi, honey, griffin, chan, lucky, angad, mani, urvashi, ananya, sudhindra | **VIEWER** (launch) | SteerCo Briefing (`/steerco`) — "Executive Viewer", read-only, financials scrubbed |
+| abha, janvi, honey, griffin, chan, lucky, angad, mani, urvashi, ananya, sudhindra | **VIEWER** (launch) | Executive Hub (`/reports`) — "Executive Viewer", read-only, financials scrubbed |
 
 > **Pre-launch:** the roster is currently promoted with
 > `npm run guests:access -- --tier full --yes-prod` to `OWNER` / `ADMIN` in
@@ -150,7 +150,7 @@ A tester records `PASS` / `FAIL` (+ notes) against each checkpoint below.
 
 | Step | Action | Expected | ✅/❌ |
 | --- | --- | --- | --- |
-| 1 | Sign in as `vp@a2rventures-demo.test` | URL settles on **`/steerco`**; page title "…— Portfolio Review" | |
+| 1 | Sign in as `vp@a2rventures-demo.test` | URL settles on **`/reports`**; page heading "…— Portfolio Review" | |
 | 2 | Sign out, sign in as `pm@a2rventures-demo.test` | URL settles on **`/portfolio`**; heading **"PS Control Tower"**; subhead says "Scoped to your Project Manager portfolio" | |
 | 3 | Sign out, sign in as `admin@a2rventures-demo.test` | URL **`/portfolio`**; subhead "Portfolio-wide view across every registered engagement" | |
 | 4 | As admin, click the browser back button after any deep navigation | No full reload flash; app chrome stays mounted | |
@@ -177,7 +177,7 @@ the "Client Admin" persona label every step below expects.
 | 1 | Look at the top of the workspace | A quiet **"Persona Preview: Client Admin ▾"** banner sits above the sidebar/header, distinct from any other control | |
 | 2 | Click it | Menu opens: "Client Admin — your real access" at top, then all 5 personas (Client Admin, Practice Director / VP-Professional Services, Delivery / Project Director, Project Manager, Viewer / Guest), each with a one-line blurb | |
 | 3 | Pick **Viewer / Guest** | Banner turns solid warning-orange, a pulsing dot appears, copy reads "— simulated view, not your real access", and an **Exit preview** button appears | |
-| 4 | Check the sidebar | Only PS Control Tower, SteerCo Briefing, Executive Hub remain — Resource & Capacity, Commercial Baseline, Financial Realization, Schedule, RAID, Controls Audit, Admin & Org Setup, Compliance Ledger are all gone, not just disabled | |
+| 4 | Check the sidebar | Only PS Control Tower, Executive Hub remain — Resource & Capacity, Commercial Baseline, Financial Realization, Schedule, RAID, Controls Audit, Admin & Org Setup, Compliance Ledger are all gone, not just disabled | |
 | 5 | Open any project's module page (e.g. `/audit/<id>`) | No Lock Baseline / edit controls render anywhere — every write affordance is gone, even though the signed-in Admin's own real edit authority is untouched | |
 | 6 | Click **Exit preview** | Banner returns to quiet/neutral, sidebar and write controls return to the real Admin view | |
 | 7 | Pick **Delivery / Project Director** | Sidebar shows PS Control Tower, RAID Cockpit, Schedule & Milestones, Resource & Capacity, Financial Realization, Commercial Baseline — no Controls Audit | |
@@ -200,7 +200,7 @@ Signed in as `admin@a2rventures-demo.test` → **Admin & Org Setup** → **Gover
 | 2 | Click **Agile Delivery** | Toast "Applied 'Agile Delivery'"; the Agile card gets a blue border + ✓ | |
 | 3 | Look at the left sidebar | **Commercial Baseline** and **Executive Hub** are **gone**; PS Control Tower / Admin / Compliance Ledger remain | |
 | 4 | In Layer 2, check "Scrub margins & EAC for delivery roles" | Reads **On** | |
-| 5 | Click **Board-Only** | Sidebar collapses to: PS Control Tower, Controls Audit, SteerCo Briefing, Executive Hub, Admin, Compliance Ledger only | |
+| 5 | Click **Board-Only** | Sidebar collapses to: PS Control Tower, Controls Audit, Executive Hub, Admin, Compliance Ledger only | |
 | 6 | Click **Standard Delivery** | Toast "Applied 'Standard Delivery'"; the full sidebar returns; Active badge → "Standard Delivery" | |
 | 7 | Open **Compliance Ledger** (`/admin/audit-log`) | Recent rows include **"Governance config change"** entries; integrity badge **Verified** | |
 
@@ -382,8 +382,8 @@ Operator / platform task. `docs/ROLE_ACCESS_MATRIX.md` is the reference.
 | 4 | As the BILLING operator, open `/ops/billing` | Tier counts (Trial / Standard / Enterprise), active seats, and a per-tenant table. No provision / suspend controls. | |
 | 5 | Change the operator to **AUDITOR**, sign in | `/ops/audit` shows the operator roster (with roles) + JIT-elevation history. Read-only; no mutation controls anywhere. | |
 | 6 | Restore the operator to **SUPER_ADMIN** | Full sidebar returns. | |
-| 7 | `npm run guests:seed` (staging) → sign in as `abha@a2rventures.local` / `a2r-DOS-233444` | Lands on **SteerCo Briefing** as "Executive Viewer". PS Control Tower, SteerCo, Reports visible read-only; **Margin Health = `•••• restricted to Partners`**. | |
-| 8 | As the guest, visit `/ops`, `/ops/telemetry`, `/admin` directly | Each redirects to `/portfolio` or `/steerco` — never renders. No edit buttons, no "Admin & Org Setup" nav, no baseline lock. | |
+| 7 | `npm run guests:seed` (staging) → sign in as `abha@a2rventures.local` / `a2r-DOS-233444` | Lands on **Executive Hub** as "Executive Viewer". PS Control Tower, Reports visible read-only; **Margin Health = `•••• restricted to Partners`**. | |
+| 8 | As the guest, visit `/ops`, `/ops/telemetry`, `/admin` directly | Each redirects to `/portfolio` or `/reports` — never renders. No edit buttons, no "Admin & Org Setup" nav, no baseline lock. | |
 | 9 | Sign-in screen — click the eye icon in the password field | Field toggles password ↔ plain text; `aria-pressed` flips; icon changes eye ↔ eye-off. | |
 
 **Checkpoint:** each operator role reaches exactly its remit and nothing
@@ -448,7 +448,7 @@ Open any engagement from PS Control Tower → Engagements → **Open →**.
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
 | 1 | **Sub-nav pills** | `Portfolio Briefing` · `Engagement Reports 5` — instant swap | |
-| 2 | **Portfolio Briefing** tab | The 4-section executive briefing; **"Print / Export Executive Briefing"** button | |
+| 2 | **Portfolio Briefing** tab | The 5-section executive briefing (Summary, Resources, Financials, Risks, Activity) with the Pulse vitals strip above the pills; **"Print / Export Executive Briefing"** button | |
 | 3 | Click Print (or Ctrl/Cmd-P) from the Briefing tab | Print preview is a clean **light** document: no sidebar, header, footer, or pills; sections don't split across pages | |
 | 4 | Switch to **Engagement Reports** tab, then Print | The briefing **still** prints (it's flagged print-keep) — the engagement tooling does not | |
 | 5 | **Engagement Reports** tab | Project selector; SteerCo deck / margin rollup / compliance certificate launchers; SteerCo Decision Tracker | |

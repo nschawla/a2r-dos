@@ -3,6 +3,8 @@ import { loadReportsHubRows } from '@/server/queries/pages/dashboards';
 import { getScopedProjectsForUser } from '@/lib/db/scoped-portfolio';
 import { getProjectHealth } from '@/server/queries/health';
 import { getExecutiveBriefing } from '@/server/queries/executive-briefing';
+import { getActiveStream } from '@/server/queries/active-stream';
+import { composeSteerCoBriefing } from '@/server/queries/steerco-briefing';
 import { canEditProject } from '@/lib/auth/rbac';
 import { listSteerCoDecisions } from '@/server/actions/steerco';
 import { ExecutiveBriefing } from '@/components/reports/ExecutiveBriefing';
@@ -16,24 +18,35 @@ import { personaForDeliveryRole } from '@/lib/governance/rbacMatrix';
 import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
 
 /**
- * Executive Briefing Hub (`/reports`). Server component with two layers:
+ * Executive Hub (`/reports`, titled "Executive Briefing Hub" on the page
+ * itself). Server component with two layers:
  *
  *   1. The portfolio-wide, print-optimised Executive Briefing (org-scoped —
- *      an exec briefing is inherently the whole PS portfolio). Data comes
- *      from src/server/queries/executive-briefing.ts; the print button and
- *      @media print rules in globals.css turn it into a board-ready PDF.
+ *      an exec briefing is inherently the whole PS portfolio). Macro/
+ *      resource/financial/risk data comes from
+ *      src/server/queries/executive-briefing.ts; the Pulse strip and
+ *      "What Moved" activity feed (merged in from the retired standalone
+ *      `/steerco` page, v1.51.0) come from
+ *      src/server/queries/steerco-briefing.ts's `composeSteerCoBriefing` —
+ *      a pure reshape of that same briefing + the Active Stream, so the
+ *      merge introduces no second source of truth. The print button and
+ *      @media print rules in globals.css turn the whole tab into a
+ *      board-ready PDF.
  *
  *   2. Below it (screen only), the per-engagement SteerCo deck / margin
  *      rollup / compliance certificate tooling — role-scoped via
  *      `getScopedProjectsForUser`, reads `?project=` for deep-linking from a
  *      module ProjectHeader, and hands everything to the client component
  *      that owns the selector UI and the SteerCo Decision Tracker.
+ *      Unaffected by the v1.51.0 merge — still exactly this shape.
  *
  * Deliberately NOT gated by `steerco:view` (reserved since WP4 for a
  * future, unrestricted cross-portfolio "SteerCo War Room" — see rbac.ts).
  * This Hub is a role-scoped-per-project reporting utility: a PROJECT_MANAGER
  * should be able to generate a SteerCo deck for their own engagement, which
- * an ADMIN/VP_EXECUTIVE-only gate would block.
+ * an ADMIN/VP_EXECUTIVE-only gate would block. (`steerco:view` itself lives
+ * on in a narrower role — gating the merged `WorkspaceLens` landing
+ * preference, src/lib/workspace/lenses.ts — not this page.)
  *
  * Program containers (hierarchyLevel PARENT) are excluded from the
  * selector — they have no sizing/financials/audit of their own to report
@@ -42,7 +55,8 @@ import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
 export default async function ReportsHubPage({ searchParams }: { searchParams: Promise<{ project?: string }> }) {
   const { project: requested } = await searchParams;
   const context = await requireOrgContext();
-  const { organizationId, deliveryRole, governance, resourceId, resourcePracticeId } = context;
+  const { organizationId, organizationName, deliveryRole, governance, resourceId, resourcePracticeId } = context;
+  const showFinancials = canViewMargins(deliveryRole, governance);
 
   const scoped = await getScopedProjectsForUser(context);
   const reportable = scoped.filter((p) => p.hierarchyLevel !== 'PARENT');
@@ -58,12 +72,26 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: P
   const selectedProject = selected ?? reportable[0];
   const selectedProjectId = selectedProject?.id ?? null;
 
-  const [decisionsResult, { resources, deliveryRoles }, briefing, customKpis] = await Promise.all([
+  const [decisionsResult, { resources, deliveryRoles }, briefing, customKpis, stream] = await Promise.all([
     selectedProjectId ? listSteerCoDecisions(selectedProjectId) : Promise.resolve(null),
     loadReportsHubRows({ organizationId }),
     getExecutiveBriefing(organizationId),
     getVisibleCustomKpis(organizationId),
+    // Feeds the Pulse strip + "What Moved" activity feed folded into the
+    // Portfolio Briefing tab below (merged in from the retired
+    // `/steerco` page, v1.51.0) — composeSteerCoBriefing is a pure
+    // reshape of `briefing` + this stream, so it stays byte-for-byte the
+    // same aggregation the standalone page used to show, just rendered
+    // here now. limit 40, matching getSteerCoBriefing's own default.
+    getActiveStream(organizationId, 40),
   ]);
+  const { vitals, highlights } = composeSteerCoBriefing({
+    organizationName,
+    generatedAt: briefing.generatedAt,
+    exec: briefing,
+    stream,
+    showFinancials,
+  });
 
   const canEdit = selectedProject
     ? canEditProject({ deliveryRole, resourceId, practiceId: resourcePracticeId }, selectedProject)
@@ -113,7 +141,7 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: P
         panels={{
           briefing: (
             <>
-              <ExecutiveBriefing briefing={briefing} showFinancials={canViewMargins(deliveryRole, governance)} />
+              <ExecutiveBriefing briefing={briefing} showFinancials={showFinancials} vitals={vitals} highlights={highlights} />
               <div className="no-print">
                 <KpiWidgetRow kpis={customKpis} values={kpiValues} persona={viewerPersona} />
               </div>

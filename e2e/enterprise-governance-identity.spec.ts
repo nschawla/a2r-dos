@@ -115,9 +115,11 @@ async function elevateOps(
 // ── J1 · role-based landing resolution ───────────────────────────────
 
 test.describe('Suite J1 — role-based landing resolution', () => {
-  test('a VP / Executive lands on the SteerCo Briefing', async () => {
+  test('a VP / Executive lands on the Executive Hub', async () => {
+    // Was /steerco pre-v1.51.0 — the SteerCo Briefing merged into the
+    // Executive Hub, and the Executive lens now lands here too.
     await signIn(page, 'vp@a2rventures-demo.test');
-    await expect(page).toHaveURL(/\/steerco$/);
+    await expect(page).toHaveURL(/\/reports$/);
     await expectNoErrorOverlay(page);
   });
 

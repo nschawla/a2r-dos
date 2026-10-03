@@ -2,9 +2,20 @@
 
 import clsx from 'clsx';
 import type { ExecutiveBriefing as Briefing } from '@/server/queries/executive-briefing';
+import type { SteerCoHighlight } from '@/server/queries/steerco-briefing';
+import type { StreamTone } from '@/server/queries/active-stream';
 import { MaskedValue, RestrictedBadge } from '@/components/security/Masked';
 import { SEVERITY_CLASS } from '@/lib/ui/severity';
 import { ModuleTabs } from '@/components/ui/module-tabs';
+import { PulseStrip, type PulseVital } from '@/components/command-center/PulseStrip';
+import { relativeTime } from '@/lib/relative-time';
+
+const DOT: Record<StreamTone, string> = {
+  default: 'bg-ink-faint',
+  good: 'bg-success',
+  warn: 'bg-warning',
+  critical: 'bg-critical',
+};
 
 function money(n: number): string {
   return `$${Math.round(n).toLocaleString('en-US')}`;
@@ -19,9 +30,20 @@ function pts(n: number): string {
 export function ExecutiveBriefing({
   briefing,
   showFinancials = true,
+  vitals,
+  highlights,
 }: {
   briefing: Briefing;
   showFinancials?: boolean;
+  /** Venture-vitals strip (Book of Business, Delivery Velocity, Margin
+   * Health, Risk Flags) — merged in from the retired `/steerco` page's
+   * Pulse tab (v1.51.0). Rendered as a glance strip above the tabs below,
+   * since it's meant to be visible regardless of which section a viewer
+   * has open, the same role it played on the standalone page. */
+  vitals: PulseVital[];
+  /** "What Moved Since the Last Review" — merged in from the same page.
+   * Rendered as the Activity tab below. */
+  highlights: SteerCoHighlight[];
 }) {
   const { macro, utilization, concurrency, healthDistribution, burn, criticalRaid } = briefing;
   const generated = new Date(briefing.generatedAt);
@@ -58,7 +80,15 @@ export function ExecutiveBriefing({
         </p>
       </header>
 
-      {/* No-Scroll / Command Center: the 4 thematic blocks below live behind
+      {/* Venture-vitals glance strip — merged in from the retired /steerco
+          page (v1.51.0). Sits above the tabs, same as it did as that
+          page's own first section, since these four numbers are meant to
+          orient a reader before they pick a section to drill into. */}
+      <div className="exec-section">
+        <PulseStrip vitals={vitals} />
+      </div>
+
+      {/* No-Scroll / Command Center: the 5 thematic blocks below live behind
           on-screen pills instead of one long stacked scroll — the blueprint
           the rest of the app's multi-section pages follow
           (docs/UI_DESIGN_SYSTEM.md §1). `printAll` keeps every section in
@@ -74,6 +104,7 @@ export function ExecutiveBriefing({
           { key: 'resources', label: 'Resources' },
           { key: 'financials', label: 'Financials' },
           { key: 'risks', label: 'Risks' },
+          { key: 'activity', label: 'Activity' },
         ]}
         panels={{
           summary: (
@@ -308,6 +339,39 @@ export function ExecutiveBriefing({
                       </tbody>
                     </table>
                   </div>
+                )}
+              </div>
+            </section>
+          ),
+          activity: (
+            <section className="exec-section flex flex-col gap-3">
+              <SectionTitle n={5} title="What Moved Since the Last Review" />
+              <div className="exec-card card !p-0 overflow-hidden">
+                {highlights.length === 0 ? (
+                  <p className="px-5 py-8 text-sm text-ink-muted text-center">
+                    No governance events or new escalations in the window.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {highlights.map((h) => (
+                      <li key={h.id} className="flex gap-3.5 px-5 py-3">
+                        <span className={clsx('mt-1.5 w-1.5 h-1.5 rounded-full flex-none', DOT[h.tone])} aria-hidden />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-[13px] text-ink font-medium truncate">{h.label}</span>
+                            <span className="ml-auto flex-none text-[11px] text-ink-faint tabular-nums">
+                              {relativeTime(h.at)}
+                            </span>
+                          </div>
+                          {(h.detail || h.context) && (
+                            <div className="text-[11.5px] text-ink-muted exec-muted truncate mt-0.5">
+                              {[h.detail, h.context].filter(Boolean).join(' · ')}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             </section>

@@ -362,7 +362,10 @@ export const updateProjectStatusBlurb = withAction(
     revalidateProjectRoutes(projectId);
     revalidatePath(`/audit/${projectId}`);
     revalidatePath('/portfolio');
-    revalidatePath('/steerco');
+    // Was '/steerco' pre-v1.51.0 — the SteerCo Briefing merged into the
+    // Executive Hub, which is where this narrative blocker now actually
+    // surfaces (the "What Moved" activity feed / risk register).
+    revalidatePath('/reports');
     return { ok: true };
   }
 );

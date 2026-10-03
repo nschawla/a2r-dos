@@ -36,6 +36,16 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.51.0',
+    date: '2026-10-03',
+    headline: 'SteerCo Briefing Merged into the Executive Hub',
+    changes: [
+      { type: 'improvement', text: 'The standalone SteerCo Briefing (/steerco) and the Executive Hub (/reports) told largely the same portfolio-health story to the same audience as two separate sidebar items — a real, substantial overlap (Margin Health ≈ Financial Realization; Watchlist ≈ Critical Risk Register), confirmed by the fact that SteerCo\'s own data was always just a reshape of the Executive Hub\'s. Merged into one page: the Executive Hub gained a Pulse vitals strip above its section tabs and a new fifth "Activity" tab carrying the "What Moved Since the Last Review" feed — both ported from SteerCo, neither rebuilt. /steerco now permanently redirects to /reports (same pattern as the Command Center\'s v1.29.0 retirement); its sidebar item and SteerCoBriefingView.tsx are both gone.' },
+      { type: 'improvement', text: 'The Workspace Lens switcher\'s separate "Executive" (→ old /steerco) and "Finance" (→ /reports) lenses collapsed into one "Executive / Finance" lens landing on /reports, gated on the union of the two old permission checks (steerco:view OR canViewMargins) — every role that had a path onto either lens before the merge keeps a path onto the combined page now; nobody lost reach. The switcher drops from four options to three.' },
+      { type: 'fix', text: 'Governance config, RBAC matrix, sidebar, demo script, and every doc that named the retired /steerco route or the standalone SteerCo Briefing nav item were updated to match — the Auto Demo\'s two back-to-back beats for the old pair collapsed into one re-timed beat for the merged page.' },
+    ],
+  },
+  {
     version: '1.50.0',
     date: '2026-09-30',
     headline: 'Docs Catch-Up Part 4 — Infra Docs, and a Consistent Open Item',

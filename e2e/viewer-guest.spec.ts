@@ -40,9 +40,11 @@ async function signIn(p: Page) {
 }
 
 test('Q1 · a guest signs in and lands in the demo workspace as an Executive Viewer', async () => {
+  // Was /steerco pre-v1.51.0 — the SteerCo Briefing merged into the
+  // Executive Hub, and the VIEWER tier's Executive lens now lands here too.
   await signIn(page);
-  await expect(page).toHaveURL(/\/steerco/);
-  await expect(page.getByText('SteerCo Briefing').first()).toBeVisible();
+  await expect(page).toHaveURL(/\/reports/);
+  await expect(page.getByRole('heading', { name: 'Executive Briefing Hub', level: 1 })).toBeVisible();
   // the header identity chip carries the read-only persona label
   await expect(page.getByRole('button', { name: /Abha/ })).toContainText(/Viewer/);
 });
@@ -71,7 +73,7 @@ test('Q4 · the internal Ops Console is completely walled off', async () => {
   for (const path of ['/ops', '/ops/telemetry', '/ops/tenants', '/ops/staff', '/ops/access']) {
     await page.goto(path);
     await expect(page, `guest reached ${path}`).not.toHaveURL(new RegExp(`${path}(/|$)`));
-    await expect(page).toHaveURL(/\/(portfolio|steerco|launch|login)/);
+    await expect(page).toHaveURL(/\/(portfolio|reports|launch|login)/);
   }
 });
 

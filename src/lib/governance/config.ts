@@ -54,7 +54,11 @@ export const GOVERNABLE_MODULES: readonly GovernableModule[] = [
   { key: 'schedule', label: 'Schedule & Milestones', href: '/schedule' },
   { key: 'raid', label: 'RAID Cockpit', href: '/raid' },
   { key: 'audit', label: 'Controls Audit', href: '/audit' },
-  { key: 'steerco', label: 'SteerCo Briefing', href: '/steerco' },
+  // 'steerco' retired here in v1.51.0 (SteerCo/Executive Hub merge) — same
+  // shape as the 'command' retirement noted above: /steerco now
+  // permanently redirects to /reports, and this governance key is gone.
+  // A tenant's already-persisted GovernanceConfig.hiddenModules containing
+  // the string 'steerco' is equally harmless for the same reason.
   { key: 'reports', label: 'Executive Hub', href: '/reports' },
   // Methodology Reference is not a top-level nav item (it's contextual to
   // Control Audit), so it isn't a governable route-visibility toggle.
@@ -136,7 +140,7 @@ export const GOVERNANCE_TEMPLATES: Record<
     key: 'BOARD_ONLY',
     label: 'Board-Only',
     blurb:
-      'A lean executive read-out — the SteerCo briefing, portfolio, reporting hub and control audit only. Day-to-day working modules are hidden; financials stay visible to authorised roles.',
+      'A lean executive read-out — the portfolio, the reporting hub (with its board-ready briefing) and control audit only. Day-to-day working modules are hidden; financials stay visible to authorised roles.',
     hiddenModules: ['capacity', 'commercial-baseline', 'financials', 'schedule', 'raid'],
     maskFinancialsForDelivery: false,
   },

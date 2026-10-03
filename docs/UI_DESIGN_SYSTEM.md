@@ -98,13 +98,13 @@ responsive gutters. Neither needed to change.
 _A further v1.19.0 follow-up._ Any page built from several distinct, substantial
 thematic blocks — the kind a viewer wants to jump between rather than
 scroll past — gets `<ModuleTabs>` (§1.4) instead of stacking every section
-top to bottom. The Executive Briefing Hub's own briefing document
-(`ExecutiveBriefing.tsx`: Summary / Resources / Financials / Risks) and the
-SteerCo Briefing (`SteerCoBriefingView.tsx`: Pulse / Margin Health / What
-Moved / Watchlist) are the reference implementations — both are print
-documents, which is exactly why `<ModuleTabs>` gained a `printAll` prop:
-every panel still prints one after another regardless of which pill is
-active on screen, so the on-screen pills never cost the PDF anything. The
+top to bottom. The Executive Hub's own briefing document
+(`ExecutiveBriefing.tsx`: Summary / Resources / Financials / Risks /
+Activity — the fifth pill folded in from the retired standalone SteerCo
+Briefing in the v1.51.0 merge, §17) is the reference implementation — it's
+a print document, which is exactly why `<ModuleTabs>` gained a `printAll`
+prop: every panel still prints one after another regardless of which pill
+is active on screen, so the on-screen pills never cost the PDF anything. The
 Capacity Cockpit's four tabs were migrated from a bespoke underline-style
 tab bar to the same `<ModuleTabs>` pill component for visual consistency —
 one tab pattern app-wide, not two.
@@ -196,8 +196,7 @@ out, the same way this section documents the first pass's decisions.
 
 | Surface | Status |
 | --- | --- |
-| Executive Briefing (`ExecutiveBriefing.tsx`) | **Done** — Summary / Resources / Financials / Risks pills; `printAll` keeps the printed PDF a one-section-after-another board deck |
-| SteerCo Briefing (`SteerCoBriefingView.tsx`) | **Done** — Pulse / Margin Health / What Moved / Watchlist pills; same `printAll` treatment |
+| Executive Hub (`ExecutiveBriefing.tsx`) | **Done** — Summary / Resources / Financials / Risks / Activity pills (the fifth folded in from the retired standalone SteerCo Briefing, v1.51.0, §17); `printAll` keeps the printed PDF a one-section-after-another board deck |
 | Capacity Cockpit (`CapacityCockpit.tsx`) | **Done** — migrated from a bespoke underline-style tab bar to `<ModuleTabs>` for one pill pattern app-wide (functionally unchanged: still instant client-side switching, now also gets `?v=` deep-linking for free) |
 | Admin & Org Setup (`admin/page.tsx`) | **Already conformant** — Roster / Governance / Data & Compliance pills predate this pass |
 | Portfolio PS Control Tower, Reports Hub outer shell, Reports Hub batch-detail page | **Already conformant** — existing `<ModuleTabs>` usage |
@@ -721,3 +720,62 @@ systemic one — but it shipped to production before anyone caught it by
 eye, which is the real lesson: a visual/alignment review of a finished
 screen is not yet a standing step in how this app ships UI, and arguably
 should be.
+
+## 17. SteerCo/Executive Hub merge (v1.51.0)
+
+The standalone SteerCo Briefing (`/steerco`) and the Executive Hub
+(`/reports`) told largely the same portfolio-health story to largely the
+same audience, as two separate sidebar items — a real UX overlap, not
+just a styling inconsistency. Reading both components confirmed the
+overlap was substantial (SteerCo's "Margin Health" ≈ Executive Hub's
+"Financial Realization & Burn Health"; SteerCo's "Watchlist" ≈ Executive
+Hub's "Critical Risk Register" — the same RAID query, two renderings) and
+that both already read from the same underlying data: `composeSteerCoBriefing`
+(`src/server/queries/steerco-briefing.ts`) was always a pure reshape of
+`getExecutiveBriefing` plus the Active Stream, never an independent
+query — so the two pages were never really two truths, just one truth
+shown twice, differently.
+
+- **Surviving route: `/reports`.** It was already the richer, better-
+  structured page (`<ModuleTabs>`, the multi-section `ExecutiveBriefing`
+  layout, a separate Engagement Reports tab for per-project SteerCo
+  decks). `/steerco` now permanently `redirect()`s to `/reports` — same
+  retirement pattern as the Command Center's v1.29.0 merge (§9): an old
+  bookmark still resolves, it just lands somewhere else.
+- **What moved onto the surviving page.** `ExecutiveBriefing.tsx` gained
+  the two pieces that were genuinely unique to SteerCo and had no
+  equivalent on the old `/reports`: the Pulse vitals strip (`PulseStrip`,
+  reused as-is) rendered above the section tabs so it's visible
+  regardless of which section a viewer has open, and a new fifth
+  "Activity" tab carrying the "What Moved Since the Last Review" feed
+  (ported from the now-deleted `SteerCoBriefingView.tsx`). Nothing new
+  was built to produce either — both are the same `composeSteerCoBriefing`
+  reshape, just consumed from the `/reports` page's own data-fetch instead
+  of a separate route's.
+- **The one real behavior change: the `WorkspaceLens` collapse.** Pre-merge,
+  the `'executive'` lens landed on `/steerco` (gated by `steerco:view` —
+  `ADMIN`/`VP_EXECUTIVE`/`VIEWER`) and a separate `'finance'` lens landed
+  on `/reports` (gated by `canViewMargins` —
+  `ADMIN`/`VP_EXECUTIVE`/`PRACTICE_DIRECTOR`). With one merged page, those
+  are two names for the same destination — rather than fake a distinct
+  route (`/reports?lens=finance`, no real difference) just to satisfy
+  `tests/workspace-lens.test.ts`'s "every lens has a distinct landing
+  route" invariant, the two collapsed into one `'executive'` lens
+  (relabeled "Executive / Finance"), gated on the **union** of the two old
+  checks (`steerco:view OR canViewMargins`) so every role that had a path
+  onto *either* half before the merge keeps a path onto the combined page
+  now — nobody lost reach. The lens switcher drops from four options to
+  three. Page-level content masking (`canViewMargins`/`showFinancials`,
+  already wired into the briefing independently of which lens got a
+  viewer there) needed no change.
+- **Untouched by this merge:** RBAC edit/approval authority
+  (`src/lib/auth/rbac.ts`); the Engagement Reports tab (per-project
+  SteerCo decks, margin rollups, compliance certificates — still exactly
+  where and how it was, including its own `SteerCoReportView.tsx` HTML
+  generator, §4); how financial figures get masked.
+- **Removed as dead code:** `SteerCoBriefingView.tsx` (the standalone
+  page's view component) — once `/steerco` only redirects, nothing
+  imported it any more. `composeSteerCoBriefing` itself stayed exactly
+  where it was (`src/server/queries/steerco-briefing.ts`), just re-consumed
+  from `/reports`'s own server component instead of `/steerco`'s —
+  `tests/steerco-briefing.test.ts`'s coverage of it needed no change.
