@@ -1,6 +1,9 @@
 # Commercial Baseline Cockpit Executive Triage & Thematic Clustering
 
-_Status: shipped in v1.25.0._
+_Status: shipped in v1.25.0. Re-verified accurate at **v1.48.0** — the
+classifier's priority order and the test count (17) below were checked
+directly against the live code, not assumed; nothing has drifted since
+this was written._
 _Audience: engineering + delivery leadership._
 
 ## 1. Purpose

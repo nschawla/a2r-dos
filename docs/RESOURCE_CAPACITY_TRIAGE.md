@@ -1,6 +1,10 @@
 # Resource & Capacity Cockpit Executive Triage & Thematic Clustering
 
-_Status: shipped in v1.24.0._
+_Status: shipped in v1.24.0. Re-verified accurate at **v1.48.0** — the
+110% over-allocation / 70% attainment thresholds, the classifier's
+priority order, and the test count (19) below were checked directly
+against the live code, not assumed; nothing has drifted since this was
+written._
 _Audience: engineering + delivery leadership._
 
 ## 1. Purpose

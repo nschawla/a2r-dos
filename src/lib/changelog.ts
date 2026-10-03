@@ -36,6 +36,17 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.49.0',
+    date: '2026-09-30',
+    headline: 'Docs Catch-Up Part 3 — Triage Modules, Orchestration, Support, DAL',
+    changes: [
+      { type: 'improvement', text: 'Continued the documentation catch-up into the deferred pile from the last two passes: all five triage-module specs (docs/RAID_EXECUTIVE_TRIAGE.md, FINANCIAL_REALIZATION_TRIAGE.md, SCHEDULE_MILESTONES_TRIAGE.md, RESOURCE_CAPACITY_TRIAGE.md, COMMERCIAL_BASELINE_TRIAGE.md) plus docs/EXECUTIVE_TRIAGE_STANDARD.md, each spot-checked against the live code (specific thresholds — the 40% contractor-share rule, the 5-day/15-day schedule-slip tolerances, the 110%/70% capacity bands, all 85 test counts) and confirmed byte-for-byte accurate; every one gained a "re-verified" note rather than a silent re-date, since the whole point of this pass is leaving a trail of what was actually checked versus assumed.' },
+      { type: 'fix', text: 'docs/CLIENT_SUPPORT_RUNBOOK.md — a real operational gap, not just staleness: its error-boundary section named only src/app/(dashboard)/error.tsx, with no mention of src/app/(admin)/error.tsx (added v1.45.1) — a real omission for a doc whose named Tier 2 audience is literally the Ops Console operators that new boundary protects. Added, with the actual incident that prompted building it as a worked example.' },
+      { type: 'fix', text: 'docs/VERCEL_DEPLOYMENT.md and docs/DATA_ACCESS_LAYER.md each had one further stale, specific claim corrected: the former asserted RLS_ENFORCE is definitively "unset" on production (the same unconfirmable claim already flagged in docs/SECURITY.md — corrected to an explicit open question rather than a guess); the latter still said "29 tenant-owned models" (the real count has grown since v1.9.0) — repointed at docs/TENANT_MODEL_INVENTORY.md\'s live-counted figure instead of a hardcoded number that will only go stale again.' },
+      { type: 'improvement', text: 'docs/PORTFOLIO_ORCHESTRATION.md and docs/IMPLEMENTATION_GUIDE.md re-verified clean — the latter, impressively, already correctly documented the exact _prisma_migrations-table gotcha this session rediscovered independently during the real v1.45.3 production migration, confirming it was accurate the whole time, just uncredited with a current version stamp.' },
+    ],
+  },
+  {
     version: '1.48.0',
     date: '2026-09-30',
     headline: 'Client-Facing Docs Catch-Up — a Real Live-Demo Bug Found',

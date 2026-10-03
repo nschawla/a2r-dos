@@ -1,6 +1,6 @@
 # Client Support & Error Resolution Runbook — PS-DOS™
 
-_Current as of **v1.27.0**. Audience: Tier 1 (client-facing support), Tier
+_Current as of **v1.48.0**. Audience: Tier 1 (client-facing support), Tier
 2 (A2R Ops Console operators), Tier 3 (engineering). Everything below is
 grounded in real, currently-shipped code — where something described here
 didn't already exist, it was built as part of this doc (see §2's trace-ID
@@ -18,17 +18,25 @@ session, and never silently. Five distinct patterns, by cause:
 ### 1.1 A page failed to render (React error boundary)
 
 `src/app/(dashboard)/error.tsx` catches any error thrown while rendering
-a page under the signed-in app shell — the sidebar, header, and
+a page under the signed-in client app shell — the sidebar, header, and
 navigation stay mounted around the failure, so the user isn't dropped
 back to a blank screen. It shows **"Something went wrong,"** a plain-
 language reassurance ("Your work is safe"), a **Try again** button
 (`reset()` — retries the render in place), a **Contact support** button,
 and — when Next.js supplies one — a monospace **`Reference: <digest>`**
-line. `src/app/global-error.tsx` is the one level up: if an error escapes
-even that boundary (e.g. the root layout itself throws), it replaces the
-entire document with an inline-styled equivalent (it cannot depend on
-the app's CSS/providers being mounted), including a **mailto: support**
-link that pre-fills the reference in the subject line.
+line. `src/app/(admin)/error.tsx` (**added v1.45.1**) is the same pattern
+for the internal `/ops` console — relevant to Tier 2 specifically: before
+this existed, any uncaught error anywhere under `/ops/*` (e.g. the real
+incident that prompted adding it — a background sidebar-prefetch of
+`/ops/integrations` throwing on a table that didn't exist in production
+yet, v1.45.2) fell straight through to the global fallback below instead
+of a scoped retry, taking out the whole Ops Console shell for the
+operator instead of just the one page. `src/app/global-error.tsx` is the
+one level up from both: if an error escapes even those boundaries (e.g.
+the root layout itself throws), it replaces the entire document with an
+inline-styled equivalent (it cannot depend on the app's CSS/providers
+being mounted), including a **mailto: support** link that pre-fills the
+reference in the subject line.
 
 **Tier 1: ask the client to read you the `Reference:` value.** It's
 Next.js's own `error.digest` — a stable id for that specific render

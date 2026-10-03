@@ -1,7 +1,11 @@
 # The Data Access Layer (DAL)
 
 _Status: shipped in v1.7.0 (P1). Builds on P0 #1 (ORM tenant auto-scoping) and the
-composite-tenant-key migration `00000000000012`._
+composite-tenant-key migration `00000000000012`. Re-verified at **v1.48.0**
+— the architectural pattern (module boundary, fail-closed behavior,
+ESLint/test boundary enforcement) is unchanged since it shipped; the one
+stale number found (§2) now points at the live-counted source of truth
+instead of repeating a count that will only go stale again._
 _Audience: engineering + security audit._
 
 ## 1. Purpose
@@ -17,7 +21,7 @@ UI component **cannot** reach the Prisma client directly.
 | - | ----- | ------------------ | ----- |
 | 1 | **Verified context** | Every reachable path resolves the active tenant through `requireOrgContext()` / `getOrgContextOrNull()` / `requireOpsContext()` / `withApiAuth()` before any DB call, and passes `organizationId` into each `where`. `assertTenantContext()` is the fail-closed gate each query function calls first — a missing / blank / non-string `organizationId` throws `TenantContextError`, never falls through. | `src/lib/session.ts`, `src/lib/ops-auth.ts`, `src/lib/api-auth.ts`, `src/lib/dal/index.ts` |
 | 2 | **ORM auto-scoping** | A Prisma client extension rewrites **every** query on a tenant-owned model to include the request's `organizationId` (injected into `where`, and into `data` on `create`), and **throws `OrgScopeError`** if a tenant query runs with no resolved scope. Fed by an `AsyncLocalStorage` cell + a lazy session/cookie resolver. | `src/lib/db/org-scope.ts`, `src/lib/db.ts` |
-| 3 | **Composite tenant keys** | All 29 tenant-owned models carry their own `organization_id` column + FK to `organizations(id)` `ON DELETE CASCADE` + index. No model is scoped only through a join. This is the same-table target a future DB-level RLS policy needs. | `prisma/schema.prisma`, migration `00000000000012` |
+| 3 | **Composite tenant keys** | Every tenant-owned model carries its own `organization_id` column + FK to `organizations(id)` `ON DELETE CASCADE` + index. No model is scoped only through a join. This is the same-table target a future DB-level RLS policy needs. (Count was 29 at v1.9.0, when this was written; grown since — `docs/TENANT_MODEL_INVENTORY.md` is the live-counted source of truth, re-verified every pass, rather than a number repeated here to go stale again.) | `prisma/schema.prisma`, migration `00000000000012` |
 | 3b | **Composite parent FKs** | v1.8.0 (migration `00000000000014`) — every project-/batch-scoped child carries a composite FK `("organizationId", <parentId>)` → `parent("organizationId", "id")`, so Postgres rejects a child whose tenant ≠ its parent's. | `prisma/schema.prisma`, migration 14 |
 | 4 | **DB-level RLS** | **Enforced on staging (v1.9.0)** via `SET LOCAL ROLE a2r_app` + `SET LOCAL app.current_org` in `withTenantTx`; `a2r_app` is NOBYPASSRLS. Production unset pending cutover. | `src/lib/db/with-tenant-tx.ts`, `docs/RLS_ROADMAP.md`, `docs/RLS_ENFORCEMENT_RUNBOOK.md` |
 

@@ -1,5 +1,13 @@
 # Vercel deployment
 
+_Re-verified at **v1.48.0** — the `ignoreCommand` config, the deployment-
+verification commands, and the env-var table (apart from the `RLS_ENFORCE`
+correction below) were checked directly against the live Vercel project
+and the repo, not assumed. The Vercel CLI is authenticated and in active
+use this session (`npx vercel ls`/`logs`/`env ls`) — the "no CLI access"
+caveat that used to live in `docs/QUICK_REFERENCE.md` no longer applies
+here either._
+
 ## Why production builds were failing (and the fix)
 
 Every fresh `main` build since **v1.5.2** failed on Vercel in ~12 s — before
@@ -37,9 +45,18 @@ matters — get it wrong and a preview URL becomes a backdoor into prod data.
 | `NEXTAUTH_SECRET` | unique per environment | different value | different value | `openssl rand -base64 32`. Different Production vs Preview so a token can't be replayed across. |
 | `NEXTAUTH_URL` | `https://<prod-domain>` | leave unset (Vercel infers) | `http://localhost:3000` | |
 | `A2R_SITE_MODE` | `marketing` \| `internal` \| `live` | `internal` (usually) | — | **The one that was missing.** `marketing` = public early-access page; `live` = `/login`; `internal` = app is the front door. Unknown/unset now falls back to `marketing` (safe) with a build warning. |
-| `RLS_ENFORCE` | unset (until the RLS cutover — see `docs/RLS_ENFORCEMENT_RUNBOOK.md`) | unset | unset | |
+| `RLS_ENFORCE` | ⚠ see note below | unset | unset | |
 | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | optional (distributed rate limiting) | optional | — | Unset → in-process limiter. |
 | `RETENTION_API_TOKEN` | optional (cron trigger for the retention sweep) | — | — | |
+
+**⚠ `RLS_ENFORCE`'s actual current Production value is unconfirmed as of
+v1.48.0.** This doc previously asserted it's "unset" outright; checked
+during this pass via `npx vercel env ls production` and confirmed the
+variable **does exist** on Production — but its value is a Vercel Secret,
+unreadable by this session. Whether production has actually been cut
+over to enforced RLS since this doc was last reviewed is genuinely
+unknown — don't carry the old "unset" claim forward until a human
+re-verifies the real value (same open item flagged in `docs/SECURITY.md`).
 
 `connection_limit=1` on the **Production** `DATABASE_URL` is important — each
 warm serverless instance keeps its own pool; `src/lib/db.ts`'s

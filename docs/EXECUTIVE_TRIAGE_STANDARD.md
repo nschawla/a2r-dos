@@ -2,9 +2,13 @@
 
 _Status: shipped v1.21.0–v1.26.0 (RAID, Financial Realization, Schedule,
 Resource & Capacity, Commercial Baseline, then the PS Control Tower Bento
-Grid). Audience: engineering + delivery leadership. This is the
-architectural overview; each module's own doc is the detailed reference
-— see the table in §2._
+Grid). Re-verified accurate at **v1.48.0** — every numeric threshold, test
+count, and classifier rule below was checked directly against the live
+code in this pass (not assumed from the version number), and nothing had
+drifted: no release between v1.27.0 and v1.48.0 touched any of these five
+modules' triage mechanics. Audience: engineering + delivery leadership.
+This is the architectural overview; each module's own doc is the detailed
+reference — see the table in §2._
 
 ## 1. The pattern, in one paragraph
 

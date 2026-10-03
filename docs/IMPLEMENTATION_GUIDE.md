@@ -1,6 +1,10 @@
 # Implementation & Operations Guide — PS-DOS™
 
-_Current as of **v1.27.0**. The master runbook: enough, in one read-through
+_Current as of **v1.48.0** (re-verified, not just bumped — every claim
+below, including the `_prisma_migrations`-table gotcha in §5 and the
+`prisma db execute` migration workflow in §8, was independently
+re-confirmed live during this session's own production migration work
+and still matches exactly). The master runbook: enough, in one read-through
 and in the right order, for an engineer with zero prior context to clone
 the repo, stand up a local environment, run every test suite, and deploy
 to production independently. Where a topic already has its own deep-dive

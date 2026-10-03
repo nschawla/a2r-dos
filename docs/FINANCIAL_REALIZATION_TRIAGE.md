@@ -1,6 +1,9 @@
 # Financial Realization Cockpit Executive Triage & Thematic Clustering
 
-_Status: shipped in v1.22.0._
+_Status: shipped in v1.22.0. Re-verified accurate at **v1.48.0** — the
+40% contractor-share threshold, the classifier's priority order, and the
+test count (16) below were checked directly against the live code, not
+assumed; nothing has drifted since this was written._
 _Audience: engineering + delivery leadership._
 
 ## 1. Purpose
