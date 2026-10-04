@@ -59,12 +59,19 @@ export function ExecutiveBriefing({
           page's own top-of-page description now, so it wasn't ported;
           only the button (<PrintButton>) survived the move. */}
 
-      {/* document header — prints */}
+      {/* document header — prints. Was 3 lines (a "PS-DOS · Executive
+          Briefing" eyebrow + "<tenant name> — Portfolio Review" + the
+          generated-at line) — trimmed to 2 per explicit request: the
+          eyebrow dropped as pure repetition of the page's own nav context,
+          and the tenant name dropped from this heading. Note this same
+          header is also what prints (see the printAll note below) — there
+          is no separate print masthead elsewhere carrying the tenant name,
+          so an exported PDF now identifies the tenant nowhere in this
+          section either. Flagged to the user; revisit if a printed/saved
+          copy circulating without a company name on it turns out to
+          matter. */}
       <header className="exec-section border-b border-border pb-3">
-        <div className="text-[11px] uppercase tracking-[0.14em] text-ink-faint font-semibold">
-          PS-DOS · Executive Briefing
-        </div>
-        <h2 className="text-xl font-display font-bold mt-0.5">{briefing.organizationName} — Portfolio Review</h2>
+        <h2 className="text-xl font-display font-bold">Portfolio Review</h2>
         <p className="text-[12px] exec-muted text-ink-faint mt-1">
           Generated {generated.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at{' '}
           {generated.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} ·{' '}

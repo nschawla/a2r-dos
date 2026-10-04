@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.56.0',
+    date: '2026-10-04',
+    headline: 'Executive Briefing Header Trimmed to 2 Lines',
+    changes: [
+      { type: 'improvement', text: 'The Portfolio Briefing tab\'s document header was 3 lines: a "PS-DOS · Executive Briefing" eyebrow, "<tenant name> — Portfolio Review", and the generated-at line. Trimmed to 2 — the eyebrow repeated context already visible in the page\'s own nav, and the tenant name repeated the org switcher already shown in the header bar above every page. "Portfolio Review" alone still names the document; the generated-at/engagement-count line is unchanged.' },
+    ],
+  },
+  {
     version: '1.55.0',
     date: '2026-10-04',
     headline: 'Flaky DB-Integration Tests Root-Caused and Fixed — No Tenant-Isolation Bug Found',
