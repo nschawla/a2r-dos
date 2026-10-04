@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.58.0',
+    date: '2026-10-04',
+    headline: 'Sidebar Navigation No Longer Carries Over Scroll Position',
+    changes: [
+      { type: 'fix', text: 'Scrolling down on one page, then clicking a different sidebar item, opened the new page already scrolled to that same position instead of at the top. Root cause: (dashboard)/layout.tsx is a persisted shared layout (correctly — it must keep the sidebar/header mounted across pages) with its own loading.tsx skeleton, and that combination has a known gap in Next.js App Router\'s built-in scroll-to-top — the reset fires once when the skeleton commits, but nothing re-triggers it once the real page content streams in and replaces it. Fixed with an explicit scroll-to-top effect (ScrollToTop, mounted once in the shared layout) keyed on the route pathname.' },
+    ],
+  },
+  {
     version: '1.57.0',
     date: '2026-10-04',
     headline: 'Page-Header Descriptions Now Wrap Consistently App-Wide',

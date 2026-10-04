@@ -155,6 +155,22 @@ test.describe('Suite B — PS Control Tower & Multi-Tenant Scoping', () => {
     await expect(registry).toContainText('Global ERP Modernization');
   });
 
+  test('B2b · navigating via the sidebar resets scroll position to the top', async () => {
+    // Regression for a reported bug (2026-10-04): (dashboard)/layout.tsx is
+    // a persisted shared layout with its own loading.tsx skeleton — Next's
+    // built-in scroll reset doesn't reliably survive that combination, so a
+    // page opened from partway down a previous page's scroll could render
+    // already scrolled instead of at the top. Fixed with an explicit
+    // ScrollToTop effect keyed on pathname, mounted once in that layout.
+    await page.goto('/portfolio');
+    await page.evaluate(() => window.scrollTo(0, 800));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+
+    await page.getByRole('link', { name: 'Resource & Capacity' }).click();
+    await expect(page.getByRole('heading', { name: 'Resource & Capacity Cockpit' })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  });
+
   test('B3 · switching tenant to "Acme Health" re-scopes the portfolio', async () => {
     await switchTenant(page, 'Acme Health');
     await page.goto('/portfolio');

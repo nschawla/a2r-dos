@@ -5,6 +5,7 @@ import { personaForDeliveryRole, RBAC_MATRIX } from '@/lib/governance/rbacMatrix
 import { getNotificationSummary } from '@/server/queries/notifications';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { ScrollToTop } from '@/components/layout/ScrollToTop';
 import { WorkspaceTabsBar } from '@/components/layout/WorkspaceTabsBar';
 import { Footer } from '@/components/layout/Footer';
 import { HelpDrawer } from '@/components/layout/HelpDrawer';
@@ -49,6 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <DashboardUIProvider realRbacPersona={realRbacPersona}>
+      <ScrollToTop />
       {impersonation && (
         <ImpersonationBanner organizationName={organizationName} expiresAt={impersonation.expiresAt} />
       )}
