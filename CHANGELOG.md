@@ -10,6 +10,28 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.54.0] — 2026-10-04
+
+_Executive Hub Print Button Moves Inline — a Reusable `<ModuleTabs actions>` Slot._
+
+### Improved
+
+- The Executive Hub's "Print / Export Executive Briefing" button lived in its own full-width card (eyebrow
+  label, description line, button) stacked as a whole extra row below the Portfolio Briefing / Engagement
+  Reports pills. It now sits inline with those pills, right-aligned, on the Portfolio Briefing tab only
+  (there's nothing to print from Engagement Reports). `<ModuleTabs>` gained a reusable `actions` slot for this —
+  any future page can use it the same way.
+
+### Fixed
+
+- The first version of that `actions` slot took a callback so a page could show its action on only one tab.
+  That compiles cleanly but hard-crashes at request time: the page is a Server Component and `<ModuleTabs>` is
+  a Client Component, and a closure can't cross that boundary. Fixed before it shipped, caught by actually
+  loading the page rather than trusting `tsc` alone — `actions` now takes a plain `{ [tabKey]: node }` lookup
+  object instead, which has no such restriction.
+
+---
+
 ## [1.53.0] — 2026-10-04
 
 _Command Bar Removed — Redundant with ⌘K._

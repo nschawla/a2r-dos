@@ -246,8 +246,11 @@ see.
 
 ### Print / export to PDF
 
-Click **Print / Export PDF** (top right, screen only) on either tab. The
-page reflows to a clean, light, ink-on-white document: the sidebar,
+On the **Portfolio Briefing** tab, click **Print / Export Executive
+Briefing** — it sits inline with the Portfolio Briefing / Engagement
+Reports pills, right-aligned (screen only; there's nothing to print from
+the Engagement Reports tab itself, so the button only shows on this one).
+The page reflows to a clean, light, ink-on-white document: the sidebar,
 header, footer, buttons, and on-screen chart bars are all removed,
 sections don't split across pages, and status colours stay legible. Use
 your browser's **Save as PDF** to keep it.

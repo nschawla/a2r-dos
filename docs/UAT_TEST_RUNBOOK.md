@@ -452,7 +452,7 @@ Open any engagement from PS Control Tower → Engagements → **Open →**.
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
 | 1 | **Sub-nav pills** | `Portfolio Briefing` · `Engagement Reports 5` — instant swap | |
-| 2 | **Portfolio Briefing** tab | The 5-section executive briefing (Summary, Resources, Financials, Risks, Activity) with the Pulse vitals strip above the pills; **"Print / Export Executive Briefing"** button | |
+| 2 | **Portfolio Briefing** tab | The 5-section executive briefing (Summary, Resources, Financials, Risks, Activity) with the Pulse vitals strip above the pills; **"Print / Export Executive Briefing"** button sits inline, right of the Portfolio Briefing / Engagement Reports pills (not a separate row) | |
 | 3 | Click Print (or Ctrl/Cmd-P) from the Briefing tab | Print preview is a clean **light** document: no sidebar, header, footer, or pills; sections don't split across pages | |
 | 4 | Switch to **Engagement Reports** tab, then Print | The briefing **still** prints (it's flagged print-keep) — the engagement tooling does not | |
 | 5 | **Engagement Reports** tab | Project selector; SteerCo deck / margin rollup / compliance certificate launchers; SteerCo Decision Tracker | |

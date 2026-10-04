@@ -10,8 +10,25 @@
  * history.replaceState — shareable and refresh-safe — without going through
  * the router, so no server round-trip and no Suspense boundary needed.
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, isValidElement, type ReactNode } from 'react';
 import clsx from 'clsx';
+
+/** `actions` is either one node shown regardless of tab, or a lookup
+ * object keyed by tab key (only that tab's entry renders). Deliberately
+ * never a function — `<ModuleTabs>` is a Client Component rendered from a
+ * Server Component page, and a closure can't cross that boundary (Next.js
+ * hard-errors: "Functions cannot be passed directly to Client Components").
+ * A plain object is fine to pass across it, same as any other prop. */
+function resolveActions(
+  actions: ReactNode | Partial<Record<string, ReactNode>> | undefined,
+  activeKey: string
+): ReactNode {
+  if (actions == null) return null;
+  if (typeof actions === 'object' && !isValidElement(actions) && !Array.isArray(actions)) {
+    return (actions as Partial<Record<string, ReactNode>>)[activeKey] ?? null;
+  }
+  return actions as ReactNode;
+}
 
 export interface ModuleTab {
   key: string;
@@ -25,6 +42,7 @@ export function ModuleTabs({
   className,
   printKey,
   printAll,
+  actions,
 }: {
   tabs: ModuleTab[];
   panels: Record<string, ReactNode>;
@@ -38,6 +56,14 @@ export function ModuleTabs({
    * Risks-style) where the printed PDF is still the whole document, one
    * section after another. Takes precedence over `printKey`. */
   printAll?: boolean;
+  /** Right-aligned content in the same sticky row as the pills. Either one
+   * node shown regardless of which tab is active, or a `{ [tabKey]: node }`
+   * lookup for an action that only makes sense on one panel (e.g. a
+   * `<PrintButton>` that belongs to just one tab) — the active tab lives
+   * in this component's own state, not the caller's, so a lookup is the
+   * only way the caller can target one. Hidden on print along with the
+   * pills themselves (the whole row is `print:hidden`). */
+  actions?: ReactNode | Partial<Record<string, ReactNode>>;
 }) {
   const first = tabs[0]?.key ?? '';
   const [active, setActive] = useState(first);
@@ -69,7 +95,7 @@ export function ModuleTabs({
     <>
       <div
         className={clsx(
-          'sticky top-[3.35rem] z-30 -mx-2 px-2 py-2 bg-bg/85 backdrop-blur-sm print:hidden',
+          'sticky top-[3.35rem] z-30 -mx-2 px-2 py-2 bg-bg/85 backdrop-blur-sm print:hidden flex items-center justify-between gap-3 flex-wrap',
           className
         )}
       >
@@ -96,6 +122,7 @@ export function ModuleTabs({
             </button>
           ))}
         </div>
+        {resolveActions(actions, active)}
       </div>
 
       {tabs.map((t) => (

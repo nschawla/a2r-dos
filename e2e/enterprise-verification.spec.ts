@@ -318,11 +318,12 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
     await page.goto('/reports');
     await expect(page.getByRole('heading', { name: 'Executive Briefing Hub', level: 1 })).toBeVisible();
 
-    // the print-optimised portfolio briefing — its 4 sections (Summary/
-    // Resources/Financials/Risks) sit behind on-screen pills (No-Scroll /
-    // Command Center, docs/UI_DESIGN_SYSTEM.md §1); each becomes visible in
-    // turn as its pill is clicked, and every section still prints together
-    // regardless of which is active on screen (ModuleTabs' `printAll`).
+    // the print-optimised portfolio briefing — its 5 sections (Summary/
+    // Resources/Financials/Risks/Activity) sit behind on-screen pills
+    // (No-Scroll / Command Center, docs/UI_DESIGN_SYSTEM.md §1); each
+    // becomes visible in turn as its pill is clicked, and every section
+    // still prints together regardless of which is active on screen
+    // (ModuleTabs' `printAll`).
     await expect(page.getByRole('button', { name: 'Print / Export Executive Briefing' })).toBeVisible();
     await expect(page.getByRole('heading', { name: /1 · Executive Summary & Macro KPIs/ })).toBeVisible();
     await expect(page.locator('.exec-briefing').getByText('Total Contract Value')).toBeVisible();

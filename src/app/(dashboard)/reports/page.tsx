@@ -11,6 +11,7 @@ import { ExecutiveBriefing } from '@/components/reports/ExecutiveBriefing';
 import { ReportsHubClient, type ReportsProjectView } from '@/components/reports/reports-hub-client';
 import { canViewMargins } from '@/lib/security/masking';
 import { ModuleTabs } from '@/components/ui/module-tabs';
+import { PrintButton } from '@/components/ui/print-button';
 import { computePortfolioSummary } from '@/lib/calculations/portfolio';
 import { toAuditEntries, toRateRoles, toSizingInput, hierarchyLevelLower } from '@/server/queries/calc-adapters';
 import { getVisibleCustomKpis, getKpiMetricValues } from '@/server/queries/kpi-data';
@@ -138,6 +139,14 @@ export default async function ReportsHubPage({ searchParams }: { searchParams: P
           { key: 'briefing', label: 'Portfolio Briefing' },
           { key: 'engagements', label: 'Engagement Reports' },
         ]}
+        // Only the Portfolio Briefing tab has anything worth printing —
+        // same row as the pills, right-aligned, instead of its own
+        // full-width action-bar card (was ExecutiveBriefing.tsx's own
+        // header row; moved up here to recover that row of space). A
+        // lookup object, not a function — <ModuleTabs> is a Client
+        // Component and this is a Server Component page; a closure can't
+        // cross that boundary.
+        actions={{ briefing: <PrintButton label="Print / Export Executive Briefing" /> }}
         panels={{
           briefing: (
             <>

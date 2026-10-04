@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.54.0',
+    date: '2026-10-04',
+    headline: 'Executive Hub Print Button Moves Inline — a Reusable `<ModuleTabs actions>` Slot',
+    changes: [
+      { type: 'improvement', text: 'The Executive Hub\'s "Print / Export Executive Briefing" button lived in its own full-width card (eyebrow label, description line, button) stacked as a whole extra row below the Portfolio Briefing / Engagement Reports pills. It now sits inline with those pills, right-aligned, on the Portfolio Briefing tab only (there\'s nothing to print from Engagement Reports). <ModuleTabs> gained a reusable `actions` slot for this — any future page can use it the same way.' },
+      { type: 'fix', text: 'The first version of that `actions` slot took a callback so a page could show its action on only one tab. That compiles cleanly but hard-crashes at request time: the page is a Server Component and `<ModuleTabs>` is a Client Component, and a closure can\'t cross that boundary. Fixed before it shipped, caught by actually loading the page rather than trusting `tsc` alone — `actions` now takes a plain `{ [tabKey]: node }` lookup object instead, which has no such restriction.' },
+    ],
+  },
+  {
     version: '1.53.0',
     date: '2026-10-04',
     headline: 'Command Bar Removed — Redundant with ⌘K',

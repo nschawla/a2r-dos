@@ -780,7 +780,7 @@ shown twice, differently.
   from `/reports`'s own server component instead of `/steerco`'s —
   `tests/steerco-briefing.test.ts`'s coverage of it needed no change.
 
-## 18. Type-to-filter engagement combobox (v1.51.0)
+## 18. Type-to-filter engagement combobox (v1.52.0)
 
 Every "pick an engagement" picker in the app — the Executive Hub's
 Engagement Reports tab (`reports-hub-client.tsx`) and the five module
@@ -839,3 +839,88 @@ right after that optimistic `setQuery()` synchronously fires `onBlur`
 (which reverts the display to the real selection) *before* the prop
 catches up, silently undoing the fix. Selecting an option closes the
 panel via `setOpen(false)` alone; it doesn't need to blur the input too.
+
+## 19. Command Bar removed — redundant with ⌘K (v1.53.0)
+
+A dedicated Command Bar (`CommandBar.tsx`) lived pinned above the PS
+Control Tower's tabs from the v1.29.0 Command Center merge through
+v1.52.0 — a free-form "type where you want to go" input, with
+placeholder copy ("try 'financials for Contoso'") that read as
+natural-language/AI capability.
+
+A direct question on the live page — "do we truly have the AI
+capability?" — prompted actually tracing what it did, rather than
+assuming. The answer: no. It called `resolveCommand()`
+(`src/lib/command-center/commands.ts`) directly — a hardcoded keyword
+table, a regex for the `"<module> for <engagement>"` shape, and fuzzy
+string matching on project names. No LLM, no embeddings, nothing that
+understands a sentence. Same category of issue as "PS-DOS IQ" (§15) —
+a feature whose framing oversold a plain-matching implementation.
+
+Worse than just overselling, it turned out to be **strictly redundant**,
+on its own page:
+
+- The header's **"Search… ⌘K"** box (every dashboard page, including
+  `/portfolio` itself) is a button that calls `openCommandPalette()` —
+  already reachable a few pixels above where the Command Bar sat.
+- The global ⌘K palette (`buildCommandKItems`,
+  `command-k-results.ts`) calls the *same* `resolveCommand()`
+  internally, then adds people and open-risk search on top — a strict
+  superset of what the Command Bar could ever suggest.
+
+So the fix wasn't to relocate or shrink it (a tabs-row "Search" pill
+was considered and rejected, via explicit user choice between the two)
+— it was removed outright. `resolveCommand()` itself is unchanged and
+unremoved; it's ⌘K's one real engine now, same as it always was
+underneath the bar. Full real-estate recovered on the Control Tower: the
+tabs sit directly under the page heading, no second chrome row above
+them. `docs/AUTO_DEMO_SCRIPT.md`'s matching beat was removed too, not
+re-timed — `welcome` flows straight into `scoped-practice-view`.
+
+## 20. `<ModuleTabs actions>` — a right-aligned slot in the pill row (v1.53.0)
+
+A follow-on real-estate question on the Executive Hub: the "Print /
+Export Executive Briefing" button lived in its own full-width card
+(eyebrow label + one line of description + the button), stacked as a
+whole extra row below the Portfolio Briefing / Engagement Reports
+pills — one more row of chrome before any real content, for a page
+that's otherwise dense with figures. Asked whether it could move onto
+the same row as the pills, right-aligned.
+
+**`<ModuleTabs>`** (`src/components/ui/module-tabs.tsx`) gained an
+optional `actions` prop for exactly this — a right-aligned slot in the
+same sticky row as the tab pills, hidden on print along with them
+(the whole row is already `print:hidden`). It accepts either a plain
+`ReactNode` (shown regardless of which tab is active) or a `{ [tabKey]:
+node }` lookup object, for an action that only makes sense on one panel
+— Print only makes sense on "Portfolio Briefing," not "Engagement
+Reports," and the *active tab* lives in `<ModuleTabs>`'s own internal
+state, not the caller's, so a lookup keyed by tab is the only way a
+Server Component caller can target one. **A real mistake caught by
+actually loading the page, not just by `tsc`:** the first version of
+this took a callback — `(activeKey: string) => ReactNode` — so the
+caller could branch on whichever tab was active. That compiles cleanly
+but hard-crashes at request time: `reports/page.tsx` is a Server
+Component and `<ModuleTabs>` is a Client Component, and a closure
+cannot cross that boundary (Next.js's own error names this exactly:
+*"Functions cannot be passed directly to Client Components"*). A plain
+lookup object has no such restriction — passing data (including JSX
+elements) from a Server to a Client Component is the normal case;
+passing a function is the one specific thing that isn't. Existing
+callers that don't pass `actions` are unaffected either way — the row
+still renders exactly as before.
+
+**`<PrintButton>`** (`src/components/ui/print-button.tsx`) is a new,
+small, intentionally dumb extraction: a styled button wired to
+`window.print()`, nothing more. What actually gets printed is entirely
+driven by the page's own `@media print` CSS and `<ModuleTabs>`'s
+`printKey`/`printAll` — this component doesn't need to know or care,
+which is what makes it reusable anywhere a page needs a "print the
+current screen" action without re-declaring the same onClick and
+button classes.
+
+`ExecutiveBriefing.tsx` lost its own action-bar card entirely — the
+eyebrow label and description line were redundant with the Executive
+Hub page's own top-of-page heading and description, so neither was
+ported; only the button moved, now rendered by `reports/page.tsx` via
+`actions={{ briefing: <PrintButton label="..." /> }}`.

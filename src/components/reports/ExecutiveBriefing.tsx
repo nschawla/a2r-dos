@@ -50,22 +50,14 @@ export function ExecutiveBriefing({
 
   return (
     <div className="exec-briefing flex flex-col gap-5">
-      {/* action bar — screen only */}
-      <div className="no-print card !p-4 flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-0.5">Executive Briefing</div>
-          <p className="text-[12.5px] text-ink-muted">
-            Portfolio-wide board briefing — one page per section, print-optimised for PDF export.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="btn-primary !w-auto px-5 whitespace-nowrap"
-        >
-          Print / Export Executive Briefing
-        </button>
-      </div>
+      {/* The screen-only action bar that used to live here (eyebrow +
+          description + "Print / Export Executive Briefing" button, its own
+          full-width card) moved up into the outer <ModuleTabs actions>
+          slot (reports/page.tsx) — same row as the Portfolio Briefing /
+          Engagement Reports pills, right-aligned, recovering a full row of
+          vertical space. Its description text is redundant with the
+          page's own top-of-page description now, so it wasn't ported;
+          only the button (<PrintButton>) survived the move. */}
 
       {/* document header — prints */}
       <header className="exec-section border-b border-border pb-3">
