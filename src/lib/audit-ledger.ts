@@ -17,7 +17,7 @@
 import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { withTenantTxFor } from '@/lib/db/with-tenant-tx';
+import { withTenantTxFor, type TenantTxOptions } from '@/lib/db/with-tenant-tx';
 
 export type LedgerDbClient = typeof db | Prisma.TransactionClient;
 
@@ -152,10 +152,23 @@ export interface LedgerEventResult {
  * Best-effort: a ledger write must never block the governance action it
  * records, so failures are logged and swallowed (the classic AuditLog
  * trail in src/lib/audit/logger.ts still captures the underlying mutation).
+ *
+ * `txOptions` only matters on the `ownsTransaction` path (a full client
+ * handed in, not a caller's own `tx`) — it's passed straight through to
+ * `withTenantTxFor`'s already-generous 8s/20s defaults. Exists for the
+ * one legitimate reason to override them: many *genuinely concurrent*
+ * appends for the same org all serialize behind the one advisory lock
+ * above, so the Nth one in line waits roughly (N-1) × one append's real
+ * latency before it even starts running — tests/security/
+ * ledger-concurrency.test.ts's own N=12 stress case is the reason this
+ * parameter exists, not a real production need (real tenants essentially
+ * never have a dozen governance-ledger-worthy actions land in the same
+ * instant).
  */
 export async function recordLedgerEvent(
   client: LedgerDbClient,
-  input: RecordLedgerEventInput
+  input: RecordLedgerEventInput,
+  txOptions?: TenantTxOptions
 ): Promise<LedgerEventResult | null> {
   const metadata = input.metadata ?? null;
 
@@ -209,7 +222,7 @@ export async function recordLedgerEvent(
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       return ownsTransaction
-        ? await withTenantTxFor(input.organizationId, appendOnce)
+        ? await withTenantTxFor(input.organizationId, appendOnce, txOptions)
         : await appendOnce(client as Prisma.TransactionClient);
     } catch (err) {
       const chainCollision =

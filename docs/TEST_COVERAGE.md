@@ -199,7 +199,121 @@ signature of pooler contention, not a logic bug concentrated in one area.
 A single-fork (`--pool=forks --poolOptions.forks.singleFork`, no
 parallelism) re-run was started to get a clean number but was too slow to
 complete within this pass and was stopped rather than block the rest of
-this documentation update on it. **Action item, not yet done:** re-run the
-full suite single-forked (or with a longer per-test timeout) before next
-treating "all green" as confirmed — don't carry this run's 875/948 forward
-as if it were a real regression count.
+this documentation update on it. **Action item, done 2026-10-04, see §6
+below:** this was followed up and actually root-caused, not just re-run —
+"pooler contention" was close but incomplete; §6 supersedes this framing
+with the real, three-part cause and the fix for each part.
+
+---
+
+## 6. Root cause of the "flaky" DB-integration failures, found and fixed (2026-10-04)
+
+§4 and §5 both correctly observed that the failures were timeouts against
+the staging pooler and correctly declined to call them a logic bug, but
+both stopped at "pooler contention" as if it were one undifferentiated
+cause to be waited out. It isn't — it's three separate, fixable causes,
+found by actually reproducing the worst offender in isolation instead of
+re-running the full suite and hoping for green. **Tenant data crossing
+between organizations was the one thing ruled out first and most
+carefully — confirmed, with direct reproduction, to never actually
+happen.** The findings below explain why it could *look* like it did.
+
+**Cause 1 — vitest's default timeouts predate `RLS_ENFORCE=1`.**
+`RLS_ENFORCE=1` (Phase C, v1.9.0) wraps every bare tenant-model Prisma
+call in its own transaction with two extra `SET LOCAL` round-trips
+(`src/lib/db/rls-transaction.ts`). Against the real staging pooler a
+single wrapped op costs 1.3–9.5s; a setup step chaining a few of these
+sequentially routinely exceeded vitest's un-configured 5000ms/10000ms
+defaults, which were never revisited after RLS_ENFORCE shipped. Confirmed
+by isolating `tests/org-scope.test.ts` — 100% reproducible failure alone,
+3/3 runs, at the default timeout; 100% clean, repeatedly, at 20s.
+**This is also what produced the misleading "cross-tenant leak" shape**:
+the test's setup `it()` timed out mid-way, leaving `projAId`/`projBId`
+`undefined`; Prisma silently *drops* an `undefined` field from a `where`
+clause rather than matching nothing, so "find project B while scoped to
+org A" silently became "find any project while scoped to org A," which
+of course returned org A's own row — reading exactly like a real leak
+without being one. Fixed two ways: `vitest.config.ts` now sets
+`testTimeout`/`hookTimeout` to 20s (see that file's own comment); and
+`tests/org-scope.test.ts`'s setup moved from a plain `it()` into a
+`beforeAll` (own comment there) so a *future* timeout skips every
+dependent test loudly instead of corrupting their inputs.
+Grepping every one of the original 64 failures' error text confirmed
+this one cause alone: 61 at exactly the old 5000ms default, 2 at 20000ms
+(a different, already-generous call site), 1 hook at 10000ms — zero
+non-timeout failures anywhere. Fixing it alone took 64 failures → 15.
+
+**Cause 2 — no `connection_limit` on the test `DATABASE_URL`.**
+With vitest's default `isolate: true` (+ `pool: 'threads'`), every test
+*file* gets its own fresh module registry, so every file importing
+`@/lib/db` opens its own `PrismaClient` — each defaulting to Prisma's own
+`cpus*2+1` formula (~17 connections on this machine). Across up to 8
+parallel worker files that's a theoretical 100+ connections racing one
+shared remote Supabase pooler: real connection exhaustion under
+full-suite parallel load, never seen running a file alone or in a small
+group (which is exactly why §4/§5's isolated-file reruns kept coming back
+green while the full suite didn't). Fixed by adding
+`connection_limit=15&pool_timeout=20` to `.env.test`'s `DATABASE_URL` —
+the same tuning `src/lib/db.ts`'s `assertServerlessPooling()` already
+enforces for production Vercel instances, for the identical reason (many
+lightweight clients, one shared pooler). `.env.test` is gitignored, so
+this fix lives only in each engineer's local file — intentional, not an
+oversight; see that file's own dated comment for the `connection_limit=3`
+tried first and why it was too tight (below). Fixing this alone took the
+remaining 15 failures → 9, all in `tests/security/ledger-concurrency.test.ts`.
+
+**Cause 3 — `ledger-concurrency.test.ts`'s own missing transaction
+options, specific to that file.** `recordLedgerEvent` takes a per-tenant
+Postgres advisory lock (REL-3, by design) so N concurrent callers
+genuinely serialize; the Nth caller's wait scales with roughly
+`(N-1) ×` one append's real latency against the pooler. The file's N=12
+stress test could still blow past even `with-tenant-tx.ts`'s generous
+production-sane default (`maxWait: 8_000, timeout: 20_000`) in the
+worst-case serialized queue (~12 × ~2s ≈ 24s), and its N=6 sibling test's
+own direct `db.$transaction(callback)` call had **no options argument at
+all** — silently running on Prisma's raw library defaults
+(`maxWait: 2_000, timeout: 5_000`), a genuine pre-existing bug in the
+test, not a deliberate choice, and nowhere near enough room for
+transactions serializing behind that same advisory lock. Fixed by adding
+an optional `txOptions` passthrough parameter to `recordLedgerEvent`
+(`src/lib/audit-ledger.ts`) — needed only for this adversarial test, not
+real production load — and passing generous explicit options from both
+sub-tests (`{maxWait: 15_000, timeout: 60_000}` for N=12,
+`{maxWait: 15_000, timeout: 45_000}` for N=6), plus matching per-test
+vitest timeouts (90s / 60s). Verified: the file now passes 3/3, isolated,
+repeatedly (29.7s / 14.2s / 12.2s — no timeouts).
+
+**Cause 4 — the same shape as Cause 3, found by a final full-suite
+confirmation run, in `tests/staff-elevation.test.ts` and
+`tests/identity-saml-handshake.test.ts`.** With causes 1-3 fixed, a full
+`npx vitest run` still came back 941/948 — 7 failures, all `Test timed
+out in 20000ms`, concentrated in these two files. Isolating each file
+confirmed it wasn't full-suite contention specifically: run alone or
+paired, the same two files kept landing tests right at or just past the
+20s ceiling, with the *exact set* of which sub-tests tipped over varying
+between runs — the signature of a margin that's simply too thin, not a
+deterministic bug. The common shape in both files' heavier tests: 2+
+sequential `handleSamlAcsPost`/`makeOperator`-style chains in one test
+body, each itself several RLS-wrapped round trips, and — in
+`staff-elevation.test.ts` specifically — real `bcrypt.hash(..., 10)` /
+TOTP crypto on top, which is genuinely CPU-bound, not just I/O-bound like
+the other three causes. `identity-saml-handshake.test.ts` already carried
+an explicit 20s override on its two heaviest tests for exactly this
+reason (added in an earlier pass) — even that was no longer enough
+headroom once RLS overhead and parallel load were layered on. Fixed the
+same way as Cause 3: explicit per-test timeout overrides (40s) on exactly
+the bodies seen at/over the edge in either file, not a further global
+raise. Verified: both files now pass clean, isolated and paired,
+repeatedly (`identity-saml-handshake.test.ts` 8/8; `staff-elevation.test.ts`
+18/18, slowest observed body 29.7s — comfortably inside the new 40s
+ceiling).
+
+**Net result:** 64 → 15 → 9 → 7 → 0 across the four fixes, each step
+confirmed by an isolated rerun of the specific file(s) it targeted before
+moving to the next cause, and the whole chain closed out by one final
+full-suite run. **No tenant-isolation bug was ever found.**
+`tests/security/tenant-isolation.test.ts` — the dedicated cross-tenant
+security suite, all 9 P1 composite-key model checks plus the 3 base
+guardrail checks — passed 100% green on every rerun performed during this
+investigation, confirming real tenant separation was never in question;
+only test-infrastructure timeouts were.

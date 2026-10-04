@@ -168,7 +168,16 @@ describe('JIT staff elevation — service', () => {
     expect(row?.tokenHash).toBe(hashToken(res.token));
     expect(row?.tokenHash).not.toBe(res.token);
     expect(await resolveActiveElevation(`${res.token}-tampered`, 7)).toBeNull();
-  });
+    // Root-caused 2026-10-04: makeOperator() alone is user create + bcrypt
+    // hash + grantStaffAccess + MFA enroll/activate — several sequential
+    // RLS-wrapped round trips (1.3-9.5s each against the staging pooler,
+    // see vitest.config.ts) — before elevate()'s own password/TOTP verify
+    // + row create even starts. The global 20s default (raised from
+    // vitest's 5s for exactly this class of test) isn't reliable margin
+    // for this file's heavier bodies; confirmed by isolated reruns timing
+    // out at exactly 20000ms with no assertion failure, same signature as
+    // tests/security/ledger-concurrency.test.ts's own fix.
+  }, 40_000);
 
   it('Batch 2 — refuses an operator with no second factor enrolled', async () => {
     const op = await makeOperator('nomfa', { withMfa: false });
@@ -195,7 +204,9 @@ describe('JIT staff elevation — service', () => {
     const second = await elevate(op.id, 'replay of the same code', { totpCode: code });
     expect(second.ok).toBe(false);
     if (!second.ok) expect(second.code).toBe('BAD_MFA');
-  });
+    // Two elevate() calls on top of makeOperator()'s own chain — see the
+    // "happy path" test's comment above for why 40s, not 20s.
+  }, 40_000);
 
   it('WP2 — an elevation minted under a superseded sessionVersion resolves to null', async () => {
     const op = await makeOperator('rotated');
@@ -204,7 +215,8 @@ describe('JIT staff elevation — service', () => {
     expect(await resolveActiveElevation(res.token, 3)).not.toBeNull();
     // a password change / sign-out-everywhere bumps users.sessionVersion → 4
     expect(await resolveActiveElevation(res.token, 4)).toBeNull();
-  });
+    // See the "happy path" test's comment above for why 40s, not 20s.
+  }, 40_000);
 
   it('a second request supersedes the first (one live elevation per operator)', async () => {
     const op = await makeOperator('supersede');
@@ -220,7 +232,9 @@ describe('JIT staff elevation — service', () => {
     expect(rows).toHaveLength(2);
     expect(rows.filter((r) => r.endedAt === null)).toHaveLength(1);
     expect(rows.find((r) => r.tokenHash === hashToken(a.token))?.endedReason).toBe('superseded');
-  });
+    // Two elevate() calls on top of makeOperator()'s own chain — see the
+    // "happy path" test's comment above for why 40s, not 20s.
+  }, 40_000);
 
   it('resolveActiveElevation returns null for an expired or ended row', async () => {
     const op = await makeOperator('expiry');
@@ -240,7 +254,9 @@ describe('JIT staff elevation — service', () => {
     if (!ended.ok) throw new Error('setup');
     await endElevation(ended.token, 'operator');
     expect(await resolveActiveElevation(ended.token, 0)).toBeNull();
-  });
+    // makeOperator() + an extra create + elevate() + endElevation() — see
+    // the "happy path" test's comment above for why 40s, not 20s.
+  }, 40_000);
 
   it('endElevation is idempotent and tolerates an unknown token', async () => {
     await expect(endElevation('does-not-exist')).resolves.toBeUndefined();
@@ -313,7 +329,11 @@ describe('JIT staff elevation — requireElevatedOps gate', () => {
     const gate = await requireElevatedOps();
     expect(gate.ok).toBe(true);
     if (gate.ok) expect(gate.ops.elevation?.active).toBe(true);
-  });
+    // operator() + elevate() + requireElevatedOps()'s own session/DB lookup
+    // — same class of chain as the "happy path" test above; was seen
+    // right at the 20s edge (19993-20006ms across reruns, timing out in
+    // one), not reliably under it. 40s, not 20s.
+  }, 40_000);
 
   it('WP2 — a session-version bump kills the elevation → ELEVATION_REQUIRED', async () => {
     const u = await operator('bumped');
@@ -322,7 +342,8 @@ describe('JIT staff elevation — requireElevatedOps gate', () => {
     cookieJar.store.set(ELEVATION_COOKIE, res.token);
     signIn(u, 6); // password change / sign-out-everywhere advanced the epoch
     expect(await requireElevatedOps()).toEqual({ ok: false, reason: 'ELEVATION_REQUIRED' });
-  });
+    // Same chain shape as the test above (19910ms seen) — same margin.
+  }, 40_000);
 
   it("a cookie whose row belongs to another user → ELEVATION_REQUIRED", async () => {
     const owner = await operator('owner');
@@ -332,5 +353,9 @@ describe('JIT staff elevation — requireElevatedOps gate', () => {
     signIn(other, 0); // different session presenting owner's cookie
     cookieJar.store.set(ELEVATION_COOKIE, res.token);
     expect(await requireElevatedOps()).toEqual({ ok: false, reason: 'ELEVATION_REQUIRED' });
-  });
+    // Two full operator() setups (each its own user-create + bcrypt hash +
+    // grantStaffAccess + MFA enroll chain) plus an elevate() call — see
+    // the "happy path" test's comment near the top of this file for why
+    // 40s, not 20s.
+  }, 40_000);
 });

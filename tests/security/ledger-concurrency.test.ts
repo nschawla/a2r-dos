@@ -43,13 +43,25 @@ describe('Immutable Audit Ledger — concurrency (REL-3)', () => {
 
     const results = await Promise.allSettled(
       Array.from({ length: N }, (_, i) =>
-        recordLedgerEvent(db, {
-          organizationId: org.id,
-          actorId: `stress-actor-${i}`,
-          actionType: 'SECURITY_CONFIG_CHANGE',
-          targetResource: `Organization:${org.id}`,
-          metadata: { test: 'concurrency', index: i },
-        })
+        recordLedgerEvent(
+          db,
+          {
+            organizationId: org.id,
+            actorId: `stress-actor-${i}`,
+            actionType: 'SECURITY_CONFIG_CHANGE',
+            targetResource: `Organization:${org.id}`,
+            metadata: { test: 'concurrency', index: i },
+          },
+          // N fully-concurrent attempts all serialize behind one
+          // per-tenant advisory lock (REL-3, by design) — the Nth in
+          // line waits roughly (N-1) x one append's real latency against
+          // this remote staging pooler before it even starts. The
+          // production-sane default (8s/20s, with-tenant-tx.ts) is too
+          // tight for *this* deliberately adversarial N=12 case; this
+          // override exists for exactly that, see recordLedgerEvent's
+          // own doc comment.
+          { maxWait: 15_000, timeout: 60_000 }
+        )
       )
     );
 
@@ -77,7 +89,7 @@ describe('Immutable Audit Ledger — concurrency (REL-3)', () => {
     const integrity = await verifyLedgerIntegrity(org.id);
     expect(integrity.ok).toBe(true);
     expect(integrity.count).toBe(N);
-  });
+  }, 90_000); // see the maxWait/timeout override above for why this needs real room
 
   it('appends made from independent transactions also chain cleanly', async () => {
     const org = await freshOrg();
@@ -85,13 +97,22 @@ describe('Immutable Audit Ledger — concurrency (REL-3)', () => {
 
     await Promise.allSettled(
       Array.from({ length: N }, (_, i) =>
-        db.$transaction((tx) =>
-          recordLedgerEvent(tx, {
-            organizationId: org.id,
-            actorId: `tx-actor-${i}`,
-            actionType: 'ROLE_POLICY_CHANGE',
-            targetResource: `RoleUtilizationPolicy:tx-${i}`,
-          })
+        // No options here before was an unnoticed bug, not a deliberate
+        // choice: a bare db.$transaction(callback) silently takes Prisma's
+        // raw library defaults (2s maxWait / 5s timeout), nowhere near
+        // enough for N transactions serializing behind recordLedgerEvent's
+        // own per-tenant advisory lock — see the N=12 test above for the
+        // full explanation of why that serialization takes real time
+        // against a remote pooler.
+        db.$transaction(
+          (tx) =>
+            recordLedgerEvent(tx, {
+              organizationId: org.id,
+              actorId: `tx-actor-${i}`,
+              actionType: 'ROLE_POLICY_CHANGE',
+              targetResource: `RoleUtilizationPolicy:tx-${i}`,
+            }),
+          { maxWait: 15_000, timeout: 45_000 }
         )
       )
     );
@@ -99,7 +120,7 @@ describe('Immutable Audit Ledger — concurrency (REL-3)', () => {
     const integrity = await verifyLedgerIntegrity(org.id);
     expect(integrity.ok).toBe(true);
     expect(integrity.count).toBe(N);
-  });
+  }, 60_000);
 
   it('still detects a genuinely tampered row', async () => {
     const org = await freshOrg();

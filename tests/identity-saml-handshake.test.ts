@@ -221,7 +221,16 @@ describe('SAML ACS live handshake', () => {
       where: { userId_organizationId: { userId: result.userId, organizationId } },
     });
     expect(membership?.provisionedVia).toBe('SSO_JIT');
-  }, 20_000); // JIT provisioning is several sequential DB round trips — staging pooler latency (documented elsewhere in this suite) needs headroom past vitest's 5s default.
+    // Root-caused 2026-10-04: JIT provisioning is several sequential
+    // RLS-wrapped DB round trips (1.3-9.5s each against the staging
+    // pooler — see vitest.config.ts's own comment), and this test's chain
+    // is long enough that even the global 20s default — raised from
+    // vitest's 5s precisely for this class of test — isn't reliable
+    // margin. Confirmed by isolated reruns timing out at exactly 20000ms
+    // with no assertion failure. 40s is comfortable headroom without
+    // slowing the suite (fast tests are judged against their own time,
+    // not this ceiling).
+  }, 40_000);
 
   it('rejects a replay of the same response — the InResponseTo was already consumed', async () => {
     const requestId = `_${randomUUID()}`;
@@ -236,7 +245,10 @@ describe('SAML ACS live handshake', () => {
     expect(second.ok).toBe(false);
     if (second.ok) return;
     expect(second.classified.category).toBe('REPLAY_DETECTED');
-  }, 20_000);
+    // Two full handleSamlAcsPost calls back to back (the first does the
+    // same JIT-provisioning chain as the test above) — see that test's
+    // comment for why 40s, not 20s.
+  }, 40_000);
 
   it('rejects a tampered assertion — signature no longer validates', async () => {
     const requestId = `_${randomUUID()}`;

@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.55.0',
+    date: '2026-10-04',
+    headline: 'Flaky DB-Integration Tests Root-Caused and Fixed — No Tenant-Isolation Bug Found',
+    changes: [
+      { type: 'fix', text: 'A long-standing ~64-test, 14-file "flaky" pattern under the full test suite — including one that read exactly like a cross-tenant data leak — was root-caused to four separate test-infrastructure issues, none of them an application bug. (1) vitest\'s default 5s/10s timeouts predated RLS_ENFORCE (v1.9.0) and were too short for its added per-operation transaction overhead; a setup step timing out left test IDs undefined, and Prisma silently drops an undefined `where` filter rather than matching nothing — producing a misleading "found another tenant\'s row" failure that was never a real leak. Fixed via a global testTimeout/hookTimeout raise and restructuring tests/org-scope.test.ts\'s setup into a beforeAll so a future timeout fails loud instead of corrupting dependent tests. (2) The test DB URL had no connection_limit, so each of up to 8 parallel test files opened its own ~17-connection Prisma client — real pool exhaustion under full-suite load, fixed by capping it the same way production already is. (3) tests/security/ledger-concurrency.test.ts and (4) tests/staff-elevation.test.ts / tests/identity-saml-handshake.test.ts each chain enough sequential RLS-wrapped DB round trips (plus, for staff-elevation, real bcrypt/TOTP crypto) in their heavier test bodies that even the raised 20s global default wasn\'t reliable margin — confirmed by isolated reruns landing right at or just past 20000ms. Fixed with explicit, generous per-test timeout overrides on exactly those bodies, not a further global raise that would cost every fast unit test nothing but still be the wrong tool.' },
+      { type: 'security', text: 'Tenant data isolation was the first thing verified, not assumed: tests/security/tenant-isolation.test.ts — the dedicated cross-tenant suite covering all 9 P1 composite-key models plus the 3 base guardrail checks — passed 100% green on every rerun performed during this investigation. See docs/TEST_COVERAGE.md §6 for the full root-cause writeup.' },
+    ],
+  },
+  {
     version: '1.54.0',
     date: '2026-10-04',
     headline: 'Executive Hub Print Button Moves Inline — a Reusable `<ModuleTabs actions>` Slot',

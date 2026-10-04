@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { db } from '@/lib/db';
 import {
   isTenantModel,
@@ -108,6 +108,8 @@ describe('org-scope — live DB enforcement', () => {
   let orgBId: string;
   let projAId: string;
   let projBId: string;
+  let projAOrgId: string;
+  let projBOrgId: string;
 
   afterAll(async () => {
     const ids = createdOrgIds.splice(0);
@@ -116,7 +118,19 @@ describe('org-scope — live DB enforcement', () => {
     }
   });
 
-  it('sets up two tenants', async () => {
+  // A `beforeAll` hook, not a plain `it()` — deliberately. Every test below
+  // reaches across tenants by id (projAId/projBId); if this setup step
+  // itself timed out mid-way (it did, reproducibly, before vitest.config.ts
+  // picked up RLS_ENFORCE=1's real per-operation cost — see that file's own
+  // comment), a plain `it()` still lets every *dependent* test run anyway,
+  // against `undefined` ids. Prisma silently drops an `undefined` `where`
+  // filter rather than matching nothing, so "cannot reach across tenants"
+  // would then find whatever row *does* exist and fail with what reads
+  // exactly like a real cross-tenant leak — it was never one. A `beforeAll`
+  // that throws (including a timeout) makes vitest skip every test in this
+  // describe block instead: a loud, honest "setup didn't run," never a
+  // false "tenant isolation failed."
+  beforeAll(async () => {
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const [orgA, orgB] = await Promise.all([
       db.organization.create({ data: { name: 'Scope A', slug: `scope-a-${stamp}` } }),
@@ -139,8 +153,20 @@ describe('org-scope — live DB enforcement', () => {
     );
     projAId = projA.id;
     projBId = projB.id;
-    expect(projA.organizationId).toBe(orgAId);
-    expect(projB.organizationId).toBe(orgBId);
+    projAOrgId = projA.organizationId;
+    projBOrgId = projB.organizationId;
+  });
+
+  it('sets up two tenants', () => {
+    // The hook above is what actually sets everything up (see its own doc
+    // comment on why) — this assertion-only test just keeps that setup's
+    // own checks visible as its own row in the test report, same as before.
+    expect(orgAId).toBeTruthy();
+    expect(orgBId).toBeTruthy();
+    expect(projAId).toBeTruthy();
+    expect(projBId).toBeTruthy();
+    expect(projAOrgId).toBe(orgAId);
+    expect(projBOrgId).toBe(orgBId);
   });
 
   it('a scoped findMany with no where sees only its own tenant', async () => {
