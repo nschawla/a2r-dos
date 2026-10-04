@@ -10,6 +10,22 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.56.1] — 2026-10-04
+
+_Exported Executive Briefing PDFs Now Self-Identify the Tenant._
+
+### Fixed
+
+- v1.56.0's header trim dropped the tenant name from the Portfolio Briefing document — correct for the
+  on-screen view (the org switcher above every page already shows it), but that same header is also what
+  prints, and an exported PDF has no org switcher around it once it leaves the app. A super admin especially
+  can view/export this report for any tenant, not just one the way a Client Admin always is, so an unlabeled
+  export was a real identification gap. Fixed with a print-only tenant-name line (hidden on screen, shown
+  only in the exported document) — same `hidden print:block` pattern already used elsewhere for the inverse
+  case.
+
+---
+
 ## [1.56.0] — 2026-10-04
 
 _Executive Briefing Header Trimmed to 2 Lines._

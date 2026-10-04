@@ -59,18 +59,22 @@ export function ExecutiveBriefing({
           page's own top-of-page description now, so it wasn't ported;
           only the button (<PrintButton>) survived the move. */}
 
-      {/* document header — prints. Was 3 lines (a "PS-DOS · Executive
-          Briefing" eyebrow + "<tenant name> — Portfolio Review" + the
-          generated-at line) — trimmed to 2 per explicit request: the
-          eyebrow dropped as pure repetition of the page's own nav context,
-          and the tenant name dropped from this heading. Note this same
-          header is also what prints (see the printAll note below) — there
-          is no separate print masthead elsewhere carrying the tenant name,
-          so an exported PDF now identifies the tenant nowhere in this
-          section either. Flagged to the user; revisit if a printed/saved
-          copy circulating without a company name on it turns out to
-          matter. */}
+      {/* document header — prints. Trimmed to 2 lines on screen (v1.56.0):
+          the "PS-DOS · Executive Briefing" eyebrow and the tenant name both
+          dropped from here since the org switcher already shows the
+          tenant above every page. But this same header is also what
+          prints, and a PDF has no org switcher around it once it's
+          exported — a super admin especially can be looking at any
+          tenant's data (not just one, the way a Client Admin always is),
+          so an unlabeled export is a real identification gap, not just
+          screen clutter. Fixed with a print-only tenant line (`hidden
+          print:block`, same pattern ExecutiveAgentWidget/ModuleTabs
+          already use for the inverse case) — invisible on screen,
+          present in the exported document. */}
       <header className="exec-section border-b border-border pb-3">
+        <p className="hidden print:block text-[11px] uppercase tracking-[0.14em] text-ink-faint font-semibold">
+          {briefing.organizationName}
+        </p>
         <h2 className="text-xl font-display font-bold">Portfolio Review</h2>
         <p className="text-[12px] exec-muted text-ink-faint mt-1">
           Generated {generated.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} at{' '}
