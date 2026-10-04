@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.59.4',
+    date: '2026-10-04',
+    headline: 'Grid Pills Now Read as Individual Pills',
+    changes: [
+      { type: 'improvement', text: 'v1.59.3\'s uniform grid pills relied on gaps between naturally-sized buttons to read as separate — enough for the other pill layouts, not enough once every cell is the same size and sits flush against its neighbors. <ModuleTabs>\'s `grid` mode now gives every pill its own visible border and background, inactive pills included, not just the active one — the same every-pill-has-a-boundary treatment PillSelectorRow already uses elsewhere in the app. Scoped to `grid` mode only; every other <ModuleTabs> usage is unchanged.' },
+    ],
+  },
+  {
     version: '1.59.3',
     date: '2026-10-04',
     headline: 'Ingestion Template Pills Now a Uniform Single-Row Grid',

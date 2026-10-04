@@ -10,6 +10,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.59.4] — 2026-10-04
+
+_Grid Pills Now Read as Individual Pills._
+
+### Improved
+
+- v1.59.3's uniform grid pills relied on gaps between naturally-sized buttons to read as separate — enough
+  for the other pill layouts, not enough once every cell is the same size and sits flush against its
+  neighbors. `<ModuleTabs>`'s `grid` mode now gives every pill its own visible border and background,
+  inactive pills included, not just the active one — the same every-pill-has-a-boundary treatment
+  `PillSelectorRow` already uses elsewhere in the app. Scoped to `grid` mode only; every other `<ModuleTabs>`
+  usage is unchanged.
+
+---
+
 ## [1.59.3] — 2026-10-04
 
 _Ingestion Template Pills Now a Uniform Single-Row Grid._

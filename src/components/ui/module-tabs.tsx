@@ -80,9 +80,15 @@ export function ModuleTabs({
    * every other cell in that single grid row grows to match, since they
    * share one grid row) rather than the row itself splitting into
    * multiple rows (`wrap`) or scrolling. Takes precedence over `wrap`
-   * when both are set. Built for IngestionTemplateHub's one-per-template
-   * pills: 7 labels of very different lengths that still read as one
-   * tidy row, not a ragged one. */
+   * when both are set. Also gives every pill its own visible border +
+   * background (inactive included, not just the active one) — the
+   * other layouts rely on gaps between naturally-sized pills to read as
+   * separate, which isn't enough once every cell is the same size and
+   * sits flush against its neighbors; PillSelectorRow's every-pill-has-
+   * a-boundary treatment is the same idea. Built for
+   * IngestionTemplateHub's one-per-template pills: 7 labels of very
+   * different lengths that still read as one tidy row, not a ragged
+   * one. */
   grid?: boolean;
   /** Every usage of this component today is one top-level `<ModuleTabs>`
    * per page, where `sticky top-[3.35rem]` correctly pins the pill row
@@ -148,10 +154,14 @@ export function ModuleTabs({
               onClick={() => go(t.key)}
               className={clsx(
                 'rounded-md px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
-                grid ? 'flex items-center justify-center text-center text-balance' : 'whitespace-nowrap',
-                t.key === active
-                  ? 'bg-surface-3 text-ink'
-                  : 'text-ink-muted hover:text-ink hover:bg-surface-2'
+                grid && 'flex items-center justify-center text-center text-balance border',
+                grid
+                  ? t.key === active
+                    ? 'border-border bg-surface-3 text-ink'
+                    : 'border-border-soft bg-surface-2 text-ink-muted hover:border-border hover:bg-surface-3 hover:text-ink'
+                  : t.key === active
+                    ? 'bg-surface-3 text-ink'
+                    : 'text-ink-muted hover:text-ink hover:bg-surface-2'
               )}
             >
               {t.label}
