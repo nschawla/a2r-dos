@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { requireOrgContext } from '@/lib/session';
 import { loadProjectPickerList } from '@/server/queries/pages/project-modules';
 import { getProjectHealth } from '@/server/queries/health';
+import { ProjectPickerSearch } from '@/components/dashboard/project-picker-search';
 
-const HEALTH_DOT: Record<string, string> = { G: 'bg-success', Y: 'bg-warning', R: 'bg-critical' };
 const HEALTH_RANK: Record<string, number> = { R: 0, Y: 1, G: 2 };
 
 /**
@@ -28,6 +28,13 @@ const HEALTH_RANK: Record<string, number> = { R: 0, Y: 1, G: 2 };
  * Portfolio table and sort to the top, so the ones needing attention are
  * the first thing the eye lands on, not something you discover five
  * clicks later.
+ *
+ * Type-to-filter pass (v1.51.0, docs/UI_DESIGN_SYSTEM.md §18): a plain
+ * scrollable list of every in-scope engagement stopped working once a
+ * tenant had 50–100+ active ones — this still does the data fetch,
+ * scoping, and health-sort here (server-side), but hands the result to
+ * `<ProjectPickerSearch>` (a small client component) to render as a
+ * type-to-filter combobox instead of a wall of rows.
  */
 export async function ProjectPicker({
   modulePath,
@@ -51,7 +58,6 @@ export async function ProjectPicker({
       <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
         <div>
           <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">{moduleLabel}</div>
-          <h2 className="text-[15.5px] font-bold mb-1">Select an engagement</h2>
           <p className="text-[12.5px] text-ink-muted">{moduleDesc}</p>
         </div>
         {attentionCount > 0 && (
@@ -69,24 +75,7 @@ export async function ProjectPicker({
           .
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {rows.map((p) => (
-            <li key={p.id}>
-              <Link
-                href={`${modulePath}/${p.id}`}
-                className={`flex items-center gap-3 rounded-2xl border-2 px-3.5 py-2.5 text-sm transition-all duration-150 ease-out ${
-                  p.health === 'R'
-                    ? 'border-critical/30 bg-critical-soft/40 hover:border-critical/60'
-                    : 'border-border-soft bg-surface-1 hover:border-border hover:bg-surface-2'
-                }`}
-              >
-                <span className={`flex-none status-dot ${HEALTH_DOT[p.health]}`} title={`Health: ${p.health}`} />
-                <span className="min-w-0 flex-1 font-semibold truncate">{p.name}</span>
-                <span className="flex-none text-ink-muted text-xs">{p.client || '—'}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <ProjectPickerSearch modulePath={modulePath} rows={rows} />
       )}
     </div>
   );

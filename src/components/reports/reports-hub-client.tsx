@@ -26,8 +26,7 @@ import {
 } from '@/server/actions/steerco';
 import type { HealthCode } from '@/lib/calculations/types';
 import { dueStatusFor, DUE_STATUS_LABEL, DUE_STATUS_BADGE_CLASS } from '@/lib/due-status';
-import { PillSelectorRow } from '@/components/ui/pill-selector';
-import { IconDot } from '@/components/ui/pill-icons';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 export interface ReportsProjectView {
   id: string;
@@ -105,23 +104,28 @@ export function ReportsHubClient({
   return (
     <div className="flex flex-col gap-5">
       <div className="card !p-4 flex flex-col gap-3">
-        <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">Engagement</div>
         {projects.length === 0 ? (
-          <p className="text-ink-muted text-sm">No engagements in your scope yet.</p>
+          <>
+            <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold">Select Engagement</div>
+            <p className="text-ink-muted text-sm">No engagements in your scope yet.</p>
+          </>
         ) : (
           <>
-            {/* Icon & Pill Selector Hub (docs/UI_DESIGN_SYSTEM.md §5) — each
-                pill's "icon" is the engagement's own live health dot, so the
-                selector doubles as an at-a-glance portfolio health strip. */}
-            <PillSelectorRow
-              aria-label="Choose an engagement"
+            {/* Type-to-filter combobox (docs/UI_DESIGN_SYSTEM.md §18) — a
+                wrapped pill row stopped scaling once a tenant has 50–100+
+                active engagements; this keeps the same health-dot-per-row
+                information, just reached by typing instead of scanning. */}
+            <SearchableSelect
+              label="Select Engagement"
+              placeholder="Search engagements…"
               pending={pending}
               options={projects.map((p) => ({
-                key: p.id,
-                label: p.client ? `${p.name} — ${p.client}` : p.name,
-                icon: <IconDot className={HEALTH_DOT[p.healthCode]} />,
+                id: p.id,
+                label: p.name,
+                sublabel: p.client,
+                dotClassName: HEALTH_DOT[p.healthCode],
               }))}
-              isActive={(k) => selectedProjectId === k}
+              selectedId={selectedProjectId}
               onSelect={handleSelect}
             />
             {selectedProject && (

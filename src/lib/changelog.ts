@@ -36,6 +36,15 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.52.0',
+    date: '2026-10-04',
+    headline: 'Type-to-Filter Engagement Picker',
+    changes: [
+      { type: 'improvement', text: 'Every "pick an engagement" control in the app — the Executive Hub\'s Engagement Reports tab and the five module landing pages (/financials, /schedule, /raid, /commercial-baseline, /audit) — rendered every in-scope engagement at once: a wrapped pill row or a plain scrollable list. Both degrade badly past 50-100+ active engagements. Replaced with a type-to-filter combobox (a small eyebrow label, a single pill-styled input, a scrollable filtered panel below it) that costs a few lines of vertical space regardless of how many engagements there are.' },
+      { type: 'fix', text: 'The combobox\'s displayed text used to be able to show the wrong (stale) selection, faded, for a moment after picking a new one — a render-timing bug where the closed-state display read the not-yet-updated selectedId prop. Fixed: the displayed text is its own optimistic state now, synced from the real selection only on an actual prop change.' },
+    ],
+  },
+  {
     version: '1.51.0',
     date: '2026-10-03',
     headline: 'SteerCo Briefing Merged into the Executive Hub',

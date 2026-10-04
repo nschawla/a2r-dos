@@ -122,10 +122,18 @@ test.describe('Suite K1 — Role-Based Scoped Filtering on Resource & Capacity',
 // ── K2 · project-picker scoping ──────────────────────────────────────
 
 test.describe('Suite K2 — Role-Based Scoped Filtering on the Financial Realization picker', () => {
+  // v1.51.0 — the picker is a type-to-filter combobox now (docs/UI_DESIGN_SYSTEM.md
+  // §18), not a static list: its <a href> option rows only exist in the
+  // DOM once it's open, same as any real combobox.
+  async function openPicker() {
+    await page.getByRole('combobox', { name: 'Select Engagement' }).click();
+  }
+
   test('an Admin can pick from every engagement', async () => {
     await signIn(page, 'admin@a2rventures-demo.test');
     await page.goto('/financials');
     await expectNoErrorOverlay(page);
+    await openPicker();
     const adminCount = await page.locator('a[href^="/financials/"]').count();
     expect(adminCount).toBeGreaterThan(0);
   });
@@ -133,11 +141,13 @@ test.describe('Suite K2 — Role-Based Scoped Filtering on the Financial Realiza
   test('a Practice Director sees strictly fewer engagements than the Admin did', async () => {
     await signIn(page, 'admin@a2rventures-demo.test');
     await page.goto('/financials');
+    await openPicker();
     const adminCount = await page.locator('a[href^="/financials/"]').count();
 
     await signIn(page, 'pd@a2rventures-demo.test');
     await page.goto('/financials');
     await expectNoErrorOverlay(page);
+    await openPicker();
     const pdCount = await page.locator('a[href^="/financials/"]').count();
 
     expect(pdCount).toBeGreaterThan(0);

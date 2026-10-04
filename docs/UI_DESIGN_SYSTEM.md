@@ -779,3 +779,63 @@ shown twice, differently.
   where it was (`src/server/queries/steerco-briefing.ts`), just re-consumed
   from `/reports`'s own server component instead of `/steerco`'s —
   `tests/steerco-briefing.test.ts`'s coverage of it needed no change.
+
+## 18. Type-to-filter engagement combobox (v1.51.0)
+
+Every "pick an engagement" picker in the app — the Executive Hub's
+Engagement Reports tab (`reports-hub-client.tsx`) and the five module
+landing pages (`/financials`, `/schedule`, `/raid`, `/commercial-baseline`,
+`/audit`, via the shared `ProjectPicker`) — rendered **every** in-scope
+engagement at once: a wrapped `<PillSelectorRow>` row on the first, a
+plain scrollable `<ul>` of `<Link>` rows on the other five. Both degrade
+badly once a tenant has 50–100+ active engagements — a wall of rows or
+pills the viewer has to hunt through, costing real estate regardless of
+whether anyone's actually scanning it.
+
+**`<SearchableSelect>`** (`src/components/ui/searchable-select.tsx`) is
+the replacement: a type-to-filter combobox that costs a few lines of
+vertical space no matter how large the option set is. A small eyebrow
+label ("Select Engagement") sits above it — deliberately a persistent
+label, not just a placeholder, since the control shows the *current
+selection's name* when idle and a placeholder alone would vanish the
+moment something's chosen. The control itself is styled as a single pill
+(`rounded-2xl`/`border-2`, the same treatment `<PillSelectorRow>` uses),
+not a generic rectangular form input — it's standing in for a whole row
+of those pills, so it keeps that visual language: brand-colored while
+idle (reads like one "active" pill showing the current choice), dropping
+to a neutral border while open/typing so it's visually clear you've moved
+from *viewing* a selection to *picking* a new one.
+
+**Two selection modes**, picked by whether the caller passes `getHref`:
+
+- **`onSelect` only** — the Executive Hub's picker, which updates state
+  on the *same* page (a `?project=` query param). Option rows render as
+  buttons, true `role="option"` / `aria-selected` listbox semantics,
+  since choosing one is genuinely "select a value," not a navigation.
+- **`getHref`** — the five module landing pickers, which always navigate
+  *away* to `/<module>/[id]`. Option rows render as real `<Link>`s
+  instead of buttons — not `role="option"` (an explicit role would
+  override the implicit, and here more honest, "link" role: choosing one
+  leaves the page entirely, which listbox semantics don't fit) — so
+  cmd/middle-click-to-open-in-a-new-tab keeps working and the result
+  stays an `<a href>` a test (or a screen reader) can find as a link.
+  `onSelect`, if also given, still fires alongside the navigation.
+
+**A real bug worth recording the fix for:** the input's displayed text
+must never be derived from the `selectedId` prop directly at render
+time. After choosing a *new* option, that prop is still the *old* value
+until the caller's own state or async navigation round-trip catches up
+— for the Executive Hub's same-pathname query-param nav specifically,
+that can take a couple of seconds (see `reports-hub-client.tsx`'s own
+"Verified-fallback navigation" comment on a confirmed platform-level
+quirk with that exact navigation shape). Reading `selectedId` directly
+in the closed-state display showed the *stale* choice, faded, until the
+round-trip landed — a visibly wrong "you picked the wrong thing" flash.
+The fix: the displayed text is its own state (`query`), set optimistically
+the instant a choice is made, and only ever resynced from the real
+selection on an actual `selectedId` prop change — never on open/close
+transitions. A second, related trap: calling `inputRef.current?.blur()`
+right after that optimistic `setQuery()` synchronously fires `onBlur`
+(which reverts the display to the real selection) *before* the prop
+catches up, silently undoing the fix. Selecting an option closes the
+panel via `setOpen(false)` alone; it doesn't need to blur the input too.

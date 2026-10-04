@@ -181,6 +181,10 @@ test.describe('Suite C — Engagement Governance Deep Dive', () => {
   test('C0 · open the engagement from the Commercial Baseline index and capture its id', async () => {
     await page.goto('/commercial-baseline');
     await expect(page.getByRole('heading', { name: 'Commercial Baseline', level: 1 })).toBeVisible();
+    // v1.51.0 — the picker is a type-to-filter combobox now
+    // (docs/UI_DESIGN_SYSTEM.md §18): its <a href> option rows only
+    // exist in the DOM once it's open.
+    await page.getByRole('combobox', { name: 'Select Engagement' }).click();
     await page.getByRole('link', { name: new RegExp(ENGAGEMENT) }).click();
     await page.waitForURL(/\/commercial-baseline\/[a-z0-9]+/i);
     const match = /\/commercial-baseline\/([a-z0-9]+)/i.exec(page.url());
@@ -560,6 +564,10 @@ test.describe('Suite G — Methodology Playbook', () => {
   test('G1 · a control guidance drawer opens from the audit checklist', async () => {
     await page.goto('/audit');
     await expect(page.getByRole('heading', { name: 'Controls Audit Intake', level: 1 })).toBeVisible();
+    // v1.51.0 — the picker is a type-to-filter combobox now
+    // (docs/UI_DESIGN_SYSTEM.md §18): its <a href> option rows only
+    // exist in the DOM once it's open.
+    await page.getByRole('combobox', { name: 'Select Engagement' }).click();
     await page.getByRole('link', { name: /Claims Automation Pilot/ }).click();
     await page.waitForURL(/\/audit\/[a-z0-9]+/i);
     await expect(page.getByRole('heading', { name: 'Audit Completion', level: 1 })).toBeVisible();
@@ -613,6 +621,10 @@ test.describe('Suite H — Role-Based Data Masking', () => {
     await expect(page.locator('.card', { hasText: 'Avg. Baseline Margin' })).not.toContainText('••••');
 
     await page.goto('/financials');
+    // v1.51.0 — the picker is a type-to-filter combobox now
+    // (docs/UI_DESIGN_SYSTEM.md §18): its <a href> option rows only
+    // exist in the DOM once it's open.
+    await page.getByRole('combobox', { name: 'Select Engagement' }).click();
     await page.getByRole('link', { name: /Customer Data Platform Rollout/ }).click();
     await page.waitForURL(/\/financials\/[a-z0-9]+/i);
     await expect(page.getByText('restricted to Partners', { exact: false })).toHaveCount(0);
@@ -629,6 +641,7 @@ test.describe('Suite H — Role-Based Data Masking', () => {
 
     // Financials page — restricted notice + masked EAC margin + masked cost column
     await page.goto('/financials');
+    await page.getByRole('combobox', { name: 'Select Engagement' }).click();
     await page.getByRole('link', { name: /Customer Data Platform Rollout/ }).click();
     await page.waitForURL(/\/financials\/[a-z0-9]+/i);
     await expect(page.getByText(/restricted to Partners/i).first()).toBeVisible();
