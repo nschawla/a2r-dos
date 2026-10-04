@@ -12,6 +12,7 @@ import { useState } from 'react';
 import clsx from 'clsx';
 import { useToast } from '@/components/ui/toast';
 import { captureException } from '@/lib/observability';
+import { ModuleTabs, type ModuleTab } from '@/components/ui/module-tabs';
 import type { IngestionTemplate } from '@/server/services/templates';
 
 const LOAD_ORDER = [
@@ -119,14 +120,27 @@ export function IngestionTemplateHub({
         </div>
       </section>
 
-      {templates.map((template) => (
-        <TemplateCard
-          key={template.id}
-          template={template}
-          busy={busyId === template.id}
-          onDownload={() => download(template)}
-        />
-      ))}
+      {/* v1.59.0 — was all 7 templates stacked full-length, one after
+          another (§1.6 of docs/UI_DESIGN_SYSTEM.md: several distinct,
+          substantial thematic blocks a viewer jumps between, not scrolls
+          past, is exactly the <ModuleTabs> case). One pill per template;
+          printAll so a printed/exported copy still carries every
+          template's guidelines + schema, not just whichever was on screen. */}
+      <ModuleTabs
+        tabs={templates.map((t): ModuleTab => ({ key: t.id, label: t.title }))}
+        panels={Object.fromEntries(
+          templates.map((template) => [
+            template.id,
+            <TemplateCard
+              key={template.id}
+              template={template}
+              busy={busyId === template.id}
+              onDownload={() => download(template)}
+            />,
+          ])
+        )}
+        printAll
+      />
     </div>
   );
 }

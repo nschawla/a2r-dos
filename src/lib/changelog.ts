@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.59.0',
+    date: '2026-10-04',
+    headline: 'Ingestion Template Hub Switched to Pills, Not a Scroll',
+    changes: [
+      { type: 'improvement', text: 'The Data Ingestion & Templates hub (/ops/ingestion, and the Templates tab under /admin/ingestion) stacked all 7 intake templates full-length, one after another — each with its own guidelines and full schema table, a long scroll to get from the first template to the last. Converted to the same <ModuleTabs> pill pattern already used on Executive Hub and the Capacity Cockpit (docs/UI_DESIGN_SYSTEM.md §1.6): one pill per template, one shown at a time. The "How ingestion works" guidance and "Download all" action stay above the pills as shared context. A printed/exported copy still carries every template, not just whichever pill was active on screen.' },
+    ],
+  },
+  {
     version: '1.58.0',
     date: '2026-10-04',
     headline: 'Sidebar Navigation No Longer Carries Over Scroll Position',
