@@ -38,7 +38,7 @@ export default async function DealProjectPage({ params }: { params: Promise<{ pr
           Engagement Governance · {project.name}
         </div>
         <h1 className="text-2xl font-display font-bold">Commercial Baseline</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           Contractual scope, baseline hours, sold margin, and agreed rate cards.
         </p>
       </div>

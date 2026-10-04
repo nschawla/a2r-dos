@@ -36,7 +36,7 @@ export default async function AdminOnboardingPage() {
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-2xl font-display font-bold">Onboarding Journey</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           A guided walkthrough for setting up a new PS-DOS workspace — provisioning, governance, base data,
           role mapping, and go-live, in one pipeline. Session-local: reloading this page starts a fresh run.
         </p>

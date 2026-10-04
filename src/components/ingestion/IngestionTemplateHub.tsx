@@ -74,7 +74,7 @@ export function IngestionTemplateHub({
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-2xl font-display font-bold">{heading}</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">{intro}</p>
+        <p className="text-ink-muted text-sm mt-1">{intro}</p>
       </div>
 
       <section className="card">

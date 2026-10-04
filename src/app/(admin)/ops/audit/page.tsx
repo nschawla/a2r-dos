@@ -23,7 +23,7 @@ export default async function OpsAuditPage() {
     <>
       <div>
         <h1 className="text-2xl font-display font-bold">Audit &amp; Compliance</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           The operator-side audit trail. Read-only. Per-tenant hash-chained ledgers are inside each client
           workspace (Admin → Audit Log).
         </p>

@@ -14,7 +14,7 @@ export default async function AdminKpisPage() {
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-2xl font-display font-bold">Custom KPIs</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           Define metric cards from your financials, schedule, RAID, and capacity data, and assign them to the
           personas who should see them on the Control Tower and the Executive Hub.
         </p>

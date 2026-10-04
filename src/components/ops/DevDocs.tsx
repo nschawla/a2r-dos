@@ -337,7 +337,7 @@ export function DevDocs({ build, releases }: { build: BuildInfo; releases: Relea
     <>
       <div>
         <h1 className="text-2xl font-display font-bold">Developer Documentation</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-3xl">
+        <p className="text-ink-muted text-sm mt-1">
           The in-app engineering reference for PS-DOS — build summary, architecture notes, and
           setup guidelines in one place. A2R staff only; no tenant can reach this page. It{' '}
           <span className="font-medium">consolidates</span> the repo docs listed at the bottom — it does not

@@ -23,7 +23,7 @@ export default async function OperatorSecurityPage() {
     <>
       <div>
         <h1 className="text-2xl font-display font-bold">Operator Security</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           Every privileged operation runs under a Just-In-Time elevation, and every elevation now requires a
           second factor: a 6-digit code from an authenticator app (Google Authenticator, 1Password, Authy, …)
           on top of your password. Set yours up here.

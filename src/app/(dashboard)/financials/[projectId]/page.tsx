@@ -74,7 +74,7 @@ export default async function FinancialsProjectPage({ params }: { params: Promis
           <ProvenanceStamp at={project.updatedAt} />
         </div>
         <h1 className="text-2xl font-display font-bold">Estimate at Completion (EAC)</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           True EAC Cost = Actual Cost to Date + (Assigned Forecast Hours × Cost Rate) + (Open Resource Request Hours ×
           Baseline Cost Rate). Edit any field below — the KPI cards recalculate as you type.
         </p>

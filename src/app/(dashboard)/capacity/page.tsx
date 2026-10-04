@@ -111,7 +111,12 @@ export default async function CapacityPage() {
     <>
       <div>
         <h1 className="text-2xl font-display font-bold">Resource &amp; Capacity Cockpit</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        {/* No max-w here, to match every other top-level sidebar landing
+            page's description (Executive Hub, Financials, Schedule, RAID,
+            Commercial Baseline, Audit, Portfolio) — this one alone had a
+            max-w-2xl constraint forcing an early wrap at roughly half the
+            page width instead of the full width the others use. */}
+        <p className="text-ink-muted text-sm mt-1">
           Blended billable utilisation, concurrency load, and a 52-week staffing forecast — measured against the
           corporate holiday calendar and each role&rsquo;s target-utilisation policy.
         </p>

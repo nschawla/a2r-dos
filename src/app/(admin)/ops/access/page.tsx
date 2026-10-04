@@ -20,7 +20,7 @@ export default async function OpsAccessPage() {
     <>
       <div>
         <h1 className="text-2xl font-display font-bold">Role &amp; Access</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           The A2R organizational roles and what each one may reach in this console. Granting or revoking
           operator access is on <span className="text-ink">Staff Access</span>; this page changes the role
           of an account that already holds it.

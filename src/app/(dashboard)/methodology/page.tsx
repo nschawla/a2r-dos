@@ -25,7 +25,7 @@ export default async function MethodologyReferencePage() {
       <div>
         <div className="text-[11px] uppercase tracking-wide text-ink-faint font-semibold mb-1">Methodology Playbook</div>
         <h1 className="text-2xl font-display font-bold">Methodology Reference</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           The full A2R delivery standard — every governance control, what it exists to achieve, the artifacts a reviewer
           expects, when in the lifecycle it&rsquo;s established, and the criteria it&rsquo;s verified against. The display
           labels below reflect {organizationName}&rsquo;s own overrides; the underlying standard is fixed.

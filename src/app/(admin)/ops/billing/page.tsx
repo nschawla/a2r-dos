@@ -34,7 +34,7 @@ export default async function OpsBillingPage() {
     <>
       <div>
         <h1 className="text-2xl font-display font-bold">Billing &amp; Finance</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           Subscription tier, lifecycle status, and seat count for every client organization. Invoicing
           records are not yet modelled — this is the read surface over contract state.
         </p>

@@ -10,6 +10,23 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.57.0] — 2026-10-04
+
+_Page-Header Descriptions Now Wrap Consistently App-Wide._
+
+### Fixed
+
+- The description line under a page's `<h1>` title was supposed to wrap at the full page width everywhere,
+  the way Executive Hub, Financials, Schedule, RAID, Commercial Baseline, Audit, and Portfolio all do — but 16
+  pages (Resource & Capacity Cockpit, every Ops Console page, the Admin sub-pages, and the three
+  project-detail headers) carried a leftover `max-w-2xl`/`max-w-3xl` constraint forcing an early, narrower
+  wrap instead, with no reason for the difference. Removed it everywhere it didn't belong, found by sweeping
+  every `<h1>` in the app, not just the two pages originally flagged. Left untouched: the `<h2>`-in-card tile
+  descriptions on /admin and /portfolio's nav cards, and the ingestion sub-section cards — a different,
+  intentionally-narrower category by design, not this bug.
+
+---
+
 ## [1.56.1] — 2026-10-04
 
 _Exported Executive Briefing PDFs Now Self-Identify the Tenant._

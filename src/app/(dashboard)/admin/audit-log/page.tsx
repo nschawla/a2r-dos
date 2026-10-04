@@ -20,7 +20,7 @@ export default async function ComplianceLedgerPage() {
           / Compliance
         </div>
         <h1 className="text-2xl font-display font-bold">SOC 2 Compliance Ledger</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           An append-only, hash-chained record of every high-consequence governance action in{' '}
           <span className="text-ink font-semibold">{organizationName}</span>. Each entry seals the one before it with a
           SHA-256 hash, so any edit, deletion, or reordering after the fact breaks the chain and is flagged below.

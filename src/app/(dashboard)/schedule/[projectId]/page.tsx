@@ -49,7 +49,7 @@ export default async function ScheduleProjectPage({ params }: { params: Promise<
           Milestone Governance · {project.name}
         </div>
         <h1 className="text-2xl font-display font-bold">Schedule &amp; Milestone Burndown</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           Slip is measured against this org&rsquo;s configured warning ({tolerances.warnDays}d) and critical (
           {tolerances.critDays}d) thresholds. Pace Risk is independent of slip — it flags a phase burning calendar
           time faster than logged work, before it actually finishes late.

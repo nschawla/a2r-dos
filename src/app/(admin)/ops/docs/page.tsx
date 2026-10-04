@@ -20,7 +20,7 @@ export default async function OpsDocsPage() {
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-display font-bold">Documentation Hub</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           The repo&rsquo;s own <code className="font-mono text-[12px] bg-surface-2 border border-border-soft rounded px-1 py-0.5">docs/</code>{' '}
           files, rendered here so executives and support staff can reference them without a checkout. This is a
           read-only mirror — the files in the repo are always the source of truth; a change here would be

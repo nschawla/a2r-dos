@@ -63,7 +63,7 @@ export default async function AdminIngestionPage() {
     <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-2xl font-display font-bold">Data Ingestion &amp; Templates</h1>
-        <p className="text-ink-muted text-sm mt-1 max-w-2xl">
+        <p className="text-ink-muted text-sm mt-1">
           Standardized intake templates, the self-service portal for weekly BAU batch uploads, and an
           AI parser that turns a pasted status report into reviewable batch rows.
         </p>
