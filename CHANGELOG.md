@@ -10,6 +10,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.59.3] — 2026-10-04
+
+_Ingestion Template Pills Now a Uniform Single-Row Grid._
+
+### Improved
+
+- v1.59.2's fix for the 7-pill row flowed onto a second line — an improvement over the earlier horizontal
+  scroll, but the user wanted the opposite: one single row, every pill the same size. `<ModuleTabs>` gained a
+  `grid` layout mode (one row, every pill the same width and the same height via CSS Grid, a long title
+  wrapping onto its own pill's second line instead of splitting the row or growing it wider than its
+  neighbors). `IngestionTemplateHub` now uses `grid` instead of `wrap`.
+
+---
+
 ## [1.59.2] — 2026-10-04
 
 _Ingestion Template Pills Wrap Instead of Scrolling._

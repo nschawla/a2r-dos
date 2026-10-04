@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.59.3',
+    date: '2026-10-04',
+    headline: 'Ingestion Template Pills Now a Uniform Single-Row Grid',
+    changes: [
+      { type: 'improvement', text: 'v1.59.2\'s fix for the 7-pill row flowed onto a second line — an improvement over the earlier horizontal scroll, but the user wanted the opposite: one single row, every pill the same size. <ModuleTabs> gained a `grid` layout mode (one row, every pill the same width and the same height via CSS Grid, a long title wrapping onto its own pill\'s second line instead of splitting the row or growing it wider than its neighbors). IngestionTemplateHub now uses `grid` instead of `wrap`.' },
+    ],
+  },
+  {
     version: '1.59.2',
     date: '2026-10-04',
     headline: 'Ingestion Template Pills Wrap Instead of Scrolling',

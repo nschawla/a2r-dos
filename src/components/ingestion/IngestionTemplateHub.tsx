@@ -133,9 +133,11 @@ export function IngestionTemplateHub({
           past, is exactly the <ModuleTabs> case). One pill per template;
           printAll so a printed/exported copy still carries every
           template's guidelines + schema, not just whichever was on screen.
-          v1.59.2 — 7 pills didn't fit one row at normal widths, forcing a
-          left-right scroll to find the rest; `wrap` lets the row flow onto
-          a second line instead. */}
+          v1.59.2 tried `wrap` (7 pills didn't fit one row at normal
+          widths; wrap let the row flow onto a second line) — superseded
+          here by `grid`: one single row, all 7 pills the same width and
+          the same height, a long title wrapping onto its own pill's
+          second line instead of splitting the row. */}
       <ModuleTabs
         tabs={templates.map((t): ModuleTab => ({ key: t.id, label: t.title }))}
         panels={Object.fromEntries(
@@ -151,7 +153,7 @@ export function IngestionTemplateHub({
         )}
         printAll
         sticky={!nested}
-        wrap
+        grid
       />
     </div>
   );

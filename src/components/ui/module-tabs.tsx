@@ -45,6 +45,7 @@ export function ModuleTabs({
   actions,
   sticky = true,
   wrap = false,
+  grid = false,
 }: {
   tabs: ModuleTab[];
   panels: Record<string, ReactNode>;
@@ -73,6 +74,16 @@ export function ModuleTabs({
    * enough tabs (e.g. IngestionTemplateHub's one-per-template pills) that
    * horizontal scrolling would otherwise hide pills off-screen. */
   wrap?: boolean;
+  /** One row, every pill the same width AND the same height — a uniform
+   * grid instead of each pill sized to its own label. A label too long
+   * for its cell wraps onto a second line (the cell grows taller, and
+   * every other cell in that single grid row grows to match, since they
+   * share one grid row) rather than the row itself splitting into
+   * multiple rows (`wrap`) or scrolling. Takes precedence over `wrap`
+   * when both are set. Built for IngestionTemplateHub's one-per-template
+   * pills: 7 labels of very different lengths that still read as one
+   * tidy row, not a ragged one. */
+  grid?: boolean;
   /** Every usage of this component today is one top-level `<ModuleTabs>`
    * per page, where `sticky top-[3.35rem]` correctly pins the pill row
    * just below the global header. Set `false` for a `<ModuleTabs>` nested
@@ -124,8 +135,9 @@ export function ModuleTabs({
           aria-label="Module views"
           className={clsx(
             'max-w-full gap-1 rounded-lg border border-border bg-surface-1 p-1',
-            wrap ? 'flex flex-wrap' : 'inline-flex overflow-x-auto'
+            grid ? 'grid w-full' : wrap ? 'flex flex-wrap' : 'inline-flex overflow-x-auto'
           )}
+          style={grid ? { gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` } : undefined}
         >
           {tabs.map((t) => (
             <button
@@ -135,7 +147,8 @@ export function ModuleTabs({
               aria-selected={t.key === active}
               onClick={() => go(t.key)}
               className={clsx(
-                'rounded-md px-3.5 py-1.5 text-[13px] font-semibold whitespace-nowrap transition-colors',
+                'rounded-md px-3.5 py-1.5 text-[13px] font-semibold transition-colors',
+                grid ? 'flex items-center justify-center text-center text-balance' : 'whitespace-nowrap',
                 t.key === active
                   ? 'bg-surface-3 text-ink'
                   : 'text-ink-muted hover:text-ink hover:bg-surface-2'
