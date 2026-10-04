@@ -56,8 +56,11 @@ test.describe('Suite M — site routing model', () => {
     await page.waitForURL((u) => !/\/login|\/launch/.test(u.pathname), { timeout: 30_000 });
 
     await page.goto('/');
+    // 'command' and 'steerco' both permanently redirect elsewhere now
+    // (v1.29.0, v1.51.0) — Playwright follows redirects, so neither can
+    // ever actually be the settled URL; dropped from this allow-list.
     await expect(page).toHaveURL(
-      /\/(portfolio|steerco|capacity|financials|command|reports)/,
+      /\/(portfolio|capacity|financials|reports)/,
       { timeout: 15_000 },
     );
     await expect(page.getByText('Coming soon · Early access')).toHaveCount(0);

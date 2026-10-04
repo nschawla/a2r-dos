@@ -6,7 +6,7 @@
  * Creates read-only observer accounts (roster: scripts/lib/family-guests.ts) as `MembershipRole.VIEWER` members
  * of a demo organization (default: `a2r-ventures-demo`), with
  * `deliveryRole = VIEWER` — the strict read-only tenant tier added in
- * v1.16.0 (portfolio + SteerCo view, zero edit, financials scrubbed).
+ * v1.16.0 (portfolio + Executive Hub view, zero edit, financials scrubbed).
  *
  * Idempotent: re-running upserts the users + memberships and re-hashes the
  * shared password. Direct DB; a production run needs --yes-prod / a typed
@@ -79,7 +79,7 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n${GUESTS.length} guest viewer accounts ready. Shared password: ${SHARED_PASSWORD}`);
-  console.log(`They land in "${org.name}" read-only (control tower · SteerCo · reports; no edit, financials scrubbed).`);
+  console.log(`They land in "${org.name}" read-only (control tower · reports; no edit, financials scrubbed).`);
 }
 
 main()

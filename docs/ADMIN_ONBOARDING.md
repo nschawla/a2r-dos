@@ -47,9 +47,11 @@ admin you own the first; A2R operates the second.
 | Row-level scope | Which projects / resources a person can even see | Automatic: global for `ADMIN` / `VP_EXECUTIVE` / `VIEWER`; practice- or assignment-scoped otherwise |
 
 **The `VIEWER` tier (v1.16.0)** is strict read-only: whole-org read of the
-portfolio and the SteerCo board, **zero** edit authority anywhere, and
-every financial figure scrubbed (cost rates, margins, variance). Use it for
-clients, guests, and stakeholders who should observe but never touch.
+portfolio and the Executive Hub (the board-ready briefing — was a separate
+"SteerCo board" page pre-v1.51.0; see `docs/UI_DESIGN_SYSTEM.md` §17),
+**zero** edit authority anywhere, and every financial figure scrubbed (cost
+rates, margins, variance). Use it for clients, guests, and stakeholders who
+should observe but never touch.
 
 ### Operator axis — A2R's control plane
 

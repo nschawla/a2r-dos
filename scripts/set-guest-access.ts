@@ -150,7 +150,7 @@ async function main(): Promise<void> {
   } else {
     console.log('Restoring the family guest accounts to the strict read-only launch posture:');
     await demoteViewer();
-    console.log('\nDone. Back to VIEWER: portfolio + SteerCo view only, no edit, financials scrubbed, no operator access.');
+    console.log('\nDone. Back to VIEWER: portfolio + Executive Hub view only, no edit, financials scrubbed, no operator access.');
   }
 }
 

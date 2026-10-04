@@ -171,21 +171,32 @@ npm run build          # production build (what Vercel runs)
     `/ops/integrations`'s database tables existed on staging only. Added a
     proper error boundary, fixed the crash, then — at your request —
     applied that migration to production for real; verified live.
-  - **v1.46.0** — a full documentation-hub catch-up. Every doc under
-    `docs/` had drifted out of date (some by 16+ releases); two had gone
-    past "stale" into **actively wrong** on real facts (a revoked operator
-    grant still listed as active, a stale persona-count). All corrected
-    against live-verified state. If you're reading a `docs/*.md` file and
-    something looks off, it's worth double-checking against this
-    session's own verification rather than assuming it's current — the
-    same drift can always start accumulating again.
-- **Current git state:** `main` is ahead of `origin/main` (v1.46.0's
-  documentation catch-up + v1.47.0, this very update) — waiting on your
-  go-ahead to push, per the standing convention that nothing reaches
-  `main` without an explicit "push to main" each time. Check
-  `git status -sb` for the live answer; this line itself will drift the
-  moment the next commit lands — treat it as a hint, not a source of
-  truth.
+  - **v1.46.0–v1.50.0** — a full, four-pass documentation-hub catch-up.
+    Every doc under `docs/` had drifted out of date (some by 16+
+    releases); several had gone past "stale" into **actively wrong** on
+    real facts (a revoked operator grant still listed as active, a stale
+    persona-count, a shipped demo-script caption asserting something
+    false since v1.45.0, an infra doc missing 3 of 12 real rate-limit
+    rules). All corrected against live-verified state — code `grep`,
+    production queries, or direct `curl`, never assumption. If you're
+    reading a `docs/*.md` file and something looks off, it's worth
+    double-checking against this session's own verification rather than
+    assuming it's current — the same drift can always start accumulating
+    again.
+  - **v1.51.0** — merged the standalone **SteerCo Briefing** (`/steerco`)
+    into the **Executive Hub** (`/reports`): real, substantial content
+    overlap (Margin Health ≈ Financial Realization; Watchlist ≈ Critical
+    Risk Register), and both were always reading the same underlying
+    data. `/steerco` now permanently redirects to `/reports`, which
+    gained a Pulse vitals strip and a new "Activity" tab (SteerCo's two
+    genuinely unique pieces). The Workspace Lens switcher's separate
+    Executive/Finance lenses collapsed into one, gated on the union of
+    the two old permission checks so nobody lost reach. Full write-up:
+    `docs/UI_DESIGN_SYSTEM.md` §17.
+- **Current git state:** `main` and `origin/main` are in sync as of
+  v1.51.0 (pushed). Check `git status -sb` for the live answer — this
+  line itself will drift the moment the next commit lands; treat it as a
+  hint, not a source of truth.
 
 ## Where to look for more
 
@@ -200,6 +211,7 @@ npm run build          # production build (what Vercel runs)
 | The dual-tile Executive Triage pattern (RAID/Financials/Schedule/Capacity/Commercial) | `docs/EXECUTIVE_TRIAGE_STANDARD.md` (overview) → each module's own `docs/*_TRIAGE.md` for detail |
 | The PS Control Tower's Bento Grid / Decisions tab layout | `docs/UI_DESIGN_SYSTEM.md` §8 |
 | The flattened sidebar / Command Center retirement / 4-Tier RBAC | `docs/UI_DESIGN_SYSTEM.md` §9, `docs/ROLE_ACCESS_MATRIX.md` §2.3 |
+| The SteerCo Briefing / Executive Hub merge (v1.51.0) | `docs/UI_DESIGN_SYSTEM.md` §17 |
 | Running a client demo (manual click-through, or hands-free) | `docs/DEMO_WALKTHROUGH.md`, `docs/AUTO_DEMO_SCRIPT.md` |
 | Security posture / compliance | `docs/SECURITY.md` |
 | Deploying / Vercel environment variables | `docs/VERCEL_DEPLOYMENT.md` |
