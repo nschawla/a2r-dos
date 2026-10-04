@@ -44,6 +44,7 @@ export function ModuleTabs({
   printAll,
   actions,
   sticky = true,
+  wrap = false,
 }: {
   tabs: ModuleTab[];
   panels: Record<string, ReactNode>;
@@ -65,6 +66,13 @@ export function ModuleTabs({
    * only way the caller can target one. Hidden on print along with the
    * pills themselves (the whole row is `print:hidden`). */
   actions?: ReactNode | Partial<Record<string, ReactNode>>;
+  /** Wrap the pill row onto additional lines instead of horizontally
+   * scrolling once it runs out of width. Off by default — most call sites
+   * have few enough tabs to fit one row, and a single-row scroll reads
+   * better there than a wrap that rarely triggers. Turn on for a row with
+   * enough tabs (e.g. IngestionTemplateHub's one-per-template pills) that
+   * horizontal scrolling would otherwise hide pills off-screen. */
+  wrap?: boolean;
   /** Every usage of this component today is one top-level `<ModuleTabs>`
    * per page, where `sticky top-[3.35rem]` correctly pins the pill row
    * just below the global header. Set `false` for a `<ModuleTabs>` nested
@@ -114,7 +122,10 @@ export function ModuleTabs({
         <div
           role="tablist"
           aria-label="Module views"
-          className="inline-flex max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-surface-1 p-1"
+          className={clsx(
+            'max-w-full gap-1 rounded-lg border border-border bg-surface-1 p-1',
+            wrap ? 'flex flex-wrap' : 'inline-flex overflow-x-auto'
+          )}
         >
           {tabs.map((t) => (
             <button

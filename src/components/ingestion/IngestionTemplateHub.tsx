@@ -132,7 +132,10 @@ export function IngestionTemplateHub({
           substantial thematic blocks a viewer jumps between, not scrolls
           past, is exactly the <ModuleTabs> case). One pill per template;
           printAll so a printed/exported copy still carries every
-          template's guidelines + schema, not just whichever was on screen. */}
+          template's guidelines + schema, not just whichever was on screen.
+          v1.59.2 — 7 pills didn't fit one row at normal widths, forcing a
+          left-right scroll to find the rest; `wrap` lets the row flow onto
+          a second line instead. */}
       <ModuleTabs
         tabs={templates.map((t): ModuleTab => ({ key: t.id, label: t.title }))}
         panels={Object.fromEntries(
@@ -148,6 +151,7 @@ export function IngestionTemplateHub({
         )}
         printAll
         sticky={!nested}
+        wrap
       />
     </div>
   );

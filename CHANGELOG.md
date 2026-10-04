@@ -10,6 +10,20 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.59.2] — 2026-10-04
+
+_Ingestion Template Pills Wrap Instead of Scrolling._
+
+### Fixed
+
+- The per-template pill row added in v1.59.0 has 7 pills, which didn't fit one row at normal widths — the
+  row scrolled horizontally instead, hiding the later templates off-screen. `<ModuleTabs>` gained a `wrap`
+  prop (off by default, so every other call site keeps its single-row scroll behavior) that lets the pill
+  row flow onto a second line instead; `IngestionTemplateHub` now opts in, so all 7 templates are visible
+  without scrolling the pill bar.
+
+---
+
 ## [1.59.1] — 2026-10-04
 
 _Fixed a Sticky-Pill Collision on /admin/ingestion._
