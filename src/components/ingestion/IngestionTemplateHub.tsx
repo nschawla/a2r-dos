@@ -25,10 +25,17 @@ export function IngestionTemplateHub({
   templates,
   heading = 'Data Ingestion & Templates',
   intro = 'Standardized intake templates and the rules for handing structured data to PS-DOS.',
+  nested = false,
 }: {
   templates: IngestionTemplate[];
   heading?: string;
   intro?: string;
+  /** True when this hub is rendered inside another page's own `<ModuleTabs>`
+   * panel (/admin/ingestion's "Templates" tab) rather than as a whole
+   * page on its own (/ops/ingestion). Disables the inner per-template
+   * pill row's sticky positioning — two sticky rows at the same offset
+   * would otherwise fight for the same on-screen position once scrolled. */
+  nested?: boolean;
 }) {
   const { toast } = useToast();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -140,6 +147,7 @@ export function IngestionTemplateHub({
           ])
         )}
         printAll
+        sticky={!nested}
       />
     </div>
   );

@@ -43,6 +43,7 @@ export function ModuleTabs({
   printKey,
   printAll,
   actions,
+  sticky = true,
 }: {
   tabs: ModuleTab[];
   panels: Record<string, ReactNode>;
@@ -64,6 +65,16 @@ export function ModuleTabs({
    * only way the caller can target one. Hidden on print along with the
    * pills themselves (the whole row is `print:hidden`). */
   actions?: ReactNode | Partial<Record<string, ReactNode>>;
+  /** Every usage of this component today is one top-level `<ModuleTabs>`
+   * per page, where `sticky top-[3.35rem]` correctly pins the pill row
+   * just below the global header. Set `false` for a `<ModuleTabs>` nested
+   * inside another one's panel (e.g. IngestionTemplateHub's per-template
+   * pills inside /admin/ingestion's own Templates tab) — two sticky rows
+   * at the same offset fight for the same on-screen position once both
+   * are scrolled into their stuck state. The nested pill row still works
+   * perfectly well unstuck; it just scrolls with its panel like ordinary
+   * content instead of pinning. */
+  sticky?: boolean;
 }) {
   const first = tabs[0]?.key ?? '';
   const [active, setActive] = useState(first);
@@ -95,7 +106,8 @@ export function ModuleTabs({
     <>
       <div
         className={clsx(
-          'sticky top-[3.35rem] z-30 -mx-2 px-2 py-2 bg-bg/85 backdrop-blur-sm print:hidden flex items-center justify-between gap-3 flex-wrap',
+          sticky && 'sticky top-[3.35rem] z-30 bg-bg/85 backdrop-blur-sm',
+          '-mx-2 px-2 py-2 print:hidden flex items-center justify-between gap-3 flex-wrap',
           className
         )}
       >

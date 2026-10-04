@@ -10,6 +10,23 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.59.1] — 2026-10-04
+
+_Fixed a Sticky-Pill Collision on /admin/ingestion._
+
+### Fixed
+
+- v1.59.0's per-template pills (`<ModuleTabs>`, nested inside `IngestionTemplateHub`) sit inside
+  `/admin/ingestion`'s own outer Templates/Batch Import/AI Parser pills — also a `<ModuleTabs>`. Both pill
+  rows used the same sticky `top-[3.35rem]` offset, which would have fought for the same on-screen position
+  once scrolled (never actually shipped visibly broken — caught before anyone saw it, by re-reading the
+  nesting rather than assuming a working component composes safely with itself). `<ModuleTabs>` gained a
+  `sticky` prop (default `true`, unchanged everywhere else); the nested per-template pill row now renders
+  non-sticky, scrolling normally with its panel instead of competing with the outer tab bar. `/ops/ingestion`
+  (not nested) is unaffected.
+
+---
+
 ## [1.59.0] — 2026-10-04
 
 _Ingestion Template Hub Switched to Pills, Not a Scroll._

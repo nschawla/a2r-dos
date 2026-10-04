@@ -36,6 +36,7 @@ export default async function AdminIngestionPage() {
         templates={INGESTION_TEMPLATES}
         heading="Intake Templates"
         intro="Fill a template, then use the Import CSV action in the matching module (or ask your A2R contact to set up an automated feed). Every import is previewed before it commits."
+        nested
       />
     ),
   };

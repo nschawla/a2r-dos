@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.59.1',
+    date: '2026-10-04',
+    headline: 'Fixed a Sticky-Pill Collision on /admin/ingestion',
+    changes: [
+      { type: 'fix', text: 'v1.59.0\'s per-template pills (<ModuleTabs>, nested inside IngestionTemplateHub) sit inside /admin/ingestion\'s own outer Templates/Batch Import/AI Parser pills — also a <ModuleTabs>. Both pill rows used the same sticky top-[3.35rem] offset, which would have fought for the same on-screen position once scrolled (never actually shipped visibly broken — caught before anyone saw it, by re-reading the nesting rather than assuming a working component composes safely with itself). <ModuleTabs> gained a `sticky` prop (default true, unchanged everywhere else); the nested per-template pill row now renders non-sticky, scrolling normally with its panel instead of competing with the outer tab bar. /ops/ingestion (not nested) is unaffected.' },
+    ],
+  },
+  {
     version: '1.59.0',
     date: '2026-10-04',
     headline: 'Ingestion Template Hub Switched to Pills, Not a Scroll',
