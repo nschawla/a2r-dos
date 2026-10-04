@@ -1,13 +1,12 @@
 # PS-DOS™ — User Manual & Operator's Guide
 
-_Applies to v1.47.0 · Last updated 2026-09-30_
+_Applies to v1.53.0 · Last updated 2026-10-04_
 
 PS-DOS is a Delivery Operating System for professional-services
 organizations. This guide covers day-to-day use of the workspace: the
-sidebar workflow, the PS Control Tower (including its pinned Command Bar),
-the universal command palette, the executive briefing, the enterprise
-governance and identity-federation settings in Admin & Org Setup, and —
-for A2R staff — the operator console.
+sidebar workflow, the PS Control Tower, the universal command palette,
+the executive briefing, the enterprise governance and identity-federation
+settings in Admin & Org Setup, and — for A2R staff — the operator console.
 
 If you are setting up a new organization, see
 [`ADMIN_ONBOARDING.md`](./ADMIN_ONBOARDING.md) first. For the security and
@@ -66,7 +65,7 @@ to follow an engagement from sale to close. Work top-to-bottom.
 
 | Item | Use it to… |
 | --- | --- |
-| **PS Control Tower** (`/portfolio`) | Your landing page. Every engagement in your scope — contract value, health, open RAID, one-click into each module — plus the Impact-Aware Decision Cards, the pinned Command Bar, and the live activity feed. See §3. It's where every role lands, and `/` (the public site) forwards you here once you're signed in. |
+| **PS Control Tower** (`/portfolio`) | Your landing page. Every engagement in your scope — contract value, health, open RAID, one-click into each module — plus the Impact-Aware Decision Cards and the live activity feed. See §3. It's where every role lands, and `/` (the public site) forwards you here once you're signed in. |
 | **Commercial Baseline** (`/commercial-baseline`) | Contractual scope, baseline hours, sold margin, and the agreed rate card. Lock the baseline to freeze it as the plan of record. |
 | **Financial Realization** (`/financials`) | Actual cost and forecast against the baseline: EAC, margin drift, contractor exposure, the burn curve. |
 | **Schedule & Milestones** (`/schedule`) | Phases, milestone dates, and pace-risk against the planned window. |
@@ -82,9 +81,10 @@ into any of these in bulk with the module's **Import CSV** action — see
 — it's contextual to Controls Audit, and reachable via ⌘K.)
 
 > **Retired:** the standalone Command Center (`/command`) page is gone —
-> the route now redirects to the PS Control Tower, which is where its two
-> live capabilities (the Command Bar and the Decision Cards feed) live
-> now. See §3.
+> the route now redirects to the PS Control Tower, which is where its
+> live Decision Cards feed lives now. See §3. (Its other capability, the
+> Command Bar, briefly lived on the Control Tower too before being
+> removed outright — see the note below §3's heading.)
 
 ### Setup (bottom of the sidebar)
 
@@ -101,20 +101,14 @@ Your single starting point (v1.29.0 — the previously-standalone Command
 Center merged in here; `/command` now redirects). A Bento Grid layout, no
 long vertical scroll, four tabs:
 
-### Command Bar — pinned above the tabs
-
-Visible no matter which tab is active. Type where you want to go or what
-you want to do; the top suggestion runs on **Enter**.
-
-- **A destination** — `raid`, `capacity`, `financials`, or a verb form like
-  `go to control tower`.
-- **A module for an engagement** — `financials for Contoso`,
-  `audit on Northwind` → opens that module for the matched engagement.
-- **An engagement by name** — start typing and pick it from the list.
-- **An action** — `search` (opens the ⌘K palette), `sign out`.
-
-Keys: **↑ / ↓** move the selection, **Enter** runs it, **Esc** clears the
-box then closes suggestions.
+> **A Command Bar lived pinned above these tabs through v1.52.0** — a
+> free-form "type where you want to go" input. It's removed as of
+> v1.53.0: it was plain keyword/regex/fuzzy matching, not AI despite the
+> natural-language framing, and strictly redundant with the header's own
+> **Search… ⌘K** box (§4) a few pixels above it on this exact page, which
+> already opens the global ⌘K palette — a superset of what the bar could
+> do (it adds people and open-risk search on top of the same navigation
+> matching). Use ⌘K, or click the header search box, instead.
 
 > **Signing out.** The user menu (top-right) has two options: **Sign out**
 > ends the session on this device only, and **Sign out of all sessions**
@@ -202,8 +196,8 @@ The palette searches, in one list:
 Keys: **↑ / ↓** move, **Enter** runs the selected row, **Esc** clears then
 closes. The selected destination is pre-loaded, so navigation is instant.
 
-The header's **Search projects, people, RAID…** box and the Command Bar's
-`search` action both open this same palette.
+The header's **Search projects, people, RAID…** box opens this same
+palette — the one place in the app this lives now.
 
 ---
 
@@ -527,7 +521,7 @@ next visit.
 | Keys | Action |
 | --- | --- |
 | **⌘K** / **Ctrl+K** | Open (or close) the universal command palette — anywhere. |
-| **↑ / ↓** | Move the selection in the palette or the Command Bar. |
+| **↑ / ↓** | Move the selection in the palette. |
 | **Enter** | Run the selected command. |
 | **Esc** | Clear the input, then close the palette / dismiss a drawer. |
 

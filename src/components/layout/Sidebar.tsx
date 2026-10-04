@@ -44,10 +44,12 @@ interface NavItem {
  * `REPORTING`) — the per-item `colorGroup` icon tint still carries which
  * of the three functional zones each item belongs to, just without a
  * wrapper label. Command Center is retired as a standalone nav item — its
- * two live capabilities (Impact-Aware Decision Cards, the Command Bar)
- * now live on the Control Tower itself (docs/UI_DESIGN_SYSTEM.md §8); the
- * route still resolves (redirects to /portfolio) for anyone with an old
- * bookmark.
+ * one surviving live capability, the Impact-Aware Decision Cards feed,
+ * now lives on the Control Tower itself (docs/UI_DESIGN_SYSTEM.md §8);
+ * the route still resolves (redirects to /portfolio) for anyone with an
+ * old bookmark. (Its other capability, the Command Bar, briefly lived on
+ * the Control Tower too before being removed outright in v1.53.0 as
+ * redundant with the header's own search — docs/UI_DESIGN_SYSTEM.md §19.)
  */
 const NAV_ITEMS: NavItem[] = [
   {

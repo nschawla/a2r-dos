@@ -1,14 +1,21 @@
 /**
- * Command Bar — natural-language → intent resolution.
+ * The keyword/regex/fuzzy-match command resolver behind the global ⌘K
+ * palette (`buildCommandKItems`, `command-k-results.ts`).
  *
  * Pure and testable. `resolveCommand(raw, ctx)` returns ranked suggestions;
- * the CommandBar component renders them and executes the chosen one
- * (navigate / open search / sign out).
+ * the caller renders them and executes the chosen one (navigate / open
+ * search / sign out).
+ *
+ * Previously also rendered inline by a dedicated Control Tower "Command
+ * Bar" component — removed in v1.53.0 as redundant with ⌘K, which already
+ * wraps this same resolver and adds people/risk search on top. This file
+ * is unaffected: ⌘K is still this resolver's one real consumer, nothing
+ * here changed.
  *
  * It understands three shapes:
  *   • a bare destination        "raid", "capacity", "go to financials"
  *   • an action                 "search", "sign out", "ops console"
- *   • a module + engagement     "financials for Acme", "audit on Contoso"
+ *   • a module + engagement     "financials for Acme", "audit on Northwind"
  * plus a fuzzy match on engagement names for anything left over.
  */
 import { fuzzyFilter } from '@/lib/fuzzy-match';

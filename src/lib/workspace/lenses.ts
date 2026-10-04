@@ -61,15 +61,15 @@ export const LENSES: Record<WorkspaceLens, LensDef> = {
     label: 'Operations',
     short: 'Operations',
     // Was '/command' (the standalone Command Center) before its v1.29.0
-    // retirement — its live-vitals/command-bar/activity-stream content
-    // now lives on the Control Tower itself. Lands on its Decisions tab
-    // specifically (?v=decisions, matching ModuleTabs' URL convention),
-    // both because that's the closest match to this lens's own "live
-    // vitals, decisions, activity" framing and to keep every lens's
-    // landing route distinct from the Delivery lens, which already lands
-    // on plain /portfolio (enforced by tests/workspace-lens.test.ts).
+    // retirement — its live-vitals/activity-stream content now lives on
+    // the Control Tower itself. Lands on its Decisions tab specifically
+    // (?v=decisions, matching ModuleTabs' URL convention), both because
+    // that's the closest match to this lens's own "live vitals,
+    // decisions, activity" framing and to keep every lens's landing
+    // route distinct from the Delivery lens, which already lands on
+    // plain /portfolio (enforced by tests/workspace-lens.test.ts).
     landing: '/portfolio?v=decisions',
-    blurb: 'The Decision Cards feed, the command bar, and live activity',
+    blurb: 'The Decision Cards feed and live activity',
   },
 };
 

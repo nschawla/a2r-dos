@@ -36,6 +36,14 @@ export const CHANGE_TYPE_META: Record<
 
 export const CHANGELOG: ReleaseNote[] = [
   {
+    version: '1.53.0',
+    date: '2026-10-04',
+    headline: 'Command Bar Removed — Redundant with ⌘K',
+    changes: [
+      { type: 'improvement', text: 'Removed the dedicated Command Bar pinned above the PS Control Tower\'s tabs. It was never AI despite its "natural-language" framing — a plain keyword/regex/fuzzy-match resolver (resolveCommand) — and it was strictly redundant with the header\'s own "Search… ⌘K" box a few pixels above it on the same page, which opens the global ⌘K palette: a superset of the Command Bar\'s own suggestions (⌘K calls the same resolveCommand and adds people and open-risk search on top). Full real estate recovered on the Control Tower; ⌘K itself is unchanged and does everything the bar did, plus more.' },
+    ],
+  },
+  {
     version: '1.52.0',
     date: '2026-10-04',
     headline: 'Type-to-Filter Engagement Picker',

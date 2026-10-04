@@ -21,7 +21,6 @@ import { KpiWidgetRow } from '@/components/kpi/KpiWidgetCard';
 import { DecisionCenter, DecisionCenterSummary } from '@/components/portfolio/DecisionCenter';
 import { ProjectsExplorer, type ProjectExplorerRow } from '@/components/portfolio/ProjectsExplorer';
 import { TrackedProjectLink } from '@/components/portfolio/TrackedProjectLink';
-import { CommandBar } from '@/components/command-center/CommandBar';
 import { d, money, sumMoney } from '@/lib/calculations/money';
 import { CreateProjectForm } from './create-project-form';
 
@@ -58,7 +57,6 @@ const loadDecisionCenterData = cache(
 export default async function HomePage() {
   const context = await requireOrgContext();
   const { organizationId, deliveryRole, governance } = context;
-  const isStaff = context.session.user.isA2rStaff === true;
 
   // WP4: the project list, stat cards, and program rollups are now the
   // scoped portfolio — a PROJECT_MANAGER sees only their own projects, a
@@ -449,12 +447,6 @@ export default async function HomePage() {
             : `Scoped to your ${DELIVERY_ROLE_LABEL[deliveryRole]} portfolio — ${projects.length} engagement${projects.length === 1 ? '' : 's'}.`}
         </p>
       </div>
-
-      {/* The universal Command Bar (Command Center Merge) — pinned above the
-          tabs so it stays reachable regardless of which one is active,
-          mirroring its original bottom-pinned positioning on the now-retired
-          /command page. */}
-      <CommandBar projects={projects.map((p) => ({ id: p.id, name: p.name }))} isStaff={isStaff} />
 
       <ModuleTabs
         tabs={[

@@ -10,6 +10,21 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.53.0] — 2026-10-04
+
+_Command Bar Removed — Redundant with ⌘K._
+
+### Improved
+
+- Removed the dedicated Command Bar pinned above the PS Control Tower's tabs. It was never AI despite its
+  "natural-language" framing — a plain keyword/regex/fuzzy-match resolver (`resolveCommand`) — and it was
+  strictly redundant with the header's own "Search… ⌘K" box a few pixels above it on the same page, which opens
+  the global ⌘K palette: a superset of the Command Bar's own suggestions (⌘K calls the same `resolveCommand` and
+  adds people and open-risk search on top). Full real estate recovered on the Control Tower; ⌘K itself is
+  unchanged and does everything the bar did, plus more.
+
+---
+
 ## [1.52.0] — 2026-10-04
 
 _Type-to-Filter Engagement Picker._

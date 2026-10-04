@@ -18,11 +18,11 @@
  *
  * Tracks (persona-filtered subsequences of the one master script, in
  * script order — never a rewrite):
- *   - 'Executive'   — board-level: portfolio, command bar, scoped
- *                     visibility, the Executive Hub (board briefing +
- *                     per-engagement decks, merged with the former
- *                     standalone SteerCo Briefing in v1.51.0), plus the
- *                     one tenant-isolation beat.
+ *   - 'Executive'   — board-level: portfolio, scoped visibility, the
+ *                     Executive Hub (board briefing + per-engagement
+ *                     decks, merged with the former standalone SteerCo
+ *                     Briefing in v1.51.0), plus the one tenant-isolation
+ *                     beat.
  *   - 'Admin'       — the delivery-leader / ops walkthrough end to end,
  *                     including the Persona Preview banner and the full
  *                     Security & Trust segment.
@@ -96,21 +96,6 @@ export const DEMO_SCRIPT: readonly DemoStep[] = [
     highlightSelector: '#global-header',
     caption:
       'Welcome to PS Delivery OS — PS-DOS — the delivery operating system built for professional services firms. This is the PS Control Tower: every engagement, rolled up into one live view.',
-  },
-  {
-    // Was a standalone Command Center page (/command); that route is
-    // retired (Sidebar Flattening & Control Tower Merge) and its
-    // natural-language Command Bar now lives pinned above the Control
-    // Tower's own tabs — this beat holds on the same /portfolio route the
-    // 'welcome' beat just landed on (no redundant navigation) and shifts
-    // the spotlight to the bar itself.
-    id: 'command-bar',
-    route: '/portfolio',
-    durationMs: 10000, // 26 words at ~156 wpm
-    act: 'Introduction',
-    personas: ['Executive', 'Admin'],
-    caption:
-      'A natural-language command bar sits right on the Control Tower — type "financials for Contoso" and it just takes you there.',
   },
   {
     id: 'scoped-practice-view',

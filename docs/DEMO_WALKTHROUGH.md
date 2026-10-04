@@ -42,16 +42,12 @@ content lives now.
 This is where everyone lands, always — the sidebar's first item, and
 where `/` and every role's default landing route both forward to.
 
-1. **Point out the Command Bar**, pinned above the tabs. Type
-   `financials for Global ERP` and hit Enter — it's a live, natural-
-   language jump, not a static shortcut list. Come back to `/portfolio`
-   afterward.
-2. **Overview tab** (the default) — the whole portfolio, above the fold,
+1. **Overview tab** (the default) — the whole portfolio, above the fold,
    no scrolling: the 4-up KPI strip (engagements in scope, total contract
    value, average baseline margin, high-risk count), the Decision Center
    summary tile, the Blended Billable Utilization card, and — if the
    tenant has any — Program Rollups.
-3. **Decisions tab** — click it, or click straight through the Decision
+2. **Decisions tab** — click it, or click straight through the Decision
    Center summary tile's "View all →". This is the Impact-Aware Decision
    Cards feed: one card per Red or over-budget engagement, each with a
    real Cause/Impact/Owner & Deadline/Required Action narrative and 2-3
@@ -59,7 +55,7 @@ where `/` and every role's default landing route both forward to.
    governance drawer — the guardrail check, the trade-off preview, the
    single-step "Submit for Governance Approval & Execute" action. This is
    the single best "we're not just a dashboard" moment in the whole demo.
-4. **Engagements tab** — the full project registry.
+3. **Engagements tab** — the full project registry.
    - **Worth showing (v1.43.0):** type `red` into the **PS-DOS IQ** search
      bar above the table — the list narrows instantly, client-side, no
      page reload. Try `raid>2` too. This is a good "it's actually fast,
@@ -71,8 +67,14 @@ where `/` and every role's default landing route both forward to.
      (v1.43.0). Open a second engagement the same way and click between
      the two tabs to show you never lose your place; "PS Control Tower"
      itself stays pinned on the left as the way back.
-5. **Activity tab** — recent governance actions, for when someone asks
+4. **Activity tab** — recent governance actions, for when someone asks
    "how do I know what changed since last week."
+5. **If someone asks about search or "jump to" navigation**, it's the
+   header's **Search… ⌘K** box (or the ⌘K shortcut itself) — fuzzy
+   matching over destinations, engagements, people, and open risks. (A
+   dedicated Command Bar lived pinned above these tabs through v1.52.0;
+   it was removed as strictly redundant with this same box, which already
+   does everything it did and more.)
 
 ---
 

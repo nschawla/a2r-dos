@@ -394,21 +394,25 @@ product read-only and cannot touch the operator console or tenant admin.
 
 ## 4. Module runbooks
 
-### UAT-4.1 · Command Bar (on the PS Control Tower, `/portfolio`)
+### UAT-4.1 · Command Center retirement + universal search (on the PS Control Tower, `/portfolio`)
 
 `/command` is retired as a standalone page (Sidebar Flattening & Control
 Tower Merge, v1.29.0) — it now permanently redirects to `/portfolio`. Its
-Command Bar moved there too, pinned above the module tabs; its Pulse strip
-and Active Stream feed were retired outright (superseded by the Overview
-and Activity tabs). Sign in as `admin@a2rventures-demo.test`.
+Pulse strip and Active Stream feed were retired outright (superseded by
+the Overview and Activity tabs); its Decision Cards feed now lives on the
+Decisions tab (UAT-4.2). Its third capability, a dedicated Command Bar
+pinned above the tabs, was itself removed in v1.53.0 — plain keyword/
+regex/fuzzy matching, not AI, and strictly redundant with the header's
+own search box one scroll up from where it used to sit. Sign in as
+`admin@a2rventures-demo.test`.
 
 | # | Check | Expected | ✅/❌ |
 | --- | --- | --- | --- |
 | 1 | Navigate directly to `/command` | Redirects to `/portfolio` — no error page, no 404 | |
-| 2 | On `/portfolio`, look above the tab pills | The Command Bar (`› Navigate or run a command…`) is visible, regardless of which tab is active | |
-| 3 | **Command Bar** — type `raid` | Top suggestion "RAID Cockpit"; **Enter** navigates to `/raid` | |
-| 4 | Command Bar — type `financials for Global ERP` | Suggestion "Financial Realization — Global ERP Modernization"; Enter opens `/financials/<id>` | |
-| 5 | Command Bar — type `search` then Enter | The ⌘K palette opens | |
+| 2 | On `/portfolio`, look above the tab pills | No Command Bar — the tabs sit directly under the page heading now | |
+| 3 | Click the header's **Search projects, people, RAID…** box | The ⌘K palette opens | |
+| 4 | In the palette, type `raid` | Top suggestion "RAID Cockpit"; **Enter** navigates to `/raid` | |
+| 5 | In the palette, type `financials for Global ERP` | Suggestion "Financial Realization · Global ERP Modernization"; Enter opens `/financials/<id>` | |
 
 ### UAT-4.2 · PS Control Tower (`/portfolio`)
 
@@ -419,7 +423,7 @@ and Activity tabs). Sign in as `admin@a2rventures-demo.test`.
 | 3 | **Overview** tab, Row 2 (Financial Scale & Backlog) | One wide card: Total Contract Value headline, with Actuals to Date / Forecast at Completion / Unscheduled Backlog (USB) as highlighted sub-figures — USB in warning tone when > $0 | |
 | 4 | **Overview** tab, Row 3 (Action & Risk) | Decision Center summary tile + High-Risk (Red) Projects stat card, side by side | |
 | 5 | **Overview** tab, Row 4 (Performance & Health) | Avg. Baseline Margin + Blended Billable Utilization (linking to `/capacity`), side by side | |
-| 6 | **Decisions** tab | Full Impact-Aware Decision Cards feed (same content as UAT-4.1's old Decision Cards check) | |
+| 6 | **Decisions** tab | Full Impact-Aware Decision Cards feed — the retired Command Center's one surviving capability (UAT-4.1) | |
 | 7 | **Engagements** tab | "Active Projects" table (6 rows), each "Open →" deep-links to `/commercial-baseline/<id>`; "Register a New Engagement" form below | |
 | 8 | **Activity** tab | Recent governance/activity list | |
 | 9 | Deep-link `/portfolio?v=decisions` in a fresh tab | Loads straight into the Decisions tab | |
